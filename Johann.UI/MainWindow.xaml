@@ -261,9 +261,18 @@
         </Grid>
 
         <!-- Status bar -->
-        <Border Grid.Row="1" Background="#F5F5F5" Padding="12,4"
+        <Border Grid.Row="1" Background="#F5F5F5" Padding="8,4"
                 BorderThickness="0,1,0,0" BorderBrush="#E0E0E0">
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="#C0392B" FontSize="12"/>
+            <DockPanel>
+                <Button DockPanel.Dock="Right"
+                        Content="⚙"
+                        Command="{Binding OpenSettingsCommand}"
+                        Background="Transparent" BorderThickness="0"
+                        FontSize="15" Padding="6,2" Cursor="Hand"
+                        ToolTip="Einstellungen (Prompts bearbeiten)"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#C0392B"
+                           FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0"/>
+            </DockPanel>
         </Border>
     </Grid>
 </Window>

@@ -57,9 +57,11 @@ public sealed class EntryProcessingService : IEntryProcessor
         var existingEntries = await _repository.GetEntriesForDateAsync(date, ct);
         var seq = existingEntries.Count + 1;
 
+        // Use RemainderText (transcript with type/project tokens stripped) so the
+        // title doesn't start with "Aufgabe Johann …" but with the actual content.
         var title = header.ExplicitTitle
             ?? string.Join(" ",
-                transcription.Transcript
+                header.RemainderText
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries)
                     .Take(5));
 

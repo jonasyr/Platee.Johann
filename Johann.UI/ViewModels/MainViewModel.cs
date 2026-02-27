@@ -13,6 +13,8 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IEnumerable<IEntryRenderer> _renderers;
     private readonly IEntryProcessor _processor;
     private readonly string _outputRoot;
+    private readonly ISettingsRepository _settingsRepo;
+    private readonly SettingsHolder _settingsHolder;
 
     // Left pane — DateItemViewModel wraps DateOnly and provides DisplayText
     public ObservableCollection<DateItemViewModel> AvailableDates { get; } = [];
@@ -29,7 +31,7 @@ public sealed partial class MainViewModel : ObservableObject
     // Right pane
     [ObservableProperty] private EntryDetailViewModel _detail;
 
-    // Status
+    // Status — used for progress messages; IsLoading only for initial data loads
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string _errorMessage = string.Empty;
 
@@ -39,18 +41,21 @@ public sealed partial class MainViewModel : ObservableObject
     public bool CanAddAudio => _processor.CanProcess;
 
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
-                         string outputRoot, IEntryProcessor processor)
+                         string outputRoot, IEntryProcessor processor,
+                         ISettingsRepository settingsRepo, SettingsHolder settingsHolder)
     {
-        _repository = repository;
-        _renderers  = renderers;
-        _outputRoot = outputRoot;
-        _processor  = processor;
-        _detail     = new EntryDetailViewModel(renderers, outputRoot, processor);
+        _repository     = repository;
+        _renderers      = renderers;
+        _outputRoot     = outputRoot;
+        _processor      = processor;
+        _settingsRepo   = settingsRepo;
+        _settingsHolder = settingsHolder;
+        _detail         = new EntryDetailViewModel(renderers, outputRoot, processor);
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
-        IsLoading = true;
+        IsLoading    = true;
         ErrorMessage = string.Empty;
         try
         {
@@ -109,10 +114,11 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    // ── Commands ──────────────────────────────────────────────────────────────
+
     [RelayCommand]
     private async Task AddEntry()
     {
-        // Determine next sequence number for today
         var today        = DateOnly.FromDateTime(DateTime.Today);
         var todayEntries = await _repository.GetEntriesForDateAsync(today);
         var nextSeq      = todayEntries.Count + 1;
@@ -127,9 +133,25 @@ public sealed partial class MainViewModel : ObservableObject
             return;
 
         var entry = dialogVm.CreatedEntry;
+
+        // Persist first so the entry is visible even if AI fails
         await _repository.SaveAsync(entry);
 
-        // Refresh: add date if new, then select entry
+        // If AI is available and the user entered content, auto-generate summaries
+        if (_processor.CanProcess && !string.IsNullOrWhiteSpace(entry.Transcript))
+        {
+            try
+            {
+                ErrorMessage = "Generiere KI-Zusammenfassungen…";
+                entry        = await _processor.ReprocessAsync(entry);
+                ErrorMessage = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"KI-Fehler: {ex.Message}";
+            }
+        }
+
         RefreshAfterEntry(entry);
     }
 
@@ -154,44 +176,48 @@ public sealed partial class MainViewModel : ObservableObject
         var files = dialog.FileNames;
         var today = DateOnly.FromDateTime(DateTime.Today);
 
-        IsLoading    = true;
+        // No IsLoading here — keeps UI accessible; progress shown in status bar
         ErrorMessage = string.Empty;
 
-        try
+        for (int i = 0; i < files.Length; i++)
         {
-            for (int i = 0; i < files.Length; i++)
+            var filePath  = files[i];
+            var fileLabel = Path.GetFileName(filePath);
+            var prefix    = files.Length > 1 ? $"[{i + 1}/{files.Length}] " : string.Empty;
+
+            var progress = new Progress<ProcessingProgress>(p =>
+                ErrorMessage = $"{prefix}{fileLabel}: {p.Stage} ({p.StepIndex}/{p.TotalSteps})");
+
+            try
             {
-                var filePath  = files[i];
-                var fileLabel = Path.GetFileName(filePath);
-                var prefix    = files.Length > 1 ? $"[{i + 1}/{files.Length}] " : string.Empty;
-
-                var progress = new Progress<ProcessingProgress>(p =>
-                    ErrorMessage = $"{prefix}{fileLabel}: {p.Stage} ({p.StepIndex}/{p.TotalSteps})");
-
-                try
-                {
-                    var entry = await _processor.ProcessAudioAsync(filePath, today, progress);
-                    RefreshAfterEntry(entry);
-                }
-                catch (Exception ex)
-                {
-                    // Non-fatal: log per-file error and continue with remaining files
-                    ErrorMessage = $"{prefix}{fileLabel}: Fehler – {ex.Message}";
-                }
+                var entry = await _processor.ProcessAudioAsync(filePath, today, progress);
+                RefreshAfterEntry(entry);
             }
+            catch (Exception ex)
+            {
+                // Non-fatal: log per-file error, continue with remaining files
+                ErrorMessage = $"{prefix}{fileLabel}: Fehler – {ex.Message}";
+            }
+        }
 
-            if (files.Length > 1)
-                ErrorMessage = $"{files.Length} Dateien verarbeitet.";
-            else if (string.IsNullOrEmpty(ErrorMessage))
-                ErrorMessage = string.Empty;
-        }
-        finally
-        {
-            IsLoading = false;
-        }
+        if (files.Length > 1 && string.IsNullOrEmpty(ErrorMessage))
+            ErrorMessage = $"{files.Length} Dateien verarbeitet.";
+        else if (files.Length == 1 && string.IsNullOrEmpty(ErrorMessage))
+            ErrorMessage = string.Empty;
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        var settingsVm = new SettingsViewModel(_settingsRepo, _settingsHolder);
+        var window     = new SettingsView(settingsVm)
+        {
+            Owner = System.Windows.Application.Current.MainWindow
+        };
+        window.Show(); // non-modal — user can keep working
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Inserts/selects the date and entry row in the UI after a new entry is created.
@@ -204,16 +230,12 @@ public sealed partial class MainViewModel : ObservableObject
         if (existing is null)
         {
             var newDateItem = new DateItemViewModel(entryDate);
-            // Insert in descending order
-            var insertAt = AvailableDates
-                .TakeWhile(d => d.Date > entryDate)
-                .Count();
+            var insertAt    = AvailableDates.TakeWhile(d => d.Date > entryDate).Count();
             AvailableDates.Insert(insertAt, newDateItem);
             SelectedDateItem = newDateItem;
         }
         else if (SelectedDateItem?.Date == entryDate)
         {
-            // Same date already selected — just append the new row
             var rowVm = new EntryRowViewModel(entry);
             Entries.Add(rowVm);
             SelectedEntry = rowVm;

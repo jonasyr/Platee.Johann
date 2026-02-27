@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using Johann.Application.Processing;
+using Johann.Application.Settings;
 using Johann.Domain.Parsing;
 using Johann.Infrastructure.Json;
 using Johann.Infrastructure.Llm;
@@ -38,6 +39,15 @@ public partial class App : System.Windows.Application
             ? e.Args[0]
             : ResolveDefaultOutputRoot();
 
+        // ── Settings ──────────────────────────────────────────────────────────
+        var settingsDir  = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann");
+        ISettingsRepository settingsRepo = new JsonSettingsRepository(settingsDir);
+
+        // Load settings synchronously at startup (small file, safe)
+        var initialSettings  = settingsRepo.LoadAsync().GetAwaiter().GetResult();
+        var settingsHolder   = new SettingsHolder(initialSettings);
+
         // ── Manual DI ─────────────────────────────────────────────────────────
         IEntryRepository repository = new JsonRepository(outputRoot);
 
@@ -59,12 +69,13 @@ public partial class App : System.Windows.Application
             ? new WhisperTranscriber(apiKey)
             : new NoOpAudioTranscriber();
 
-        var summaryGenerator = new SummaryGenerator(llmProvider);
+        var summaryGenerator = new SummaryGenerator(llmProvider, settingsHolder);
         IEntryProcessor processor = new EntryProcessingService(
             transcriber, summaryGenerator, new HeaderParser(), repository, outputRoot);
 
         // ── Window ────────────────────────────────────────────────────────────
-        var viewModel  = new MainViewModel(repository, renderers, outputRoot, processor);
+        var viewModel  = new MainViewModel(repository, renderers, outputRoot, processor,
+                                           settingsRepo, settingsHolder);
         var mainWindow = new MainWindow(viewModel);
         mainWindow.Show();
     }
