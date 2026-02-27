@@ -1,4 +1,14 @@
+# Build folders
 bin/
 obj/
+
+# User-specific
 *.user
+*.suo
+
+# Visual Studio
 .vs/
+
+# OS
+.DS_Store
+Thumbs.db
