@@ -61,7 +61,7 @@ public partial class App : System.Windows.Application
 
         var summaryGenerator = new SummaryGenerator(llmProvider);
         IEntryProcessor processor = new EntryProcessingService(
-            transcriber, summaryGenerator, new HeaderParser(), repository);
+            transcriber, summaryGenerator, new HeaderParser(), repository, outputRoot);
 
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel  = new MainViewModel(repository, renderers, outputRoot, processor);
@@ -71,8 +71,11 @@ public partial class App : System.Windows.Application
 
     private static string ResolveDefaultOutputRoot()
     {
-        var exeDir    = AppDomain.CurrentDomain.BaseDirectory;
-        var candidate = Path.GetFullPath(Path.Combine(exeDir, "..", "..", "..", "..", "..", "output"));
-        return Directory.Exists(candidate) ? candidate : Path.Combine(exeDir, "output");
+        // Default: Documents\Johann\output — independent of the Python project location
+        var path = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Johann", "output");
+        Directory.CreateDirectory(path);
+        return path;
     }
 }

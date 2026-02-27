@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Johann.UI.Views;
@@ -129,6 +130,74 @@ public sealed partial class MainViewModel : ObservableObject
         await _repository.SaveAsync(entry);
 
         // Refresh: add date if new, then select entry
+        RefreshAfterEntry(entry);
+    }
+
+    [RelayCommand]
+    private async Task AddAudio()
+    {
+        if (!_processor.CanProcess)
+        {
+            ErrorMessage = "Kein OpenAI API-Key konfiguriert. OPENAI_API_KEY setzen oder .env Datei erstellen.";
+            return;
+        }
+
+        var dialog = new OpenFileDialog
+        {
+            Filter      = "MP3-Dateien|*.mp3|Alle Audiodateien|*.mp3;*.m4a;*.wav|Alle Dateien|*.*",
+            Title       = "MP3-Dateien für Transkription auswählen",
+            Multiselect = true,
+        };
+
+        if (dialog.ShowDialog() != true) return;
+
+        var files = dialog.FileNames;
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        IsLoading    = true;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            for (int i = 0; i < files.Length; i++)
+            {
+                var filePath  = files[i];
+                var fileLabel = Path.GetFileName(filePath);
+                var prefix    = files.Length > 1 ? $"[{i + 1}/{files.Length}] " : string.Empty;
+
+                var progress = new Progress<ProcessingProgress>(p =>
+                    ErrorMessage = $"{prefix}{fileLabel}: {p.Stage} ({p.StepIndex}/{p.TotalSteps})");
+
+                try
+                {
+                    var entry = await _processor.ProcessAudioAsync(filePath, today, progress);
+                    RefreshAfterEntry(entry);
+                }
+                catch (Exception ex)
+                {
+                    // Non-fatal: log per-file error and continue with remaining files
+                    ErrorMessage = $"{prefix}{fileLabel}: Fehler – {ex.Message}";
+                }
+            }
+
+            if (files.Length > 1)
+                ErrorMessage = $"{files.Length} Dateien verarbeitet.";
+            else if (string.IsNullOrEmpty(ErrorMessage))
+                ErrorMessage = string.Empty;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Inserts/selects the date and entry row in the UI after a new entry is created.
+    /// </summary>
+    private void RefreshAfterEntry(Johann.Domain.Entities.Entry entry)
+    {
         var entryDate = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
         var existing  = AvailableDates.FirstOrDefault(d => d.Date == entryDate);
 
@@ -152,70 +221,6 @@ public sealed partial class MainViewModel : ObservableObject
         else
         {
             SelectedDateItem = existing;
-        }
-    }
-
-    [RelayCommand]
-    private async Task AddAudio()
-    {
-        if (!_processor.CanProcess)
-        {
-            ErrorMessage = "Kein OpenAI API-Key konfiguriert. OPENAI_API_KEY setzen oder .env Datei erstellen.";
-            return;
-        }
-
-        var dialog = new OpenFileDialog
-        {
-            Filter = "MP3-Dateien|*.mp3|Alle Audiodateien|*.mp3;*.m4a;*.wav|Alle Dateien|*.*",
-            Title  = "MP3-Datei für Transkription auswählen",
-        };
-
-        if (dialog.ShowDialog() != true) return;
-
-        var filePath = dialog.FileName;
-        var today    = DateOnly.FromDateTime(DateTime.Today);
-
-        IsLoading    = true;
-        ErrorMessage = string.Empty;
-
-        try
-        {
-            var progress = new Progress<ProcessingProgress>(p =>
-                ErrorMessage = $"{p.Stage} ({p.StepIndex}/{p.TotalSteps})");
-
-            var entry = await _processor.ProcessAudioAsync(filePath, today, progress);
-
-            // Refresh list
-            var entryDate = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
-            var existing  = AvailableDates.FirstOrDefault(d => d.Date == entryDate);
-
-            if (existing is null)
-            {
-                var newDateItem = new DateItemViewModel(entryDate);
-                var insertAt    = AvailableDates.TakeWhile(d => d.Date > entryDate).Count();
-                AvailableDates.Insert(insertAt, newDateItem);
-                SelectedDateItem = newDateItem;
-            }
-            else if (SelectedDateItem?.Date == entryDate)
-            {
-                var rowVm = new EntryRowViewModel(entry);
-                Entries.Add(rowVm);
-                SelectedEntry = rowVm;
-            }
-            else
-            {
-                SelectedDateItem = existing;
-            }
-
-            ErrorMessage = string.Empty;
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Fehler bei MP3-Verarbeitung: {ex.Message}";
-        }
-        finally
-        {
-            IsLoading = false;
         }
     }
 }

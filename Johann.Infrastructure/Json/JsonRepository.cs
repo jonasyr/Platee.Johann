@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Johann.Application.Interfaces;
 using Johann.Domain.Entities;
+using Johann.Domain.Services;
 
 namespace Johann.Infrastructure.Json;
 
@@ -93,9 +94,9 @@ public sealed class JsonRepository : IEntryRepository
         var rawDir = GetRawDir(date);
         Directory.CreateDirectory(rawDir);
 
-        var dto = EntryMapper.ToDto(entry);
-        var filename = $"{entry.JobId}_status.json";
-        var path = Path.Combine(rawDir, filename);
+        var dto      = EntryMapper.ToDto(entry);
+        var filename = FilenameBuilder.Build(entry) + "_status.json";
+        var path     = Path.Combine(rawDir, filename);
 
         await using var stream = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None);
         await JsonSerializer.SerializeAsync(stream, dto, WriteOptions, ct);
