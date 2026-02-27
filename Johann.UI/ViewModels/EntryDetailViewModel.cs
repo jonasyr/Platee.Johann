@@ -8,6 +8,7 @@ namespace Johann.UI.ViewModels;
 public sealed partial class EntryDetailViewModel : ObservableObject
 {
     private readonly IEnumerable<IEntryRenderer> _renderers;
+    private readonly IEntryProcessor? _processor;
     private readonly string _outputRoot;
 
     [ObservableProperty] private Entry? _entry;
@@ -15,32 +16,35 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     [ObservableProperty] private string _statusMessage = string.Empty;
 
     // Display helpers — show "—" for null fields
-    public string DisplayAbstract       => Entry?.Abstract       ?? "—";
-    public string DisplayLongSummary    => Entry?.LongSummary    ?? "—";
-    public string DisplayProseSummary   => Entry?.ProseSummary   ?? "—";
-    public string DisplayTranscript     => Entry?.Transcript      ?? "—";
-    public string DisplayConversationNote => Entry?.ConversationNote ?? "—";
-    public string DisplayTaskList       => Entry?.TaskList        ?? "—";
-    public string DisplayTypeBadge      => Entry?.Type.ToString() ?? string.Empty;
-    public string DisplayProject        => Entry?.ProjectName     ?? string.Empty;
-    public string DisplayTitle          => Entry?.Title           ?? string.Empty;
-    public string DisplayDuration       => Entry is null ? string.Empty : FormatDuration(Entry.DurationSeconds);
-    public string DisplayDate           => Entry?.CreatedAt.ToString("dd.MM.yyyy") ?? string.Empty;
+    public string DisplayAbstract         => Entry?.Abstract         ?? "—";
+    public string DisplayLongSummary      => Entry?.LongSummary      ?? "—";
+    public string DisplayProseSummary     => Entry?.ProseSummary     ?? "—";
+    public string DisplayTranscript       => Entry?.Transcript        ?? "—";
+    public string DisplayConversationNote => Entry?.ConversationNote  ?? "—";
+    public string DisplayTaskList         => Entry?.TaskList          ?? "—";
+    public string DisplayTypeBadge        => Entry?.Type.ToString()   ?? string.Empty;
+    public string DisplayProject          => Entry?.ProjectName       ?? string.Empty;
+    public string DisplayTitle            => Entry?.Title             ?? string.Empty;
+    public string DisplayDuration         => Entry is null ? string.Empty : FormatDuration(Entry.DurationSeconds);
+    public string DisplayDate             => Entry?.CreatedAt.ToString("dd.MM.yyyy") ?? string.Empty;
 
-    public bool HasEntry   => Entry is not null;
-    public bool HasNoEntry => Entry is null;
-    public bool IsAudio    => Entry?.SourceType == "audio";
+    public bool HasEntry    => Entry is not null;
+    public bool HasNoEntry  => Entry is null;
+    public bool IsAudio     => Entry?.SourceType == "audio";
+    public bool CanReprocess => Entry is not null && _processor is not null;
 
-    public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers, string outputRoot)
+    public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers, string outputRoot,
+                                IEntryProcessor? processor = null)
     {
         _renderers  = renderers;
         _outputRoot = outputRoot;
+        _processor  = processor;
     }
 
     partial void OnEntryChanged(Entry? value)
     {
         IsTranscriptExpanded = false;
-        StatusMessage = string.Empty;
+        StatusMessage        = string.Empty;
         OnPropertyChanged(nameof(DisplayAbstract));
         OnPropertyChanged(nameof(DisplayLongSummary));
         OnPropertyChanged(nameof(DisplayProseSummary));
@@ -55,10 +59,12 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         OnPropertyChanged(nameof(HasEntry));
         OnPropertyChanged(nameof(HasNoEntry));
         OnPropertyChanged(nameof(IsAudio));
+        OnPropertyChanged(nameof(CanReprocess));
         GeneratePdfCommand.NotifyCanExecuteChanged();
         GenerateHtmlCommand.NotifyCanExecuteChanged();
         GenerateEmailCommand.NotifyCanExecuteChanged();
         CopyCommand.NotifyCanExecuteChanged();
+        ReprocessCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(HasEntry))]
@@ -89,6 +95,28 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         var text = $"{Entry.Title}\n\n{Entry.Abstract}\n\n{Entry.LongSummary}";
         System.Windows.Clipboard.SetText(text);
         StatusMessage = "Kopiert!";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanReprocess))]
+    private async Task ReprocessAsync(CancellationToken ct)
+    {
+        if (Entry is null || _processor is null) return;
+
+        try
+        {
+            StatusMessage = "Verarbeite…";
+
+            var progress = new Progress<ProcessingProgress>(p =>
+                StatusMessage = $"{p.Stage} ({p.StepIndex}/{p.TotalSteps})");
+
+            var updated = await _processor.ReprocessAsync(Entry, progress, ct);
+            Entry         = updated;
+            StatusMessage = "Verarbeitung abgeschlossen!";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Fehler: {ex.Message}";
+        }
     }
 
     private async Task RenderAsync(string rendererName, CancellationToken ct)

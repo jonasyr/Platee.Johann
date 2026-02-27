@@ -14,3 +14,4 @@ obj/
 Thumbs.db
 
 _publish
+.env

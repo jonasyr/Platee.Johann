@@ -1,6 +1,9 @@
 using System.IO;
 using System.Windows;
+using Johann.Application.Processing;
+using Johann.Domain.Parsing;
 using Johann.Infrastructure.Json;
+using Johann.Infrastructure.Llm;
 using Johann.Infrastructure.Renderers;
 using Johann.UI.ViewModels;
 
@@ -35,16 +38,33 @@ public partial class App : System.Windows.Application
             ? e.Args[0]
             : ResolveDefaultOutputRoot();
 
-        // Manual DI
+        // ── Manual DI ─────────────────────────────────────────────────────────
         IEntryRepository repository = new JsonRepository(outputRoot);
-        IEntryRenderer[] renderers  =
+
+        IEntryRenderer[] renderers =
         [
             new PdfRenderer(),
             new HtmlRenderer(),
             new EmailRenderer(),
         ];
 
-        var viewModel  = new MainViewModel(repository, renderers, outputRoot);
+        // OpenAI providers — fall back to NoOp if no API key is configured
+        var apiKey = ApiKeyProvider.TryGetOpenAiKey();
+
+        ILlmProvider llmProvider = apiKey is not null
+            ? new OpenAiLlmProvider(apiKey)
+            : new NoOpLlmProvider();
+
+        IAudioTranscriber transcriber = apiKey is not null
+            ? new WhisperTranscriber(apiKey)
+            : new NoOpAudioTranscriber();
+
+        var summaryGenerator = new SummaryGenerator(llmProvider);
+        IEntryProcessor processor = new EntryProcessingService(
+            transcriber, summaryGenerator, new HeaderParser(), repository);
+
+        // ── Window ────────────────────────────────────────────────────────────
+        var viewModel  = new MainViewModel(repository, renderers, outputRoot, processor);
         var mainWindow = new MainWindow(viewModel);
         mainWindow.Show();
     }

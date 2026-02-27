@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Johann.UI.Views;
+using Microsoft.Win32;
 
 namespace Johann.UI.ViewModels;
 
@@ -9,6 +10,7 @@ public sealed partial class MainViewModel : ObservableObject
 {
     private readonly IEntryRepository _repository;
     private readonly IEnumerable<IEntryRenderer> _renderers;
+    private readonly IEntryProcessor _processor;
     private readonly string _outputRoot;
 
     // Left pane — DateItemViewModel wraps DateOnly and provides DisplayText
@@ -33,13 +35,16 @@ public sealed partial class MainViewModel : ObservableObject
     public string SelectedDateDisplay =>
         SelectedDateItem?.DisplayText ?? "Kein Datum gewählt";
 
+    public bool CanAddAudio => _processor.CanProcess;
+
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
-                         string outputRoot)
+                         string outputRoot, IEntryProcessor processor)
     {
         _repository = repository;
         _renderers  = renderers;
         _outputRoot = outputRoot;
-        _detail     = new EntryDetailViewModel(renderers, outputRoot);
+        _processor  = processor;
+        _detail     = new EntryDetailViewModel(renderers, outputRoot, processor);
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)
@@ -107,9 +112,9 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task AddEntry()
     {
         // Determine next sequence number for today
-        var today   = DateOnly.FromDateTime(DateTime.Today);
+        var today        = DateOnly.FromDateTime(DateTime.Today);
         var todayEntries = await _repository.GetEntriesForDateAsync(today);
-        var nextSeq = todayEntries.Count + 1;
+        var nextSeq      = todayEntries.Count + 1;
 
         var dialogVm = new NewEntryViewModel(nextSeq);
         var dialog   = new NewEntryView(dialogVm)
@@ -147,6 +152,70 @@ public sealed partial class MainViewModel : ObservableObject
         else
         {
             SelectedDateItem = existing;
+        }
+    }
+
+    [RelayCommand]
+    private async Task AddAudio()
+    {
+        if (!_processor.CanProcess)
+        {
+            ErrorMessage = "Kein OpenAI API-Key konfiguriert. OPENAI_API_KEY setzen oder .env Datei erstellen.";
+            return;
+        }
+
+        var dialog = new OpenFileDialog
+        {
+            Filter = "MP3-Dateien|*.mp3|Alle Audiodateien|*.mp3;*.m4a;*.wav|Alle Dateien|*.*",
+            Title  = "MP3-Datei für Transkription auswählen",
+        };
+
+        if (dialog.ShowDialog() != true) return;
+
+        var filePath = dialog.FileName;
+        var today    = DateOnly.FromDateTime(DateTime.Today);
+
+        IsLoading    = true;
+        ErrorMessage = string.Empty;
+
+        try
+        {
+            var progress = new Progress<ProcessingProgress>(p =>
+                ErrorMessage = $"{p.Stage} ({p.StepIndex}/{p.TotalSteps})");
+
+            var entry = await _processor.ProcessAudioAsync(filePath, today, progress);
+
+            // Refresh list
+            var entryDate = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+            var existing  = AvailableDates.FirstOrDefault(d => d.Date == entryDate);
+
+            if (existing is null)
+            {
+                var newDateItem = new DateItemViewModel(entryDate);
+                var insertAt    = AvailableDates.TakeWhile(d => d.Date > entryDate).Count();
+                AvailableDates.Insert(insertAt, newDateItem);
+                SelectedDateItem = newDateItem;
+            }
+            else if (SelectedDateItem?.Date == entryDate)
+            {
+                var rowVm = new EntryRowViewModel(entry);
+                Entries.Add(rowVm);
+                SelectedEntry = rowVm;
+            }
+            else
+            {
+                SelectedDateItem = existing;
+            }
+
+            ErrorMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Fehler bei MP3-Verarbeitung: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 }
