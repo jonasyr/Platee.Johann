@@ -1,0 +1,233 @@
+<Window x:Class="Johann.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Johann.UI.ViewModels"
+        xmlns:conv="clr-namespace:Johann.UI.Converters"
+        mc:Ignorable="d"
+        Title="Johann" Height="700" Width="1200"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <!-- Type badge colors -->
+        <Style x:Key="TypeBadgeStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Background" Value="#E63123"/>
+        </Style>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#666"/>
+            <Setter Property="Margin" Value="0,12,0,4"/>
+        </Style>
+        <Style x:Key="ContentTextStyle" TargetType="TextBox">
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <conv:NullToVisibilityConverter x:Key="NullToVis"/>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Loading overlay -->
+        <Grid Grid.RowSpan="2" Panel.ZIndex="10"
+              Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+            <Rectangle Fill="#80FFFFFF"/>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Lade…" FontSize="16" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 3-pane layout -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="160" MinWidth="120"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="280" MinWidth="200"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- === LEFT: Date list === -->
+            <DockPanel Grid.Column="0" Background="#FAFAFA">
+                <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
+                    <TextBlock Text="Datum" Foreground="White" FontWeight="SemiBold"/>
+                </Border>
+                <ListBox ItemsSource="{Binding AvailableDates}"
+                         SelectedItem="{Binding SelectedDateItem}"
+                         BorderThickness="0" Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DisplayText}" Padding="12,6"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                          Background="#E0E0E0"/>
+
+            <!-- === CENTER: Entry list === -->
+            <DockPanel Grid.Column="2" Background="White">
+                <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
+                    <TextBlock Text="{Binding SelectedDateDisplay}" Foreground="White" FontWeight="SemiBold"/>
+                </Border>
+                <Border DockPanel.Dock="Bottom" Padding="8" BorderThickness="0,1,0,0"
+                        BorderBrush="#E0E0E0">
+                    <Button Content="+ Neues Element" Command="{Binding AddEntryCommand}"
+                            Style="{StaticResource ActionButtonStyle}" HorizontalAlignment="Left"/>
+                </Border>
+                <ListBox ItemsSource="{Binding Entries}"
+                         SelectedItem="{Binding SelectedEntry}"
+                         BorderThickness="0" Background="Transparent">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="4,2">
+                                <TextBlock Text="{Binding DisplayName}"
+                                           TextTrimming="CharacterEllipsis"
+                                           FontSize="13"/>
+                                <TextBlock Text="{Binding TypeBadge}"
+                                           FontSize="10" Foreground="#888"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
+                          Background="#E0E0E0"/>
+
+            <!-- === RIGHT: Detail view === -->
+            <DockPanel Grid.Column="4" Background="White">
+                <!-- Action toolbar -->
+                <Border DockPanel.Dock="Bottom" Padding="8,6" BorderThickness="0,1,0,0"
+                        BorderBrush="#E0E0E0">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Detail.StatusMessage}"
+                                   VerticalAlignment="Center" Foreground="#666" FontSize="12"
+                                   Margin="8,0"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="HTML"
+                                    Command="{Binding Detail.GenerateHtmlCommand}"
+                                    Style="{StaticResource ActionButtonStyle}"/>
+                            <Button Content="PDF"
+                                    Command="{Binding Detail.GeneratePdfCommand}"
+                                    Style="{StaticResource ActionButtonStyle}"/>
+                            <Button Content="E-Mail"
+                                    Command="{Binding Detail.GenerateEmailCommand}"
+                                    Style="{StaticResource ActionButtonStyle}"/>
+                            <Button Content="Kopieren"
+                                    Command="{Binding Detail.CopyCommand}"
+                                    Style="{StaticResource ActionButtonStyle}"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- Detail content — empty state -->
+                <TextBlock Text="Eintrag auswählen" FontSize="16" Foreground="#AAA"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Visibility="{Binding Detail.HasNoEntry, Converter={StaticResource BoolToVis}}"/>
+
+                <!-- Detail content — filled -->
+                <ScrollViewer Padding="20,16" VerticalScrollBarVisibility="Auto"
+                              Visibility="{Binding Detail.HasEntry, Converter={StaticResource BoolToVis}}">
+                    <StackPanel>
+
+                        <!-- Header: badge + project + title -->
+                        <DockPanel Margin="0,0,0,8">
+                            <Border Style="{StaticResource TypeBadgeStyle}" DockPanel.Dock="Left"
+                                    Margin="0,0,8,0">
+                                <TextBlock Text="{Binding Detail.DisplayTypeBadge}"
+                                           Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                            </Border>
+                            <TextBlock Text="{Binding Detail.DisplayProject}"
+                                       FontSize="13" Foreground="#666" VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                        </DockPanel>
+                        <TextBlock Text="{Binding Detail.DisplayTitle}"
+                                   FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"
+                                   Margin="0,0,0,4"/>
+                        <TextBlock FontSize="12" Foreground="#888" Margin="0,0,0,16">
+                            <Run Text="{Binding Detail.DisplayDate}"/>
+                            <Run Text=" · "/>
+                            <Run Text="{Binding Detail.DisplayDuration}"/>
+                        </TextBlock>
+
+                        <Separator/>
+
+                        <!-- Abstract -->
+                        <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
+                        <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="1"
+                                CornerRadius="4" Padding="12">
+                            <TextBox Text="{Binding Detail.DisplayAbstract}"
+                                     Style="{StaticResource ContentTextStyle}"/>
+                        </Border>
+
+                        <!-- Long Summary -->
+                        <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBox Text="{Binding Detail.DisplayLongSummary}"
+                                 Style="{StaticResource ContentTextStyle}"
+                                 MaxHeight="250" VerticalScrollBarVisibility="Auto"/>
+
+                        <!-- Prose Summary -->
+                        <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBox Text="{Binding Detail.DisplayProseSummary}"
+                                 Style="{StaticResource ContentTextStyle}"
+                                 MaxHeight="200" VerticalScrollBarVisibility="Auto"/>
+
+                        <!-- Task list (Aufgabe only) -->
+                        <StackPanel Visibility="{Binding Detail.Entry.TaskList,
+                                        Converter={StaticResource NullToVis}}">
+                            <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBox Text="{Binding Detail.DisplayTaskList}"
+                                     Style="{StaticResource ContentTextStyle}"/>
+                        </StackPanel>
+
+                        <!-- Conversation note (Gesprächsnotiz only) -->
+                        <StackPanel Visibility="{Binding Detail.Entry.ConversationNote,
+                                        Converter={StaticResource NullToVis}}">
+                            <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBox Text="{Binding Detail.DisplayConversationNote}"
+                                     Style="{StaticResource ContentTextStyle}"/>
+                        </StackPanel>
+
+                        <!-- Transcript (collapsible) -->
+                        <Expander Header="Originaltranskript" Margin="0,12,0,0"
+                                  IsExpanded="{Binding Detail.IsTranscriptExpanded}">
+                            <TextBox Text="{Binding Detail.DisplayTranscript}"
+                                     Style="{StaticResource ContentTextStyle}"
+                                     MaxHeight="200" VerticalScrollBarVisibility="Auto"
+                                     Margin="0,4,0,0"/>
+                        </Expander>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+
+        <!-- Status bar -->
+        <Border Grid.Row="1" Background="#F5F5F5" Padding="12,4"
+                BorderThickness="0,1,0,0" BorderBrush="#E0E0E0">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="#C0392B" FontSize="12"/>
+        </Border>
+    </Grid>
+</Window>

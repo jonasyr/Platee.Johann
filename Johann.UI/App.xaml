@@ -1,0 +1,9 @@
+<Application x:Class="Johann.UI.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Johann.UI"
+             xmlns:conv="clr-namespace:Johann.UI.Converters">
+    <Application.Resources>
+        <conv:NullToVisibilityConverter x:Key="NullToVis"/>
+    </Application.Resources>
+</Application>

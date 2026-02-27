@@ -1,0 +1,15 @@
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\bin\Debug\net10.0\Johann.Application.deps.json
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\bin\Debug\net10.0\Johann.Application.dll
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\bin\Debug\net10.0\Johann.Application.pdb
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\bin\Debug\net10.0\Johann.Domain.dll
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\bin\Debug\net10.0\Johann.Domain.pdb
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\Johann.Application.csproj.AssemblyReference.cache
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\Johann.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\Johann.Application.AssemblyInfoInputs.cache
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\Johann.Application.AssemblyInfo.cs
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\Johann.Application.csproj.CoreCompileInputs.cache
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\Johann.A.3E5BAE99.Up2Date
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\Johann.Application.dll
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\refint\Johann.Application.dll
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\Johann.Application.pdb
+C:\Users\JW\Documents\Code\JohannCS\Johann.Application\obj\Debug\net10.0\ref\Johann.Application.dll

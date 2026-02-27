@@ -1,0 +1,88 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Johann.Infrastructure/1.0.0": {
+        "dependencies": {
+          "Johann.Application": "1.0.0",
+          "Johann.Domain": "1.0.0",
+          "Markdig": "1.0.0",
+          "Scriban": "6.5.3"
+        },
+        "runtime": {
+          "Johann.Infrastructure.dll": {}
+        }
+      },
+      "Markdig/1.0.0": {
+        "runtime": {
+          "lib/net10.0/Markdig.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Scriban/6.5.3": {
+        "runtime": {
+          "lib/net8.0/Scriban.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.5.3.0"
+          }
+        }
+      },
+      "Johann.Application/1.0.0": {
+        "dependencies": {
+          "Johann.Domain": "1.0.0"
+        },
+        "runtime": {
+          "Johann.Application.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Johann.Domain/1.0.0": {
+        "runtime": {
+          "Johann.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Johann.Infrastructure/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Markdig/1.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-RtW04qHeVt5eGYvmndscZwnzCamYF4Opn+C31AQ8ApO+SUnkn093XFK6Xl6zXwNXiwE9NHvLqX5fXA9Ez0vbeA==",
+      "path": "markdig/1.0.0",
+      "hashPath": "markdig.1.0.0.nupkg.sha512"
+    },
+    "Scriban/6.5.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-0WuO/muuPnxn6OKR3cJeTJD/AiACsCz+lOh5k5bfZdZFPKVQ/4TIWd1VSJdiFbr7iyHBLbHpsF0WVWqu67KlUw==",
+      "path": "scriban/6.5.3",
+      "hashPath": "scriban.6.5.3.nupkg.sha512"
+    },
+    "Johann.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Johann.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
