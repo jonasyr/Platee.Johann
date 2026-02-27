@@ -101,21 +101,12 @@ public sealed class JsonRepository : IEntryRepository
         await JsonSerializer.SerializeAsync(stream, dto, WriteOptions, ct);
     }
 
-    private async Task<Entry?> LoadFileAsync(string path, CancellationToken ct)
+    private static async Task<Entry?> LoadFileAsync(string path, CancellationToken ct)
     {
-        try
-        {
-            await using var stream = File.OpenRead(path);
-            var element = await JsonSerializer.DeserializeAsync<JsonElement>(stream, cancellationToken: ct);
-            var dto = JsonMigrator.Migrate(element);
-            return EntryMapper.ToDomain(dto);
-        }
-        catch (Exception ex)
-        {
-            // Log and skip corrupt files rather than crashing
-            System.Diagnostics.Debug.WriteLine($"[JsonRepository] Failed to load {path}: {ex.Message}");
-            return null;
-        }
+        await using var stream = File.OpenRead(path);
+        var element = await JsonSerializer.DeserializeAsync<JsonElement>(stream, cancellationToken: ct);
+        var dto = JsonMigrator.Migrate(element);
+        return EntryMapper.ToDomain(dto);
     }
 
     private string GetRawDir(DateOnly date) =>

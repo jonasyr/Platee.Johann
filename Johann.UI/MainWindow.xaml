@@ -167,9 +167,9 @@
                                    FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"
                                    Margin="0,0,0,4"/>
                         <TextBlock FontSize="12" Foreground="#888" Margin="0,0,0,16">
-                            <Run Text="{Binding Detail.DisplayDate}"/>
+                            <Run Text="{Binding Detail.DisplayDate, Mode=OneWay}"/>
                             <Run Text=" · "/>
-                            <Run Text="{Binding Detail.DisplayDuration}"/>
+                            <Run Text="{Binding Detail.DisplayDuration, Mode=OneWay}"/>
                         </TextBlock>
 
                         <Separator/>
@@ -178,19 +178,19 @@
                         <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
                         <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="1"
                                 CornerRadius="4" Padding="12">
-                            <TextBox Text="{Binding Detail.DisplayAbstract}"
+                            <TextBox Text="{Binding Detail.DisplayAbstract, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"/>
                         </Border>
 
                         <!-- Long Summary -->
                         <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                        <TextBox Text="{Binding Detail.DisplayLongSummary}"
+                        <TextBox Text="{Binding Detail.DisplayLongSummary, Mode=OneWay}"
                                  Style="{StaticResource ContentTextStyle}"
                                  MaxHeight="250" VerticalScrollBarVisibility="Auto"/>
 
                         <!-- Prose Summary -->
                         <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                        <TextBox Text="{Binding Detail.DisplayProseSummary}"
+                        <TextBox Text="{Binding Detail.DisplayProseSummary, Mode=OneWay}"
                                  Style="{StaticResource ContentTextStyle}"
                                  MaxHeight="200" VerticalScrollBarVisibility="Auto"/>
 
@@ -198,7 +198,7 @@
                         <StackPanel Visibility="{Binding Detail.Entry.TaskList,
                                         Converter={StaticResource NullToVis}}">
                             <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
-                            <TextBox Text="{Binding Detail.DisplayTaskList}"
+                            <TextBox Text="{Binding Detail.DisplayTaskList, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"/>
                         </StackPanel>
 
@@ -206,14 +206,14 @@
                         <StackPanel Visibility="{Binding Detail.Entry.ConversationNote,
                                         Converter={StaticResource NullToVis}}">
                             <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
-                            <TextBox Text="{Binding Detail.DisplayConversationNote}"
+                            <TextBox Text="{Binding Detail.DisplayConversationNote, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"/>
                         </StackPanel>
 
                         <!-- Transcript (collapsible) -->
                         <Expander Header="Originaltranskript" Margin="0,12,0,0"
                                   IsExpanded="{Binding Detail.IsTranscriptExpanded}">
-                            <TextBox Text="{Binding Detail.DisplayTranscript}"
+                            <TextBox Text="{Binding Detail.DisplayTranscript, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"
                                      MaxHeight="200" VerticalScrollBarVisibility="Auto"
                                      Margin="0,4,0,0"/>

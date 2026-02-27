@@ -106,4 +106,52 @@ public sealed class JsonMigratorTests
         dto.Title.Should().NotBeNullOrWhiteSpace();
         dto.Title.Should().Contain("erste inhaltliche Zeile");
     }
+
+    // --- Python snake_case field mapping ---
+
+    [Fact]
+    public void Migrate_PythonSnakeCaseJson_MapsAllFieldsCorrectly()
+    {
+        // This is the exact format Python outputs
+        var json = """
+            {
+              "job_id": "2026-02-10_120136_Audio_05_06c8e3",
+              "sequence_number": 3,
+              "source_type": "mp3",
+              "created_at": "2026-02-12T10:26:43+01:00",
+              "duration_seconds": 85.6,
+              "word_count": 115,
+              "project": "Iris",
+              "abstract": "Kurze Zusammenfassung.",
+              "long_summary": "### Hauptpunkte\nDetail A\nDetail B",
+              "prose_summary": "Ausführlicher Fließtext hier.",
+              "email_text": null,
+              "transcript": "Original Transkript Text.",
+              "status": {
+                "transcribed": true,
+                "summarized": true,
+                "pdf_created": true,
+                "archived": false,
+                "email_created": false
+              }
+            }
+            """;
+        var element = JsonDocument.Parse(json).RootElement;
+        var dto = JsonMigrator.Migrate(element);
+
+        dto.JobId.Should().Be("2026-02-10_120136_Audio_05_06c8e3");
+        dto.SequenceNumber.Should().Be(3);
+        dto.SourceType.Should().Be("audio");        // mp3 → audio
+        dto.DurationSeconds.Should().BeApproximately(85.6, 0.01);
+        dto.WordCount.Should().Be(115);
+        dto.ProjectName.Should().Be("Iris");
+        dto.Abstract.Should().Be("Kurze Zusammenfassung.");
+        dto.LongSummary.Should().StartWith("### Hauptpunkte");
+        dto.ProseSummary.Should().Be("Ausführlicher Fließtext hier.");
+        dto.Transcript.Should().Be("Original Transkript Text.");
+        dto.Status.PdfCreated.Should().BeTrue();
+        dto.Status.EmailCreated.Should().BeFalse();
+        dto.Type.Should().Be("Projekt");            // no type field → Projekt
+        dto.SchemaVersion.Should().Be(2);
+    }
 }

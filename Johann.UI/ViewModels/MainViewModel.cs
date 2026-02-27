@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Johann.UI.Views;
 
 namespace Johann.UI.ViewModels;
 
@@ -8,6 +9,7 @@ public sealed partial class MainViewModel : ObservableObject
 {
     private readonly IEntryRepository _repository;
     private readonly IEnumerable<IEntryRenderer> _renderers;
+    private readonly string _outputRoot;
 
     // Left pane — DateItemViewModel wraps DateOnly and provides DisplayText
     public ObservableCollection<DateItemViewModel> AvailableDates { get; } = [];
@@ -31,11 +33,13 @@ public sealed partial class MainViewModel : ObservableObject
     public string SelectedDateDisplay =>
         SelectedDateItem?.DisplayText ?? "Kein Datum gewählt";
 
-    public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers)
+    public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
+                         string outputRoot)
     {
         _repository = repository;
         _renderers  = renderers;
-        _detail     = new EntryDetailViewModel(renderers);
+        _outputRoot = outputRoot;
+        _detail     = new EntryDetailViewModel(renderers, outputRoot);
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)
@@ -100,9 +104,49 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void AddEntry()
+    private async Task AddEntry()
     {
-        // Phase 2: open new-entry dialog
-        ErrorMessage = "Neue Einträge werden in Phase 2 implementiert.";
+        // Determine next sequence number for today
+        var today   = DateOnly.FromDateTime(DateTime.Today);
+        var todayEntries = await _repository.GetEntriesForDateAsync(today);
+        var nextSeq = todayEntries.Count + 1;
+
+        var dialogVm = new NewEntryViewModel(nextSeq);
+        var dialog   = new NewEntryView(dialogVm)
+        {
+            Owner = System.Windows.Application.Current.MainWindow
+        };
+
+        if (dialog.ShowDialog() != true || dialogVm.CreatedEntry is null)
+            return;
+
+        var entry = dialogVm.CreatedEntry;
+        await _repository.SaveAsync(entry);
+
+        // Refresh: add date if new, then select entry
+        var entryDate = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+        var existing  = AvailableDates.FirstOrDefault(d => d.Date == entryDate);
+
+        if (existing is null)
+        {
+            var newDateItem = new DateItemViewModel(entryDate);
+            // Insert in descending order
+            var insertAt = AvailableDates
+                .TakeWhile(d => d.Date > entryDate)
+                .Count();
+            AvailableDates.Insert(insertAt, newDateItem);
+            SelectedDateItem = newDateItem;
+        }
+        else if (SelectedDateItem?.Date == entryDate)
+        {
+            // Same date already selected — just append the new row
+            var rowVm = new EntryRowViewModel(entry);
+            Entries.Add(rowVm);
+            SelectedEntry = rowVm;
+        }
+        else
+        {
+            SelectedDateItem = existing;
+        }
     }
 }

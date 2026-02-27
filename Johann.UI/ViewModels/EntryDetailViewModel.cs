@@ -1,3 +1,4 @@
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Johann.Domain.Entities;
@@ -7,6 +8,7 @@ namespace Johann.UI.ViewModels;
 public sealed partial class EntryDetailViewModel : ObservableObject
 {
     private readonly IEnumerable<IEntryRenderer> _renderers;
+    private readonly string _outputRoot;
 
     [ObservableProperty] private Entry? _entry;
     [ObservableProperty] private bool _isTranscriptExpanded;
@@ -29,9 +31,10 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     public bool HasNoEntry => Entry is null;
     public bool IsAudio    => Entry?.SourceType == "audio";
 
-    public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers)
+    public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers, string outputRoot)
     {
-        _renderers = renderers;
+        _renderers  = renderers;
+        _outputRoot = outputRoot;
     }
 
     partial void OnEntryChanged(Entry? value)
@@ -102,8 +105,21 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         try
         {
             StatusMessage = $"{rendererName} wird erstellt…";
-            var result = await renderer.RenderAsync(Entry!, new RenderOptions(OpenAfterRender: true), ct);
-            StatusMessage = $"{rendererName} gespeichert: {result.SuggestedFilename}";
+
+            // Save into the entry's own date directory inside outputRoot
+            var dateDir = Path.Combine(_outputRoot,
+                Entry!.CreatedAt.ToString("yyyy-MM-dd"));
+            var opts = new RenderOptions(OutputDirectory: dateDir, OpenAfterRender: true);
+
+            var result = await renderer.RenderAsync(Entry!, opts, ct);
+
+            var filePath = Path.Combine(dateDir, result.SuggestedFilename);
+            StatusMessage = $"Gespeichert: {result.SuggestedFilename}";
+
+            // Open the file with the default application
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(filePath)
+                { UseShellExecute = true });
         }
         catch (Exception ex)
         {

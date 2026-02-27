@@ -1,14 +1,32 @@
 using System.IO;
 using System.Windows;
 using Johann.Infrastructure.Json;
+using Johann.Infrastructure.Renderers;
 using Johann.UI.ViewModels;
 
 namespace Johann.UI;
 
 public partial class App : System.Windows.Application
 {
+    private static readonly string CrashLog =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Johann_crash.txt");
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        DispatcherUnhandledException += (_, ex) =>
+        {
+            File.AppendAllText(CrashLog, $"[{DateTime.Now}] DISPATCHER: {ex.Exception}\n\n");
+            ex.Handled = false;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
+        {
+            File.AppendAllText(CrashLog, $"[{DateTime.Now}] UNHANDLED: {ex.ExceptionObject}\n\n");
+        };
+        TaskScheduler.UnobservedTaskException += (_, ex) =>
+        {
+            File.AppendAllText(CrashLog, $"[{DateTime.Now}] TASK: {ex.Exception}\n\n");
+        };
+
         base.OnStartup(e);
 
         // Locate the output directory.
@@ -17,11 +35,16 @@ public partial class App : System.Windows.Application
             ? e.Args[0]
             : ResolveDefaultOutputRoot();
 
-        // Manual DI (Phase 1)
+        // Manual DI
         IEntryRepository repository = new JsonRepository(outputRoot);
-        IEntryRenderer[] renderers  = []; // Phase 2 will populate
+        IEntryRenderer[] renderers  =
+        [
+            new PdfRenderer(),
+            new HtmlRenderer(),
+            new EmailRenderer(),
+        ];
 
-        var viewModel  = new MainViewModel(repository, renderers);
+        var viewModel  = new MainViewModel(repository, renderers, outputRoot);
         var mainWindow = new MainWindow(viewModel);
         mainWindow.Show();
     }
