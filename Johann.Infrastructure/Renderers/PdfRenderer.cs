@@ -240,8 +240,77 @@ public sealed class PdfRenderer : IEntryRenderer
                .Border(1).BorderColor(border)
                .Background(bg)
                .Padding(10)
-               .Text(body).FontSize(10);
+               .Column(inner => RenderMarkdown(inner, body));
         });
+    }
+
+    /// <summary>
+    /// Renders a markdown string into QuestPDF column items.
+    /// Handles ### h3, ## h2, # h1, - bullet lists, blank lines, and plain text.
+    /// </summary>
+    private static void RenderMarkdown(ColumnDescriptor col, string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        var pendingBullets = new List<string>();
+
+        void FlushBullets()
+        {
+            if (pendingBullets.Count == 0) return;
+            foreach (var bullet in pendingBullets)
+            {
+                var captured = bullet;
+                col.Item().Row(row =>
+                {
+                    row.ConstantItem(12).AlignTop()
+                       .Text("•").FontSize(10).FontColor("#555");
+                    row.RelativeItem()
+                       .Text(captured).FontSize(10);
+                });
+            }
+            pendingBullets.Clear();
+        }
+
+        foreach (var rawLine in text.Split('\n'))
+        {
+            var line = rawLine.TrimEnd();
+
+            if (line.StartsWith("### ", StringComparison.Ordinal))
+            {
+                FlushBullets();
+                col.Item().PaddingTop(6)
+                   .Text(line[4..]).SemiBold().FontSize(11).FontColor("#333");
+            }
+            else if (line.StartsWith("## ", StringComparison.Ordinal))
+            {
+                FlushBullets();
+                col.Item().PaddingTop(6)
+                   .Text(line[3..]).SemiBold().FontSize(12).FontColor("#222");
+            }
+            else if (line.StartsWith("# ", StringComparison.Ordinal))
+            {
+                FlushBullets();
+                col.Item().PaddingTop(8)
+                   .Text(line[2..]).Bold().FontSize(13).FontColor("#111");
+            }
+            else if (line.StartsWith("- ", StringComparison.Ordinal) ||
+                     line.StartsWith("* ", StringComparison.Ordinal))
+            {
+                pendingBullets.Add(line[2..]);
+            }
+            else if (string.IsNullOrWhiteSpace(line))
+            {
+                FlushBullets();
+                col.Item().Height(3);
+            }
+            else
+            {
+                FlushBullets();
+                col.Item().Text(line).FontSize(10);
+            }
+        }
+
+        FlushBullets();
     }
 
     private static string FormatDuration(double seconds)

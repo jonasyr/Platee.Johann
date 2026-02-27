@@ -79,7 +79,7 @@ public sealed class HtmlRenderer : IEntryRenderer
         if (!string.IsNullOrWhiteSpace(entry.Transcript))
         {
             sb.AppendLine("<details><summary class=\"transcript-toggle\">Originaltranskript</summary>");
-            AppendSection(sb, null, entry.Transcript!, "section-transcript");
+            AppendSection(sb, null, entry.Transcript!, "section-transcript", isPlainText: true);
             sb.AppendLine("</details>");
         }
 
@@ -87,12 +87,20 @@ public sealed class HtmlRenderer : IEntryRenderer
         return sb.ToString();
     }
 
-    private static void AppendSection(StringBuilder sb, string? title, string body, string cssClass)
+    private static void AppendSection(StringBuilder sb, string? title, string body,
+                                       string cssClass, bool isPlainText = false)
     {
         sb.AppendLine($"<div class=\"section {cssClass}\">");
         if (title != null)
             sb.AppendLine($"  <h2>{HtmlEncode(title)}</h2>");
-        sb.AppendLine($"  <p>{HtmlEncode(body).Replace("\n", "<br>")}</p>");
+
+        if (isPlainText)
+            // Transcript: raw speech, no markdown
+            sb.AppendLine($"  <div class=\"md-content\">{HtmlEncode(body).Replace("\n", "<br>")}</div>");
+        else
+            // All other sections: render as Markdown
+            sb.AppendLine($"  <div class=\"md-content\">{MarkdownHelper.ToHtml(body)}</div>");
+
         sb.AppendLine("</div>");
     }
 
@@ -121,16 +129,25 @@ public sealed class HtmlRenderer : IEntryRenderer
   .section {{ margin-bottom: 20px; }}
   .section h2 {{ font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase;
                   letter-spacing: 0.5px; margin-bottom: 6px; }}
-  .section-abstract p {{ background: #FFF5F4; border: 1px solid #FFDBD8;
-                          border-radius: 4px; padding: 12px; }}
-  .section-task p {{ background: #FFF8F8; border: 1px solid {typeColor};
-                      border-radius: 4px; padding: 12px; white-space: pre-line; }}
-  .section-note p {{ background: #F0F8FF; border: 1px solid #B8D4F0;
-                      border-radius: 4px; padding: 12px; }}
-  .section-summary p, .section-prose p {{ background: #F5F5F5; border: 1px solid #E0E0E0;
-                                           border-radius: 4px; padding: 12px; }}
-  .section-transcript p {{ background: #FAFAFA; border: 1px solid #E8E8E8;
-                            border-radius: 4px; padding: 12px; font-size: 12px; }}
+  .section-abstract .md-content {{ background: #FFF5F4; border: 1px solid #FFDBD8;
+                                    border-radius: 4px; padding: 12px; }}
+  .section-task .md-content {{ background: #FFF8F8; border: 1px solid {typeColor};
+                                border-radius: 4px; padding: 12px; }}
+  .section-note .md-content {{ background: #F0F8FF; border: 1px solid #B8D4F0;
+                                border-radius: 4px; padding: 12px; }}
+  .section-summary .md-content, .section-prose .md-content {{
+      background: #F5F5F5; border: 1px solid #E0E0E0;
+      border-radius: 4px; padding: 12px; }}
+  .section-transcript .md-content {{ background: #FAFAFA; border: 1px solid #E8E8E8;
+                                      border-radius: 4px; padding: 12px; font-size: 12px; }}
+  .md-content h1, .md-content h2 {{ font-size: 14px; font-weight: 600; color: #333;
+                                     margin: 10px 0 4px; }}
+  .md-content h3 {{ font-size: 12px; font-weight: 600; color: #444;
+                    margin: 8px 0 3px; text-transform: none; }}
+  .md-content p {{ margin: 4px 0; }}
+  .md-content ul, .md-content ol {{ margin: 4px 0 4px 20px; padding: 0; }}
+  .md-content li {{ margin: 2px 0; }}
+  .md-content strong {{ font-weight: 600; }}
   .transcript-toggle {{ cursor: pointer; font-size: 13px; color: #666; margin-bottom: 8px; }}
   details summary {{ list-style: none; }}
   details summary::-webkit-details-marker {{ display: none; }}

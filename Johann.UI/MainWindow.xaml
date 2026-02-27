@@ -40,6 +40,7 @@
         </Style>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <conv:NullToVisibilityConverter x:Key="NullToVis"/>
+        <conv:MarkdownFlowDocumentConverter x:Key="MdToDoc"/>
     </Window.Resources>
 
     <Grid>
@@ -182,11 +183,19 @@
                                      Style="{StaticResource ContentTextStyle}"/>
                         </Border>
 
-                        <!-- Long Summary -->
+                        <!-- Long Summary — rendered as Markdown -->
                         <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                        <TextBox Text="{Binding Detail.DisplayLongSummary, Mode=OneWay}"
-                                 Style="{StaticResource ContentTextStyle}"
-                                 MaxHeight="250" VerticalScrollBarVisibility="Auto"/>
+                        <FlowDocumentScrollViewer
+                            Document="{Binding Detail.DisplayLongSummary,
+                                       Converter={StaticResource MdToDoc}}"
+                            MaxHeight="250"
+                            VerticalScrollBarVisibility="Auto"
+                            IsSelectionEnabled="True"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="0"
+                            FontFamily="Segoe UI, Arial"
+                            FontSize="13"/>
 
                         <!-- Prose Summary -->
                         <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
@@ -194,20 +203,38 @@
                                  Style="{StaticResource ContentTextStyle}"
                                  MaxHeight="200" VerticalScrollBarVisibility="Auto"/>
 
-                        <!-- Task list (Aufgabe only) -->
+                        <!-- Task list (Aufgabe only) — rendered as Markdown -->
                         <StackPanel Visibility="{Binding Detail.Entry.TaskList,
                                         Converter={StaticResource NullToVis}}">
                             <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
-                            <TextBox Text="{Binding Detail.DisplayTaskList, Mode=OneWay}"
-                                     Style="{StaticResource ContentTextStyle}"/>
+                            <FlowDocumentScrollViewer
+                                Document="{Binding Detail.DisplayTaskList,
+                                           Converter={StaticResource MdToDoc}}"
+                                MaxHeight="200"
+                                VerticalScrollBarVisibility="Auto"
+                                IsSelectionEnabled="True"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                FontFamily="Segoe UI, Arial"
+                                FontSize="13"/>
                         </StackPanel>
 
-                        <!-- Conversation note (Gesprächsnotiz only) -->
+                        <!-- Conversation note (Gesprächsnotiz only) — rendered as Markdown -->
                         <StackPanel Visibility="{Binding Detail.Entry.ConversationNote,
                                         Converter={StaticResource NullToVis}}">
                             <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
-                            <TextBox Text="{Binding Detail.DisplayConversationNote, Mode=OneWay}"
-                                     Style="{StaticResource ContentTextStyle}"/>
+                            <FlowDocumentScrollViewer
+                                Document="{Binding Detail.DisplayConversationNote,
+                                           Converter={StaticResource MdToDoc}}"
+                                MaxHeight="200"
+                                VerticalScrollBarVisibility="Auto"
+                                IsSelectionEnabled="True"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                FontFamily="Segoe UI, Arial"
+                                FontSize="13"/>
                         </StackPanel>
 
                         <!-- Transcript (collapsible) -->

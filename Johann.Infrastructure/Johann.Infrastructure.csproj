@@ -6,7 +6,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Markdig" Version="1.0.0" />
+    <PackageReference Include="Markdig" Version="0.38.0" />
     <PackageReference Include="QuestPDF" Version="2026.2.2" />
     <PackageReference Include="Scriban" Version="6.5.3" />
   </ItemGroup>
