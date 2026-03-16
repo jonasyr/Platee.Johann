@@ -241,13 +241,13 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 |---|---|---|
 | ~~1~~ | ~~Deployment/Migration fixen~~ | ✅ Behoben |
 | ~~2~~ | ~~API-Verbindung (JGPT-Schnittstelle) sicherstellen~~ | ✅ Behoben |
-| 3 | Config-Datei korrekt einlesen + Änderungen nach Neustart übernehmen | ☐ |
-| 4 | **Titel-Erkennung** aus Transkript implementieren (Parsing „Titel … Ende") | ☐ |
-| 5 | Quellverzeichnis aus Config lesen + Auto-Start-Verarbeitung | ☐ |
-| 6 | Verzeichnisüberwachung (FileSystemWatcher) für neue MP3s | ☐ |
-| 7 | MP3s nach Verarbeitung aus Quellverzeichnis entfernen | ☐ |
-| 8 | Automatische PDF- und HTML-Erzeugung bei Verarbeitung | ☐ |
-| 9 | `.env`-Datei im Publish-Ordner unterstützen | ☐ |
+| ~~3~~ | ~~Config-Datei korrekt einlesen + Änderungen nach Neustart übernehmen~~ | ✅ Behoben (Laden aller 14 Felder ✅; Speichern der 5 UI-Felder ohne die übrigen zu überschreiben ✅; Felder ohne UI noch nicht editierbar → gehört zu Prio 2) |
+| ~~4~~ | ~~**Titel-Erkennung** aus Transkript implementieren (Parsing „Titel … Ende")~~ | ✅ Behoben (alle 5 Regeln, GPT-Fallback, JSON/PDF/HTML/GUI) |
+| ~~5~~ | ~~Quellverzeichnis aus Config lesen + Auto-Start-Verarbeitung~~ | ✅ Behoben |
+| ~~6~~ | ~~Verzeichnisüberwachung (FileSystemWatcher) für neue MP3s~~ | ✅ Behoben |
+| ~~7~~ | ~~MP3s nach Verarbeitung aus Quellverzeichnis entfernen~~ | ✅ Behoben (verschoben nach Archivverzeichnis) |
+| ~~8~~ | ~~Automatische PDF- und HTML-Erzeugung bei Verarbeitung~~ | ✅ Behoben |
+| ~~9~~ | ~~`.env`-Datei im Publish-Ordner unterstützen~~ | ✅ Behoben |
 
 ### Priorität 2 – Wichtige Features
 
