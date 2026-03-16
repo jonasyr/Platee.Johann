@@ -77,4 +77,15 @@ public sealed class SummaryGenerator
 
         return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(4000), ct);
     }
+
+    public async Task<string> GenerateTitleAsync(string transcript, CancellationToken ct = default)
+    {
+        if (!_llm.IsAvailable || string.IsNullOrWhiteSpace(transcript))
+            return string.Empty;
+
+        var s = _settings.Current;
+        var userContent = "Bitte formuliere einen sehr kurzen, prägnanten Titel (maximal 3-7 Worte) für den folgenden Text. Antworte NUR mit dem Titel, ohne Anführungszeichen oder Erklärungen:\n\n" + transcript;
+
+        return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(50), ct);
+    }
 }

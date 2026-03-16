@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using Johann.Application.Interfaces;
+using Johann.Application.Settings;
 using Johann.Domain.Entities;
 using Johann.Domain.Parsing;
 using Johann.Domain.Services;
@@ -20,6 +21,8 @@ public sealed class EntryProcessingService : IEntryProcessor
     private readonly IEntryRepository       _repository;
     private readonly string                 _outputRoot;
     private readonly IHtmlOverviewService?  _overviewService;
+    private readonly SettingsHolder         _settings;
+    private readonly IEnumerable<IEntryRenderer> _renderers;
 
     public bool CanProcess => _transcriber.IsAvailable;
 
@@ -29,7 +32,9 @@ public sealed class EntryProcessingService : IEntryProcessor
         HeaderParser           parser,
         IEntryRepository       repository,
         string                 outputRoot    = "",
-        IHtmlOverviewService?  overviewService = null)
+        IHtmlOverviewService?  overviewService = null,
+        SettingsHolder?        settings = null,
+        IEnumerable<IEntryRenderer>? renderers = null)
     {
         _transcriber      = transcriber;
         _summaryGenerator = summaryGenerator;
@@ -37,6 +42,8 @@ public sealed class EntryProcessingService : IEntryProcessor
         _repository       = repository;
         _outputRoot       = outputRoot;
         _overviewService  = overviewService;
+        _settings         = settings ?? new SettingsHolder(Settings.AppSettings.Default);
+        _renderers        = renderers ?? Array.Empty<IEntryRenderer>();
     }
 
     /// <summary>
@@ -48,7 +55,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default)
     {
-        const int total = 4;
+        const int total = 5;
 
         // Step 1 – Transcription
         progress?.Report(new("Transkribiere Audio…", 1, total));
@@ -63,11 +70,21 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Use RemainderText (transcript with type/project tokens stripped) so the
         // title doesn't start with "Aufgabe Johann …" but with the actual content.
-        var title = header.ExplicitTitle
-            ?? string.Join(" ",
+        var title = header.ExplicitTitle;
+
+        if (string.IsNullOrWhiteSpace(title) && _summaryGenerator.IsAvailable)
+        {
+            progress?.Report(new("Generiere Titel…", 2, total));
+            title = await _summaryGenerator.GenerateTitleAsync(header.RemainderText, ct);
+        }
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            title = string.Join(" ",
                 header.RemainderText
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries)
                     .Take(5));
+        }
 
         var jobId = BuildJobId(date, seq);
         var now   = DateTime.Now;
@@ -113,10 +130,69 @@ public sealed class EntryProcessingService : IEntryProcessor
                 EmailCreated: false),
         };
 
-        // Step 4 – Persist JSON + archive raw files + regenerate overview
-        progress?.Report(new("Speichern…", 4, total));
+        // Step 4 – Auto-generate HTML/PDF
+        progress?.Report(new("Exportiere Dateien…", 4, total));
+        
+        var pdfCreated = false;
+        var dateFolder = Path.Combine(_outputRoot, date.ToString("yyyy-MM-dd"));
+        var rawFolder = Path.Combine(dateFolder, "_raw");
+        
+        Directory.CreateDirectory(dateFolder);
+        Directory.CreateDirectory(rawFolder);
+
+        foreach (var renderer in _renderers)
+        {
+            try
+            {
+                if (renderer.RendererName == "PDF")
+                {
+                    await renderer.RenderAsync(finalEntry, new RenderOptions(dateFolder, false, true), ct);
+                    pdfCreated = true;
+                }
+                else if (renderer.RendererName == "HTML")
+                {
+                    await renderer.RenderAsync(finalEntry, new RenderOptions(rawFolder, false, true), ct);
+                }
+            }
+            catch
+            {
+                // Fallback / ignore failure
+            }
+        }
+
+        if (pdfCreated)
+        {
+            finalEntry = finalEntry with { Status = finalEntry.Status with { PdfCreated = true } };
+        }
+
+        // Step 5 – Persist JSON + archive raw files + regenerate overview
+        progress?.Report(new("Speichern…", 5, total));
         await _repository.SaveAsync(finalEntry, ct);
         await ArchiveRawFilesAsync(audioFilePath, finalEntry, ct);
+
+        // Move MP3 to configured archive
+        var archiveDir = _settings.Current.Archivverzeichnis;
+        if (!string.IsNullOrWhiteSpace(archiveDir))
+        {
+            try
+            {
+                Directory.CreateDirectory(archiveDir);
+                var destName = Path.GetFileName(audioFilePath);
+                var newPath = Path.Combine(archiveDir, destName);
+                if (File.Exists(newPath))
+                {
+                    newPath = Path.Combine(archiveDir, Path.GetFileNameWithoutExtension(destName) + "_" + Guid.NewGuid().ToString("N")[..6] + Path.GetExtension(destName));
+                }
+                File.Move(audioFilePath, newPath);
+                
+                finalEntry = finalEntry with { Status = finalEntry.Status with { Archived = true } };
+                await _repository.SaveAsync(finalEntry, ct);
+            }
+            catch
+            {
+                // Ignore move failure
+            }
+        }
 
         if (_overviewService is not null)
             await _overviewService.RegenerateAsync(date, ct);

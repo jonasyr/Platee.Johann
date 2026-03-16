@@ -82,4 +82,24 @@ public static class SummaryPrompts
         "- Aktive Sprache, vollständige Sätze\n" +
         "- Professionelles Deutsch\n\n" +
         "Zusammenfassung:\n{prose_summary}";
+
+    public const string Aufgabe = 
+        "Du erhältst ein Transkript eines Sprach-Diktats auf Deutsch.\n" +
+        "Fasse die beschriebene Aufgabe prägnant zusammen, nenne Fristen, Verantwortlichkeiten und die genauen ToDos.\n\n" +
+        "Transkript:\n{transcript}";
+
+    public const string Gespraechsnotiz = 
+        "Du erhältst ein Transkript eines Gesprächs auf Deutsch.\n" +
+        "Erstelle eine strukturierte, kundentaugliche Gesprächsnotiz (Teilnehmer, Themen, Beschlüsse, weiteres Vorgehen).\n\n" +
+        "Transkript:\n{transcript}";
+
+    public const string Stundenzettel = 
+        "Du erhältst ein Transkript eines Sprach-Diktats auf Deutsch.\n" +
+        "Extrahiere die Zeiten und Tätigkeiten, um sie in einen Stundenzettel einzutragen.\n\n" +
+        "Transkript:\n{transcript}";
+
+    public const string Analog = 
+        "Du erhältst ein Transkript eines analogen Eintrags auf Deutsch.\n" +
+        "Fasse den Eintrag treffend zusammen.\n\n" +
+        "Transkript:\n{transcript}";
 }

@@ -15,6 +15,8 @@ public partial class App : System.Windows.Application
     private static readonly string CrashLog =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Johann_crash.txt");
 
+    private AudioWatcherService? _audioWatcher;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         DispatcherUnhandledException += (_, ex) =>
@@ -33,19 +35,45 @@ public partial class App : System.Windows.Application
 
         base.OnStartup(e);
 
-        // Locate the output directory.
-        // Override via first command-line argument: Johann.UI.exe "C:\path\to\output"
-        var outputRoot = e.Args.Length > 0 && Directory.Exists(e.Args[0])
-            ? e.Args[0]
-            : ResolveDefaultOutputRoot();
-
         // ── Settings ──────────────────────────────────────────────────────────
         var settingsDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann");
         ISettingsRepository settingsRepo = new JsonSettingsRepository(settingsDir);
 
-        // Load settings synchronously at startup (small file, safe)
-        var initialSettings = settingsRepo.LoadAsync().GetAwaiter().GetResult();
+        // Load settings synchronously at startup using Task.Run to avoid UI thread deadlocks
+        var initialSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
+
+        // Locate the output directory.
+        // Priority: 1. Ausgabeverzeichnis from Config, 2. CLI Argument, 3. Default fallback
+        if (string.IsNullOrWhiteSpace(initialSettings.Ausgabeverzeichnis))
+        {
+            var newAusgabe = e.Args.Length > 0 && Directory.Exists(e.Args[0]) 
+                ? e.Args[0] 
+                : ResolveDefaultOutputRoot();
+            
+            Directory.CreateDirectory(newAusgabe);
+            initialSettings = initialSettings with { Ausgabeverzeichnis = newAusgabe };
+        }
+
+        if (string.IsNullOrWhiteSpace(initialSettings.Quellverzeichnis))
+        {
+            var newQuell = ResolveDefaultInputRoot();
+            Directory.CreateDirectory(newQuell);
+            initialSettings = initialSettings with { Quellverzeichnis = newQuell };
+        }
+
+        if (string.IsNullOrWhiteSpace(initialSettings.Archivverzeichnis) && !string.IsNullOrWhiteSpace(initialSettings.Quellverzeichnis))
+        {
+            var newArchiv = Path.Combine(initialSettings.Quellverzeichnis, "Archiv");
+            Directory.CreateDirectory(newArchiv);
+            initialSettings = initialSettings with { Archivverzeichnis = newArchiv };
+        }
+
+        var outputRoot = initialSettings.Ausgabeverzeichnis;
+        
+        // Force a save to ensure missing template fields (like directories or new prompts) are written to the JSON
+        Task.Run(() => settingsRepo.SaveAsync(initialSettings)).GetAwaiter().GetResult();
+        
         var settingsHolder  = new SettingsHolder(initialSettings);
 
         // ── Manual DI ─────────────────────────────────────────────────────────
@@ -75,7 +103,10 @@ public partial class App : System.Windows.Application
         var summaryGenerator = new SummaryGenerator(llmProvider, settingsHolder);
         IEntryProcessor processor = new EntryProcessingService(
             transcriber, summaryGenerator, new HeaderParser(), repository,
-            outputRoot, overviewService);
+            outputRoot, overviewService, settingsHolder, renderers);
+
+        _audioWatcher = new AudioWatcherService(processor, settingsHolder);
+        _audioWatcher.Start();
 
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel  = new MainViewModel(repository, renderers, outputRoot, processor,
@@ -92,5 +123,21 @@ public partial class App : System.Windows.Application
             "Johann", "output");
         Directory.CreateDirectory(path);
         return path;
+    }
+
+    private static string ResolveDefaultInputRoot()
+    {
+        // Default: Documents\Johann\Eingang
+        var path = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Johann", "Eingang");
+        Directory.CreateDirectory(path);
+        return path;
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        base.OnExit(e);
+        _audioWatcher?.Dispose();
     }
 }
