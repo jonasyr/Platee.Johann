@@ -37,7 +37,7 @@ public sealed partial class NewEntryViewModel : ObservableObject
     public NewEntryViewModel(int sequenceNumber, DateTimeOffset? createdAt = null)
     {
         _sequenceNumber = sequenceNumber;
-        _createdAt      = createdAt ?? DateTimeOffset.Now;
+        _createdAt = createdAt ?? DateTimeOffset.Now;
     }
 
     private bool CanSave =>
@@ -47,21 +47,21 @@ public sealed partial class NewEntryViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanSave))]
     private void Save()
     {
-        var title   = TitleText.Trim();
+        var title = TitleText.Trim();
         var project = ProjectName.Trim();
-        var jobId   = BuildJobId(_createdAt, _sequenceNumber, project);
+        var jobId = BuildJobId(_createdAt, _sequenceNumber, project);
 
         CreatedEntry = new Entry
         {
-            JobId          = jobId,
+            JobId = jobId,
             SequenceNumber = _sequenceNumber,
-            Type           = SelectedType,
-            ProjectName    = project,
-            Title          = title,
-            CreatedAt      = _createdAt,
-            SourceType     = "text",
-            Status         = ProcessingStatus.Empty,
-            Transcript     = string.IsNullOrWhiteSpace(Content) ? null : Content.Trim(),
+            Type = SelectedType,
+            ProjectName = project,
+            Title = title,
+            CreatedAt = _createdAt,
+            SourceType = "text",
+            Status = ProcessingStatus.Empty,
+            Transcript = string.IsNullOrWhiteSpace(Content) ? null : Content.Trim(),
         };
 
         DialogResult = true;
@@ -75,10 +75,10 @@ public sealed partial class NewEntryViewModel : ObservableObject
 
     private static string BuildJobId(DateTimeOffset dt, int seq, string project)
     {
-        var datePart    = dt.ToString("yyMMdd");
-        var seqPart     = $"{seq:D3}";
+        var datePart = dt.ToString("yyMMdd");
+        var seqPart = $"{seq:D3}";
         var projectPart = SanitizeForId(project);
-        var hash        = Math.Abs(Guid.NewGuid().GetHashCode() & 0xFFFFF).ToString("x5");
+        var hash = Math.Abs(Guid.NewGuid().GetHashCode() & 0xFFFFF).ToString("x5");
         return $"{datePart}_{seqPart}_{projectPart}_{hash}";
     }
 

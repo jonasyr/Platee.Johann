@@ -14,6 +14,8 @@ namespace Johann.Domain.Parsing;
 /// </summary>
 public sealed class HeaderParser
 {
+    private static readonly char[] PunctuationChars = [' ', ',', '.', ':', ';', '!', '?'];
+
     public ParsedHeader Parse(string transcript)
     {
         if (string.IsNullOrWhiteSpace(transcript))
@@ -33,7 +35,7 @@ public sealed class HeaderParser
         string project;
         if (typeIsExplicit && cursor < words.Length)
         {
-            project = words[cursor++];
+            project = words[cursor++].Trim(PunctuationChars);
         }
         else
         {

@@ -16,9 +16,9 @@ public static class WordLimitCalculator
 
         return wordCount switch
         {
-            < 300  => (20, 50),
+            < 300 => (20, 50),
             < 1000 => (50, 150),
-            _      => (150, 300),
+            _ => (150, 300),
         };
     }
 }

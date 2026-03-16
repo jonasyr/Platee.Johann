@@ -10,14 +10,14 @@ public sealed class FilenameBuilderTests
 {
     private static Entry MakeEntry(EntryType type, string project, string title, int seq = 1) => new()
     {
-        JobId          = "test",
+        JobId = "test",
         SequenceNumber = seq,
-        CreatedAt      = new DateTimeOffset(2026, 2, 27, 0, 0, 0, TimeSpan.FromHours(1)),
-        Type           = type,
-        ProjectName    = project,
-        Title          = title,
-        SourceType     = "text",
-        Status         = ProcessingStatus.Empty,
+        CreatedAt = new DateTimeOffset(2026, 2, 27, 0, 0, 0, TimeSpan.FromHours(1)),
+        Type = type,
+        ProjectName = project,
+        Title = title,
+        SourceType = "text",
+        Status = ProcessingStatus.Empty,
     };
 
     [Fact]

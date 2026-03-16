@@ -15,35 +15,35 @@ namespace Johann.Application.Processing;
 /// </summary>
 public sealed class EntryProcessingService : IEntryProcessor
 {
-    private readonly IAudioTranscriber      _transcriber;
-    private readonly SummaryGenerator       _summaryGenerator;
-    private readonly HeaderParser           _parser;
-    private readonly IEntryRepository       _repository;
-    private readonly string                 _outputRoot;
-    private readonly IHtmlOverviewService?  _overviewService;
-    private readonly SettingsHolder         _settings;
+    private readonly IAudioTranscriber _transcriber;
+    private readonly SummaryGenerator _summaryGenerator;
+    private readonly HeaderParser _parser;
+    private readonly IEntryRepository _repository;
+    private readonly string _outputRoot;
+    private readonly IHtmlOverviewService? _overviewService;
+    private readonly SettingsHolder _settings;
     private readonly IEnumerable<IEntryRenderer> _renderers;
 
     public bool CanProcess => _transcriber.IsAvailable;
 
     public EntryProcessingService(
-        IAudioTranscriber      transcriber,
-        SummaryGenerator       summaryGenerator,
-        HeaderParser           parser,
-        IEntryRepository       repository,
-        string                 outputRoot    = "",
-        IHtmlOverviewService?  overviewService = null,
-        SettingsHolder?        settings = null,
+        IAudioTranscriber transcriber,
+        SummaryGenerator summaryGenerator,
+        HeaderParser parser,
+        IEntryRepository repository,
+        string outputRoot = "",
+        IHtmlOverviewService? overviewService = null,
+        SettingsHolder? settings = null,
         IEnumerable<IEntryRenderer>? renderers = null)
     {
-        _transcriber      = transcriber;
+        _transcriber = transcriber;
         _summaryGenerator = summaryGenerator;
-        _parser           = parser;
-        _repository       = repository;
-        _outputRoot       = outputRoot;
-        _overviewService  = overviewService;
-        _settings         = settings ?? new SettingsHolder(Settings.AppSettings.Default);
-        _renderers        = renderers ?? Array.Empty<IEntryRenderer>();
+        _parser = parser;
+        _repository = repository;
+        _outputRoot = outputRoot;
+        _overviewService = overviewService;
+        _settings = settings ?? new SettingsHolder(Settings.AppSettings.Default);
+        _renderers = renderers ?? Array.Empty<IEntryRenderer>();
     }
 
     /// <summary>
@@ -83,33 +83,34 @@ public sealed class EntryProcessingService : IEntryProcessor
             title = string.Join(" ",
                 header.RemainderText
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Take(5));
+                    .Take(5)
+                    .Select(w => w.Trim('.', ',', ':', ';', '!', '?')));
         }
 
         var jobId = BuildJobId(date, seq);
-        var now   = DateTime.Now;
+        var now = DateTime.Now;
         var createdAt = new DateTimeOffset(
             date.Year, date.Month, date.Day, now.Hour, now.Minute, now.Second,
             TimeSpan.FromHours(1));
 
         var baseEntry = new Entry
         {
-            JobId           = jobId,
-            SequenceNumber  = seq,
-            Type            = header.Type,
-            ProjectName     = header.ProjectName,
-            Title           = title,
-            CreatedAt       = createdAt,
-            SourceType      = "audio",
-            Status          = new ProcessingStatus(
-                Transcribed:  true,
-                Summarized:   false,
-                PdfCreated:   false,
-                Archived:     false,
+            JobId = jobId,
+            SequenceNumber = seq,
+            Type = header.Type,
+            ProjectName = header.ProjectName,
+            Title = title,
+            CreatedAt = createdAt,
+            SourceType = "audio",
+            Status = new ProcessingStatus(
+                Transcribed: true,
+                Summarized: false,
+                PdfCreated: false,
+                Archived: false,
                 EmailCreated: false),
-            Transcript      = transcription.Transcript,
+            Transcript = transcription.Transcript,
             DurationSeconds = transcription.DurationSeconds,
-            WordCount       = transcription.WordCount,
+            WordCount = transcription.WordCount,
         };
 
         // Step 3 – Summaries (parallel for speed)
@@ -119,24 +120,24 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         var finalEntry = baseEntry with
         {
-            Abstract     = string.IsNullOrEmpty(abstractText) ? null : abstractText,
-            LongSummary  = string.IsNullOrEmpty(longSummary)  ? null : longSummary,
+            Abstract = string.IsNullOrEmpty(abstractText) ? null : abstractText,
+            LongSummary = string.IsNullOrEmpty(longSummary) ? null : longSummary,
             ProseSummary = string.IsNullOrEmpty(proseSummary) ? null : proseSummary,
-            Status       = new ProcessingStatus(
-                Transcribed:  true,
-                Summarized:   true,
-                PdfCreated:   false,
-                Archived:     false,
+            Status = new ProcessingStatus(
+                Transcribed: true,
+                Summarized: true,
+                PdfCreated: false,
+                Archived: false,
                 EmailCreated: false),
         };
 
         // Step 4 – Auto-generate HTML/PDF
         progress?.Report(new("Exportiere Dateien…", 4, total));
-        
+
         var pdfCreated = false;
         var dateFolder = Path.Combine(_outputRoot, date.ToString("yyyy-MM-dd"));
         var rawFolder = Path.Combine(dateFolder, "_raw");
-        
+
         Directory.CreateDirectory(dateFolder);
         Directory.CreateDirectory(rawFolder);
 
@@ -184,7 +185,7 @@ public sealed class EntryProcessingService : IEntryProcessor
                     newPath = Path.Combine(archiveDir, Path.GetFileNameWithoutExtension(destName) + "_" + Guid.NewGuid().ToString("N")[..6] + Path.GetExtension(destName));
                 }
                 File.Move(audioFilePath, newPath);
-                
+
                 finalEntry = finalEntry with { Status = finalEntry.Status with { Archived = true } };
                 await _repository.SaveAsync(finalEntry, ct);
             }
@@ -221,10 +222,10 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         var updatedEntry = entry with
         {
-            Abstract     = string.IsNullOrEmpty(abstractText) ? entry.Abstract     : abstractText,
-            LongSummary  = string.IsNullOrEmpty(longSummary)  ? entry.LongSummary  : longSummary,
+            Abstract = string.IsNullOrEmpty(abstractText) ? entry.Abstract : abstractText,
+            LongSummary = string.IsNullOrEmpty(longSummary) ? entry.LongSummary : longSummary,
             ProseSummary = string.IsNullOrEmpty(proseSummary) ? entry.ProseSummary : proseSummary,
-            Status       = entry.Status with { Summarized = true },
+            Status = entry.Status with { Summarized = true },
         };
 
         // Step 2 – Persist + regenerate overview
@@ -267,8 +268,8 @@ public sealed class EntryProcessingService : IEntryProcessor
         GenerateSummariesAsync(string transcript, CancellationToken ct)
     {
         var abstractTask = _summaryGenerator.GenerateAbstractAsync(transcript, ct);
-        var longTask     = _summaryGenerator.GenerateLongSummaryAsync(transcript, ct);
-        var proseTask    = _summaryGenerator.GenerateProseSummaryAsync(transcript, ct);
+        var longTask = _summaryGenerator.GenerateLongSummaryAsync(transcript, ct);
+        var proseTask = _summaryGenerator.GenerateProseSummaryAsync(transcript, ct);
 
         await Task.WhenAll(abstractTask, longTask, proseTask);
 
@@ -286,13 +287,13 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         try
         {
-            var date   = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+            var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
             var rawDir = Path.Combine(_outputRoot, date.ToString("yyyy-MM-dd"), "_raw");
             Directory.CreateDirectory(rawDir);
 
             var baseName = FilenameBuilder.Build(entry);
 
-            var audioExt  = Path.GetExtension(sourceAudioPath);
+            var audioExt = Path.GetExtension(sourceAudioPath);
             var audioDest = Path.Combine(rawDir, baseName + audioExt);
             if (!File.Exists(audioDest))
                 File.Copy(sourceAudioPath, audioDest);

@@ -34,8 +34,8 @@ public sealed class WhisperTranscriber : IAudioTranscriber
             stream, Path.GetFileName(audioFilePath), options, ct);
 
         var transcript = response.Value.Text ?? string.Empty;
-        var duration   = response.Value.Duration?.TotalSeconds ?? 0.0;
-        var wordCount  = transcript.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+        var duration = response.Value.Duration?.TotalSeconds ?? 0.0;
+        var wordCount = transcript.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
 
         return new TranscriptionResult(transcript, duration, wordCount);
     }

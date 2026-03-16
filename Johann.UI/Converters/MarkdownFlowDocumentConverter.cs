@@ -26,12 +26,12 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
     {
         var doc = new FlowDocument
         {
-            PagePadding   = new Thickness(0),
-            ColumnWidth   = double.PositiveInfinity,   // no multi-column layout
+            PagePadding = new Thickness(0),
+            ColumnWidth = double.PositiveInfinity,   // no multi-column layout
             TextAlignment = TextAlignment.Left,
-            FontFamily    = new FontFamily("Segoe UI, Arial"),
-            FontSize      = 13,
-            LineHeight    = 19,
+            FontFamily = new FontFamily("Segoe UI, Arial"),
+            FontSize = 13,
+            LineHeight = 19,
         };
 
         if (string.IsNullOrWhiteSpace(markdown))
@@ -45,8 +45,8 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
             var list = new List
             {
                 MarkerStyle = TextMarkerStyle.Disc,
-                Margin      = new Thickness(16, 0, 0, 4),
-                Padding     = new Thickness(4, 0, 0, 0),
+                Margin = new Thickness(16, 0, 0, 4),
+                Padding = new Thickness(4, 0, 0, 0),
             };
             foreach (var item in bulletBuffer)
                 list.ListItems.Add(new ListItem(
@@ -65,9 +65,9 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
                 doc.Blocks.Add(new Paragraph(new Run(line[4..]))
                 {
                     FontWeight = FontWeights.SemiBold,
-                    FontSize   = 13,
+                    FontSize = 13,
                     Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33)),
-                    Margin     = new Thickness(0, 8, 0, 2),
+                    Margin = new Thickness(0, 8, 0, 2),
                 });
             }
             else if (line.StartsWith("## ", StringComparison.Ordinal))
@@ -76,8 +76,8 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
                 doc.Blocks.Add(new Paragraph(new Run(line[3..]))
                 {
                     FontWeight = FontWeights.SemiBold,
-                    FontSize   = 15,
-                    Margin     = new Thickness(0, 10, 0, 2),
+                    FontSize = 15,
+                    Margin = new Thickness(0, 10, 0, 2),
                 });
             }
             else if (line.StartsWith("# ", StringComparison.Ordinal))
@@ -86,8 +86,8 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
                 doc.Blocks.Add(new Paragraph(new Run(line[2..]))
                 {
                     FontWeight = FontWeights.Bold,
-                    FontSize   = 17,
-                    Margin     = new Thickness(0, 12, 0, 4),
+                    FontSize = 17,
+                    Margin = new Thickness(0, 12, 0, 4),
                 });
             }
             else if (line.StartsWith("- ", StringComparison.Ordinal) ||

@@ -14,10 +14,10 @@ public static class FilenameBuilder
 
     public static string Build(Entry entry)
     {
-        var date     = entry.CreatedAt.ToString("yyMMdd");
-        var seq      = $"{entry.SequenceNumber:D3}";
+        var date = entry.CreatedAt.ToString("yyMMdd");
+        var seq = $"{entry.SequenceNumber:D3}";
         var typePart = entry.Type == EntryType.Gesprächsnotiz ? "_Gesprächsnotiz" : string.Empty;
-        var project  = Sanitize(entry.ProjectName);
+        var project = Sanitize(entry.ProjectName);
         var titleWords = entry.Title
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Take(5);

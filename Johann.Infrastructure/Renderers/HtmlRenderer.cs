@@ -23,7 +23,7 @@ public sealed class HtmlRenderer : IEntryRenderer
     public async Task<RenderResult> RenderAsync(Entry entry, RenderOptions options,
                                                  CancellationToken ct = default)
     {
-        var filename  = FilenameBuilder.Build(entry) + ".html";
+        var filename = FilenameBuilder.Build(entry) + ".html";
         var outputDir = options.OutputDirectory
             ?? Path.Combine(Path.GetTempPath(), "JohannHtml");
 
@@ -48,11 +48,11 @@ public sealed class HtmlRenderer : IEntryRenderer
     {
         var typeColor = entry.Type switch
         {
-            Domain.Enums.EntryType.Aufgabe        => "#E63123",
+            Domain.Enums.EntryType.Aufgabe => "#E63123",
             Domain.Enums.EntryType.Gesprächsnotiz => "#2980B9",
-            Domain.Enums.EntryType.EMail          => "#27AE60",
-            Domain.Enums.EntryType.Stundenzettel  => "#8E44AD",
-            _                                     => "#555555",
+            Domain.Enums.EntryType.EMail => "#27AE60",
+            Domain.Enums.EntryType.Stundenzettel => "#8E44AD",
+            _ => "#555555",
         };
 
         var sb = new StringBuilder();

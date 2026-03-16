@@ -20,7 +20,7 @@ public sealed class PdfRenderer : IEntryRenderer
     public Task<RenderResult> RenderAsync(Entry entry, RenderOptions options,
                                           CancellationToken ct = default)
     {
-        var filename  = FilenameBuilder.Build(entry) + ".pdf";
+        var filename = FilenameBuilder.Build(entry) + ".pdf";
         var outputDir = options.OutputDirectory
             ?? Path.Combine(Path.GetTempPath(), "JohannPdf");
 
@@ -59,11 +59,11 @@ public sealed class PdfRenderer : IEntryRenderer
                 {
                     var badgeColor = entry.Type switch
                     {
-                        EntryType.Aufgabe        => "#E63123",
+                        EntryType.Aufgabe => "#E63123",
                         EntryType.Gesprächsnotiz => "#2980B9",
-                        EntryType.EMail          => "#27AE60",
-                        EntryType.Stundenzettel  => "#8E44AD",
-                        _                        => "#555555",
+                        EntryType.EMail => "#27AE60",
+                        EntryType.Stundenzettel => "#8E44AD",
+                        _ => "#555555",
                     };
 
                     inner.Item().Row(r =>

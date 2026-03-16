@@ -11,14 +11,14 @@ public sealed class HeaderParserTests
     // --- Type detection ---
 
     [Theory]
-    [InlineData("Aufgabe Johann rest",       EntryType.Aufgabe,       "Johann")]
-    [InlineData("aufgabe Johann rest",       EntryType.Aufgabe,       "Johann")]
-    [InlineData("AUFGABE Johann rest",       EntryType.Aufgabe,       "Johann")]
-    [InlineData("Gesprächsnotiz Iris rest",  EntryType.Gesprächsnotiz,"Iris")]
-    [InlineData("E-Mail Johann rest",        EntryType.EMail,         "Johann")]
-    [InlineData("email Johann rest",         EntryType.EMail,         "Johann")]
-    [InlineData("Stundenzettel Peano rest",  EntryType.Stundenzettel, "Peano")]
-    [InlineData("Projekt Johann rest",       EntryType.Projekt,       "Johann")]
+    [InlineData("Aufgabe Johann rest", EntryType.Aufgabe, "Johann")]
+    [InlineData("aufgabe Johann rest", EntryType.Aufgabe, "Johann")]
+    [InlineData("AUFGABE Johann rest", EntryType.Aufgabe, "Johann")]
+    [InlineData("Gesprächsnotiz Iris rest", EntryType.Gesprächsnotiz, "Iris")]
+    [InlineData("E-Mail Johann rest", EntryType.EMail, "Johann")]
+    [InlineData("email Johann rest", EntryType.EMail, "Johann")]
+    [InlineData("Stundenzettel Peano rest", EntryType.Stundenzettel, "Peano")]
+    [InlineData("Projekt Johann rest", EntryType.Projekt, "Johann")]
     public void Parse_KnownTypeKeyword_SetsTypeAndProject(
         string transcript, EntryType expectedType, string expectedProject)
     {
@@ -69,7 +69,7 @@ public sealed class HeaderParserTests
     [Fact]
     public void Parse_TitelKeyword_StopsAt15WordsWithoutEnde()
     {
-        var words  = string.Join(" ", Enumerable.Range(1, 16).Select(i => $"W{i}"));
+        var words = string.Join(" ", Enumerable.Range(1, 16).Select(i => $"W{i}"));
         var transcript = $"Aufgabe Johann Titel {words}";
         var result = _sut.Parse(transcript);
 
@@ -92,6 +92,34 @@ public sealed class HeaderParserTests
         var result = _sut.Parse("Aufgabe Johann Das ist der Rest");
         result.ExplicitTitle.Should().BeNull();
         result.RemainderText.Should().Be("Das ist der Rest");
+    }
+
+    [Fact]
+    public void Parse_EndeAt16To29Words_Caps15WordsAndEndeNotInRemainder()
+    {
+        // "Ende" appears at word 20 (16–29 range): title capped at 15, "Ende" consumed.
+        var titlePart = string.Join(" ", Enumerable.Range(1, 20).Select(i => $"W{i}"));
+        var transcript = $"Aufgabe Johann Titel {titlePart} Ende Nachtext";
+        var result = _sut.Parse(transcript);
+
+        var titleWords = result.ExplicitTitle!.Split(' ');
+        titleWords.Should().HaveCount(15);
+        titleWords[14].Should().Be("W15");
+        result.RemainderText.Should().Be("Nachtext");
+        result.RemainderText.Should().NotContain("Ende");
+    }
+
+    [Fact]
+    public void Parse_EndeAt30OrMoreWords_ReturnsNullTitleAndEndeNotInRemainder()
+    {
+        // "Ende" appears 30 words after "Titel" → too late → GPT generates (null title).
+        var titlePart = string.Join(" ", Enumerable.Range(1, 30).Select(i => $"W{i}"));
+        var transcript = $"Aufgabe Johann Titel {titlePart} Ende Nachtext";
+        var result = _sut.Parse(transcript);
+
+        result.ExplicitTitle.Should().BeNull();
+        result.RemainderText.Should().Be("Nachtext");
+        result.RemainderText.Should().NotContain("Ende");
     }
 
     // --- Remainder ---

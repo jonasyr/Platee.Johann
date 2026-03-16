@@ -44,18 +44,18 @@ public sealed partial class MainViewModel : ObservableObject
                          string outputRoot, IEntryProcessor processor,
                          ISettingsRepository settingsRepo, SettingsHolder settingsHolder)
     {
-        _repository     = repository;
-        _renderers      = renderers;
-        _outputRoot     = outputRoot;
-        _processor      = processor;
-        _settingsRepo   = settingsRepo;
+        _repository = repository;
+        _renderers = renderers;
+        _outputRoot = outputRoot;
+        _processor = processor;
+        _settingsRepo = settingsRepo;
         _settingsHolder = settingsHolder;
-        _detail         = new EntryDetailViewModel(renderers, outputRoot, processor);
+        _detail = new EntryDetailViewModel(renderers, outputRoot, processor);
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)
     {
-        IsLoading    = true;
+        IsLoading = true;
         ErrorMessage = string.Empty;
         try
         {
@@ -119,12 +119,12 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task AddEntry()
     {
-        var today        = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(DateTime.Today);
         var todayEntries = await _repository.GetEntriesForDateAsync(today);
-        var nextSeq      = todayEntries.Count + 1;
+        var nextSeq = todayEntries.Count + 1;
 
         var dialogVm = new NewEntryViewModel(nextSeq);
-        var dialog   = new NewEntryView(dialogVm)
+        var dialog = new NewEntryView(dialogVm)
         {
             Owner = System.Windows.Application.Current.MainWindow
         };
@@ -143,7 +143,7 @@ public sealed partial class MainViewModel : ObservableObject
             try
             {
                 ErrorMessage = "Generiere KI-Zusammenfassungen…";
-                entry        = await _processor.ReprocessAsync(entry);
+                entry = await _processor.ReprocessAsync(entry);
                 ErrorMessage = string.Empty;
             }
             catch (Exception ex)
@@ -166,8 +166,8 @@ public sealed partial class MainViewModel : ObservableObject
 
         var dialog = new OpenFileDialog
         {
-            Filter      = "MP3-Dateien|*.mp3|Alle Audiodateien|*.mp3;*.m4a;*.wav|Alle Dateien|*.*",
-            Title       = "MP3-Dateien für Transkription auswählen",
+            Filter = "MP3-Dateien|*.mp3|Alle Audiodateien|*.mp3;*.m4a;*.wav|Alle Dateien|*.*",
+            Title = "MP3-Dateien für Transkription auswählen",
             Multiselect = true,
         };
 
@@ -181,9 +181,9 @@ public sealed partial class MainViewModel : ObservableObject
 
         for (int i = 0; i < files.Length; i++)
         {
-            var filePath  = files[i];
+            var filePath = files[i];
             var fileLabel = Path.GetFileName(filePath);
-            var prefix    = files.Length > 1 ? $"[{i + 1}/{files.Length}] " : string.Empty;
+            var prefix = files.Length > 1 ? $"[{i + 1}/{files.Length}] " : string.Empty;
 
             var progress = new Progress<ProcessingProgress>(p =>
                 ErrorMessage = $"{prefix}{fileLabel}: {p.Stage} ({p.StepIndex}/{p.TotalSteps})");
@@ -210,7 +210,7 @@ public sealed partial class MainViewModel : ObservableObject
     private void OpenSettings()
     {
         var settingsVm = new SettingsViewModel(_settingsRepo, _settingsHolder);
-        var window     = new SettingsView(settingsVm)
+        var window = new SettingsView(settingsVm)
         {
             Owner = System.Windows.Application.Current.MainWindow
         };
@@ -220,17 +220,23 @@ public sealed partial class MainViewModel : ObservableObject
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Called by the audio watcher (background thread) after it finishes processing a file.
+    /// Must be called on the UI thread — caller is responsible for dispatching.
+    /// </summary>
+    public void NotifyEntryProcessed(Johann.Domain.Entities.Entry entry) => RefreshAfterEntry(entry);
+
+    /// <summary>
     /// Inserts/selects the date and entry row in the UI after a new entry is created.
     /// </summary>
     private void RefreshAfterEntry(Johann.Domain.Entities.Entry entry)
     {
         var entryDate = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
-        var existing  = AvailableDates.FirstOrDefault(d => d.Date == entryDate);
+        var existing = AvailableDates.FirstOrDefault(d => d.Date == entryDate);
 
         if (existing is null)
         {
             var newDateItem = new DateItemViewModel(entryDate);
-            var insertAt    = AvailableDates.TakeWhile(d => d.Date > entryDate).Count();
+            var insertAt = AvailableDates.TakeWhile(d => d.Date > entryDate).Count();
             AvailableDates.Insert(insertAt, newDateItem);
             SelectedDateItem = newDateItem;
         }

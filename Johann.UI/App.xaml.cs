@@ -47,10 +47,10 @@ public partial class App : System.Windows.Application
         // Priority: 1. Ausgabeverzeichnis from Config, 2. CLI Argument, 3. Default fallback
         if (string.IsNullOrWhiteSpace(initialSettings.Ausgabeverzeichnis))
         {
-            var newAusgabe = e.Args.Length > 0 && Directory.Exists(e.Args[0]) 
-                ? e.Args[0] 
+            var newAusgabe = e.Args.Length > 0 && Directory.Exists(e.Args[0])
+                ? e.Args[0]
                 : ResolveDefaultOutputRoot();
-            
+
             Directory.CreateDirectory(newAusgabe);
             initialSettings = initialSettings with { Ausgabeverzeichnis = newAusgabe };
         }
@@ -70,11 +70,11 @@ public partial class App : System.Windows.Application
         }
 
         var outputRoot = initialSettings.Ausgabeverzeichnis;
-        
+
         // Force a save to ensure missing template fields (like directories or new prompts) are written to the JSON
         Task.Run(() => settingsRepo.SaveAsync(initialSettings)).GetAwaiter().GetResult();
-        
-        var settingsHolder  = new SettingsHolder(initialSettings);
+
+        var settingsHolder = new SettingsHolder(initialSettings);
 
         // ── Manual DI ─────────────────────────────────────────────────────────
         IEntryRepository repository = new JsonRepository(outputRoot);
@@ -106,11 +106,18 @@ public partial class App : System.Windows.Application
             outputRoot, overviewService, settingsHolder, renderers);
 
         _audioWatcher = new AudioWatcherService(processor, settingsHolder);
-        _audioWatcher.Start();
 
         // ── Window ────────────────────────────────────────────────────────────
-        var viewModel  = new MainViewModel(repository, renderers, outputRoot, processor,
+        var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
                                            settingsRepo, settingsHolder);
+
+        // Notify the UI when the background watcher finishes processing a file.
+        _audioWatcher.EntryProcessed += entry =>
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(
+                () => viewModel.NotifyEntryProcessed(entry));
+
+        _audioWatcher.Start();
+
         var mainWindow = new MainWindow(viewModel);
         mainWindow.Show();
     }

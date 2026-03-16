@@ -15,10 +15,10 @@ public sealed class JsonSettingsRepository : ISettingsRepository
 
     private static readonly JsonSerializerOptions Options = new()
     {
-        WriteIndented              = true,
-        PropertyNamingPolicy       = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
-        Encoder                    = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
     public JsonSettingsRepository(string settingsDirectory)
@@ -59,43 +59,43 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         var defaultSettings = AppSettings.Default;
         return new()
         {
-            Name                  = dto.Name ?? defaultSettings.Name,
-            Firma                 = dto.Firma ?? defaultSettings.Firma,
-            Quellverzeichnis      = dto.Quellverzeichnis ?? defaultSettings.Quellverzeichnis,
-            Archivverzeichnis     = dto.Archivverzeichnis ?? defaultSettings.Archivverzeichnis,
-            Ausgabeverzeichnis    = dto.Ausgabeverzeichnis ?? defaultSettings.Ausgabeverzeichnis,
+            Name = dto.Name ?? defaultSettings.Name,
+            Firma = dto.Firma ?? defaultSettings.Firma,
+            Quellverzeichnis = dto.Quellverzeichnis ?? defaultSettings.Quellverzeichnis,
+            Archivverzeichnis = dto.Archivverzeichnis ?? defaultSettings.Archivverzeichnis,
+            Ausgabeverzeichnis = dto.Ausgabeverzeichnis ?? defaultSettings.Ausgabeverzeichnis,
 
-            SystemMessage         = dto.SystemMessage ?? defaultSettings.SystemMessage,
-            AbstractPrompt        = dto.AbstractPrompt ?? defaultSettings.AbstractPrompt,
-            StructuredPrompt      = dto.StructuredPrompt ?? defaultSettings.StructuredPrompt,
-            ProsePrompt           = dto.ProsePrompt ?? defaultSettings.ProsePrompt,
-            
-            EmailPrompt           = dto.EmailPrompt ?? defaultSettings.EmailPrompt,
-            AufgabePrompt         = dto.AufgabePrompt ?? defaultSettings.AufgabePrompt,
+            SystemMessage = dto.SystemMessage ?? defaultSettings.SystemMessage,
+            AbstractPrompt = dto.AbstractPrompt ?? defaultSettings.AbstractPrompt,
+            StructuredPrompt = dto.StructuredPrompt ?? defaultSettings.StructuredPrompt,
+            ProsePrompt = dto.ProsePrompt ?? defaultSettings.ProsePrompt,
+
+            EmailPrompt = dto.EmailPrompt ?? defaultSettings.EmailPrompt,
+            AufgabePrompt = dto.AufgabePrompt ?? defaultSettings.AufgabePrompt,
             GespraechsnotizPrompt = dto.GespraechsnotizPrompt ?? defaultSettings.GespraechsnotizPrompt,
-            StundenzettelPrompt   = dto.StundenzettelPrompt ?? defaultSettings.StundenzettelPrompt,
-            AnalogPrompt          = dto.AnalogPrompt ?? defaultSettings.AnalogPrompt,
+            StundenzettelPrompt = dto.StundenzettelPrompt ?? defaultSettings.StundenzettelPrompt,
+            AnalogPrompt = dto.AnalogPrompt ?? defaultSettings.AnalogPrompt,
         };
     }
 
     private static SettingsDto MapToDto(AppSettings s) => new()
     {
-        Name                  = s.Name,
-        Firma                 = s.Firma,
-        Quellverzeichnis      = s.Quellverzeichnis,
-        Archivverzeichnis     = s.Archivverzeichnis,
-        Ausgabeverzeichnis    = s.Ausgabeverzeichnis,
+        Name = s.Name,
+        Firma = s.Firma,
+        Quellverzeichnis = s.Quellverzeichnis,
+        Archivverzeichnis = s.Archivverzeichnis,
+        Ausgabeverzeichnis = s.Ausgabeverzeichnis,
 
-        SystemMessage         = s.SystemMessage,
-        AbstractPrompt        = s.AbstractPrompt,
-        StructuredPrompt      = s.StructuredPrompt,
-        ProsePrompt           = s.ProsePrompt,
-        
-        EmailPrompt           = s.EmailPrompt,
-        AufgabePrompt         = s.AufgabePrompt,
+        SystemMessage = s.SystemMessage,
+        AbstractPrompt = s.AbstractPrompt,
+        StructuredPrompt = s.StructuredPrompt,
+        ProsePrompt = s.ProsePrompt,
+
+        EmailPrompt = s.EmailPrompt,
+        AufgabePrompt = s.AufgabePrompt,
         GespraechsnotizPrompt = s.GespraechsnotizPrompt,
-        StundenzettelPrompt   = s.StundenzettelPrompt,
-        AnalogPrompt          = s.AnalogPrompt,
+        StundenzettelPrompt = s.StundenzettelPrompt,
+        AnalogPrompt = s.AnalogPrompt,
     };
 
     // Separate DTO to decouple JSON shape from the domain record
@@ -107,15 +107,15 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         public string? Archivverzeichnis { get; set; }
         public string? Ausgabeverzeichnis { get; set; }
 
-        public string? SystemMessage    { get; set; }
-        public string? AbstractPrompt   { get; set; }
+        public string? SystemMessage { get; set; }
+        public string? AbstractPrompt { get; set; }
         public string? StructuredPrompt { get; set; }
-        public string? ProsePrompt      { get; set; }
-        
-        public string? EmailPrompt      { get; set; }
-        public string? AufgabePrompt    { get; set; }
+        public string? ProsePrompt { get; set; }
+
+        public string? EmailPrompt { get; set; }
+        public string? AufgabePrompt { get; set; }
         public string? GespraechsnotizPrompt { get; set; }
         public string? StundenzettelPrompt { get; set; }
-        public string? AnalogPrompt     { get; set; }
+        public string? AnalogPrompt { get; set; }
     }
 }

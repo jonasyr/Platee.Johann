@@ -94,9 +94,9 @@ public sealed class JsonRepository : IEntryRepository
         var rawDir = GetRawDir(date);
         Directory.CreateDirectory(rawDir);
 
-        var dto      = EntryMapper.ToDto(entry);
+        var dto = EntryMapper.ToDto(entry);
         var filename = FilenameBuilder.Build(entry) + "_status.json";
-        var path     = Path.Combine(rawDir, filename);
+        var path = Path.Combine(rawDir, filename);
 
         await using var stream = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None);
         await JsonSerializer.SerializeAsync(stream, dto, WriteOptions, ct);

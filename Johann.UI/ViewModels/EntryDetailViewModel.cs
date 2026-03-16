@@ -13,55 +13,41 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     private readonly string _outputRoot;
 
     [ObservableProperty] private Entry? _entry;
-    [ObservableProperty] private bool   _isTranscriptExpanded;
-    [ObservableProperty] private bool   _includeTranscript = true;
-    [ObservableProperty] private string _statusMessage     = string.Empty;
+    [ObservableProperty] private bool _isTranscriptExpanded;
+    [ObservableProperty] private bool _includeTranscript = true;
+    [ObservableProperty] private string _statusMessage = string.Empty;
 
     // Display helpers — show "—" for null fields
-    public string DisplayAbstract         => Entry?.Abstract         ?? "—";
-    public string DisplayLongSummary      => Entry?.LongSummary      ?? "—";
-    public string DisplayProseSummary     => Entry?.ProseSummary     ?? "—";
-    public string DisplayTranscript       => Entry?.Transcript        ?? "—";
-    public string DisplayConversationNote => Entry?.ConversationNote  ?? "—";
-    public string DisplayTaskList         => Entry?.TaskList          ?? "—";
-    public string DisplayTypeBadge        => Entry?.Type.ToString()   ?? string.Empty;
-    public string DisplayProject          => Entry?.ProjectName       ?? string.Empty;
-    public string DisplayDuration         => Entry is null ? string.Empty : FormatDuration(Entry.DurationSeconds);
-    public string DisplayDate             => Entry?.CreatedAt.ToString("dd.MM.yyyy") ?? string.Empty;
+    public string DisplayAbstract => Entry?.Abstract ?? "—";
+    public string DisplayLongSummary => Entry?.LongSummary ?? "—";
+    public string DisplayProseSummary => Entry?.ProseSummary ?? "—";
+    public string DisplayTranscript => Entry?.Transcript ?? "—";
+    public string DisplayConversationNote => Entry?.ConversationNote ?? "—";
+    public string DisplayTaskList => Entry?.TaskList ?? "—";
+    public string DisplayTypeBadge => Entry?.Type.ToString() ?? string.Empty;
+    public string DisplayProject => Entry?.ProjectName ?? string.Empty;
+    public string DisplayDuration => Entry is null ? string.Empty : FormatDuration(Entry.DurationSeconds);
+    public string DisplayDate => Entry?.CreatedAt.ToString("dd.MM.yyyy") ?? string.Empty;
 
-    /// <summary>
-    /// Format: Projektname_ErsteFünfWorteDesTitels
-    /// e.g. "Johann_wir_müssen_Änderungen_vornehmen"
-    /// </summary>
-    public string DisplayTitle
-    {
-        get
-        {
-            if (Entry is null) return string.Empty;
-            var words = Entry.Title
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Take(5);
-            return $"{Entry.ProjectName}_{string.Join("_", words)}";
-        }
-    }
+    public string DisplayTitle => Entry?.Title ?? string.Empty;
 
-    public bool HasEntry    => Entry is not null;
-    public bool HasNoEntry  => Entry is null;
-    public bool IsAudio     => Entry?.SourceType == "audio";
+    public bool HasEntry => Entry is not null;
+    public bool HasNoEntry => Entry is null;
+    public bool IsAudio => Entry?.SourceType == "audio";
     public bool CanReprocess => Entry is not null && _processor is not null;
 
     public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers, string outputRoot,
                                 IEntryProcessor? processor = null)
     {
-        _renderers  = renderers;
+        _renderers = renderers;
         _outputRoot = outputRoot;
-        _processor  = processor;
+        _processor = processor;
     }
 
     partial void OnEntryChanged(Entry? value)
     {
         IsTranscriptExpanded = false;
-        StatusMessage        = string.Empty;
+        StatusMessage = string.Empty;
         OnPropertyChanged(nameof(DisplayAbstract));
         OnPropertyChanged(nameof(DisplayLongSummary));
         OnPropertyChanged(nameof(DisplayProseSummary));
@@ -214,7 +200,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
                 StatusMessage = $"{p.Stage} ({p.StepIndex}/{p.TotalSteps})");
 
             var updated = await _processor.ReprocessAsync(Entry, progress, ct);
-            Entry         = updated;
+            Entry = updated;
             StatusMessage = "Verarbeitung abgeschlossen!";
         }
         catch (Exception ex)
@@ -240,11 +226,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
             var dateDir = Path.Combine(_outputRoot, Entry!.CreatedAt.ToString("yyyy-MM-dd"));
             var opts = new RenderOptions(
-                OutputDirectory:   dateDir,
-                OpenAfterRender:   true,
+                OutputDirectory: dateDir,
+                OpenAfterRender: true,
                 IncludeTranscript: IncludeTranscript);
 
-            var result   = await renderer.RenderAsync(Entry!, opts, ct);
+            var result = await renderer.RenderAsync(Entry!, opts, ct);
             var filePath = Path.Combine(dateDir, result.SuggestedFilename);
             StatusMessage = $"Gespeichert: {result.SuggestedFilename}";
 

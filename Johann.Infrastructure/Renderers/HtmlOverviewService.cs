@@ -23,7 +23,7 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
     public async Task RegenerateAsync(DateOnly date, CancellationToken ct = default)
     {
         var entries = await _repository.GetEntriesForDateAsync(date, ct);
-        var html    = BuildOverviewHtml(date, entries);
+        var html = BuildOverviewHtml(date, entries);
 
         var dateDir = Path.Combine(_outputRoot, date.ToString("yyyy-MM-dd"));
         Directory.CreateDirectory(dateDir);
@@ -38,14 +38,14 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
         var dateFormatted = date.ToString("dd.MM.yyyy");
         var dayName = date.DayOfWeek switch
         {
-            DayOfWeek.Monday    => "Montag",
-            DayOfWeek.Tuesday   => "Dienstag",
+            DayOfWeek.Monday => "Montag",
+            DayOfWeek.Tuesday => "Dienstag",
             DayOfWeek.Wednesday => "Mittwoch",
-            DayOfWeek.Thursday  => "Donnerstag",
-            DayOfWeek.Friday    => "Freitag",
-            DayOfWeek.Saturday  => "Samstag",
-            DayOfWeek.Sunday    => "Sonntag",
-            _                   => string.Empty
+            DayOfWeek.Thursday => "Donnerstag",
+            DayOfWeek.Friday => "Freitag",
+            DayOfWeek.Saturday => "Samstag",
+            DayOfWeek.Sunday => "Sonntag",
+            _ => string.Empty
         };
 
         sb.AppendLine("<!DOCTYPE html>");
@@ -86,11 +86,11 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
     {
         var typeColor = entry.Type switch
         {
-            EntryType.Aufgabe        => "#E63123",
+            EntryType.Aufgabe => "#E63123",
             EntryType.Gesprächsnotiz => "#2980B9",
-            EntryType.EMail          => "#27AE60",
-            EntryType.Stundenzettel  => "#8E44AD",
-            _                        => "#555555",
+            EntryType.EMail => "#27AE60",
+            EntryType.Stundenzettel => "#8E44AD",
+            _ => "#555555",
         };
 
         var duration = entry.DurationSeconds > 0

@@ -17,7 +17,7 @@ public sealed class EmailRenderer : IEntryRenderer
     public async Task<RenderResult> RenderAsync(Entry entry, RenderOptions options,
                                                  CancellationToken ct = default)
     {
-        var filename  = FilenameBuilder.Build(entry) + "_email.txt";
+        var filename = FilenameBuilder.Build(entry) + "_email.txt";
         var outputDir = options.OutputDirectory
             ?? Path.Combine(Path.GetTempPath(), "JohannEmail");
 
@@ -99,11 +99,11 @@ public sealed class EmailRenderer : IEntryRenderer
     {
         return entry.Type switch
         {
-            Domain.Enums.EntryType.EMail          => $"{entry.ProjectName}: {entry.Title}",
-            Domain.Enums.EntryType.Aufgabe        => $"AW: Aufgaben – {entry.ProjectName} – {entry.Title}",
+            Domain.Enums.EntryType.EMail => $"{entry.ProjectName}: {entry.Title}",
+            Domain.Enums.EntryType.Aufgabe => $"AW: Aufgaben – {entry.ProjectName} – {entry.Title}",
             Domain.Enums.EntryType.Gesprächsnotiz => $"Gesprächsnotiz – {entry.ProjectName} – {entry.Title}",
-            Domain.Enums.EntryType.Stundenzettel  => $"Stundenzettel – {entry.ProjectName} – {entry.CreatedAt:dd.MM.yyyy}",
-            _                                     => $"{entry.ProjectName}: {entry.Title}",
+            Domain.Enums.EntryType.Stundenzettel => $"Stundenzettel – {entry.ProjectName} – {entry.CreatedAt:dd.MM.yyyy}",
+            _ => $"{entry.ProjectName}: {entry.Title}",
         };
     }
 }

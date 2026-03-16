@@ -20,17 +20,17 @@ public sealed record AppSettings
     public string Ausgabeverzeichnis { get; init; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann", "output");
 
     // General Prompts
-    public string SystemMessage    { get; init; } = SummaryPrompts.SystemMessage;
-    public string AbstractPrompt   { get; init; } = SummaryPrompts.Abstract;
+    public string SystemMessage { get; init; } = SummaryPrompts.SystemMessage;
+    public string AbstractPrompt { get; init; } = SummaryPrompts.Abstract;
     public string StructuredPrompt { get; init; } = SummaryPrompts.Structured;
-    public string ProsePrompt      { get; init; } = SummaryPrompts.Prose;
-    
+    public string ProsePrompt { get; init; } = SummaryPrompts.Prose;
+
     // Type Prompts
-    public string EmailPrompt      { get; init; } = SummaryPrompts.Email;
-    public string AufgabePrompt    { get; init; } = SummaryPrompts.Aufgabe;
+    public string EmailPrompt { get; init; } = SummaryPrompts.Email;
+    public string AufgabePrompt { get; init; } = SummaryPrompts.Aufgabe;
     public string GespraechsnotizPrompt { get; init; } = SummaryPrompts.Gespraechsnotiz;
     public string StundenzettelPrompt { get; init; } = SummaryPrompts.Stundenzettel;
-    public string AnalogPrompt     { get; init; } = SummaryPrompts.Analog;
+    public string AnalogPrompt { get; init; } = SummaryPrompts.Analog;
 
     /// <summary>Returns a fresh instance with all default prompt values.</summary>
     public static AppSettings Default => new();

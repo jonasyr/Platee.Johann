@@ -16,6 +16,12 @@ public sealed class AudioWatcherService : IDisposable
     private readonly SettingsHolder _settings;
     private FileSystemWatcher? _watcher;
 
+    /// <summary>
+    /// Raised on a background thread after an audio file is successfully processed.
+    /// Subscribers must marshal to the UI thread themselves.
+    /// </summary>
+    public event Action<Johann.Domain.Entities.Entry>? EntryProcessed;
+
     public AudioWatcherService(IEntryProcessor processor, SettingsHolder settings)
     {
         _processor = processor;
@@ -78,7 +84,8 @@ public sealed class AudioWatcherService : IDisposable
             }
 
             var date = DateOnly.FromDateTime(DateTime.Now);
-            await _processor.ProcessAudioAsync(filePath, date, null, CancellationToken.None);
+            var entry = await _processor.ProcessAudioAsync(filePath, date, null, CancellationToken.None);
+            EntryProcessed?.Invoke(entry);
         }
         catch
         {

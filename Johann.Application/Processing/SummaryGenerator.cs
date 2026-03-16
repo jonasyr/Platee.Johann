@@ -22,7 +22,7 @@ public sealed class SummaryGenerator
 
     public SummaryGenerator(ILlmProvider llm, SettingsHolder settings)
     {
-        _llm      = llm;
+        _llm = llm;
         _settings = settings;
     }
 
@@ -35,7 +35,7 @@ public sealed class SummaryGenerator
         var (abstractLimit, _) = WordLimitCalculator.Calculate(transcript);
         var userContent = s.AbstractPrompt
             .Replace("{word_limit}", abstractLimit.ToString())
-            .Replace("{transcript}",  transcript);
+            .Replace("{transcript}", transcript);
 
         return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
@@ -49,7 +49,7 @@ public sealed class SummaryGenerator
         var (_, structuredLimit) = WordLimitCalculator.Calculate(transcript);
         var userContent = s.StructuredPrompt
             .Replace("{word_limit}", structuredLimit.ToString())
-            .Replace("{transcript}",  transcript);
+            .Replace("{transcript}", transcript);
 
         return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
@@ -86,6 +86,6 @@ public sealed class SummaryGenerator
         var s = _settings.Current;
         var userContent = "Bitte formuliere einen sehr kurzen, prägnanten Titel (maximal 3-7 Worte) für den folgenden Text. Antworte NUR mit dem Titel, ohne Anführungszeichen oder Erklärungen:\n\n" + transcript;
 
-        return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(50), ct);
+        return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(), ct);
     }
 }
