@@ -144,6 +144,12 @@
                             <Button Content="Kopieren"
                                     Command="{Binding Detail.CopyCommand}"
                                     Style="{StaticResource ActionButtonStyle}"/>
+                            <CheckBox Content="Transkript"
+                                      IsChecked="{Binding Detail.IncludeTranscript}"
+                                      VerticalAlignment="Center"
+                                      Margin="8,0,4,0"
+                                      FontSize="12"
+                                      ToolTip="Transkript in PDF/HTML und Kopieren einschließen"/>
                             <Button Content="Verarbeiten"
                                     Command="{Binding Detail.ReprocessCommand}"
                                     Style="{StaticResource ActionButtonStyle}"

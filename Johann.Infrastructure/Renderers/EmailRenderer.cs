@@ -1,5 +1,6 @@
 using Johann.Application.Interfaces;
 using Johann.Domain.Entities;
+using Johann.Domain.Services;
 using System.Text;
 
 namespace Johann.Infrastructure.Renderers;
@@ -7,6 +8,7 @@ namespace Johann.Infrastructure.Renderers;
 /// <summary>
 /// Renders an entry as a plain-text email file (.txt) with
 /// subject line + body, suitable for copy-paste into any mail client.
+/// Also exposes <see cref="BuildEmailText"/> as public for direct clipboard use.
 /// </summary>
 public sealed class EmailRenderer : IEntryRenderer
 {
@@ -15,7 +17,7 @@ public sealed class EmailRenderer : IEntryRenderer
     public async Task<RenderResult> RenderAsync(Entry entry, RenderOptions options,
                                                  CancellationToken ct = default)
     {
-        var filename = $"{entry.JobId}_email.txt";
+        var filename  = FilenameBuilder.Build(entry) + "_email.txt";
         var outputDir = options.OutputDirectory
             ?? Path.Combine(Path.GetTempPath(), "JohannEmail");
 
@@ -29,7 +31,11 @@ public sealed class EmailRenderer : IEntryRenderer
         return new RenderResult(bytes, "text/plain", filename);
     }
 
-    private static string BuildEmailText(Entry entry)
+    /// <summary>
+    /// Builds a plain-text email from the entry's available content.
+    /// Public so callers can use the text directly (e.g. copy to clipboard).
+    /// </summary>
+    public static string BuildEmailText(Entry entry)
     {
         var sb = new StringBuilder();
 
@@ -93,11 +99,11 @@ public sealed class EmailRenderer : IEntryRenderer
     {
         return entry.Type switch
         {
-            Domain.Enums.EntryType.EMail         => $"{entry.ProjectName}: {entry.Title}",
-            Domain.Enums.EntryType.Aufgabe       => $"AW: Aufgaben – {entry.ProjectName} – {entry.Title}",
+            Domain.Enums.EntryType.EMail          => $"{entry.ProjectName}: {entry.Title}",
+            Domain.Enums.EntryType.Aufgabe        => $"AW: Aufgaben – {entry.ProjectName} – {entry.Title}",
             Domain.Enums.EntryType.Gesprächsnotiz => $"Gesprächsnotiz – {entry.ProjectName} – {entry.Title}",
             Domain.Enums.EntryType.Stundenzettel  => $"Stundenzettel – {entry.ProjectName} – {entry.CreatedAt:dd.MM.yyyy}",
-            _                                    => $"{entry.ProjectName}: {entry.Title}",
+            _                                     => $"{entry.ProjectName}: {entry.Title}",
         };
     }
 }

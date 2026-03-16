@@ -40,21 +40,24 @@ public partial class App : System.Windows.Application
             : ResolveDefaultOutputRoot();
 
         // ── Settings ──────────────────────────────────────────────────────────
-        var settingsDir  = Path.Combine(
+        var settingsDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann");
         ISettingsRepository settingsRepo = new JsonSettingsRepository(settingsDir);
 
         // Load settings synchronously at startup (small file, safe)
-        var initialSettings  = settingsRepo.LoadAsync().GetAwaiter().GetResult();
-        var settingsHolder   = new SettingsHolder(initialSettings);
+        var initialSettings = settingsRepo.LoadAsync().GetAwaiter().GetResult();
+        var settingsHolder  = new SettingsHolder(initialSettings);
 
         // ── Manual DI ─────────────────────────────────────────────────────────
         IEntryRepository repository = new JsonRepository(outputRoot);
 
+        // HTML overview service — regenerates _ItemÜbersicht.html after every save
+        IHtmlOverviewService overviewService = new HtmlOverviewService(repository, outputRoot);
+
         IEntryRenderer[] renderers =
         [
             new PdfRenderer(),
-            new HtmlRenderer(),
+            new HtmlRenderer(overviewService),   // updates overview after HTML export
             new EmailRenderer(),
         ];
 
@@ -71,7 +74,8 @@ public partial class App : System.Windows.Application
 
         var summaryGenerator = new SummaryGenerator(llmProvider, settingsHolder);
         IEntryProcessor processor = new EntryProcessingService(
-            transcriber, summaryGenerator, new HeaderParser(), repository, outputRoot);
+            transcriber, summaryGenerator, new HeaderParser(), repository,
+            outputRoot, overviewService);
 
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel  = new MainViewModel(repository, renderers, outputRoot, processor,

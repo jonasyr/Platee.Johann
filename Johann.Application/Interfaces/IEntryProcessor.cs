@@ -22,4 +22,12 @@ public interface IEntryProcessor
         Entry entry,
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Generates an email text for the entry via GPT (if available),
+    /// or falls back to a simple plain-text composition.
+    /// </summary>
+    Task<string> GenerateEmailTextAsync(
+        Entry entry,
+        CancellationToken ct = default);
 }

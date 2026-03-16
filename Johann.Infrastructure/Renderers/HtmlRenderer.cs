@@ -1,35 +1,50 @@
 using Johann.Application.Interfaces;
 using Johann.Domain.Entities;
+using Johann.Domain.Services;
 using System.Text;
 
 namespace Johann.Infrastructure.Renderers;
 
 /// <summary>
-/// Generates a standalone HTML file for a single entry,
-/// and also regenerates the daily _ItemÜbersicht.html overview.
+/// Generates a standalone HTML file for a single entry.
+/// Optionally regenerates the daily _ItemÜbersicht.html after rendering.
 /// </summary>
 public sealed class HtmlRenderer : IEntryRenderer
 {
+    private readonly IHtmlOverviewService? _overviewService;
+
     public string RendererName => "HTML";
+
+    public HtmlRenderer(IHtmlOverviewService? overviewService = null)
+    {
+        _overviewService = overviewService;
+    }
 
     public async Task<RenderResult> RenderAsync(Entry entry, RenderOptions options,
                                                  CancellationToken ct = default)
     {
-        var filename = $"{entry.JobId}.html";
+        var filename  = FilenameBuilder.Build(entry) + ".html";
         var outputDir = options.OutputDirectory
             ?? Path.Combine(Path.GetTempPath(), "JohannHtml");
 
         Directory.CreateDirectory(outputDir);
         var filePath = Path.Combine(outputDir, filename);
 
-        var html = BuildEntryHtml(entry);
+        var html = BuildEntryHtml(entry, options.IncludeTranscript);
         await File.WriteAllTextAsync(filePath, html, Encoding.UTF8, ct);
+
+        // Regenerate the daily overview after saving the entry HTML
+        if (_overviewService is not null)
+        {
+            var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+            await _overviewService.RegenerateAsync(date, ct);
+        }
 
         var bytes = Encoding.UTF8.GetBytes(html);
         return new RenderResult(bytes, "text/html", filename);
     }
 
-    private static string BuildEntryHtml(Entry entry)
+    private static string BuildEntryHtml(Entry entry, bool includeTranscript)
     {
         var typeColor = entry.Type switch
         {
@@ -76,7 +91,7 @@ public sealed class HtmlRenderer : IEntryRenderer
         if (!string.IsNullOrWhiteSpace(entry.ProseSummary))
             AppendSection(sb, "Ausführliche Zusammenfassung", entry.ProseSummary!, "section-prose");
 
-        if (!string.IsNullOrWhiteSpace(entry.Transcript))
+        if (includeTranscript && !string.IsNullOrWhiteSpace(entry.Transcript))
         {
             sb.AppendLine("<details><summary class=\"transcript-toggle\">Originaltranskript</summary>");
             AppendSection(sb, null, entry.Transcript!, "section-transcript", isPlainText: true);
@@ -95,10 +110,8 @@ public sealed class HtmlRenderer : IEntryRenderer
             sb.AppendLine($"  <h2>{HtmlEncode(title)}</h2>");
 
         if (isPlainText)
-            // Transcript: raw speech, no markdown
             sb.AppendLine($"  <div class=\"md-content\">{HtmlEncode(body).Replace("\n", "<br>")}</div>");
         else
-            // All other sections: render as Markdown
             sb.AppendLine($"  <div class=\"md-content\">{MarkdownHelper.ToHtml(body)}</div>");
 
         sb.AppendLine("</div>");

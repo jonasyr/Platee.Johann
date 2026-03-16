@@ -1,6 +1,7 @@
 using Johann.Application.Interfaces;
 using Johann.Domain.Entities;
 using Johann.Domain.Enums;
+using Johann.Domain.Services;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -19,7 +20,7 @@ public sealed class PdfRenderer : IEntryRenderer
     public Task<RenderResult> RenderAsync(Entry entry, RenderOptions options,
                                           CancellationToken ct = default)
     {
-        var filename = $"{entry.JobId}.pdf";
+        var filename  = FilenameBuilder.Build(entry) + ".pdf";
         var outputDir = options.OutputDirectory
             ?? Path.Combine(Path.GetTempPath(), "JohannPdf");
 
@@ -34,7 +35,7 @@ public sealed class PdfRenderer : IEntryRenderer
                 page.DefaultTextStyle(x => x.FontFamily("Segoe UI", "Arial").FontSize(10));
 
                 page.Header().Element(header => ComposeHeader(header, entry));
-                page.Content().Element(content => ComposeContent(content, entry));
+                page.Content().Element(content => ComposeContent(content, entry, options.IncludeTranscript));
                 page.Footer().AlignCenter().Text(x =>
                 {
                     x.Span("Johann · ").FontColor("#999");
@@ -101,7 +102,7 @@ public sealed class PdfRenderer : IEntryRenderer
         });
     }
 
-    private static void ComposeContent(IContainer content, Entry entry)
+    private static void ComposeContent(IContainer content, Entry entry, bool includeTranscript)
     {
         content.Column(col =>
         {
@@ -113,19 +114,19 @@ public sealed class PdfRenderer : IEntryRenderer
                     ComposeStundenzettel(col, entry);
                     break;
                 case EntryType.Aufgabe:
-                    ComposeAufgabe(col, entry);
+                    ComposeAufgabe(col, entry, includeTranscript);
                     break;
                 case EntryType.Gesprächsnotiz:
-                    ComposeGesprächsnotiz(col, entry);
+                    ComposeGesprächsnotiz(col, entry, includeTranscript);
                     break;
                 default:
-                    ComposeStandard(col, entry);
+                    ComposeStandard(col, entry, includeTranscript);
                     break;
             }
         });
     }
 
-    private static void ComposeStandard(ColumnDescriptor col, Entry entry)
+    private static void ComposeStandard(ColumnDescriptor col, Entry entry, bool includeTranscript)
     {
         if (!string.IsNullOrWhiteSpace(entry.Abstract))
         {
@@ -145,14 +146,14 @@ public sealed class PdfRenderer : IEntryRenderer
                 entry.ProseSummary!, "#F0F8FF", "#B8D4F0"));
         }
 
-        if (!string.IsNullOrWhiteSpace(entry.Transcript))
+        if (includeTranscript && !string.IsNullOrWhiteSpace(entry.Transcript))
         {
             col.Item().Element(c => Section(c, "Transkript",
                 entry.Transcript!, "#FAFAFA", "#E8E8E8"));
         }
     }
 
-    private static void ComposeAufgabe(ColumnDescriptor col, Entry entry)
+    private static void ComposeAufgabe(ColumnDescriptor col, Entry entry, bool includeTranscript)
     {
         if (!string.IsNullOrWhiteSpace(entry.Abstract))
             col.Item().Element(c => Section(c, "Kurzfassung", entry.Abstract!, "#FFF5F4", "#FFDBD8"));
@@ -172,9 +173,12 @@ public sealed class PdfRenderer : IEntryRenderer
 
         if (!string.IsNullOrWhiteSpace(entry.LongSummary))
             col.Item().Element(c => Section(c, "Zusammenfassung", entry.LongSummary!, "#F5F5F5", "#E0E0E0"));
+
+        if (includeTranscript && !string.IsNullOrWhiteSpace(entry.Transcript))
+            col.Item().Element(c => Section(c, "Transkript", entry.Transcript!, "#FAFAFA", "#E8E8E8"));
     }
 
-    private static void ComposeGesprächsnotiz(ColumnDescriptor col, Entry entry)
+    private static void ComposeGesprächsnotiz(ColumnDescriptor col, Entry entry, bool includeTranscript)
     {
         if (!string.IsNullOrWhiteSpace(entry.ConversationNote))
         {
@@ -194,6 +198,9 @@ public sealed class PdfRenderer : IEntryRenderer
 
         if (!string.IsNullOrWhiteSpace(entry.LongSummary))
             col.Item().Element(c => Section(c, "Zusammenfassung", entry.LongSummary!, "#F5F5F5", "#E0E0E0"));
+
+        if (includeTranscript && !string.IsNullOrWhiteSpace(entry.Transcript))
+            col.Item().Element(c => Section(c, "Transkript", entry.Transcript!, "#FAFAFA", "#E8E8E8"));
     }
 
     private static void ComposeStundenzettel(ColumnDescriptor col, Entry entry)
