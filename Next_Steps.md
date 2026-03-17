@@ -264,12 +264,12 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 
 | # | Aufgabe | Status |
 |---|---|---|
-| 16 | Pro Typ einen individuellen Prompt in Config | ☐ |
-| 17 | Bei Verarbeitung **immer alle** Typ-Prompts generieren | ☐ |
-| 18 | Checkbox-Leiste in GUI zur Anzeige-Filterung | ☐ |
-| 19 | GUI-Anzeige abhängig von Checkbox-Auswahl | ☐ |
-| 20 | PDF-Inhalt abhängig von Checkbox-Auswahl | ☐ |
-| 21 | Individuelles HTML abhängig von Checkbox-Auswahl | ☐ |
+| ~~16~~ | ~~Pro Typ einen individuellen Prompt in Config~~ | ✅ Erledigt |
+| ~~17~~ | ~~Bei Verarbeitung **immer alle** Typ-Prompts generieren~~ | ✅ Erledigt |
+| ~~18~~ | ~~Checkbox-Leiste in GUI zur Anzeige-Filterung~~ | ✅ Erledigt |
+| ~~19~~ | ~~GUI-Anzeige abhängig von Checkbox-Auswahl~~ | ✅ Erledigt |
+| ~~20~~ | ~~PDF-Inhalt abhängig von Checkbox-Auswahl~~ | ✅ Erledigt |
+| ~~21~~ | ~~Individuelles HTML abhängig von Checkbox-Auswahl~~ | ✅ Erledigt |
 
 ### Priorität 4 – Komfort & Weiterverarbeitung
 
@@ -294,4 +294,4 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 
 ---
 
-*Letzte Aktualisierung: 17.03.2026*
+*Letzte Aktualisierung: 17.03.2026 – Priorität 3 vollständig abgeschlossen*
