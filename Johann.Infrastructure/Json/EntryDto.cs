@@ -63,6 +63,12 @@ public sealed class EntryDto
     [JsonPropertyName("taskList")]
     public string? TaskList { get; set; }
 
+    [JsonPropertyName("stundenzettelText")]
+    public string? StundenzettelText { get; set; }
+
+    [JsonPropertyName("analogText")]
+    public string? AnalogText { get; set; }
+
     [JsonPropertyName("isDone")]
     public bool IsDone { get; set; }
 

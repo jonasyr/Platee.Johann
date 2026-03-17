@@ -31,9 +31,11 @@ public sealed record Entry
     public string? ProseSummary { get; init; }
 
     // --- Type-specific fields ---
-    public string? EmailText { get; init; }        // EMail
-    public string? ConversationNote { get; init; } // Gesprächsnotiz
-    public string? TaskList { get; init; }         // Aufgabe
+    public string? EmailText { get; init; }           // EMail
+    public string? ConversationNote { get; init; }    // Gesprächsnotiz
+    public string? TaskList { get; init; }            // Aufgabe
+    public string? StundenzettelText { get; init; }   // Stundenzettel
+    public string? AnalogText { get; init; }          // Analog
 
     // --- Metadata ---
     public double DurationSeconds { get; init; }
