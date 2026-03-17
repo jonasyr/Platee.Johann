@@ -213,7 +213,7 @@ public sealed class PdfRenderer : IEntryRenderer
                 col.Item().Element(c => Section(c, "Zusammenfassung", entry.LongSummary!, "#F5F5F5", "#E0E0E0"));
 
             if (sections.ProseSummary && !string.IsNullOrWhiteSpace(entry.ProseSummary))
-                col.Item().Element(c => Section(c, "Ausführlich", entry.ProseSummary!, "#F0F8FF", "#B8D4F0"));
+                col.Item().Element(c => Section(c, "Ausführliche Zusammenfassung", entry.ProseSummary!, "#F0F8FF", "#B8D4F0"));
 
             if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.Transcript))
                 col.Item().Element(c => Section(c, "Transkript", entry.Transcript!, "#FAFAFA", "#E8E8E8"));

@@ -1,11 +1,12 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
-using Platee.Johann.UI.Views;
 using Microsoft.Win32;
+using Platee.Johann.UI.Views;
 
 namespace Platee.Johann.UI.ViewModels;
 
@@ -37,14 +38,31 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string _errorMessage = string.Empty;
 
+    // Processing state — drives top bar spinner + status text
+    [ObservableProperty] private bool _isProcessing;
+    [ObservableProperty] private string _statusText = "Bereit";
+    [ObservableProperty] private bool _isProcessLogOpen;
+
+    // Toast notification
+    [ObservableProperty] private string _toastMessage = string.Empty;
+    [ObservableProperty] private bool _isToastRunning;
+    [ObservableProperty] private bool _isToastVisible;
+    private DispatcherTimer? _toastTimer;
+
+    public ObservableCollection<ProcessLogItem> ProcessLog { get; } = [];
+
     // Filter & Sort
     [ObservableProperty] private bool _showOnlyPending = false;
     [ObservableProperty] private SortMode _currentSort = SortMode.ById;
+    [ObservableProperty] private bool _isSortReversed;
 
     public SectionVisibilityViewModel Sections { get; } = new();
 
     public bool IsSortById => CurrentSort == SortMode.ById;
     public bool IsSortByProject => CurrentSort == SortMode.ByProjectThenId;
+
+    public string SortByIdLabel => IsSortById ? (IsSortReversed ? "ID ↑" : "ID ↓") : "ID";
+    public string SortByProjectLabel => IsSortByProject ? (IsSortReversed ? "Projekt ↑" : "Projekt ↓") : "Projekt";
 
     public string SelectedDateDisplay =>
         SelectedDateItem?.DisplayText ?? "Kein Datum gewählt";
@@ -61,7 +79,10 @@ public sealed partial class MainViewModel : ObservableObject
         _processor = processor;
         _settingsRepo = settingsRepo;
         _settingsHolder = settingsHolder;
-        _detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, Sections);
+        _detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, Sections,
+            addLog: AddProcessLog,
+            completeLog: CompleteProcessLog,
+            updateStatus: s => System.Windows.Application.Current.Dispatcher.Invoke(() => StatusText = s));
         _detail.EntryStatusChanged += changedEntry => { _ = LoadEntriesAsync(SelectedDateItem?.Date); };
     }
 
@@ -116,7 +137,14 @@ public sealed partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsSortById));
         OnPropertyChanged(nameof(IsSortByProject));
-        _ = LoadEntriesAsync(SelectedDateItem?.Date);
+        OnPropertyChanged(nameof(SortByIdLabel));
+        OnPropertyChanged(nameof(SortByProjectLabel));
+    }
+
+    partial void OnIsSortReversedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SortByIdLabel));
+        OnPropertyChanged(nameof(SortByProjectLabel));
     }
 
     private async Task LoadEntriesAsync(DateOnly? date)
@@ -127,6 +155,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (date is null) return;
 
         IsLoading = true;
+        var logItem = AddProcessLog("Einträge laden…", isRunning: true);
         try
         {
             var entries = await _repository.GetEntriesForDateAsync(date.Value);
@@ -139,10 +168,13 @@ public sealed partial class MainViewModel : ObservableObject
 
             if (Entries.Count > 0)
                 SelectedEntry = Entries[0];
+
+            CompleteProcessLog(logItem, $"{Entries.Count} Einträge geladen");
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Fehler beim Laden: {ex.Message}";
+            CompleteProcessLog(logItem, $"Fehler: {ex.Message}");
         }
         finally
         {
@@ -150,26 +182,126 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private IEnumerable<Entry> ApplySort(IEnumerable<Entry> entries) => CurrentSort switch
+    private IEnumerable<Entry> ApplySort(IEnumerable<Entry> entries)
     {
-        SortMode.ByProjectThenId => entries.OrderBy(e => e.ProjectName).ThenBy(e => e.SequenceNumber),
-        _ => entries.OrderBy(e => e.SequenceNumber),
-    };
+        IEnumerable<Entry> sorted = CurrentSort switch
+        {
+            SortMode.ByProjectThenId => entries.OrderBy(e => e.ProjectName).ThenBy(e => e.SequenceNumber),
+            _ => entries.OrderBy(e => e.SequenceNumber),
+        };
+        return IsSortReversed ? sorted.Reverse() : sorted;
+    }
+
+    // ── Process log helpers ────────────────────────────────────────────────────
+
+    public ProcessLogItem AddProcessLog(string message, bool isRunning = false)
+    {
+        var item = new ProcessLogItem(message, DateTime.Now, isRunning);
+        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        {
+            ProcessLog.Insert(0, item);
+            IsProcessing = ProcessLog.Any(x => x.IsRunning);
+            if (isRunning) StatusText = message;
+            ToastMessage = message;
+            IsToastRunning = isRunning;
+            IsToastVisible = true;
+            StartToastDismissTimer();
+        });
+        return item;
+    }
+
+    /// <summary>Updates the toast text in-place (e.g. for progress stage changes) without adding a new log entry.</summary>
+    public void UpdateToastProgress(string message)
+    {
+        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        {
+            StatusText = message;
+            ToastMessage = message;
+            IsToastVisible = true;
+            StartToastDismissTimer();
+        });
+    }
+
+    public void CompleteProcessLog(ProcessLogItem item, string resultMessage)
+    {
+        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        {
+            item.Complete(resultMessage);
+            IsProcessing = ProcessLog.Any(x => x.IsRunning);
+            StatusText = IsProcessing ? StatusText : "Bereit";
+            ToastMessage = resultMessage;
+            IsToastRunning = false;
+            StartToastDismissTimer();
+        });
+    }
+
+    [RelayCommand]
+    private void OpenProcessDetail() => IsProcessLogOpen = !IsProcessLogOpen;
+
+    [RelayCommand]
+    private void ClearProcessLog() => ProcessLog.Clear();
+
+    [RelayCommand]
+    private void RemoveCompletedLogs()
+    {
+        var completed = ProcessLog.Where(x => !x.IsRunning).ToList();
+        foreach (var item in completed)
+            ProcessLog.Remove(item);
+    }
+
+    [RelayCommand]
+    private void DismissToast()
+    {
+        _toastTimer?.Stop();
+        IsToastVisible = false;
+    }
+
+    private void StartToastDismissTimer()
+    {
+        _toastTimer?.Stop();
+        _toastTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher.CurrentDispatcher)
+            { Interval = TimeSpan.FromSeconds(3) };
+        _toastTimer.Tick += (_, _) => { IsToastVisible = false; _toastTimer.Stop(); };
+        _toastTimer.Start();
+    }
 
     // ── Commands ──────────────────────────────────────────────────────────────
 
     [RelayCommand]
-    private void SortById() => CurrentSort = SortMode.ById;
+    private void SortById()
+    {
+        if (CurrentSort == SortMode.ById)
+            IsSortReversed = !IsSortReversed;
+        else
+        {
+            IsSortReversed = false;
+            CurrentSort = SortMode.ById;
+        }
+        OnPropertyChanged(nameof(SortByIdLabel));
+        OnPropertyChanged(nameof(SortByProjectLabel));
+        _ = LoadEntriesAsync(SelectedDateItem?.Date);
+    }
 
     [RelayCommand]
-    private void SortByProject() => CurrentSort = SortMode.ByProjectThenId;
+    private void SortByProject()
+    {
+        if (CurrentSort == SortMode.ByProjectThenId)
+            IsSortReversed = !IsSortReversed;
+        else
+        {
+            IsSortReversed = false;
+            CurrentSort = SortMode.ByProjectThenId;
+        }
+        OnPropertyChanged(nameof(SortByIdLabel));
+        OnPropertyChanged(nameof(SortByProjectLabel));
+        _ = LoadEntriesAsync(SelectedDateItem?.Date);
+    }
 
     [RelayCommand]
     private async Task AddEntry()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
-        var todayEntries = await _repository.GetEntriesForDateAsync(today);
-        var nextSeq = todayEntries.Count + 1;
+        var nextSeq = await _repository.GetNextSequenceNumberAsync(today);
 
         var dialogVm = new NewEntryViewModel(nextSeq);
         var dialog = new NewEntryView(dialogVm)
@@ -233,18 +365,25 @@ public sealed partial class MainViewModel : ObservableObject
             var fileLabel = Path.GetFileName(filePath);
             var prefix = files.Length > 1 ? $"[{i + 1}/{files.Length}] " : string.Empty;
 
+            var logItem = AddProcessLog($"{prefix}{fileLabel}: Audiodatei wird verarbeitet…", isRunning: true);
+
             var progress = new Progress<ProcessingProgress>(p =>
-                ErrorMessage = $"{prefix}{fileLabel}: {p.Stage} ({p.StepIndex}/{p.TotalSteps})");
+            {
+                ErrorMessage = $"{prefix}{fileLabel}: {p.Stage}";
+                System.Windows.Application.Current.Dispatcher.Invoke(() => StatusText = $"{prefix}{fileLabel}: {p.Stage}");
+            });
 
             try
             {
                 var entry = await _processor.ProcessAudioAsync(filePath, today, progress);
                 RefreshAfterEntry(entry);
+                CompleteProcessLog(logItem, "Fertig");
             }
             catch (Exception ex)
             {
                 // Non-fatal: log per-file error, continue with remaining files
                 ErrorMessage = $"{prefix}{fileLabel}: Fehler – {ex.Message}";
+                CompleteProcessLog(logItem, $"Fehler: {ex.Message}");
             }
         }
 
@@ -292,7 +431,6 @@ public sealed partial class MainViewModel : ObservableObject
         {
             var rowVm = new EntryRowViewModel(entry);
             Entries.Add(rowVm);
-            SelectedEntry = rowVm;
         }
         else
         {

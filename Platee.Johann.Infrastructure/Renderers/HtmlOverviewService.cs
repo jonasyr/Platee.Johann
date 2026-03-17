@@ -117,19 +117,49 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
 
         if (!string.IsNullOrWhiteSpace(entry.Abstract))
         {
-            sb.AppendLine($"    <div class=\"abstract\">{HtmlEncode(entry.Abstract)}</div>");
+            sb.AppendLine($"    <div class=\"abstract\">{MarkdownHelper.ToHtml(entry.Abstract)}</div>");
         }
 
         if (!string.IsNullOrWhiteSpace(entry.TaskList))
         {
             sb.AppendLine($"    <div class=\"section-label\">Aufgaben</div>");
-            sb.AppendLine($"    <div class=\"task-list\">{HtmlEncode(entry.TaskList).Replace("\n", "<br>")}</div>");
+            sb.AppendLine($"    <div class=\"task-list\">{MarkdownHelper.ToHtml(entry.TaskList)}</div>");
         }
 
         if (!string.IsNullOrWhiteSpace(entry.ConversationNote))
         {
             sb.AppendLine($"    <div class=\"section-label\">Gesprächsnotiz</div>");
             sb.AppendLine($"    <div class=\"conv-note\">{MarkdownHelper.ToHtml(entry.ConversationNote)}</div>");
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.StundenzettelText))
+        {
+            sb.AppendLine($"    <div class=\"section-label\">Stundenzettel</div>");
+            sb.AppendLine($"    <div class=\"stundenzettel\">{MarkdownHelper.ToHtml(entry.StundenzettelText)}</div>");
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.AnalogText))
+        {
+            sb.AppendLine($"    <div class=\"section-label\">Analog</div>");
+            sb.AppendLine($"    <div class=\"analog\">{MarkdownHelper.ToHtml(entry.AnalogText)}</div>");
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.EmailText))
+        {
+            sb.AppendLine($"    <div class=\"section-label\">E-Mail</div>");
+            sb.AppendLine($"    <div class=\"email-text\">{MarkdownHelper.ToHtml(entry.EmailText)}</div>");
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.LongSummary))
+        {
+            sb.AppendLine($"    <div class=\"section-label\">Zusammenfassung</div>");
+            sb.AppendLine($"    <div class=\"long-summary\">{MarkdownHelper.ToHtml(entry.LongSummary)}</div>");
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.ProseSummary))
+        {
+            sb.AppendLine($"    <div class=\"section-label\">Ausführliche Zusammenfassung</div>");
+            sb.AppendLine($"    <div class=\"prose-summary\">{MarkdownHelper.ToHtml(entry.ProseSummary)}</div>");
         }
 
         sb.AppendLine($"  </div>");
@@ -179,6 +209,20 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
                border: 1px solid #E63123; border-radius: 4px; padding: 8px; }
   .conv-note { font-size: 12px; color: #333; background: #F0F8FF;
                border: 1px solid #B8D4F0; border-radius: 4px; padding: 8px; }
+  .stundenzettel { font-size: 12px; color: #333; background: #FAF0FF;
+                   border: 1px solid #8E44AD; border-radius: 4px; padding: 8px; }
+  .analog { font-size: 12px; color: #333; background: #F8F8F8;
+            border: 1px solid #888; border-radius: 4px; padding: 8px; }
+  .email-text { font-size: 12px; color: #333; background: #F0FFF4;
+                border: 1px solid #27AE60; border-radius: 4px; padding: 8px; }
+  .long-summary, .prose-summary { font-size: 12px; color: #333; background: #F5F5F5;
+                                   border: 1px solid #E0E0E0; border-radius: 4px; padding: 8px; }
+  .abstract p, .task-list p, .conv-note p, .stundenzettel p, .analog p,
+  .email-text p, .long-summary p, .prose-summary p { margin: 3px 0; }
+  .abstract ul, .task-list ul, .conv-note ul, .stundenzettel ul, .analog ul,
+  .email-text ul, .long-summary ul, .prose-summary ul { margin: 3px 0 3px 18px; padding: 0; }
+  .abstract li, .task-list li, .conv-note li, .stundenzettel li, .analog li,
+  .email-text li, .long-summary li, .prose-summary li { margin: 1px 0; }
   .empty { color: #aaa; font-style: italic; text-align: center; padding: 40px; }
   footer { text-align: center; color: #bbb; font-size: 11px; margin-top: 32px; }
 </style>";

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using Platee.Johann.UI.ViewModels;
 
 namespace Platee.Johann.UI;
@@ -70,7 +71,11 @@ public partial class MainWindow : Window
         {
             if (source is FrameworkElement { DataContext: EntryRowViewModel row })
                 return row;
-            source = VisualTreeHelper.GetParent(source);
+            // Run / Span are FrameworkContentElements — not Visuals — so use the logical
+            // parent to escape them; once back in the visual tree switch to VisualTreeHelper.
+            source = source is Visual or Visual3D
+                ? VisualTreeHelper.GetParent(source)
+                : LogicalTreeHelper.GetParent(source);
         }
         return null;
     }

@@ -78,7 +78,7 @@ public sealed class HtmlRenderer : IEntryRenderer
         sb.AppendLine("  </p>");
         sb.AppendLine("</div>");
 
-        // Content sections
+        // Content sections — visibility controlled by checkboxes in the UI
         if (!string.IsNullOrWhiteSpace(entry.Abstract))
             AppendSection(sb, "Kurzfassung", entry.Abstract!, "section-abstract");
 
@@ -105,7 +105,7 @@ public sealed class HtmlRenderer : IEntryRenderer
 
         if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.Transcript))
         {
-            sb.AppendLine("<details><summary class=\"transcript-toggle\">Originaltranskript</summary>");
+            sb.AppendLine("<details><summary class=\"transcript-toggle\">Transkript</summary>");
             AppendSection(sb, null, entry.Transcript!, "section-transcript", isPlainText: true);
             sb.AppendLine("</details>");
         }
