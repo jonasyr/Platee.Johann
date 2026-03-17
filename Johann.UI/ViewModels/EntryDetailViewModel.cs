@@ -178,15 +178,16 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     /// <summary>
     /// Opens the default mail client (Outlook) with subject and body pre-filled via mailto:.
+    /// Subject is extracted from the "Betreff:" line of the email text when present.
     /// </summary>
     [RelayCommand(CanExecute = nameof(HasEntry))]
     private void OpenInOutlook()
     {
         if (Entry is null) return;
-        var subject = Uri.EscapeDataString($"{Entry.ProjectName}: {Entry.Title}");
-        var body    = Uri.EscapeDataString(
-            !string.IsNullOrWhiteSpace(Entry.EmailText) ? Entry.EmailText : BuildBasicEmailText(Entry));
-        var mailto  = $"mailto:?subject={subject}&body={body}";
+        var emailText = !string.IsNullOrWhiteSpace(Entry.EmailText) ? Entry.EmailText : BuildBasicEmailText(Entry);
+        var subject   = Uri.EscapeDataString(ExtractBetreff(emailText) ?? $"{Entry.ProjectName}: {Entry.Title}");
+        var body      = Uri.EscapeDataString(emailText);
+        var mailto    = $"mailto:?subject={subject}&body={body}";
         try
         {
             System.Diagnostics.Process.Start(
@@ -354,6 +355,19 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         sb.AppendLine();
         sb.AppendLine($"[{entry.CreatedAt:dd.MM.yyyy} · {entry.ProjectName}]");
         return sb.ToString();
+    }
+
+    /// <summary>Returns the text after "Betreff:" from the first matching line, or null.</summary>
+    private static string? ExtractBetreff(string? emailText)
+    {
+        if (string.IsNullOrWhiteSpace(emailText)) return null;
+        foreach (var line in emailText.Split('\n'))
+        {
+            var t = line.Trim();
+            if (t.StartsWith("Betreff:", StringComparison.OrdinalIgnoreCase))
+                return t["Betreff:".Length..].Trim();
+        }
+        return null;
     }
 
     private static string FormatDuration(double seconds)

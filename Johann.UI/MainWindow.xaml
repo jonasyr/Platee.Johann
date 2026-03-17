@@ -366,9 +366,16 @@
                         <StackPanel Visibility="{Binding Detail.ShowEmailSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,0,0,16">
                             <TextBlock Text="E-Mail Text" Style="{StaticResource SectionHeaderStyle}"/>
-                            <TextBox Text="{Binding Detail.DisplayEmailText, Mode=OneWay}"
-                                     Style="{StaticResource ContentTextStyle}"
-                                     TextWrapping="Wrap"/>
+                            <FlowDocumentScrollViewer
+                                Document="{Binding Detail.DisplayEmailText, Converter={StaticResource MdToDoc}}"
+                                VerticalScrollBarVisibility="Disabled"
+                                HorizontalScrollBarVisibility="Disabled"
+                                IsSelectionEnabled="True"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                FontFamily="Segoe UI, Arial"
+                                FontSize="13"/>
                         </StackPanel>
 
                         <!-- Transcript -->
