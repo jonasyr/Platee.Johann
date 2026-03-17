@@ -115,7 +115,7 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 3 – Summaries (parallel for speed)
         progress?.Report(new("Generiere Zusammenfassungen…", 3, total));
-        var (abstractText, longSummary, proseSummary) =
+        var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
             await GenerateSummariesAsync(transcription.Transcript, ct);
 
         var finalEntry = baseEntry with
@@ -123,12 +123,17 @@ public sealed class EntryProcessingService : IEntryProcessor
             Abstract = string.IsNullOrEmpty(abstractText) ? null : abstractText,
             LongSummary = string.IsNullOrEmpty(longSummary) ? null : longSummary,
             ProseSummary = string.IsNullOrEmpty(proseSummary) ? null : proseSummary,
+            TaskList = string.IsNullOrEmpty(taskList) ? null : taskList,
+            ConversationNote = string.IsNullOrEmpty(conversationNote) ? null : conversationNote,
+            StundenzettelText = string.IsNullOrEmpty(stundenzettelText) ? null : stundenzettelText,
+            AnalogText = string.IsNullOrEmpty(analogText) ? null : analogText,
+            EmailText = string.IsNullOrEmpty(emailText) ? null : emailText,
             Status = new ProcessingStatus(
                 Transcribed: true,
                 Summarized: true,
                 PdfCreated: false,
                 Archived: false,
-                EmailCreated: false),
+                EmailCreated: !string.IsNullOrEmpty(emailText)),
         };
 
         // Step 4 – Auto-generate HTML/PDF
@@ -217,7 +222,7 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 1 – Summaries
         progress?.Report(new("Generiere Zusammenfassungen…", 1, total));
-        var (abstractText, longSummary, proseSummary) =
+        var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
             await GenerateSummariesAsync(entry.Transcript, ct);
 
         var updatedEntry = entry with
@@ -225,6 +230,11 @@ public sealed class EntryProcessingService : IEntryProcessor
             Abstract = string.IsNullOrEmpty(abstractText) ? entry.Abstract : abstractText,
             LongSummary = string.IsNullOrEmpty(longSummary) ? entry.LongSummary : longSummary,
             ProseSummary = string.IsNullOrEmpty(proseSummary) ? entry.ProseSummary : proseSummary,
+            TaskList = string.IsNullOrEmpty(taskList) ? entry.TaskList : taskList,
+            ConversationNote = string.IsNullOrEmpty(conversationNote) ? entry.ConversationNote : conversationNote,
+            StundenzettelText = string.IsNullOrEmpty(stundenzettelText) ? entry.StundenzettelText : stundenzettelText,
+            AnalogText = string.IsNullOrEmpty(analogText) ? entry.AnalogText : analogText,
+            EmailText = string.IsNullOrEmpty(emailText) ? entry.EmailText : emailText,
             Status = entry.Status with { Summarized = true },
         };
 
@@ -264,16 +274,38 @@ public sealed class EntryProcessingService : IEntryProcessor
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private async Task<(string Abstract, string LongSummary, string ProseSummary)>
+    private async Task<(string Abstract, string LongSummary, string ProseSummary, string? TaskList, string? ConversationNote, string? StundenzettelText, string? AnalogText, string? EmailText)>
         GenerateSummariesAsync(string transcript, CancellationToken ct)
     {
+        // Step 1: run the three core summaries in parallel
         var abstractTask = _summaryGenerator.GenerateAbstractAsync(transcript, ct);
         var longTask = _summaryGenerator.GenerateLongSummaryAsync(transcript, ct);
         var proseTask = _summaryGenerator.GenerateProseSummaryAsync(transcript, ct);
 
         await Task.WhenAll(abstractTask, longTask, proseTask);
 
-        return (abstractTask.Result, longTask.Result, proseTask.Result);
+        var abstractText = abstractTask.Result;
+        var longSummary = longTask.Result;
+        var proseSummary = proseTask.Result;
+
+        // Step 2: run type-specific summaries in parallel (EmailText depends on proseSummary)
+        var taskListTask = _summaryGenerator.GenerateAufgabeAsync(transcript, ct);
+        var conversationNoteTask = _summaryGenerator.GenerateGespraechsnotizAsync(transcript, ct);
+        var stundenzettelTask = _summaryGenerator.GenerateStundenzettelAsync(transcript, ct);
+        var analogTask = _summaryGenerator.GenerateAnalogAsync(transcript, ct);
+        var emailTask = _summaryGenerator.GenerateEmailTextAsync(proseSummary, ct);
+
+        await Task.WhenAll(
+            (Task)taskListTask,
+            conversationNoteTask,
+            stundenzettelTask,
+            analogTask,
+            emailTask);
+
+        return (abstractText, longSummary, proseSummary,
+            taskListTask.Result, conversationNoteTask.Result,
+            stundenzettelTask.Result, analogTask.Result,
+            emailTask.Result);
     }
 
     /// <summary>
