@@ -1,7 +1,0 @@
-<Solution>
-  <Project Path="Johann.Application/Johann.Application.csproj" />
-  <Project Path="Johann.Domain/Johann.Domain.csproj" />
-  <Project Path="Johann.Infrastructure/Johann.Infrastructure.csproj" />
-  <Project Path="Johann.Tests/Johann.Tests.csproj" />
-  <Project Path="Johann.UI/Johann.UI.csproj" />
-</Solution>

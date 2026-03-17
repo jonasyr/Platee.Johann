@@ -1,0 +1,77 @@
+<Window x:Class="Platee.Johann.UI.Views.NewEntryView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Platee.Johann.UI.ViewModels"
+        Title="Neuer Eintrag" Height="500" Width="540"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#555"/>
+            <Setter Property="Margin" Value="0,10,0,4"/>
+        </Style>
+        <Style x:Key="InputStyle" TargetType="TextBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="BorderBrush" Value="#CCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style x:Key="ComboStyle" TargetType="ComboBox">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="6,4"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Form fields -->
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="Typ" Style="{StaticResource LabelStyle}"/>
+            <ComboBox ItemsSource="{Binding AvailableTypes}"
+                      SelectedItem="{Binding SelectedType}"
+                      Style="{StaticResource ComboStyle}"/>
+
+            <TextBlock Text="Projekt *" Style="{StaticResource LabelStyle}"/>
+            <TextBox Text="{Binding ProjectName, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource InputStyle}"
+                     x:Name="ProjectBox"/>
+
+            <TextBlock Text="Titel *" Style="{StaticResource LabelStyle}"/>
+            <TextBox Text="{Binding TitleText, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource InputStyle}"/>
+
+            <TextBlock Text="Inhalt / Transkript" Style="{StaticResource LabelStyle}"/>
+            <TextBox Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource InputStyle}"
+                     TextWrapping="Wrap" AcceptsReturn="True"
+                     Height="160" VerticalScrollBarVisibility="Auto"
+                     VerticalContentAlignment="Top"/>
+
+            <TextBlock Text="{Binding ValidationMessage}"
+                       Foreground="#C0392B" FontSize="11" Margin="0,6,0,0"/>
+        </StackPanel>
+
+        <!-- Action buttons -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Abbrechen"
+                    Command="{Binding CancelCommand}"
+                    Click="OnCancelClick"
+                    Padding="14,6" Margin="0,0,8,0" FontSize="13"/>
+            <Button Content="Speichern"
+                    Command="{Binding SaveCommand}"
+                    Click="OnSaveClick"
+                    Padding="14,6" FontSize="13"
+                    Background="#E63123" Foreground="White"
+                    BorderThickness="0"/>
+        </StackPanel>
+    </Grid>
+</Window>
