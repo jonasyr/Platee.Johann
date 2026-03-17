@@ -2,6 +2,7 @@ using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Johann.Application.Processing;
 using Johann.Domain.Entities;
 
 namespace Johann.UI.ViewModels;
@@ -12,6 +13,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     private readonly IEntryProcessor? _processor;
     private readonly IEntryRepository? _repository;
     private readonly string _outputRoot;
+    private readonly SectionVisibilityViewModel _sections;
 
     [ObservableProperty] private Entry? _entry;
     [ObservableProperty] private bool _isTranscriptExpanded;
@@ -25,6 +27,9 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     public string DisplayTranscript => Entry?.Transcript ?? "—";
     public string DisplayConversationNote => Entry?.ConversationNote ?? "—";
     public string DisplayTaskList => Entry?.TaskList ?? "—";
+    public string DisplayEmailText         => Entry?.EmailText         ?? "—";
+    public string DisplayStundenzettelText => Entry?.StundenzettelText ?? "—";
+    public string DisplayAnalogText        => Entry?.AnalogText        ?? "—";
     public string DisplayTypeBadge => Entry?.Type.ToString() ?? string.Empty;
     public string DisplayProject => Entry?.ProjectName ?? string.Empty;
     public string DisplayDuration => Entry is null ? string.Empty : FormatDuration(Entry.DurationSeconds);
@@ -43,12 +48,14 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers, string outputRoot,
                                 IEntryProcessor? processor = null,
-                                IEntryRepository? repository = null)
+                                IEntryRepository? repository = null,
+                                SectionVisibilityViewModel? sections = null)
     {
         _renderers = renderers;
         _outputRoot = outputRoot;
         _processor = processor;
         _repository = repository;
+        _sections = sections ?? new SectionVisibilityViewModel();
     }
 
     partial void OnEntryChanged(Entry? value)
@@ -66,6 +73,9 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         OnPropertyChanged(nameof(DisplayTitle));
         OnPropertyChanged(nameof(DisplayDuration));
         OnPropertyChanged(nameof(DisplayDate));
+        OnPropertyChanged(nameof(DisplayEmailText));
+        OnPropertyChanged(nameof(DisplayStundenzettelText));
+        OnPropertyChanged(nameof(DisplayAnalogText));
         OnPropertyChanged(nameof(DisplayIsDone));
         OnPropertyChanged(nameof(IsDoneButtonText));
         OnPropertyChanged(nameof(HasEntry));
@@ -283,7 +293,8 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             var opts = new RenderOptions(
                 OutputDirectory: dateDir,
                 OpenAfterRender: false,
-                IncludeTranscript: IncludeTranscript);
+                IncludeTranscript: _sections.ShowTranscript,
+                Sections: _sections.ToSectionVisibility());
 
             var result = await renderer.RenderAsync(Entry!, opts, ct);
             var filePath = Path.Combine(dateDir, result.SuggestedFilename);

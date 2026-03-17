@@ -79,6 +79,19 @@
                 <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
                     <TextBlock Text="Datum" Foreground="White" FontWeight="SemiBold"/>
                 </Border>
+                <Border DockPanel.Dock="Bottom" Padding="8,6" BorderThickness="0,1,0,0"
+                        BorderBrush="#E0E0E0" Background="#F5F5F5">
+                    <StackPanel>
+                        <TextBlock Text="Abschnitte" FontSize="10" Foreground="#999" Margin="0,0,0,4"/>
+                        <CheckBox Content="Fließtext"      IsChecked="{Binding Sections.ShowProseSummary}"      FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Strukturiert"   IsChecked="{Binding Sections.ShowLongSummary}"       FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Aufgabe"        IsChecked="{Binding Sections.ShowTaskList}"          FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Gesprächsnotiz" IsChecked="{Binding Sections.ShowConversationNote}"  FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        FontSize="11" Margin="0,1"/>
+                    </StackPanel>
+                </Border>
                 <ListBox ItemsSource="{Binding AvailableDates}"
                          SelectedItem="{Binding SelectedDateItem}"
                          BorderThickness="0" Background="Transparent">
@@ -309,6 +322,49 @@
                                 Padding="0"
                                 FontFamily="Segoe UI, Arial"
                                 FontSize="13"/>
+                        </StackPanel>
+
+                        <!-- Stundenzettel section -->
+                        <StackPanel Visibility="{Binding Detail.Entry.StundenzettelText,
+                                        Converter={StaticResource NullToVis}}">
+                            <TextBlock Text="Stundenzettel" Style="{StaticResource SectionHeaderStyle}"/>
+                            <FlowDocumentScrollViewer
+                                Document="{Binding Detail.DisplayStundenzettelText,
+                                           Converter={StaticResource MdToDoc}}"
+                                MaxHeight="200"
+                                VerticalScrollBarVisibility="Auto"
+                                IsSelectionEnabled="True"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                FontFamily="Segoe UI, Arial"
+                                FontSize="13"/>
+                        </StackPanel>
+
+                        <!-- Analog section -->
+                        <StackPanel Visibility="{Binding Detail.Entry.AnalogText,
+                                        Converter={StaticResource NullToVis}}">
+                            <TextBlock Text="Analog" Style="{StaticResource SectionHeaderStyle}"/>
+                            <FlowDocumentScrollViewer
+                                Document="{Binding Detail.DisplayAnalogText,
+                                           Converter={StaticResource MdToDoc}}"
+                                MaxHeight="200"
+                                VerticalScrollBarVisibility="Auto"
+                                IsSelectionEnabled="True"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                FontFamily="Segoe UI, Arial"
+                                FontSize="13"/>
+                        </StackPanel>
+
+                        <!-- E-Mail section -->
+                        <StackPanel Visibility="{Binding Detail.Entry.EmailText,
+                                        Converter={StaticResource NullToVis}}">
+                            <TextBlock Text="E-Mail Text" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBox Text="{Binding Detail.DisplayEmailText, Mode=OneWay}"
+                                     Style="{StaticResource ContentTextStyle}"
+                                     MaxHeight="200" VerticalScrollBarVisibility="Auto"/>
                         </StackPanel>
 
                         <!-- Transcript (collapsible) -->

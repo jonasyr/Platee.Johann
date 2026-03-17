@@ -47,7 +47,8 @@ public sealed class EntryRepositoryTests : IDisposable
     {
         var date = new DateOnly(2026, 3, 17);
         var original = MakeEntry(jobId: "repo_002", seq: 2, date: date);
-        var updated = original with { Title = "Updated Title" };
+        // Use IsDone (not Title) so the filename stays the same — FilenameBuilder includes the title
+        var updated = original with { IsDone = true };
 
         await _sut.SaveAsync(original);
         await _sut.SaveAsync(updated);
@@ -56,7 +57,7 @@ public sealed class EntryRepositoryTests : IDisposable
 
         // Both saves use the same filename, so only one file exists
         result.Should().HaveCount(1);
-        result[0].Title.Should().Be("Updated Title");
+        result[0].IsDone.Should().BeTrue();
     }
 
     // ── GetAvailableDatesAsync ────────────────────────────────────────────────

@@ -3,6 +3,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Johann.Domain.Entities;
+using Johann.Domain.Enums;
 using Johann.UI.Views;
 using Microsoft.Win32;
 
@@ -40,6 +41,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _showOnlyPending = false;
     [ObservableProperty] private SortMode _currentSort = SortMode.ById;
 
+    public SectionVisibilityViewModel Sections { get; } = new();
+
     public bool IsSortById => CurrentSort == SortMode.ById;
     public bool IsSortByProject => CurrentSort == SortMode.ByProjectThenId;
 
@@ -58,7 +61,7 @@ public sealed partial class MainViewModel : ObservableObject
         _processor = processor;
         _settingsRepo = settingsRepo;
         _settingsHolder = settingsHolder;
-        _detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository);
+        _detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, Sections);
         _detail.EntryStatusChanged += changedEntry => { _ = LoadEntriesAsync(SelectedDateItem?.Date); };
     }
 
@@ -94,6 +97,14 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnSelectedEntryChanged(EntryRowViewModel? value)
     {
         Detail.Entry = value?.Entry;
+
+        // Auto-select type-specific section; keep LongSummary + ProseSummary always true
+        var type = value?.Entry.Type;
+        Sections.ShowTaskList          = type == EntryType.Aufgabe;
+        Sections.ShowConversationNote  = type == EntryType.Gesprächsnotiz;
+        Sections.ShowEmailText         = type == EntryType.EMail;
+        Sections.ShowStundenzettelText = type == EntryType.Stundenzettel;
+        Sections.ShowAnalogText        = type == EntryType.Analog;
     }
 
     partial void OnShowOnlyPendingChanged(bool value)
