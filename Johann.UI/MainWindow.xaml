@@ -142,9 +142,12 @@
                                 Style="{StaticResource ActionButtonStyle}"/>
                     </StackPanel>
                 </Border>
-                <ListBox ItemsSource="{Binding Entries}"
+                <ListBox x:Name="EntryListBox"
+                         ItemsSource="{Binding Entries}"
                          SelectedItem="{Binding SelectedEntry}"
-                         BorderThickness="0" Background="Transparent">
+                         BorderThickness="0" Background="Transparent"
+                         PreviewMouseLeftButtonDown="EntryListBox_PreviewMouseLeftButtonDown"
+                         PreviewMouseMove="EntryListBox_PreviewMouseMove">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="4,2">

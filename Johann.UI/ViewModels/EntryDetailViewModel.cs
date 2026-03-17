@@ -293,6 +293,34 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Renders a PDF for the given entry using current section visibility and returns
+    /// the absolute file path. Returns null on failure. Used by drag-and-drop.
+    /// </summary>
+    public async Task<string?> RenderPdfForDragAsync(Entry entry, CancellationToken ct)
+    {
+        var renderer = _renderers.FirstOrDefault(r =>
+            r.RendererName.Equals("PDF", StringComparison.OrdinalIgnoreCase));
+        if (renderer is null) return null;
+
+        try
+        {
+            var dateDir = Path.Combine(_outputRoot, entry.CreatedAt.ToString("yyyy-MM-dd"));
+            var opts = new RenderOptions(
+                OutputDirectory: dateDir,
+                OpenAfterRender: false,
+                IncludeTranscript: _sections.ShowTranscript,
+                Sections: _sections.ToSectionVisibility());
+
+            var result = await renderer.RenderAsync(entry, opts, ct);
+            return Path.Combine(dateDir, result.SuggestedFilename);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private void RefreshSectionVisibility()
     {
         OnPropertyChanged(nameof(ShowLongSummarySection));
