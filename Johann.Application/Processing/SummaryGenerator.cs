@@ -9,7 +9,7 @@ namespace Johann.Application.Processing;
 /// from Python summarizer.py.
 /// Prompts are read from <see cref="SettingsHolder"/> so live edits propagate instantly.
 /// </summary>
-public sealed class SummaryGenerator
+public sealed class SummaryGenerator : ISummaryGenerator
 {
     private readonly ILlmProvider _llm;
     private readonly SettingsHolder _settings;
@@ -87,5 +87,49 @@ public sealed class SummaryGenerator
         var userContent = "Bitte formuliere einen sehr kurzen, prägnanten Titel (maximal 3-7 Worte) für den folgenden Text. Antworte NUR mit dem Titel, ohne Anführungszeichen oder Erklärungen:\n\n" + transcript;
 
         return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(), ct);
+    }
+
+    public async Task<string?> GenerateAufgabeAsync(string transcript, CancellationToken ct = default)
+    {
+        if (!_llm.IsAvailable || string.IsNullOrWhiteSpace(transcript))
+            return null;
+
+        var s = _settings.Current;
+        var userContent = s.AufgabePrompt.Replace("{transcript}", transcript);
+
+        return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+    }
+
+    public async Task<string?> GenerateGespraechsnotizAsync(string transcript, CancellationToken ct = default)
+    {
+        if (!_llm.IsAvailable || string.IsNullOrWhiteSpace(transcript))
+            return null;
+
+        var s = _settings.Current;
+        var userContent = s.GespraechsnotizPrompt.Replace("{transcript}", transcript);
+
+        return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+    }
+
+    public async Task<string?> GenerateStundenzettelAsync(string transcript, CancellationToken ct = default)
+    {
+        if (!_llm.IsAvailable || string.IsNullOrWhiteSpace(transcript))
+            return null;
+
+        var s = _settings.Current;
+        var userContent = s.StundenzettelPrompt.Replace("{transcript}", transcript);
+
+        return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+    }
+
+    public async Task<string?> GenerateAnalogAsync(string transcript, CancellationToken ct = default)
+    {
+        if (!_llm.IsAvailable || string.IsNullOrWhiteSpace(transcript))
+            return null;
+
+        var s = _settings.Current;
+        var userContent = s.AnalogPrompt.Replace("{transcript}", transcript);
+
+        return await _llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
 }
