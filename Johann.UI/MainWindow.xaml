@@ -177,7 +177,7 @@
                                     Style="{StaticResource ActionButtonStyle}">
                                 <Button.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="Erstellen &amp; in Zwischenablage kopieren"
+                                        <MenuItem Header="HTML in Zwischenablage kopieren"
                                                   Command="{Binding PlacementTarget.DataContext.Detail.CopyHtmlCommand,
                                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     </ContextMenu>
@@ -188,7 +188,7 @@
                                     Style="{StaticResource ActionButtonStyle}">
                                 <Button.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="Erstellen &amp; in Zwischenablage kopieren"
+                                        <MenuItem Header="PDF in Zwischenablage kopieren"
                                                   Command="{Binding PlacementTarget.DataContext.Detail.CopyPdfCommand,
                                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     </ContextMenu>
