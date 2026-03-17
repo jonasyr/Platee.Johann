@@ -76,19 +76,19 @@ Der Beginn jedes Transkripts folgt dem Schema: `[Typ] [Projekt] Titel [Titeltext
 
 ## 4. MP3-Verarbeitung & Automatisierung
 
-### 3.1 Quellverzeichnis & Auto-Start
+### 4.1 Quellverzeichnis & Auto-Start
 
 - [ ] MP3-Quellverzeichnis wird aus der Config gelesen (kein manueller Button-Klick mehr nötig)
 - [ ] Beim **Programmstart** automatisch alle MP3s im Quellverzeichnis verarbeiten
 - [ ] **Verarbeiten** bedeutet: Transkription + Titel-Erkennung + **alle** Typ-Prompts ausführen + ins JSON schreiben
 - [ ] Verarbeitungsdauer von mehreren Minuten ist akzeptabel
 
-### 3.2 Verzeichnisüberwachung (FileSystemWatcher)
+### 4.2 Verzeichnisüberwachung (FileSystemWatcher)
 
 - [ ] Bei **geöffnetem Programm** das Quellverzeichnis dauerhaft überwachen
 - [ ] Neue MP3-Dateien automatisch verarbeiten, sobald sie im Verzeichnis erscheinen
 
-### 3.3 MP3-Dateien nach Verarbeitung entfernen
+### 4.3 MP3-Dateien nach Verarbeitung entfernen
 
 - [ ] Verarbeitete MP3s müssen aus dem **Quellverzeichnis verschwinden** (verschieben, nicht löschen)
 - [ ] Andernfalls Gefahr der Doppelverarbeitung und Organisation wird schwierig
@@ -97,19 +97,19 @@ Der Beginn jedes Transkripts folgt dem Schema: `[Typ] [Projekt] Titel [Titeltext
 
 ## 5. PDF-Erzeugung & -Inhalte
 
-### 4.1 Automatische PDF-Erstellung
+### 5.1 Automatische PDF-Erstellung
 
 - [ ] PDFs werden **immer automatisch** bei der Verarbeitung erzeugt – nicht nur auf Knopfdruck
 - [ ] Alle PDFs müssen fertig sein, sobald auch die Übersichts-HTML erstellt ist
 - [ ] PDFs sollen ins **Stammverzeichnis** kopiert werden
 
-### 4.2 PDF-Inhalte & Branding
+### 5.2 PDF-Inhalte & Branding
 
 - [ ] **Name + Firma** aus Config im PDF-Header/Footer eindrucken
 - [ ] **Copyright-Hinweis** im PDF (z. B. „Generiert mit KI-Unterstützung" / Disclaimer)
 - [ ] **Peano-Logo** im PDF integrieren (wenn mit wenig Aufwand machbar)
 
-### 4.3 PDF-Inhalt abhängig von Typ-Auswahl
+### 5.3 PDF-Inhalt abhängig von Typ-Auswahl
 
 - [ ] Der Inhalt des PDFs richtet sich nach den **in der GUI angehakten Typen** (siehe Abschnitt 7)
 - [ ] Beispiel Gesprächsnotiz: PDF enthält nur Header (Datum, Projekt, Abstract) + den Gesprächsnotiz-Prompt – **ohne** Transkript, Fließtext, Strukturiert
@@ -119,16 +119,16 @@ Der Beginn jedes Transkripts folgt dem Schema: `[Typ] [Projekt] Titel [Titeltext
 
 ## 6. HTML-Erzeugung
 
-### 5.1 Automatische HTML-Erstellung
+### 6.1 Automatische HTML-Erstellung
 
 - [ ] HTMLs werden ebenfalls automatisch bei der Verarbeitung erzeugt
 - [ ] HTMLs sollen ins **RAW-Verzeichnis** kopiert werden
 
-### 5.2 Individuelles HTML
+### 6.2 Individuelles HTML
 
 - [ ] Auch das individuelle HTML pro Eintrag soll die **Typ-Auswahl berücksichtigen** (analog zum PDF)
 
-### 5.3 Übersichts-HTML
+### 6.3 Übersichts-HTML
 
 - [ ] Das übergeordnete Übersichts-HTML benötigt **keine Typ-Filterung** – dient nur als Gesamtübersicht
 
@@ -179,11 +179,11 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 
 ## 8. GUI-Buttons: HTML & PDF (Klick-Verhalten)
 
-### 7.1 Linksklick
+### 8.1 Linksklick
 
 - [ ] **Erstellen und Anzeigen** (bisheriges Verhalten)
 
-### 7.2 Rechtsklick (oder alternative Belegung)
+### 8.2 Rechtsklick (oder alternative Belegung)
 
 - [ ] **Erstellen und in die Zwischenablage kopieren**
 - [ ] Danach: **MessageBox** anzeigen (z. B. „In die Zwischenablage kopiert")
@@ -211,14 +211,14 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 
 ## 11. Drag & Drop / Dateiweiterverarbeitung
 
-### 10.1 Idealzustand
+### 11.1 Idealzustand
 
 - [ ] Auf einen Eintrag klicken und das zugehörige **PDF per Drag & Drop** in andere Programme ziehen:
   - **ELO** (Dokumentenmanagement)
   - **Outlook** (als Anhang)
   - **Windows Explorer** (Dateiablage)
 
-### 10.2 Alternative (falls Drag & Drop zu aufwendig)
+### 11.2 Alternative (falls Drag & Drop zu aufwendig)
 
 - [ ] Bei Klick auf einen Eintrag öffnet sich ein **Explorer-Fenster** mit der PDF-Datei
 - [ ] Von dort kann der Benutzer die Datei manuell verschieben/ziehen
@@ -253,31 +253,31 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 
 | # | Aufgabe | Status |
 |---|---|---|
-| 10 | Name + Firma in Config + PDF-Ausgabe | ☐ |
-| 11 | Copyright-Hinweis / KI-Disclaimer im PDF | ☐ |
-| 12 | Peano-Logo im PDF | ☐ |
-| 13 | Rechtsklick: Erstellen + Zwischenablage + MessageBox | ☐ |
-| 14 | Erledigt-Funktion (Status im JSON, Filteransicht) | ☐ |
-| 15 | Sortierung nach ID / Projekt+ID | ☐ |
+| ~~10~~ | ~~Name + Firma in Config + PDF-Ausgabe~~ | ✅ Erledigt |
+| ~~11~~ | ~~Copyright-Hinweis / KI-Disclaimer im PDF~~ | ✅ Erledigt |
+| ~~12~~ | ~~Peano-Logo im PDF~~ | ✅ Erledigt |
+| ~~13~~ | ~~Rechtsklick: Erstellen + Zwischenablage + MessageBox~~ | ✅ Erledigt |
+| ~~14~~ | ~~Erledigt-Funktion (Status im JSON, Filteransicht)~~ | ✅ Erledigt |
+| ~~15~~ | ~~Sortierung nach ID / Projekt+ID~~ | ✅ Erledigt |
 
 ### Priorität 3 – Typen-System (Highlight-Feature)
 
 | # | Aufgabe | Status |
 |---|---|---|
-| 16 | Pro Typ einen individuellen Prompt in Config | ☐ |
-| 17 | Bei Verarbeitung **immer alle** Typ-Prompts generieren | ☐ |
-| 18 | Checkbox-Leiste in GUI zur Anzeige-Filterung | ☐ |
-| 19 | GUI-Anzeige abhängig von Checkbox-Auswahl | ☐ |
-| 20 | PDF-Inhalt abhängig von Checkbox-Auswahl | ☐ |
-| 21 | Individuelles HTML abhängig von Checkbox-Auswahl | ☐ |
+| ~~16~~ | ~~Pro Typ einen individuellen Prompt in Config~~ | ✅ Erledigt |
+| ~~17~~ | ~~Bei Verarbeitung **immer alle** Typ-Prompts generieren~~ | ✅ Erledigt |
+| ~~18~~ | ~~Checkbox-Leiste in GUI zur Anzeige-Filterung~~ | ✅ Erledigt |
+| ~~19~~ | ~~GUI-Anzeige abhängig von Checkbox-Auswahl~~ | ✅ Erledigt |
+| ~~20~~ | ~~PDF-Inhalt abhängig von Checkbox-Auswahl~~ | ✅ Erledigt |
+| ~~21~~ | ~~Individuelles HTML abhängig von Checkbox-Auswahl~~ | ✅ Erledigt |
 
 ### Priorität 4 – Komfort & Weiterverarbeitung
 
 | # | Aufgabe | Status |
 |---|---|---|
-| 22 | Drag & Drop von PDFs in ELO / Outlook / Explorer | ☐ |
-| 23 | Alternativ: Explorer-Fenster mit PDF öffnen | ☐ |
-| 24 | Produktname „Platé.Johann" im UI umsetzen | ☐ |
+| ~~22~~ | ~~Drag & Drop von PDFs in ELO / Outlook / Explorer~~ | ✅ Erledigt |
+| ~~23~~ | ~~Alternativ: Explorer-Fenster mit PDF öffnen~~ | ✅ Drag and Drop geht |
+| ~~24~~ | ~~Produktname „Platé.Johann" im UI umsetzen~~ | ✅ Erledigt |
 
 ---
 
@@ -294,4 +294,4 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 
 ---
 
-*Letzte Aktualisierung: 16.03.2026*
+*Letzte Aktualisierung: 17.03.2026 – Priorität 4 vollständig abgeschlossen (#22, #23, #24)*

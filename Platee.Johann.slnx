@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Platee.Johann.Application/Platee.Johann.Application.csproj" />
+  <Project Path="Platee.Johann.Domain/Platee.Johann.Domain.csproj" />
+  <Project Path="Platee.Johann.Infrastructure/Platee.Johann.Infrastructure.csproj" />
+  <Project Path="Platee.Johann.Tests/Platee.Johann.Tests.csproj" />
+  <Project Path="Platee.Johann.UI/Platee.Johann.UI.csproj" />
+</Solution>
