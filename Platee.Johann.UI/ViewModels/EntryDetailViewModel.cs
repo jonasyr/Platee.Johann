@@ -19,6 +19,10 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     [ObservableProperty] private bool _isTranscriptExpanded;
     [ObservableProperty] private string _statusMessage = string.Empty;
 
+    // Zoom
+    [ObservableProperty] private double _detailZoom = 1.0;
+    public string ZoomText => $"{(int)(DetailZoom * 100)} %";
+
     // Display helpers — show "—" for null fields
     public string DisplayAbstract => Entry?.Abstract ?? "—";
     public string DisplayLongSummary => Entry?.LongSummary ?? "—";
@@ -102,6 +106,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         CopyPdfCommand.NotifyCanExecuteChanged();
         CopyHtmlCommand.NotifyCanExecuteChanged();
         ToggleDoneCommand.NotifyCanExecuteChanged();
+        ReprocessSectionCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(HasEntry))]
@@ -269,6 +274,29 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
         System.Windows.Clipboard.SetText(sb.ToString());
         StatusMessage = "✓ Alles kopiert!";
+    }
+
+    partial void OnDetailZoomChanged(double value) => OnPropertyChanged(nameof(ZoomText));
+
+    [RelayCommand]
+    private void ZoomIn()
+    {
+        if (DetailZoom >= 2.0) return;
+        DetailZoom = Math.Round(DetailZoom + 0.1, 1);
+    }
+
+    [RelayCommand]
+    private void ZoomOut()
+    {
+        if (DetailZoom <= 0.5) return;
+        DetailZoom = Math.Round(DetailZoom - 0.1, 1);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasEntry))]
+    private void ReprocessSection(string section)
+    {
+        // IEntryProcessor does not support per-section reprocessing yet.
+        StatusMessage = $"Sektion '{section}' einzeln neu generieren ist noch nicht verfügbar.";
     }
 
     [RelayCommand(CanExecute = nameof(CanReprocess))]

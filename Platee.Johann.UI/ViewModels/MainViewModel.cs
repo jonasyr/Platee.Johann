@@ -37,6 +37,11 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string _errorMessage = string.Empty;
 
+    // Processing state — drives top bar spinner + status text
+    [ObservableProperty] private bool _isProcessing;
+    [ObservableProperty] private string _statusText = "Bereit";
+    public ObservableCollection<ProcessLogItem> ProcessLog { get; } = [];
+
     // Filter & Sort
     [ObservableProperty] private bool _showOnlyPending = false;
     [ObservableProperty] private SortMode _currentSort = SortMode.ById;
@@ -127,6 +132,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (date is null) return;
 
         IsLoading = true;
+        var logItem = AddProcessLog("Einträge laden…", isRunning: true);
         try
         {
             var entries = await _repository.GetEntriesForDateAsync(date.Value);
@@ -139,10 +145,13 @@ public sealed partial class MainViewModel : ObservableObject
 
             if (Entries.Count > 0)
                 SelectedEntry = Entries[0];
+
+            CompleteProcessLog(logItem, $"{Entries.Count} Einträge geladen");
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Fehler beim Laden: {ex.Message}";
+            CompleteProcessLog(logItem, $"Fehler: {ex.Message}");
         }
         finally
         {
@@ -155,6 +164,36 @@ public sealed partial class MainViewModel : ObservableObject
         SortMode.ByProjectThenId => entries.OrderBy(e => e.ProjectName).ThenBy(e => e.SequenceNumber),
         _ => entries.OrderBy(e => e.SequenceNumber),
     };
+
+    // ── Process log helpers ────────────────────────────────────────────────────
+
+    public ProcessLogItem AddProcessLog(string message, bool isRunning = false)
+    {
+        var item = new ProcessLogItem(message, DateTime.Now, isRunning);
+        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        {
+            ProcessLog.Insert(0, item);
+            IsProcessing = ProcessLog.Any(x => x.IsRunning);
+            if (isRunning) StatusText = message;
+        });
+        return item;
+    }
+
+    public void CompleteProcessLog(ProcessLogItem item, string resultMessage)
+    {
+        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        {
+            item.Complete(resultMessage);
+            IsProcessing = ProcessLog.Any(x => x.IsRunning);
+            StatusText = IsProcessing ? StatusText : "Bereit";
+        });
+    }
+
+    [RelayCommand]
+    private void OpenProcessDetail() => new ProcessDetailWindow(ProcessLog).Show();
+
+    [RelayCommand]
+    private void ClearProcessLog() => ProcessLog.Clear();
 
     // ── Commands ──────────────────────────────────────────────────────────────
 
@@ -233,18 +272,25 @@ public sealed partial class MainViewModel : ObservableObject
             var fileLabel = Path.GetFileName(filePath);
             var prefix = files.Length > 1 ? $"[{i + 1}/{files.Length}] " : string.Empty;
 
+            var logItem = AddProcessLog($"{prefix}{fileLabel}: Audiodatei wird verarbeitet…", isRunning: true);
+
             var progress = new Progress<ProcessingProgress>(p =>
-                ErrorMessage = $"{prefix}{fileLabel}: {p.Stage} ({p.StepIndex}/{p.TotalSteps})");
+            {
+                ErrorMessage = $"{prefix}{fileLabel}: {p.Stage} ({p.StepIndex}/{p.TotalSteps})";
+                System.Windows.Application.Current.Dispatcher.Invoke(() => StatusText = $"{prefix}{fileLabel}: {p.Stage}");
+            });
 
             try
             {
                 var entry = await _processor.ProcessAudioAsync(filePath, today, progress);
                 RefreshAfterEntry(entry);
+                CompleteProcessLog(logItem, "Fertig");
             }
             catch (Exception ex)
             {
                 // Non-fatal: log per-file error, continue with remaining files
                 ErrorMessage = $"{prefix}{fileLabel}: Fehler – {ex.Message}";
+                CompleteProcessLog(logItem, $"Fehler: {ex.Message}");
             }
         }
 

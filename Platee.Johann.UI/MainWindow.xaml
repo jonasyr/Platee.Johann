@@ -51,8 +51,8 @@
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="32"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Loading overlay -->
@@ -64,8 +64,36 @@
             </StackPanel>
         </Grid>
 
+        <!-- Row 0: Top bar -->
+        <Grid Grid.Row="0" Background="#F0F0F0">
+            <Border BorderThickness="0,0,0,1" BorderBrush="#E0E0E0">
+                <DockPanel Margin="8,0">
+                    <!-- Error / status message on the left -->
+                    <TextBlock Text="{Binding ErrorMessage}" VerticalAlignment="Center"
+                               Foreground="#C0392B" FontSize="11"
+                               Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVis}}"/>
+                    <!-- Right side: status indicator + settings -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right"
+                                VerticalAlignment="Center" Margin="0,4">
+                        <!-- Spinner (visible only while processing) -->
+                        <ProgressBar IsIndeterminate="True" Width="80" Height="6" VerticalAlignment="Center"
+                                     Margin="0,0,6,0" Foreground="#E63123"
+                                     Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVis}}"/>
+                        <Button Content="{Binding StatusText}" Command="{Binding OpenProcessDetailCommand}"
+                                ToolTip="Status-Details anzeigen" FontSize="11"
+                                Background="Transparent" BorderThickness="0" Margin="0,0,8,0"
+                                Cursor="Hand"/>
+                        <Button Content="⚙ Einstellungen" Command="{Binding OpenSettingsCommand}"
+                                ToolTip="Einstellungen öffnen"
+                                Background="Transparent" BorderThickness="0"
+                                FontSize="11" Padding="6,2" Cursor="Hand"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </Grid>
+
         <!-- 3-pane layout -->
-        <Grid Grid.Row="0">
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="160" MinWidth="120"/>
                 <ColumnDefinition Width="5"/>
@@ -126,11 +154,13 @@
                             <ToggleButton Content="ID"
                                           IsChecked="{Binding IsSortById, Mode=OneWay}"
                                           Command="{Binding SortByIdCommand}"
-                                          Style="{StaticResource SortToggleStyle}"/>
+                                          Style="{StaticResource SortToggleStyle}"
+                                          ToolTip="Nach Nummer sortieren"/>
                             <ToggleButton Content="Projekt"
                                           IsChecked="{Binding IsSortByProject, Mode=OneWay}"
                                           Command="{Binding SortByProjectCommand}"
-                                          Style="{StaticResource SortToggleStyle}"/>
+                                          Style="{StaticResource SortToggleStyle}"
+                                          ToolTip="Nach Projekt sortieren"/>
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -139,7 +169,8 @@
                         BorderBrush="#E0E0E0">
                     <StackPanel Orientation="Horizontal">
                         <Button Content="+ Neues Element" Command="{Binding AddEntryCommand}"
-                                Style="{StaticResource ActionButtonStyle}"/>
+                                Style="{StaticResource ActionButtonStyle}"
+                                ToolTip="Neuen Eintrag anlegen"/>
                     </StackPanel>
                 </Border>
                 <ListBox x:Name="EntryListBox"
@@ -167,6 +198,21 @@
 
             <!-- === RIGHT: Detail view === -->
             <DockPanel Grid.Column="4" Background="White">
+                <!-- Zoom controls -->
+                <Border DockPanel.Dock="Bottom" Padding="4,2" BorderThickness="0,1,0,0"
+                        BorderBrush="#E8E8E8" Background="#FAFAFA">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="−" Command="{Binding Detail.ZoomOutCommand}"
+                                ToolTip="Verkleinern" Width="22" Height="22" Padding="0"
+                                FontSize="14" Cursor="Hand"/>
+                        <TextBlock Text="{Binding Detail.ZoomText}" VerticalAlignment="Center"
+                                   Margin="4,0" FontSize="11" MinWidth="40" TextAlignment="Center"/>
+                        <Button Content="+" Command="{Binding Detail.ZoomInCommand}"
+                                ToolTip="Vergrößern" Width="22" Height="22" Padding="0"
+                                FontSize="14" Cursor="Hand"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- Action toolbar -->
                 <Border DockPanel.Dock="Bottom" Padding="8,6" BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0">
@@ -177,7 +223,8 @@
                         <StackPanel Orientation="Horizontal">
                             <Button Content="HTML"
                                     Command="{Binding Detail.GenerateHtmlCommand}"
-                                    Style="{StaticResource ActionButtonStyle}">
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    ToolTip="HTML-Datei erstellen und öffnen">
                                 <Button.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="HTML in Zwischenablage kopieren"
@@ -188,7 +235,8 @@
                             </Button>
                             <Button Content="PDF"
                                     Command="{Binding Detail.GeneratePdfCommand}"
-                                    Style="{StaticResource ActionButtonStyle}">
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    ToolTip="PDF-Datei erstellen und öffnen">
                                 <Button.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="PDF in Zwischenablage kopieren"
@@ -211,11 +259,49 @@
                             </Button>
                             <Button Content="Kopieren"
                                     Command="{Binding Detail.CopyCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"/>
-                            <Button Content="Verarbeiten"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    ToolTip="Alle sichtbaren Sektionen in die Zwischenablage kopieren"/>
+                            <Button Content="↻ Neu generieren"
                                     Command="{Binding Detail.ReprocessCommand}"
                                     Style="{StaticResource ActionButtonStyle}"
-                                    ToolTip="Zusammenfassungen neu via GPT generieren"/>
+                                    ToolTip="GPT-Zusammenfassungen neu generieren">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Fließtext neu generieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="Fließtext"/>
+                                        <MenuItem Header="Strukturiert neu generieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="Strukturiert"/>
+                                        <MenuItem Header="Aufgaben neu generieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="Aufgaben"/>
+                                        <MenuItem Header="Gesprächsnotiz neu generieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="Gesprächsnotiz"/>
+                                        <MenuItem Header="E-Mail neu generieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="E-Mail"/>
+                                        <MenuItem Header="Stundenzettel neu generieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="Stundenzettel"/>
+                                        <MenuItem Header="Analog neu generieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="Analog"/>
+                                        <MenuItem Header="Transkript neu generieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="Transkript"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -231,6 +317,10 @@
                               PreviewMouseWheel="DetailScrollViewer_PreviewMouseWheel"
                               Visibility="{Binding Detail.HasEntry, Converter={StaticResource BoolToVis}}">
                     <StackPanel>
+                        <StackPanel.LayoutTransform>
+                            <ScaleTransform ScaleX="{Binding Detail.DetailZoom}"
+                                            ScaleY="{Binding Detail.DetailZoom}"/>
+                        </StackPanel.LayoutTransform>
 
                         <!-- Header: badge + project + title -->
                         <DockPanel Margin="0,0,0,4">
@@ -260,9 +350,6 @@
                                     Command="{Binding Detail.ToggleDoneCommand}"
                                     Style="{StaticResource ActionButtonStyle}"
                                     FontSize="12"/>
-                            <CheckBox IsChecked="{Binding Detail.DisplayIsDone, Mode=OneWay}"
-                                      Content="Erledigt" IsEnabled="False"
-                                      VerticalAlignment="Center" FontSize="12"/>
                         </DockPanel>
 
                         <!-- Abstract — always shown when present, subtle highlight -->
@@ -395,19 +482,5 @@
             </DockPanel>
         </Grid>
 
-        <!-- Status bar -->
-        <Border Grid.Row="1" Background="#F5F5F5" Padding="8,4"
-                BorderThickness="0,1,0,0" BorderBrush="#E0E0E0">
-            <DockPanel>
-                <Button DockPanel.Dock="Right"
-                        Content="⚙"
-                        Command="{Binding OpenSettingsCommand}"
-                        Background="Transparent" BorderThickness="0"
-                        FontSize="15" Padding="6,2" Cursor="Hand"
-                        ToolTip="Einstellungen (Prompts bearbeiten)"/>
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="#C0392B"
-                           FontSize="12" VerticalAlignment="Center" Margin="4,0,0,0"/>
-            </DockPanel>
-        </Border>
     </Grid>
 </Window>
