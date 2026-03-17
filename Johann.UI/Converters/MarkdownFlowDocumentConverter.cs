@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Documents;
@@ -8,8 +9,9 @@ namespace Johann.UI.Converters;
 
 /// <summary>
 /// Converts a Markdown string to a WPF FlowDocument for display in a
-/// FlowDocumentScrollViewer.  Handles: # / ## / ###  headings,
-/// - / * bullet lists, blank-line spacing, and plain text.
+/// FlowDocumentScrollViewer.  Handles: # / ## / ### headings,
+/// - / * / indented bullet lists, 1. numbered lists,
+/// **bold** / *italic* inline, blank-line spacing, and plain text.
 /// </summary>
 [ValueConversion(typeof(string), typeof(FlowDocument))]
 public sealed class MarkdownFlowDocumentConverter : IValueConverter
@@ -22,12 +24,15 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
 
     // ---------------------------------------------------------------
 
+    private static readonly Regex NumberedItemRx = new(@"^\d+\.\s+", RegexOptions.Compiled);
+    private static readonly Regex InlineRx        = new(@"(\*\*[^*]+\*\*|\*[^*]+\*)", RegexOptions.Compiled);
+
     private static FlowDocument BuildDocument(string? markdown)
     {
         var doc = new FlowDocument
         {
             PagePadding = new Thickness(0),
-            ColumnWidth = double.PositiveInfinity,   // no multi-column layout
+            ColumnWidth = double.PositiveInfinity,
             TextAlignment = TextAlignment.Left,
             FontFamily = new FontFamily("Segoe UI, Arial"),
             FontSize = 13,
@@ -49,69 +54,94 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
                 Padding = new Thickness(4, 0, 0, 0),
             };
             foreach (var item in bulletBuffer)
-                list.ListItems.Add(new ListItem(
-                    new Paragraph(new Run(item)) { Margin = new Thickness(0), Padding = new Thickness(0) }));
+            {
+                var para = new Paragraph { Margin = new Thickness(0), Padding = new Thickness(0) };
+                foreach (var inline in ParseInlines(item)) para.Inlines.Add(inline);
+                list.ListItems.Add(new ListItem(para));
+            }
             doc.Blocks.Add(list);
             bulletBuffer.Clear();
         }
 
         foreach (var rawLine in markdown.Split('\n'))
         {
-            var line = rawLine.TrimEnd();
+            var line    = rawLine.TrimEnd();
+            var trimmed = line.TrimStart();   // used for prefix detection
 
-            if (line.StartsWith("### ", StringComparison.Ordinal))
+            if (trimmed.StartsWith("### ", StringComparison.Ordinal))
             {
                 FlushBullets();
-                doc.Blocks.Add(new Paragraph(new Run(line[4..]))
+                var para = new Paragraph
                 {
                     FontWeight = FontWeights.SemiBold,
-                    FontSize = 13,
+                    FontSize   = 13,
                     Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33)),
-                    Margin = new Thickness(0, 8, 0, 2),
-                });
+                    Margin     = new Thickness(0, 8, 0, 2),
+                };
+                foreach (var inline in ParseInlines(trimmed[4..])) para.Inlines.Add(inline);
+                doc.Blocks.Add(para);
             }
-            else if (line.StartsWith("## ", StringComparison.Ordinal))
+            else if (trimmed.StartsWith("## ", StringComparison.Ordinal))
             {
                 FlushBullets();
-                doc.Blocks.Add(new Paragraph(new Run(line[3..]))
-                {
-                    FontWeight = FontWeights.SemiBold,
-                    FontSize = 15,
-                    Margin = new Thickness(0, 10, 0, 2),
-                });
+                var para = new Paragraph { FontWeight = FontWeights.SemiBold, FontSize = 15, Margin = new Thickness(0, 10, 0, 2) };
+                foreach (var inline in ParseInlines(trimmed[3..])) para.Inlines.Add(inline);
+                doc.Blocks.Add(para);
             }
-            else if (line.StartsWith("# ", StringComparison.Ordinal))
+            else if (trimmed.StartsWith("# ", StringComparison.Ordinal))
             {
                 FlushBullets();
-                doc.Blocks.Add(new Paragraph(new Run(line[2..]))
-                {
-                    FontWeight = FontWeights.Bold,
-                    FontSize = 17,
-                    Margin = new Thickness(0, 12, 0, 4),
-                });
+                var para = new Paragraph { FontWeight = FontWeights.Bold, FontSize = 17, Margin = new Thickness(0, 12, 0, 4) };
+                foreach (var inline in ParseInlines(trimmed[2..])) para.Inlines.Add(inline);
+                doc.Blocks.Add(para);
             }
-            else if (line.StartsWith("- ", StringComparison.Ordinal) ||
-                     line.StartsWith("* ", StringComparison.Ordinal))
+            else if (trimmed.StartsWith("- ", StringComparison.Ordinal) ||
+                     trimmed.StartsWith("* ", StringComparison.Ordinal))
             {
-                bulletBuffer.Add(line[2..]);
+                bulletBuffer.Add(trimmed[2..]);
+            }
+            else if (NumberedItemRx.IsMatch(trimmed))
+            {
+                // Numbered list item — add to same bullet buffer (visual distinction not critical)
+                var text = NumberedItemRx.Replace(trimmed, string.Empty);
+                bulletBuffer.Add(text);
             }
             else if (string.IsNullOrEmpty(line))
             {
                 FlushBullets();
-                // Minimal spacer so consecutive sections breathe
                 doc.Blocks.Add(new Paragraph { Margin = new Thickness(0, 2, 0, 2) });
             }
             else
             {
                 FlushBullets();
-                doc.Blocks.Add(new Paragraph(new Run(line))
-                {
-                    Margin = new Thickness(0, 0, 0, 2),
-                });
+                var para = new Paragraph { Margin = new Thickness(0, 0, 0, 2) };
+                foreach (var inline in ParseInlines(trimmed)) para.Inlines.Add(inline);
+                doc.Blocks.Add(para);
             }
         }
 
         FlushBullets();
         return doc;
+    }
+
+    /// <summary>
+    /// Splits a line on **bold** and *italic* markers and returns the corresponding Inlines.
+    /// </summary>
+    private static IEnumerable<Inline> ParseInlines(string text)
+    {
+        if (string.IsNullOrEmpty(text)) yield break;
+
+        var parts = InlineRx.Split(text);
+        foreach (var part in parts)
+        {
+            if (string.IsNullOrEmpty(part)) continue;
+
+            if (part.StartsWith("**") && part.EndsWith("**") && part.Length > 4)
+                yield return new Bold(new Run(part[2..^2]));
+            else if (part.StartsWith('*') && part.EndsWith('*') && part.Length > 2)
+                yield return new Italic(new Run(part[1..^1]));
+            else
+                yield return new Run(part);
+        }
     }
 }

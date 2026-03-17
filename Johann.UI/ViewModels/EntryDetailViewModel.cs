@@ -95,7 +95,8 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         RefreshSectionVisibility();
         GeneratePdfCommand.NotifyCanExecuteChanged();
         GenerateHtmlCommand.NotifyCanExecuteChanged();
-        GenerateEmailCommand.NotifyCanExecuteChanged();
+        CopyEmailCommand.NotifyCanExecuteChanged();
+        OpenInOutlookCommand.NotifyCanExecuteChanged();
         CopyCommand.NotifyCanExecuteChanged();
         ReprocessCommand.NotifyCanExecuteChanged();
         CopyPdfCommand.NotifyCanExecuteChanged();
@@ -161,30 +162,36 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Generates an email via GPT (if available) and copies it to the clipboard.
-    /// Falls back to a simple plain-text composition if no processor is configured.
+    /// Copies the pre-generated email text directly to the clipboard.
+    /// Falls back to a plain-text composition when no EmailText is stored.
     /// </summary>
     [RelayCommand(CanExecute = nameof(HasEntry))]
-    private async Task GenerateEmailAsync(CancellationToken ct)
+    private void CopyEmail()
     {
         if (Entry is null) return;
+        var text = !string.IsNullOrWhiteSpace(Entry.EmailText)
+            ? Entry.EmailText
+            : BuildBasicEmailText(Entry);
+        System.Windows.Clipboard.SetText(text);
+        StatusMessage = "✓ E-Mail in Zwischenablage kopiert!";
+    }
 
+    /// <summary>
+    /// Opens the default mail client (Outlook) with subject and body pre-filled via mailto:.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(HasEntry))]
+    private void OpenInOutlook()
+    {
+        if (Entry is null) return;
+        var subject = Uri.EscapeDataString($"{Entry.ProjectName}: {Entry.Title}");
+        var body    = Uri.EscapeDataString(
+            !string.IsNullOrWhiteSpace(Entry.EmailText) ? Entry.EmailText : BuildBasicEmailText(Entry));
+        var mailto  = $"mailto:?subject={subject}&body={body}";
         try
         {
-            StatusMessage = "E-Mail wird generiert…";
-
-            string emailText;
-            if (_processor is not null)
-            {
-                emailText = await _processor.GenerateEmailTextAsync(Entry, ct);
-            }
-            else
-            {
-                emailText = BuildBasicEmailText(Entry);
-            }
-
-            System.Windows.Clipboard.SetText(emailText);
-            StatusMessage = "✓ E-Mail in Zwischenablage kopiert!";
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(mailto) { UseShellExecute = true });
+            StatusMessage = "✓ Outlook geöffnet.";
         }
         catch (Exception ex)
         {
