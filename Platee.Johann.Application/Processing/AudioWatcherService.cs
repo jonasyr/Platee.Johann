@@ -15,6 +15,7 @@ public sealed class AudioWatcherService : IDisposable
     private readonly IEntryProcessor _processor;
     private readonly SettingsHolder _settings;
     private FileSystemWatcher? _watcher;
+    private readonly SemaphoreSlim _processLock = new(1, 1);
 
     /// <summary>
     /// Raised on a background thread after an audio file is successfully processed.
@@ -78,8 +79,11 @@ public sealed class AudioWatcherService : IDisposable
     {
         if (!File.Exists(filePath)) return;
 
+        await _processLock.WaitAsync();
         try
         {
+            if (!File.Exists(filePath)) return; // may have been processed while waiting
+
             using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
                 stream.Close();
 
@@ -93,6 +97,10 @@ public sealed class AudioWatcherService : IDisposable
         {
             EntryProcessingFailed?.Invoke(filePath, ex);
         }
+        finally
+        {
+            _processLock.Release();
+        }
     }
 
     public void Dispose()
@@ -103,5 +111,6 @@ public sealed class AudioWatcherService : IDisposable
             _watcher.Dispose();
             _watcher = null;
         }
+        _processLock.Dispose();
     }
 }

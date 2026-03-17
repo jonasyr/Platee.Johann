@@ -205,9 +205,21 @@ public sealed partial class MainViewModel : ObservableObject
             ToastMessage = message;
             IsToastRunning = isRunning;
             IsToastVisible = true;
-            if (!isRunning) StartToastDismissTimer();
+            StartToastDismissTimer();
         });
         return item;
+    }
+
+    /// <summary>Updates the toast text in-place (e.g. for progress stage changes) without adding a new log entry.</summary>
+    public void UpdateToastProgress(string message)
+    {
+        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        {
+            StatusText = message;
+            ToastMessage = message;
+            IsToastVisible = true;
+            StartToastDismissTimer();
+        });
     }
 
     public void CompleteProcessLog(ProcessLogItem item, string resultMessage)

@@ -6,7 +6,7 @@ public partial class ProcessLogItem(string message, DateTime timestamp, bool isR
     : ObservableObject
 {
     public string Key { get; } = Guid.NewGuid().ToString();
-    public string Message { get; } = message;
+    [ObservableProperty] private string _message = message;
     public DateTime Timestamp { get; } = timestamp;
 
     [ObservableProperty] private bool _isRunning = isRunning;

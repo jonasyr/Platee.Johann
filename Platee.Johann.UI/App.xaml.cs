@@ -126,7 +126,8 @@ public partial class App : System.Windows.Application
                 }
                 else
                 {
-                    viewModel.StatusText = $"{fileName}: {progress.Stage}";
+                    existing.Message = $"{fileName}: {progress.Stage}";
+                    viewModel.UpdateToastProgress($"{fileName}: {progress.Stage}");
                 }
             });
 

@@ -76,9 +76,13 @@
                     <!-- Right side: status indicator + settings -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right"
                                 VerticalAlignment="Center" Margin="0,4">
-                        <!-- Spinner (visible only while processing) -->
-                        <ProgressBar IsIndeterminate="True" Width="100" Height="8" VerticalAlignment="Center"
-                                     Margin="0,0,6,0" Foreground="#E63123"
+                        <!-- Stage text + spinner (text left so bar position stays fixed) -->
+                        <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#555"
+                                   VerticalAlignment="Center" Margin="0,0,6,0"
+                                   MaxWidth="260" TextTrimming="CharacterEllipsis"
+                                   Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVis}}"/>
+                        <ProgressBar IsIndeterminate="True" Width="80" Height="8" VerticalAlignment="Center"
+                                     Margin="0,0,8,0" Foreground="#E63123"
                                      Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVis}}"/>
                         <Button x:Name="StatusTextButton"
                                 Command="{Binding OpenProcessDetailCommand}"
