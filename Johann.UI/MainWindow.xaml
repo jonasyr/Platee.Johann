@@ -18,9 +18,9 @@
         </Style>
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#666"/>
-            <Setter Property="Margin" Value="0,12,0,4"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#E63123"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
         <Style x:Key="ContentTextStyle" TargetType="TextBox">
             <Setter Property="IsReadOnly" Value="True"/>
@@ -90,6 +90,7 @@
                         <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         FontSize="11" Margin="0,1"/>
                     </StackPanel>
                 </Border>
                 <ListBox ItemsSource="{Binding AvailableDates}"
@@ -139,9 +140,6 @@
                     <StackPanel Orientation="Horizontal">
                         <Button Content="+ Neues Element" Command="{Binding AddEntryCommand}"
                                 Style="{StaticResource ActionButtonStyle}"/>
-                        <Button Content="🎙 MP3" Command="{Binding AddAudioCommand}"
-                                Style="{StaticResource ActionButtonStyle}"
-                                ToolTip="MP3-Datei transkribieren und zusammenfassen"/>
                     </StackPanel>
                 </Border>
                 <ListBox ItemsSource="{Binding Entries}"
@@ -202,12 +200,6 @@
                             <Button Content="Kopieren"
                                     Command="{Binding Detail.CopyCommand}"
                                     Style="{StaticResource ActionButtonStyle}"/>
-                            <CheckBox Content="Transkript"
-                                      IsChecked="{Binding Detail.IncludeTranscript}"
-                                      VerticalAlignment="Center"
-                                      Margin="8,0,4,0"
-                                      FontSize="12"
-                                      ToolTip="Transkript in PDF/HTML und Kopieren einschließen"/>
                             <Button Content="Verarbeiten"
                                     Command="{Binding Detail.ReprocessCommand}"
                                     Style="{StaticResource ActionButtonStyle}"
@@ -222,34 +214,33 @@
                            Visibility="{Binding Detail.HasNoEntry, Converter={StaticResource BoolToVis}}"/>
 
                 <!-- Detail content — filled -->
-                <ScrollViewer Padding="20,16" VerticalScrollBarVisibility="Auto"
+                <ScrollViewer Padding="24,16" VerticalScrollBarVisibility="Auto"
                               Visibility="{Binding Detail.HasEntry, Converter={StaticResource BoolToVis}}">
                     <StackPanel>
 
                         <!-- Header: badge + project + title -->
-                        <DockPanel Margin="0,0,0,8">
+                        <DockPanel Margin="0,0,0,4">
                             <Border Style="{StaticResource TypeBadgeStyle}" DockPanel.Dock="Left"
                                     Margin="0,0,8,0">
                                 <TextBlock Text="{Binding Detail.DisplayTypeBadge}"
                                            Foreground="White" FontSize="11" FontWeight="SemiBold"/>
                             </Border>
                             <TextBlock Text="{Binding Detail.DisplayProject}"
-                                       FontSize="13" Foreground="#666" VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
+                                       FontSize="13" Foreground="#666" VerticalAlignment="Center"/>
                         </DockPanel>
                         <TextBlock Text="{Binding Detail.DisplayTitle}"
-                                   FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap"
-                                   Margin="0,0,0,4"/>
-                        <TextBlock FontSize="12" Foreground="#888" Margin="0,0,0,16">
+                                   FontSize="20" FontWeight="Bold" TextWrapping="Wrap"
+                                   Margin="0,0,0,2"/>
+                        <TextBlock FontSize="12" Foreground="#888" Margin="0,0,0,12">
                             <Run Text="{Binding Detail.DisplayDate, Mode=OneWay}"/>
                             <Run Text=" · "/>
                             <Run Text="{Binding Detail.DisplayDuration, Mode=OneWay}"/>
                         </TextBlock>
 
-                        <Separator/>
+                        <Separator Margin="0,0,0,8"/>
 
                         <!-- Done status -->
-                        <DockPanel Margin="0,8,0,4">
+                        <DockPanel Margin="0,0,0,12">
                             <Button DockPanel.Dock="Right"
                                     Content="{Binding Detail.IsDoneButtonText}"
                                     Command="{Binding Detail.ToggleDoneCommand}"
@@ -260,45 +251,50 @@
                                       VerticalAlignment="Center" FontSize="12"/>
                         </DockPanel>
 
-                        <Separator/>
+                        <!-- Abstract — always shown when present, subtle highlight -->
+                        <StackPanel Visibility="{Binding Detail.Entry.Abstract, Converter={StaticResource NullToVis}}"
+                                    Margin="0,0,0,16">
+                            <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
+                            <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="0,0,0,2"
+                                    CornerRadius="2" Padding="12,10">
+                                <TextBox Text="{Binding Detail.DisplayAbstract, Mode=OneWay}"
+                                         Style="{StaticResource ContentTextStyle}"/>
+                            </Border>
+                        </StackPanel>
 
-                        <!-- Abstract -->
-                        <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
-                        <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="1"
-                                CornerRadius="4" Padding="12">
-                            <TextBox Text="{Binding Detail.DisplayAbstract, Mode=OneWay}"
-                                     Style="{StaticResource ContentTextStyle}"/>
-                        </Border>
-
-                        <!-- Long Summary — rendered as Markdown -->
-                        <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                        <FlowDocumentScrollViewer
-                            Document="{Binding Detail.DisplayLongSummary,
-                                       Converter={StaticResource MdToDoc}}"
-                            MaxHeight="250"
-                            VerticalScrollBarVisibility="Auto"
-                            IsSelectionEnabled="True"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Padding="0"
-                            FontFamily="Segoe UI, Arial"
-                            FontSize="13"/>
+                        <!-- Long Summary -->
+                        <StackPanel Visibility="{Binding Detail.ShowLongSummarySection, Converter={StaticResource BoolToVis}}"
+                                    Margin="0,0,0,16">
+                            <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
+                            <FlowDocumentScrollViewer
+                                Document="{Binding Detail.DisplayLongSummary, Converter={StaticResource MdToDoc}}"
+                                VerticalScrollBarVisibility="Disabled"
+                                HorizontalScrollBarVisibility="Disabled"
+                                IsSelectionEnabled="True"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                FontFamily="Segoe UI, Arial"
+                                FontSize="13"/>
+                        </StackPanel>
 
                         <!-- Prose Summary -->
-                        <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                        <TextBox Text="{Binding Detail.DisplayProseSummary, Mode=OneWay}"
-                                 Style="{StaticResource ContentTextStyle}"
-                                 MaxHeight="200" VerticalScrollBarVisibility="Auto"/>
+                        <StackPanel Visibility="{Binding Detail.ShowProseSummarySection, Converter={StaticResource BoolToVis}}"
+                                    Margin="0,0,0,16">
+                            <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBox Text="{Binding Detail.DisplayProseSummary, Mode=OneWay}"
+                                     Style="{StaticResource ContentTextStyle}"
+                                     TextWrapping="Wrap"/>
+                        </StackPanel>
 
-                        <!-- Task list (Aufgabe only) — rendered as Markdown -->
-                        <StackPanel Visibility="{Binding Detail.Entry.TaskList,
-                                        Converter={StaticResource NullToVis}}">
+                        <!-- Task list -->
+                        <StackPanel Visibility="{Binding Detail.ShowTaskListSection, Converter={StaticResource BoolToVis}}"
+                                    Margin="0,0,0,16">
                             <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
                             <FlowDocumentScrollViewer
-                                Document="{Binding Detail.DisplayTaskList,
-                                           Converter={StaticResource MdToDoc}}"
-                                MaxHeight="200"
-                                VerticalScrollBarVisibility="Auto"
+                                Document="{Binding Detail.DisplayTaskList, Converter={StaticResource MdToDoc}}"
+                                VerticalScrollBarVisibility="Disabled"
+                                HorizontalScrollBarVisibility="Disabled"
                                 IsSelectionEnabled="True"
                                 Background="Transparent"
                                 BorderThickness="0"
@@ -307,15 +303,14 @@
                                 FontSize="13"/>
                         </StackPanel>
 
-                        <!-- Conversation note (Gesprächsnotiz only) — rendered as Markdown -->
-                        <StackPanel Visibility="{Binding Detail.Entry.ConversationNote,
-                                        Converter={StaticResource NullToVis}}">
+                        <!-- Conversation note -->
+                        <StackPanel Visibility="{Binding Detail.ShowConversationNoteSection, Converter={StaticResource BoolToVis}}"
+                                    Margin="0,0,0,16">
                             <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
                             <FlowDocumentScrollViewer
-                                Document="{Binding Detail.DisplayConversationNote,
-                                           Converter={StaticResource MdToDoc}}"
-                                MaxHeight="200"
-                                VerticalScrollBarVisibility="Auto"
+                                Document="{Binding Detail.DisplayConversationNote, Converter={StaticResource MdToDoc}}"
+                                VerticalScrollBarVisibility="Disabled"
+                                HorizontalScrollBarVisibility="Disabled"
                                 IsSelectionEnabled="True"
                                 Background="Transparent"
                                 BorderThickness="0"
@@ -324,15 +319,14 @@
                                 FontSize="13"/>
                         </StackPanel>
 
-                        <!-- Stundenzettel section -->
-                        <StackPanel Visibility="{Binding Detail.Entry.StundenzettelText,
-                                        Converter={StaticResource NullToVis}}">
+                        <!-- Stundenzettel -->
+                        <StackPanel Visibility="{Binding Detail.ShowStundenzettelSection, Converter={StaticResource BoolToVis}}"
+                                    Margin="0,0,0,16">
                             <TextBlock Text="Stundenzettel" Style="{StaticResource SectionHeaderStyle}"/>
                             <FlowDocumentScrollViewer
-                                Document="{Binding Detail.DisplayStundenzettelText,
-                                           Converter={StaticResource MdToDoc}}"
-                                MaxHeight="200"
-                                VerticalScrollBarVisibility="Auto"
+                                Document="{Binding Detail.DisplayStundenzettelText, Converter={StaticResource MdToDoc}}"
+                                VerticalScrollBarVisibility="Disabled"
+                                HorizontalScrollBarVisibility="Disabled"
                                 IsSelectionEnabled="True"
                                 Background="Transparent"
                                 BorderThickness="0"
@@ -341,15 +335,14 @@
                                 FontSize="13"/>
                         </StackPanel>
 
-                        <!-- Analog section -->
-                        <StackPanel Visibility="{Binding Detail.Entry.AnalogText,
-                                        Converter={StaticResource NullToVis}}">
+                        <!-- Analog -->
+                        <StackPanel Visibility="{Binding Detail.ShowAnalogSection, Converter={StaticResource BoolToVis}}"
+                                    Margin="0,0,0,16">
                             <TextBlock Text="Analog" Style="{StaticResource SectionHeaderStyle}"/>
                             <FlowDocumentScrollViewer
-                                Document="{Binding Detail.DisplayAnalogText,
-                                           Converter={StaticResource MdToDoc}}"
-                                MaxHeight="200"
-                                VerticalScrollBarVisibility="Auto"
+                                Document="{Binding Detail.DisplayAnalogText, Converter={StaticResource MdToDoc}}"
+                                VerticalScrollBarVisibility="Disabled"
+                                HorizontalScrollBarVisibility="Disabled"
                                 IsSelectionEnabled="True"
                                 Background="Transparent"
                                 BorderThickness="0"
@@ -358,23 +351,23 @@
                                 FontSize="13"/>
                         </StackPanel>
 
-                        <!-- E-Mail section -->
-                        <StackPanel Visibility="{Binding Detail.Entry.EmailText,
-                                        Converter={StaticResource NullToVis}}">
+                        <!-- E-Mail Text -->
+                        <StackPanel Visibility="{Binding Detail.ShowEmailSection, Converter={StaticResource BoolToVis}}"
+                                    Margin="0,0,0,16">
                             <TextBlock Text="E-Mail Text" Style="{StaticResource SectionHeaderStyle}"/>
                             <TextBox Text="{Binding Detail.DisplayEmailText, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"
-                                     MaxHeight="200" VerticalScrollBarVisibility="Auto"/>
+                                     TextWrapping="Wrap"/>
                         </StackPanel>
 
-                        <!-- Transcript (collapsible) -->
-                        <Expander Header="Originaltranskript" Margin="0,12,0,0"
-                                  IsExpanded="{Binding Detail.IsTranscriptExpanded}">
+                        <!-- Transcript -->
+                        <StackPanel Visibility="{Binding Detail.ShowTranscriptSection, Converter={StaticResource BoolToVis}}"
+                                    Margin="0,0,0,16">
+                            <TextBlock Text="Originaltranskript" Style="{StaticResource SectionHeaderStyle}"/>
                             <TextBox Text="{Binding Detail.DisplayTranscript, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"
-                                     MaxHeight="200" VerticalScrollBarVisibility="Auto"
-                                     Margin="0,4,0,0"/>
-                        </Expander>
+                                     TextWrapping="Wrap" Foreground="#555"/>
+                        </StackPanel>
 
                     </StackPanel>
                 </ScrollViewer>

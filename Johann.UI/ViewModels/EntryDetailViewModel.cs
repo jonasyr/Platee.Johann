@@ -17,7 +17,6 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     [ObservableProperty] private Entry? _entry;
     [ObservableProperty] private bool _isTranscriptExpanded;
-    [ObservableProperty] private bool _includeTranscript = true;
     [ObservableProperty] private string _statusMessage = string.Empty;
 
     // Display helpers — show "—" for null fields
@@ -38,6 +37,16 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     public bool DisplayIsDone => Entry?.IsDone ?? false;
     public string IsDoneButtonText => Entry?.IsDone == true ? "Erledigt aufheben" : "Als erledigt markieren";
 
+    // Section visibility — true only when content exists AND checkbox is on
+    public bool ShowLongSummarySection       => !string.IsNullOrWhiteSpace(Entry?.LongSummary)       && _sections.ShowLongSummary;
+    public bool ShowProseSummarySection      => !string.IsNullOrWhiteSpace(Entry?.ProseSummary)      && _sections.ShowProseSummary;
+    public bool ShowTaskListSection          => !string.IsNullOrWhiteSpace(Entry?.TaskList)          && _sections.ShowTaskList;
+    public bool ShowConversationNoteSection  => !string.IsNullOrWhiteSpace(Entry?.ConversationNote)  && _sections.ShowConversationNote;
+    public bool ShowStundenzettelSection     => !string.IsNullOrWhiteSpace(Entry?.StundenzettelText) && _sections.ShowStundenzettelText;
+    public bool ShowAnalogSection            => !string.IsNullOrWhiteSpace(Entry?.AnalogText)        && _sections.ShowAnalogText;
+    public bool ShowEmailSection             => !string.IsNullOrWhiteSpace(Entry?.EmailText)         && _sections.ShowEmailText;
+    public bool ShowTranscriptSection        => !string.IsNullOrWhiteSpace(Entry?.Transcript)        && _sections.ShowTranscript;
+
     public bool HasEntry => Entry is not null;
     public bool HasNoEntry => Entry is null;
     public bool IsAudio => Entry?.SourceType == "audio";
@@ -56,6 +65,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         _processor = processor;
         _repository = repository;
         _sections = sections ?? new SectionVisibilityViewModel();
+        _sections.PropertyChanged += (_, _) => RefreshSectionVisibility();
     }
 
     partial void OnEntryChanged(Entry? value)
@@ -82,6 +92,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         OnPropertyChanged(nameof(HasNoEntry));
         OnPropertyChanged(nameof(IsAudio));
         OnPropertyChanged(nameof(CanReprocess));
+        RefreshSectionVisibility();
         GeneratePdfCommand.NotifyCanExecuteChanged();
         GenerateHtmlCommand.NotifyCanExecuteChanged();
         GenerateEmailCommand.NotifyCanExecuteChanged();
@@ -238,7 +249,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         }
 
         // Transcript — only when checkbox is checked
-        if (IncludeTranscript && !string.IsNullOrWhiteSpace(Entry.Transcript))
+        if (_sections.ShowTranscript && !string.IsNullOrWhiteSpace(Entry.Transcript))
         {
             sb.AppendLine("ORIGINALTRANSKRIPT");
             sb.AppendLine(Entry.Transcript);
@@ -272,6 +283,18 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         {
             StatusMessage = $"Fehler: {ex.Message}";
         }
+    }
+
+    private void RefreshSectionVisibility()
+    {
+        OnPropertyChanged(nameof(ShowLongSummarySection));
+        OnPropertyChanged(nameof(ShowProseSummarySection));
+        OnPropertyChanged(nameof(ShowTaskListSection));
+        OnPropertyChanged(nameof(ShowConversationNoteSection));
+        OnPropertyChanged(nameof(ShowStundenzettelSection));
+        OnPropertyChanged(nameof(ShowAnalogSection));
+        OnPropertyChanged(nameof(ShowEmailSection));
+        OnPropertyChanged(nameof(ShowTranscriptSection));
     }
 
     private async Task<string?> RenderToFileAsync(string rendererName, CancellationToken ct)
