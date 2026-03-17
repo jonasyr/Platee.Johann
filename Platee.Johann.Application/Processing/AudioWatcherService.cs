@@ -18,9 +18,10 @@ public sealed class AudioWatcherService : IDisposable
 
     /// <summary>
     /// Raised on a background thread after an audio file is successfully processed.
+    /// Carries the source file path so subscribers can correlate with progress events.
     /// Subscribers must marshal to the UI thread themselves.
     /// </summary>
-    public event Action<Platee.Johann.Domain.Entities.Entry>? EntryProcessed;
+    public event Action<string, Platee.Johann.Domain.Entities.Entry>? EntryProcessed;
     public event Action<string, ProcessingProgress>? EntryProcessingProgress;
     public event Action<string, Exception>? EntryProcessingFailed;
 
@@ -86,7 +87,7 @@ public sealed class AudioWatcherService : IDisposable
             var progress = new Progress<ProcessingProgress>(p =>
                 EntryProcessingProgress?.Invoke(filePath, p));
             var entry = await _processor.ProcessAudioAsync(filePath, date, progress, CancellationToken.None);
-            EntryProcessed?.Invoke(entry);
+            EntryProcessed?.Invoke(filePath, entry);
         }
         catch (Exception ex)
         {

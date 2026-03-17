@@ -130,14 +130,11 @@ public partial class App : System.Windows.Application
                 }
             });
 
-        _audioWatcher.EntryProcessed += entry =>
+        _audioWatcher.EntryProcessed += (filePath, entry) =>
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 viewModel.NotifyEntryProcessed(entry);
-                var key = watcherLogs.Keys.FirstOrDefault(k =>
-                    Path.GetFileNameWithoutExtension(k).StartsWith(
-                        entry.CreatedAt.ToString("yyMMdd"), StringComparison.Ordinal));
-                if (key is not null && watcherLogs.TryRemove(key, out var logItem))
+                if (watcherLogs.TryRemove(filePath, out var logItem))
                     viewModel.CompleteProcessLog(logItem, $"✓ {entry.Title}");
             });
 
