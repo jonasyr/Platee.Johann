@@ -38,6 +38,12 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+        <Style x:Key="SortToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <conv:NullToVisibilityConverter x:Key="NullToVis"/>
         <conv:MarkdownFlowDocumentConverter x:Key="MdToDoc"/>
@@ -92,6 +98,29 @@
                 <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
                     <TextBlock Text="{Binding SelectedDateDisplay}" Foreground="White" FontWeight="SemiBold"/>
                 </Border>
+
+                <!-- Sort / Filter toolbar -->
+                <Border DockPanel.Dock="Top" Padding="6,4" BorderThickness="0,0,0,1"
+                        BorderBrush="#E0E0E0" Background="#F9F9F9">
+                    <DockPanel>
+                        <CheckBox DockPanel.Dock="Right" Content="Nur unerledigte"
+                                  IsChecked="{Binding ShowOnlyPending}"
+                                  VerticalAlignment="Center" Margin="4,0,0,0" FontSize="11"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="↕" VerticalAlignment="Center" FontSize="11"
+                                       Foreground="#666" Margin="0,0,4,0"/>
+                            <ToggleButton Content="ID"
+                                          IsChecked="{Binding IsSortById, Mode=OneWay}"
+                                          Command="{Binding SortByIdCommand}"
+                                          Style="{StaticResource SortToggleStyle}"/>
+                            <ToggleButton Content="Projekt"
+                                          IsChecked="{Binding IsSortByProject, Mode=OneWay}"
+                                          Command="{Binding SortByProjectCommand}"
+                                          Style="{StaticResource SortToggleStyle}"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
                 <Border DockPanel.Dock="Bottom" Padding="8" BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0">
                     <StackPanel Orientation="Horizontal">
@@ -134,10 +163,26 @@
                         <StackPanel Orientation="Horizontal">
                             <Button Content="HTML"
                                     Command="{Binding Detail.GenerateHtmlCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"/>
+                                    Style="{StaticResource ActionButtonStyle}">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Erstellen &amp; in Zwischenablage kopieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.CopyHtmlCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
                             <Button Content="PDF"
                                     Command="{Binding Detail.GeneratePdfCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"/>
+                                    Style="{StaticResource ActionButtonStyle}">
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Erstellen &amp; in Zwischenablage kopieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.CopyPdfCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
                             <Button Content="E-Mail"
                                     Command="{Binding Detail.GenerateEmailCommand}"
                                     Style="{StaticResource ActionButtonStyle}"/>
@@ -187,6 +232,20 @@
                             <Run Text=" · "/>
                             <Run Text="{Binding Detail.DisplayDuration, Mode=OneWay}"/>
                         </TextBlock>
+
+                        <Separator/>
+
+                        <!-- Done status -->
+                        <DockPanel Margin="0,8,0,4">
+                            <Button DockPanel.Dock="Right"
+                                    Content="{Binding Detail.IsDoneButtonText}"
+                                    Command="{Binding Detail.ToggleDoneCommand}"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    FontSize="12"/>
+                            <CheckBox IsChecked="{Binding Detail.DisplayIsDone, Mode=OneWay}"
+                                      Content="Erledigt" IsEnabled="False"
+                                      VerticalAlignment="Center" FontSize="12"/>
+                        </DockPanel>
 
                         <Separator/>
 

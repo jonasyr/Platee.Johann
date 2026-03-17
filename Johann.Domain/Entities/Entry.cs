@@ -22,6 +22,7 @@ public sealed record Entry
 
     // --- Status ---
     public required ProcessingStatus Status { get; init; }
+    public bool IsDone { get; init; } = false;
 
     // --- Content (null = not yet generated) ---
     public string? Transcript { get; init; }

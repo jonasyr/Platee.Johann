@@ -63,6 +63,9 @@ public sealed class EntryDto
     [JsonPropertyName("taskList")]
     public string? TaskList { get; set; }
 
+    [JsonPropertyName("isDone")]
+    public bool IsDone { get; set; }
+
     /// <summary>Extension bag for future fields without breaking schema changes.</summary>
     [JsonPropertyName("extensions")]
     public JsonElement? Extensions { get; set; }

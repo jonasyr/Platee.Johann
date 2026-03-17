@@ -1,4 +1,5 @@
 using Johann.Application.Interfaces;
+using Johann.Application.Settings;
 using Johann.Domain.Entities;
 using Johann.Domain.Enums;
 using Johann.Domain.Services;
@@ -12,14 +13,34 @@ public sealed class PdfRenderer : IEntryRenderer
 {
     public string RendererName => "PDF";
 
+    private readonly SettingsHolder _settingsHolder;
+    private static readonly byte[] _logoBytes = LoadLogoBytes();
+
     static PdfRenderer()
     {
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
+    public PdfRenderer(SettingsHolder settingsHolder)
+    {
+        _settingsHolder = settingsHolder;
+    }
+
+    private static byte[] LoadLogoBytes()
+    {
+        var asm = typeof(PdfRenderer).Assembly;
+        using var stream = asm.GetManifestResourceStream(
+            "Johann.Infrastructure.Assets.Peano_Logo.png");
+        if (stream is null) return [];
+        using var ms = new MemoryStream();
+        stream.CopyTo(ms);
+        return ms.ToArray();
+    }
+
     public Task<RenderResult> RenderAsync(Entry entry, RenderOptions options,
                                           CancellationToken ct = default)
     {
+        var s = _settingsHolder.Current;
         var filename = FilenameBuilder.Build(entry) + ".pdf";
         var outputDir = options.OutputDirectory
             ?? Path.Combine(Path.GetTempPath(), "JohannPdf");
@@ -36,10 +57,17 @@ public sealed class PdfRenderer : IEntryRenderer
 
                 page.Header().Element(header => ComposeHeader(header, entry));
                 page.Content().Element(content => ComposeContent(content, entry, options.IncludeTranscript));
-                page.Footer().AlignCenter().Text(x =>
+                page.Footer().Column(col =>
                 {
-                    x.Span("Johann · ").FontColor("#999");
-                    x.Span(entry.CreatedAt.ToString("dd.MM.yyyy HH:mm")).FontColor("#999");
+                    col.Item().AlignCenter().Text(x =>
+                    {
+                        x.Span($"{s.Name} · {s.Firma}").FontColor("#666666").FontSize(9);
+                    });
+                    col.Item().AlignCenter().Text(x =>
+                    {
+                        x.Span("Generiert mit KI-Unterstützung · Johann · ").FontColor("#999999").FontSize(8);
+                        x.Span(entry.CreatedAt.ToString("dd.MM.yyyy HH:mm")).FontColor("#999999").FontSize(8);
+                    });
                 });
             }));
 
@@ -88,6 +116,8 @@ public sealed class PdfRenderer : IEntryRenderer
 
                 row.AutoItem().AlignRight().Column(meta =>
                 {
+                    if (_logoBytes.Length > 0)
+                        meta.Item().AlignRight().Height(28).Image(_logoBytes);
                     meta.Item().Text(entry.CreatedAt.ToString("dd.MM.yyyy"))
                         .FontColor("#888").FontSize(9);
                     if (entry.DurationSeconds > 0)

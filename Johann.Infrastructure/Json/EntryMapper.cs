@@ -28,6 +28,7 @@ internal static class EntryMapper
         EmailText = dto.EmailText,
         ConversationNote = dto.ConversationNote,
         TaskList = dto.TaskList,
+        IsDone = dto.IsDone,
         DurationSeconds = dto.DurationSeconds,
         WordCount = dto.WordCount,
         SchemaVersion = dto.SchemaVersion,
@@ -58,6 +59,7 @@ internal static class EntryMapper
         EmailText = entry.EmailText,
         ConversationNote = entry.ConversationNote,
         TaskList = entry.TaskList,
+        IsDone = entry.IsDone,
         DurationSeconds = entry.DurationSeconds,
         WordCount = entry.WordCount,
     };

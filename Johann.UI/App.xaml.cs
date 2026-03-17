@@ -84,7 +84,7 @@ public partial class App : System.Windows.Application
 
         IEntryRenderer[] renderers =
         [
-            new PdfRenderer(),
+            new PdfRenderer(settingsHolder),
             new HtmlRenderer(overviewService),   // updates overview after HTML export
             new EmailRenderer(),
         ];

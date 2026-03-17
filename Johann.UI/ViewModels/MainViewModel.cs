@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Johann.Domain.Entities;
 using Johann.UI.Views;
 using Microsoft.Win32;
 
@@ -35,6 +36,13 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string _errorMessage = string.Empty;
 
+    // Filter & Sort
+    [ObservableProperty] private bool _showOnlyPending = false;
+    [ObservableProperty] private SortMode _currentSort = SortMode.ById;
+
+    public bool IsSortById => CurrentSort == SortMode.ById;
+    public bool IsSortByProject => CurrentSort == SortMode.ByProjectThenId;
+
     public string SelectedDateDisplay =>
         SelectedDateItem?.DisplayText ?? "Kein Datum gewählt";
 
@@ -50,7 +58,8 @@ public sealed partial class MainViewModel : ObservableObject
         _processor = processor;
         _settingsRepo = settingsRepo;
         _settingsHolder = settingsHolder;
-        _detail = new EntryDetailViewModel(renderers, outputRoot, processor);
+        _detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository);
+        _detail.EntryStatusChanged += changedEntry => { _ = LoadEntriesAsync(SelectedDateItem?.Date); };
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)
@@ -87,6 +96,18 @@ public sealed partial class MainViewModel : ObservableObject
         Detail.Entry = value?.Entry;
     }
 
+    partial void OnShowOnlyPendingChanged(bool value)
+    {
+        _ = LoadEntriesAsync(SelectedDateItem?.Date);
+    }
+
+    partial void OnCurrentSortChanged(SortMode value)
+    {
+        OnPropertyChanged(nameof(IsSortById));
+        OnPropertyChanged(nameof(IsSortByProject));
+        _ = LoadEntriesAsync(SelectedDateItem?.Date);
+    }
+
     private async Task LoadEntriesAsync(DateOnly? date)
     {
         Entries.Clear();
@@ -98,7 +119,11 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             var entries = await _repository.GetEntriesForDateAsync(date.Value);
-            foreach (var entry in entries)
+            IEnumerable<Entry> filtered = ShowOnlyPending
+                ? entries.Where(e => !e.IsDone)
+                : entries;
+            var sorted = ApplySort(filtered);
+            foreach (var entry in sorted)
                 Entries.Add(new EntryRowViewModel(entry));
 
             if (Entries.Count > 0)
@@ -114,7 +139,19 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    private IEnumerable<Entry> ApplySort(IEnumerable<Entry> entries) => CurrentSort switch
+    {
+        SortMode.ByProjectThenId => entries.OrderBy(e => e.ProjectName).ThenBy(e => e.SequenceNumber),
+        _ => entries.OrderBy(e => e.SequenceNumber),
+    };
+
     // ── Commands ──────────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private void SortById() => CurrentSort = SortMode.ById;
+
+    [RelayCommand]
+    private void SortByProject() => CurrentSort = SortMode.ByProjectThenId;
 
     [RelayCommand]
     private async Task AddEntry()
@@ -223,12 +260,12 @@ public sealed partial class MainViewModel : ObservableObject
     /// Called by the audio watcher (background thread) after it finishes processing a file.
     /// Must be called on the UI thread — caller is responsible for dispatching.
     /// </summary>
-    public void NotifyEntryProcessed(Johann.Domain.Entities.Entry entry) => RefreshAfterEntry(entry);
+    public void NotifyEntryProcessed(Entry entry) => RefreshAfterEntry(entry);
 
     /// <summary>
     /// Inserts/selects the date and entry row in the UI after a new entry is created.
     /// </summary>
-    private void RefreshAfterEntry(Johann.Domain.Entities.Entry entry)
+    private void RefreshAfterEntry(Entry entry)
     {
         var entryDate = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
         var existing = AvailableDates.FirstOrDefault(d => d.Date == entryDate);

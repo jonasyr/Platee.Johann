@@ -10,6 +10,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 {
     private readonly IEnumerable<IEntryRenderer> _renderers;
     private readonly IEntryProcessor? _processor;
+    private readonly IEntryRepository? _repository;
     private readonly string _outputRoot;
 
     [ObservableProperty] private Entry? _entry;
@@ -28,20 +29,26 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     public string DisplayProject => Entry?.ProjectName ?? string.Empty;
     public string DisplayDuration => Entry is null ? string.Empty : FormatDuration(Entry.DurationSeconds);
     public string DisplayDate => Entry?.CreatedAt.ToString("dd.MM.yyyy") ?? string.Empty;
-
     public string DisplayTitle => Entry?.Title ?? string.Empty;
+    public bool DisplayIsDone => Entry?.IsDone ?? false;
+    public string IsDoneButtonText => Entry?.IsDone == true ? "Erledigt aufheben" : "Als erledigt markieren";
 
     public bool HasEntry => Entry is not null;
     public bool HasNoEntry => Entry is null;
     public bool IsAudio => Entry?.SourceType == "audio";
     public bool CanReprocess => Entry is not null && _processor is not null;
 
+    /// <summary>Raised after an entry's IsDone status is toggled so the list can refresh.</summary>
+    public event Action<Entry>? EntryStatusChanged;
+
     public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers, string outputRoot,
-                                IEntryProcessor? processor = null)
+                                IEntryProcessor? processor = null,
+                                IEntryRepository? repository = null)
     {
         _renderers = renderers;
         _outputRoot = outputRoot;
         _processor = processor;
+        _repository = repository;
     }
 
     partial void OnEntryChanged(Entry? value)
@@ -59,6 +66,8 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         OnPropertyChanged(nameof(DisplayTitle));
         OnPropertyChanged(nameof(DisplayDuration));
         OnPropertyChanged(nameof(DisplayDate));
+        OnPropertyChanged(nameof(DisplayIsDone));
+        OnPropertyChanged(nameof(IsDoneButtonText));
         OnPropertyChanged(nameof(HasEntry));
         OnPropertyChanged(nameof(HasNoEntry));
         OnPropertyChanged(nameof(IsAudio));
@@ -68,20 +77,66 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         GenerateEmailCommand.NotifyCanExecuteChanged();
         CopyCommand.NotifyCanExecuteChanged();
         ReprocessCommand.NotifyCanExecuteChanged();
+        CopyPdfCommand.NotifyCanExecuteChanged();
+        CopyHtmlCommand.NotifyCanExecuteChanged();
+        ToggleDoneCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(HasEntry))]
     private async Task GeneratePdfAsync(CancellationToken ct)
     {
         if (Entry is null) return;
-        await RenderAsync("PDF", ct);
+        var filePath = await RenderToFileAsync("PDF", ct);
+        if (filePath is null) return;
+        System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
     }
 
     [RelayCommand(CanExecute = nameof(HasEntry))]
     private async Task GenerateHtmlAsync(CancellationToken ct)
     {
         if (Entry is null) return;
-        await RenderAsync("HTML", ct);
+        var filePath = await RenderToFileAsync("HTML", ct);
+        if (filePath is null) return;
+        System.Diagnostics.Process.Start(
+            new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
+    }
+
+    [RelayCommand(CanExecute = nameof(HasEntry))]
+    private async Task CopyPdfAsync(CancellationToken ct)
+    {
+        if (Entry is null) return;
+        var filePath = await RenderToFileAsync("PDF", ct);
+        if (filePath is null) return;
+        var sc = new System.Collections.Specialized.StringCollection();
+        sc.Add(filePath);
+        System.Windows.Clipboard.SetFileDropList(sc);
+        System.Windows.MessageBox.Show("PDF in Zwischenablage kopiert.", "Johann",
+            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasEntry))]
+    private async Task CopyHtmlAsync(CancellationToken ct)
+    {
+        if (Entry is null) return;
+        var filePath = await RenderToFileAsync("HTML", ct);
+        if (filePath is null) return;
+        var sc = new System.Collections.Specialized.StringCollection();
+        sc.Add(filePath);
+        System.Windows.Clipboard.SetFileDropList(sc);
+        System.Windows.MessageBox.Show("HTML in Zwischenablage kopiert.", "Johann",
+            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+    }
+
+    [RelayCommand(CanExecute = nameof(HasEntry))]
+    private async Task ToggleDoneAsync()
+    {
+        if (Entry is null || _repository is null) return;
+        var updated = Entry with { IsDone = !Entry.IsDone };
+        await _repository.SaveAsync(updated);
+        Entry = updated;
+        StatusMessage = Entry.IsDone ? "✓ Als erledigt markiert." : "Erledigt-Markierung aufgehoben.";
+        EntryStatusChanged?.Invoke(updated);
     }
 
     /// <summary>
@@ -209,7 +264,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         }
     }
 
-    private async Task RenderAsync(string rendererName, CancellationToken ct)
+    private async Task<string?> RenderToFileAsync(string rendererName, CancellationToken ct)
     {
         var renderer = _renderers.FirstOrDefault(r =>
             r.RendererName.Equals(rendererName, StringComparison.OrdinalIgnoreCase));
@@ -217,7 +272,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         if (renderer is null)
         {
             StatusMessage = $"{rendererName}-Renderer nicht verfügbar.";
-            return;
+            return null;
         }
 
         try
@@ -227,19 +282,18 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             var dateDir = Path.Combine(_outputRoot, Entry!.CreatedAt.ToString("yyyy-MM-dd"));
             var opts = new RenderOptions(
                 OutputDirectory: dateDir,
-                OpenAfterRender: true,
+                OpenAfterRender: false,
                 IncludeTranscript: IncludeTranscript);
 
             var result = await renderer.RenderAsync(Entry!, opts, ct);
             var filePath = Path.Combine(dateDir, result.SuggestedFilename);
             StatusMessage = $"Gespeichert: {result.SuggestedFilename}";
-
-            System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
+            return filePath;
         }
         catch (Exception ex)
         {
             StatusMessage = $"Fehler: {ex.Message}";
+            return null;
         }
     }
 

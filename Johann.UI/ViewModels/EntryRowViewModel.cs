@@ -15,7 +15,11 @@ public sealed partial class EntryRowViewModel : ObservableObject
     public string Title => Entry.Title;
     public string TypeBadge => Entry.Type.ToString();
 
-    public string DisplayName => $"{Entry.SequenceNumber:D3}_{Entry.ProjectName}_{Entry.Title}";
+    public bool IsDone => Entry.IsDone;
+
+    public string DisplayName => Entry.IsDone
+        ? $"✓ {Entry.SequenceNumber:D3}_{Entry.ProjectName}_{Entry.Title}"
+        : $"{Entry.SequenceNumber:D3}_{Entry.ProjectName}_{Entry.Title}";
 
     public EntryRowViewModel(Entry entry)
     {
