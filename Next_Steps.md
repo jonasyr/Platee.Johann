@@ -277,7 +277,7 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 |---|---|---|
 | ~~22~~ | ~~Drag & Drop von PDFs in ELO / Outlook / Explorer~~ | ✅ Erledigt |
 | ~~23~~ | ~~Alternativ: Explorer-Fenster mit PDF öffnen~~ | ✅ Drag and Drop geht |
-| 24 | Produktname „Platé.Johann" im UI umsetzen | ☐ |
+| ~~24~~ | ~~Produktname „Platé.Johann" im UI umsetzen~~ | ✅ Erledigt |
 
 ---
 
@@ -294,4 +294,4 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 
 ---
 
-*Letzte Aktualisierung: 17.03.2026 – Priorität 4 gestartet: #22 Drag & Drop abgeschlossen*
+*Letzte Aktualisierung: 17.03.2026 – Priorität 4 vollständig abgeschlossen (#22, #23, #24)*

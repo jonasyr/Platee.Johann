@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:Johann.UI.ViewModels"
         xmlns:conv="clr-namespace:Johann.UI.Converters"
         mc:Ignorable="d"
-        Title="Johann" Height="700" Width="1200"
+        Title="Platé.Johann" Height="700" Width="1200"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>

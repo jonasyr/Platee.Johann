@@ -133,7 +133,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         var sc = new System.Collections.Specialized.StringCollection();
         sc.Add(filePath);
         System.Windows.Clipboard.SetFileDropList(sc);
-        System.Windows.MessageBox.Show("PDF in Zwischenablage kopiert.", "Johann",
+        System.Windows.MessageBox.Show("PDF in Zwischenablage kopiert.", "Platé.Johann",
             System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
     }
 
@@ -146,7 +146,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         var sc = new System.Collections.Specialized.StringCollection();
         sc.Add(filePath);
         System.Windows.Clipboard.SetFileDropList(sc);
-        System.Windows.MessageBox.Show("HTML in Zwischenablage kopiert.", "Johann",
+        System.Windows.MessageBox.Show("HTML in Zwischenablage kopiert.", "Platé.Johann",
             System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
     }
 
