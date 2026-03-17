@@ -186,7 +186,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         if (Entry is null) return;
         var emailText = !string.IsNullOrWhiteSpace(Entry.EmailText) ? Entry.EmailText : BuildBasicEmailText(Entry);
         var subject   = Uri.EscapeDataString(ExtractBetreff(emailText) ?? $"{Entry.ProjectName}: {Entry.Title}");
-        var body      = Uri.EscapeDataString(emailText);
+        var body      = Uri.EscapeDataString(StripBetreffLine(emailText));
         var mailto    = $"mailto:?subject={subject}&body={body}";
         try
         {
@@ -355,6 +355,19 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         sb.AppendLine();
         sb.AppendLine($"[{entry.CreatedAt:dd.MM.yyyy} · {entry.ProjectName}]");
         return sb.ToString();
+    }
+
+    /// <summary>Removes the "Betreff: ..." line (and any immediately following blank line) from the body.</summary>
+    private static string StripBetreffLine(string emailText)
+    {
+        var lines  = emailText.Split('\n').ToList();
+        var idx    = lines.FindIndex(l => l.Trim().StartsWith("Betreff:", StringComparison.OrdinalIgnoreCase));
+        if (idx < 0) return emailText;
+        lines.RemoveAt(idx);
+        // Also remove the blank line that typically follows the Betreff line
+        if (idx < lines.Count && string.IsNullOrWhiteSpace(lines[idx]))
+            lines.RemoveAt(idx);
+        return string.Join('\n', lines).TrimStart();
     }
 
     /// <summary>Returns the text after "Betreff:" from the first matching line, or null.</summary>
