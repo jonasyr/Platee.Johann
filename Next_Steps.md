@@ -76,19 +76,19 @@ Der Beginn jedes Transkripts folgt dem Schema: `[Typ] [Projekt] Titel [Titeltext
 
 ## 4. MP3-Verarbeitung & Automatisierung
 
-### 3.1 Quellverzeichnis & Auto-Start
+### 4.1 Quellverzeichnis & Auto-Start
 
 - [ ] MP3-Quellverzeichnis wird aus der Config gelesen (kein manueller Button-Klick mehr nötig)
 - [ ] Beim **Programmstart** automatisch alle MP3s im Quellverzeichnis verarbeiten
 - [ ] **Verarbeiten** bedeutet: Transkription + Titel-Erkennung + **alle** Typ-Prompts ausführen + ins JSON schreiben
 - [ ] Verarbeitungsdauer von mehreren Minuten ist akzeptabel
 
-### 3.2 Verzeichnisüberwachung (FileSystemWatcher)
+### 4.2 Verzeichnisüberwachung (FileSystemWatcher)
 
 - [ ] Bei **geöffnetem Programm** das Quellverzeichnis dauerhaft überwachen
 - [ ] Neue MP3-Dateien automatisch verarbeiten, sobald sie im Verzeichnis erscheinen
 
-### 3.3 MP3-Dateien nach Verarbeitung entfernen
+### 4.3 MP3-Dateien nach Verarbeitung entfernen
 
 - [ ] Verarbeitete MP3s müssen aus dem **Quellverzeichnis verschwinden** (verschieben, nicht löschen)
 - [ ] Andernfalls Gefahr der Doppelverarbeitung und Organisation wird schwierig
@@ -253,12 +253,12 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 
 | # | Aufgabe | Status |
 |---|---|---|
-| 10 | Name + Firma in Config + PDF-Ausgabe | ☐ |
-| 11 | Copyright-Hinweis / KI-Disclaimer im PDF | ☐ |
-| 12 | Peano-Logo im PDF | ☐ |
-| 13 | Rechtsklick: Erstellen + Zwischenablage + MessageBox | ☐ |
-| 14 | Erledigt-Funktion (Status im JSON, Filteransicht) | ☐ |
-| 15 | Sortierung nach ID / Projekt+ID | ☐ |
+| ~~10~~ | ~~Name + Firma in Config + PDF-Ausgabe~~ | ✅ Erledigt |
+| ~~11~~ | ~~Copyright-Hinweis / KI-Disclaimer im PDF~~ | ✅ Erledigt |
+| ~~12~~ | ~~Peano-Logo im PDF~~ | ✅ Erledigt |
+| ~~13~~ | ~~Rechtsklick: Erstellen + Zwischenablage + MessageBox~~ | ✅ Erledigt |
+| ~~14~~ | ~~Erledigt-Funktion (Status im JSON, Filteransicht)~~ | ✅ Erledigt |
+| ~~15~~ | ~~Sortierung nach ID / Projekt+ID~~ | ✅ Erledigt |
 
 ### Priorität 3 – Typen-System (Highlight-Feature)
 
@@ -294,4 +294,4 @@ Jeder Eintrag hat einen erkannten **Typ** (z. B. Projekt, E-Mail, Aufgabe, Gespr
 
 ---
 
-*Letzte Aktualisierung: 16.03.2026*
+*Letzte Aktualisierung: 17.03.2026*
