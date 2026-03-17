@@ -299,11 +299,26 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         DetailZoom = Math.Round(DetailZoom - 0.1, 1);
     }
 
-    [RelayCommand(CanExecute = nameof(HasEntry))]
-    private void ReprocessSection(string section)
+    [RelayCommand(CanExecute = nameof(CanReprocess))]
+    private async Task ReprocessSectionAsync(string section, CancellationToken ct)
     {
-        // IEntryProcessor does not support per-section reprocessing yet.
-        _addLog?.Invoke($"Sektion '{section}' einzeln neu generieren ist noch nicht verfügbar.", false);
+        if (Entry is null || _processor is null) return;
+
+        var logItem = _addLog?.Invoke($"'{section}' wird neu generiert…", true);
+        try
+        {
+            var progress = new Progress<ProcessingProgress>(p =>
+                _updateStatus?.Invoke(p.Stage));
+            var updated = await _processor.ReprocessSectionAsync(Entry, section, progress, ct);
+            Entry = updated;
+            if (logItem is not null) _completeLog?.Invoke(logItem, $"'{section}' aktualisiert");
+            else _addLog?.Invoke($"✓ '{section}' aktualisiert", false);
+        }
+        catch (Exception ex)
+        {
+            if (logItem is not null) _completeLog?.Invoke(logItem, $"Fehler: {ex.Message}");
+            else _addLog?.Invoke($"Fehler: {ex.Message}", false);
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanReprocess))]
@@ -311,11 +326,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     {
         if (Entry is null || _processor is null) return;
 
-        var logItem = _addLog?.Invoke("Verarbeite…", true);
+        var logItem = _addLog?.Invoke("Alle Abschnitte werden neu generiert…", true);
         try
         {
             var progress = new Progress<ProcessingProgress>(p =>
-                _updateStatus?.Invoke($"{p.Stage} ({p.StepIndex}/{p.TotalSteps})"));
+                _updateStatus?.Invoke(p.Stage));
 
             var updated = await _processor.ReprocessAsync(Entry, progress, ct);
             Entry = updated;
@@ -380,7 +395,13 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             return null;
         }
 
-        var logItem = _addLog?.Invoke($"{rendererName} wird erstellt…", true);
+        var logMessage = rendererName switch
+        {
+            "PDF" => "PDF-Export läuft…",
+            "HTML" => "HTML-Export läuft…",
+            _ => $"{rendererName} wird erstellt…"
+        };
+        var logItem = _addLog?.Invoke(logMessage, true);
         try
         {
             var dateDir = Path.Combine(_outputRoot, Entry!.CreatedAt.ToString("yyyy-MM-dd"));

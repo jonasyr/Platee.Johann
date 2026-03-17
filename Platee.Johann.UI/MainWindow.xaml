@@ -81,10 +81,13 @@
                                      Margin="0,0,6,0" Foreground="#E63123"
                                      Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVis}}"/>
                         <Button x:Name="StatusTextButton"
-                                Content="{Binding StatusText}" Command="{Binding OpenProcessDetailCommand}"
-                                ToolTip="Status-Details anzeigen" FontSize="12"
+                                Command="{Binding OpenProcessDetailCommand}"
+                                ToolTip="{Binding StatusText}"
+                                FontSize="14"
                                 Background="Transparent" BorderThickness="0" Margin="0,0,8,0"
-                                Cursor="Hand"/>
+                                Cursor="Hand" Padding="4,0">
+                            <TextBlock Text="🔔" FontSize="13"/>
+                        </Button>
                         <Button Content="⚙ Einstellungen" Command="{Binding OpenSettingsCommand}"
                                 ToolTip="Einstellungen öffnen"
                                 Background="Transparent" BorderThickness="0"
@@ -217,12 +220,12 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="↕" VerticalAlignment="Center" FontSize="11"
                                        Foreground="#666" Margin="0,0,4,0"/>
-                            <ToggleButton Content="ID"
+                            <ToggleButton Content="{Binding SortByIdLabel}"
                                           IsChecked="{Binding IsSortById, Mode=OneWay}"
                                           Command="{Binding SortByIdCommand}"
                                           Style="{StaticResource SortToggleStyle}"
                                           ToolTip="Nach Nummer sortieren"/>
-                            <ToggleButton Content="Projekt"
+                            <ToggleButton Content="{Binding SortByProjectLabel}"
                                           IsChecked="{Binding IsSortByProject, Mode=OneWay}"
                                           Command="{Binding SortByProjectCommand}"
                                           Style="{StaticResource SortToggleStyle}"
@@ -248,11 +251,21 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="4,2">
-                                <TextBlock Text="{Binding DisplayName}"
-                                           TextTrimming="CharacterEllipsis"
-                                           FontSize="13"/>
-                                <TextBlock Text="{Binding TypeBadge}"
-                                           FontSize="10" Foreground="#888"/>
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right" Text="✓" Foreground="#27AE60" FontSize="12"
+                                               FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"
+                                               Visibility="{Binding IsDone, Converter={StaticResource BoolToVis}}"/>
+                                    <TextBlock TextTrimming="CharacterEllipsis" FontSize="13">
+                                        <Run Text="{Binding SequenceNumber, StringFormat='{}{0:D3}', Mode=OneWay}"
+                                             FontStyle="Italic" Foreground="#AAAAAA"/>
+                                        <Run Text=" "/>
+                                        <Run Text="{Binding ProjectName, Mode=OneWay}"
+                                             FontWeight="Bold" Foreground="#C0392B"/>
+                                        <Run Text=" — "/>
+                                        <Run Text="{Binding Title, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </DockPanel>
+                                <TextBlock Text="{Binding TypeBadge}" FontSize="10" Foreground="#888"/>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -261,6 +274,29 @@
 
             <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
                           Background="#E0E0E0"/>
+
+            <!-- Toast notification overlay — top-right of main content area -->
+            <Border Grid.Column="4" Panel.ZIndex="8"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,8,16,0" MaxWidth="320"
+                    Background="White" BorderBrush="#CCCCCC" BorderThickness="1"
+                    CornerRadius="6" Padding="12,8"
+                    Cursor="Hand"
+                    Visibility="{Binding IsToastVisible, Converter={StaticResource BoolToVis}}">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="10" Opacity="0.2"/>
+                </Border.Effect>
+                <Border.InputBindings>
+                    <MouseBinding MouseAction="LeftClick" Command="{Binding DismissToastCommand}"/>
+                </Border.InputBindings>
+                <DockPanel>
+                    <ProgressBar DockPanel.Dock="Right" IsIndeterminate="True" Width="40" Height="4"
+                                 Foreground="#E63123" VerticalAlignment="Center" Margin="8,0,0,0"
+                                 Visibility="{Binding IsToastRunning, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock Text="{Binding ToastMessage}" FontSize="12" TextWrapping="Wrap"
+                               VerticalAlignment="Center" Foreground="#333"/>
+                </DockPanel>
+            </Border>
 
             <!-- === RIGHT: Detail view === -->
             <DockPanel Grid.Column="4" Background="White">

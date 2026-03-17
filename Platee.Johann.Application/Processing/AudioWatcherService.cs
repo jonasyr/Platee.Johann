@@ -21,6 +21,8 @@ public sealed class AudioWatcherService : IDisposable
     /// Subscribers must marshal to the UI thread themselves.
     /// </summary>
     public event Action<Platee.Johann.Domain.Entities.Entry>? EntryProcessed;
+    public event Action<string, ProcessingProgress>? EntryProcessingProgress;
+    public event Action<string, Exception>? EntryProcessingFailed;
 
     public AudioWatcherService(IEntryProcessor processor, SettingsHolder settings)
     {
@@ -77,21 +79,18 @@ public sealed class AudioWatcherService : IDisposable
 
         try
         {
-            // Try to open for read to ensure it's not locked by another process
             using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
-            {
                 stream.Close();
-            }
 
             var date = DateOnly.FromDateTime(DateTime.Now);
-            var entry = await _processor.ProcessAudioAsync(filePath, date, null, CancellationToken.None);
+            var progress = new Progress<ProcessingProgress>(p =>
+                EntryProcessingProgress?.Invoke(filePath, p));
+            var entry = await _processor.ProcessAudioAsync(filePath, date, progress, CancellationToken.None);
             EntryProcessed?.Invoke(entry);
         }
-        catch
+        catch (Exception ex)
         {
-            // If file is locked or fails, maybe a retry logic could be added,
-            // but for now we ignore and it stays in the queue or fails silently.
-            // A more robust implementation might use a queue or Polly.
+            EntryProcessingFailed?.Invoke(filePath, ex);
         }
     }
 

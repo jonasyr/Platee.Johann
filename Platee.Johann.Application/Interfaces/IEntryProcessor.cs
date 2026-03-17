@@ -30,4 +30,10 @@ public interface IEntryProcessor
     Task<string> GenerateEmailTextAsync(
         Entry entry,
         CancellationToken ct = default);
+
+    Task<Entry> ReprocessSectionAsync(
+        Entry entry,
+        string sectionName,
+        IProgress<ProcessingProgress>? progress = null,
+        CancellationToken ct = default);
 }

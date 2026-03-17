@@ -111,10 +111,45 @@ public partial class App : System.Windows.Application
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
                                            settingsRepo, settingsHolder);
 
-        // Notify the UI when the background watcher finishes processing a file.
+        // Track per-file log items for the watcher
+        var watcherLogs = new System.Collections.Concurrent.ConcurrentDictionary<string, ProcessLogItem>();
+
+        _audioWatcher.EntryProcessingProgress += (filePath, progress) =>
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var fileName = Path.GetFileName(filePath);
+                var existing = watcherLogs.GetValueOrDefault(filePath);
+                if (existing is null)
+                {
+                    var item = viewModel.AddProcessLog($"{fileName}: {progress.Stage}", isRunning: true);
+                    watcherLogs[filePath] = item;
+                }
+                else
+                {
+                    viewModel.StatusText = $"{fileName}: {progress.Stage}";
+                }
+            });
+
         _audioWatcher.EntryProcessed += entry =>
-            System.Windows.Application.Current.Dispatcher.InvokeAsync(
-                () => viewModel.NotifyEntryProcessed(entry));
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                viewModel.NotifyEntryProcessed(entry);
+                var key = watcherLogs.Keys.FirstOrDefault(k =>
+                    Path.GetFileNameWithoutExtension(k).StartsWith(
+                        entry.CreatedAt.ToString("yyMMdd"), StringComparison.Ordinal));
+                if (key is not null && watcherLogs.TryRemove(key, out var logItem))
+                    viewModel.CompleteProcessLog(logItem, $"✓ {entry.Title}");
+            });
+
+        _audioWatcher.EntryProcessingFailed += (filePath, ex) =>
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                var fileName = Path.GetFileName(filePath);
+                if (watcherLogs.TryRemove(filePath, out var logItem))
+                    viewModel.CompleteProcessLog(logItem, $"Fehler: {ex.Message}");
+                else
+                    viewModel.AddProcessLog($"{fileName}: Fehler – {ex.Message}", isRunning: false);
+            });
 
         _audioWatcher.Start();
 

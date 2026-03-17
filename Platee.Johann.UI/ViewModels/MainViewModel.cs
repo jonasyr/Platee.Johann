@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Platee.Johann.Domain.Entities;
@@ -41,16 +42,27 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isProcessing;
     [ObservableProperty] private string _statusText = "Bereit";
     [ObservableProperty] private bool _isProcessLogOpen;
+
+    // Toast notification
+    [ObservableProperty] private string _toastMessage = string.Empty;
+    [ObservableProperty] private bool _isToastRunning;
+    [ObservableProperty] private bool _isToastVisible;
+    private DispatcherTimer? _toastTimer;
+
     public ObservableCollection<ProcessLogItem> ProcessLog { get; } = [];
 
     // Filter & Sort
     [ObservableProperty] private bool _showOnlyPending = false;
     [ObservableProperty] private SortMode _currentSort = SortMode.ById;
+    [ObservableProperty] private bool _isSortReversed;
 
     public SectionVisibilityViewModel Sections { get; } = new();
 
     public bool IsSortById => CurrentSort == SortMode.ById;
     public bool IsSortByProject => CurrentSort == SortMode.ByProjectThenId;
+
+    public string SortByIdLabel => IsSortById ? (IsSortReversed ? "ID ↑" : "ID ↓") : "ID";
+    public string SortByProjectLabel => IsSortByProject ? (IsSortReversed ? "Projekt ↑" : "Projekt ↓") : "Projekt";
 
     public string SelectedDateDisplay =>
         SelectedDateItem?.DisplayText ?? "Kein Datum gewählt";
@@ -125,7 +137,14 @@ public sealed partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsSortById));
         OnPropertyChanged(nameof(IsSortByProject));
-        _ = LoadEntriesAsync(SelectedDateItem?.Date);
+        OnPropertyChanged(nameof(SortByIdLabel));
+        OnPropertyChanged(nameof(SortByProjectLabel));
+    }
+
+    partial void OnIsSortReversedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SortByIdLabel));
+        OnPropertyChanged(nameof(SortByProjectLabel));
     }
 
     private async Task LoadEntriesAsync(DateOnly? date)
@@ -163,11 +182,15 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private IEnumerable<Entry> ApplySort(IEnumerable<Entry> entries) => CurrentSort switch
+    private IEnumerable<Entry> ApplySort(IEnumerable<Entry> entries)
     {
-        SortMode.ByProjectThenId => entries.OrderBy(e => e.ProjectName).ThenBy(e => e.SequenceNumber),
-        _ => entries.OrderBy(e => e.SequenceNumber),
-    };
+        IEnumerable<Entry> sorted = CurrentSort switch
+        {
+            SortMode.ByProjectThenId => entries.OrderBy(e => e.ProjectName).ThenBy(e => e.SequenceNumber),
+            _ => entries.OrderBy(e => e.SequenceNumber),
+        };
+        return IsSortReversed ? sorted.Reverse() : sorted;
+    }
 
     // ── Process log helpers ────────────────────────────────────────────────────
 
@@ -179,6 +202,10 @@ public sealed partial class MainViewModel : ObservableObject
             ProcessLog.Insert(0, item);
             IsProcessing = ProcessLog.Any(x => x.IsRunning);
             if (isRunning) StatusText = message;
+            ToastMessage = message;
+            IsToastRunning = isRunning;
+            IsToastVisible = true;
+            if (!isRunning) StartToastDismissTimer();
         });
         return item;
     }
@@ -190,6 +217,9 @@ public sealed partial class MainViewModel : ObservableObject
             item.Complete(resultMessage);
             IsProcessing = ProcessLog.Any(x => x.IsRunning);
             StatusText = IsProcessing ? StatusText : "Bereit";
+            ToastMessage = resultMessage;
+            IsToastRunning = false;
+            StartToastDismissTimer();
         });
     }
 
@@ -207,13 +237,53 @@ public sealed partial class MainViewModel : ObservableObject
             ProcessLog.Remove(item);
     }
 
+    [RelayCommand]
+    private void DismissToast()
+    {
+        _toastTimer?.Stop();
+        IsToastVisible = false;
+    }
+
+    private void StartToastDismissTimer()
+    {
+        _toastTimer?.Stop();
+        _toastTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher.CurrentDispatcher)
+            { Interval = TimeSpan.FromSeconds(3) };
+        _toastTimer.Tick += (_, _) => { IsToastVisible = false; _toastTimer.Stop(); };
+        _toastTimer.Start();
+    }
+
     // ── Commands ──────────────────────────────────────────────────────────────
 
     [RelayCommand]
-    private void SortById() => CurrentSort = SortMode.ById;
+    private void SortById()
+    {
+        if (CurrentSort == SortMode.ById)
+            IsSortReversed = !IsSortReversed;
+        else
+        {
+            IsSortReversed = false;
+            CurrentSort = SortMode.ById;
+        }
+        OnPropertyChanged(nameof(SortByIdLabel));
+        OnPropertyChanged(nameof(SortByProjectLabel));
+        _ = LoadEntriesAsync(SelectedDateItem?.Date);
+    }
 
     [RelayCommand]
-    private void SortByProject() => CurrentSort = SortMode.ByProjectThenId;
+    private void SortByProject()
+    {
+        if (CurrentSort == SortMode.ByProjectThenId)
+            IsSortReversed = !IsSortReversed;
+        else
+        {
+            IsSortReversed = false;
+            CurrentSort = SortMode.ByProjectThenId;
+        }
+        OnPropertyChanged(nameof(SortByIdLabel));
+        OnPropertyChanged(nameof(SortByProjectLabel));
+        _ = LoadEntriesAsync(SelectedDateItem?.Date);
+    }
 
     [RelayCommand]
     private async Task AddEntry()
@@ -287,7 +357,7 @@ public sealed partial class MainViewModel : ObservableObject
 
             var progress = new Progress<ProcessingProgress>(p =>
             {
-                ErrorMessage = $"{prefix}{fileLabel}: {p.Stage} ({p.StepIndex}/{p.TotalSteps})";
+                ErrorMessage = $"{prefix}{fileLabel}: {p.Stage}";
                 System.Windows.Application.Current.Dispatcher.Invoke(() => StatusText = $"{prefix}{fileLabel}: {p.Stage}");
             });
 
@@ -349,7 +419,6 @@ public sealed partial class MainViewModel : ObservableObject
         {
             var rowVm = new EntryRowViewModel(entry);
             Entries.Add(rowVm);
-            SelectedEntry = rowVm;
         }
         else
         {

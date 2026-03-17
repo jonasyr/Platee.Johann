@@ -58,11 +58,11 @@ public sealed class EntryProcessingService : IEntryProcessor
         const int total = 5;
 
         // Step 1 – Transcription
-        progress?.Report(new("Transkribiere Audio…", 1, total));
+        progress?.Report(new("Audio wird transkribiert…", 1, total));
         var transcription = await _transcriber.TranscribeAsync(audioFilePath, ct);
 
         // Step 2 – Header parsing + sequence number
-        progress?.Report(new("Analysiere Header…", 2, total));
+        progress?.Report(new("Metadaten werden analysiert…", 2, total));
         var header = _parser.Parse(transcription.Transcript);
 
         int seq = await _repository.GetNextSequenceNumberAsync(date, ct);
@@ -73,7 +73,7 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         if (string.IsNullOrWhiteSpace(title) && _summaryGenerator.IsAvailable)
         {
-            progress?.Report(new("Generiere Titel…", 2, total));
+            progress?.Report(new("Titel wird generiert…", 2, total));
             title = await _summaryGenerator.GenerateTitleAsync(header.RemainderText, ct);
         }
 
@@ -113,7 +113,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         };
 
         // Step 3 – Summaries (parallel for speed)
-        progress?.Report(new("Generiere Zusammenfassungen…", 3, total));
+        progress?.Report(new("KI erstellt alle Abschnitte…", 3, total));
         var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
             await GenerateSummariesAsync(transcription.Transcript, ct);
 
@@ -136,7 +136,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         };
 
         // Step 4 – Auto-generate HTML/PDF
-        progress?.Report(new("Exportiere Dateien…", 4, total));
+        progress?.Report(new("HTML und PDF werden erstellt…", 4, total));
 
         var pdfCreated = false;
         var dateFolder = Path.Combine(_outputRoot, date.ToString("yyyy-MM-dd"));
@@ -171,7 +171,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         }
 
         // Step 5 – Persist JSON + archive raw files + regenerate overview
-        progress?.Report(new("Speichern…", 5, total));
+        progress?.Report(new("Eintrag wird gespeichert…", 5, total));
         await _repository.SaveAsync(finalEntry, ct);
         await ArchiveRawFilesAsync(audioFilePath, finalEntry, ct);
 
@@ -220,7 +220,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         const int total = 2;
 
         // Step 1 – Summaries
-        progress?.Report(new("Generiere Zusammenfassungen…", 1, total));
+        progress?.Report(new("Alle Abschnitte werden neu generiert…", 1, total));
         var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
             await GenerateSummariesAsync(entry.Transcript, ct);
 
@@ -238,7 +238,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         };
 
         // Step 2 – Persist + regenerate overview
-        progress?.Report(new("Speichern…", 2, total));
+        progress?.Report(new("Aktualisierung wird gespeichert…", 2, total));
         await _repository.SaveAsync(updatedEntry, ct);
 
         if (_overviewService is not null)
@@ -248,6 +248,52 @@ public sealed class EntryProcessingService : IEntryProcessor
         }
 
         return updatedEntry;
+    }
+
+    public async Task<Entry> ReprocessSectionAsync(Entry entry, string sectionName,
+        IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(entry.Transcript))
+            throw new InvalidOperationException("Kein Transkript vorhanden.");
+
+        progress?.Report(new($"'{sectionName}' wird neu generiert…", 1, 1));
+
+        var updated = sectionName switch
+        {
+            "Zusammenfassung" => entry with
+            {
+                LongSummary = await _summaryGenerator.GenerateLongSummaryAsync(entry.Transcript, ct)
+            },
+            "Ausführliche Zusammenfassung" => entry with
+            {
+                ProseSummary = await _summaryGenerator.GenerateProseSummaryAsync(entry.Transcript, ct)
+            },
+            "Aufgaben" => entry with
+            {
+                TaskList = await _summaryGenerator.GenerateAufgabeAsync(entry.Transcript, ct)
+            },
+            "Gesprächsnotiz" => entry with
+            {
+                ConversationNote = await _summaryGenerator.GenerateGespraechsnotizAsync(entry.Transcript, ct)
+            },
+            "E-Mail" => entry with
+            {
+                EmailText = await _summaryGenerator.GenerateEmailTextAsync(
+                    entry.ProseSummary ?? entry.LongSummary ?? entry.Transcript, ct)
+            },
+            "Stundenzettel" => entry with
+            {
+                StundenzettelText = await _summaryGenerator.GenerateStundenzettelAsync(entry.Transcript, ct)
+            },
+            "Analog" => entry with
+            {
+                AnalogText = await _summaryGenerator.GenerateAnalogAsync(entry.Transcript, ct)
+            },
+            _ => throw new ArgumentException($"Unbekannte Sektion: {sectionName}")
+        };
+
+        await _repository.SaveAsync(updated, ct);
+        return updated;
     }
 
     /// <summary>
