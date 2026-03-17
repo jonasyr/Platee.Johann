@@ -105,7 +105,7 @@ public sealed class HtmlRenderer : IEntryRenderer
 
         if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.Transcript))
         {
-            sb.AppendLine("<details><summary class=\"transcript-toggle\">Originaltranskript</summary>");
+            sb.AppendLine("<details><summary class=\"transcript-toggle\">Transkript</summary>");
             AppendSection(sb, null, entry.Transcript!, "section-transcript", isPlainText: true);
             sb.AppendLine("</details>");
         }

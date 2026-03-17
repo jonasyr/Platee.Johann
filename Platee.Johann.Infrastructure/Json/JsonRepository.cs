@@ -13,6 +13,7 @@ namespace Platee.Johann.Infrastructure.Json;
 public sealed class JsonRepository : IEntryRepository
 {
     private readonly string _outputRoot;
+    private readonly SemaphoreSlim _seqLock = new(1, 1);
 
     private static readonly JsonSerializerOptions WriteOptions = new()
     {
@@ -108,6 +109,20 @@ public sealed class JsonRepository : IEntryRepository
         var element = await JsonSerializer.DeserializeAsync<JsonElement>(stream, cancellationToken: ct);
         var dto = JsonMigrator.Migrate(element);
         return EntryMapper.ToDomain(dto);
+    }
+
+    public async Task<int> GetNextSequenceNumberAsync(DateOnly date, CancellationToken ct = default)
+    {
+        await _seqLock.WaitAsync(ct);
+        try
+        {
+            var entries = await GetEntriesForDateAsync(date, ct);
+            return entries.Count == 0 ? 1 : entries.Max(e => e.SequenceNumber) + 1;
+        }
+        finally
+        {
+            _seqLock.Release();
+        }
     }
 
     private string GetRawDir(DateOnly date) =>

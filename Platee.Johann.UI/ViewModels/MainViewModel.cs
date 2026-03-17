@@ -4,8 +4,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
-using Platee.Johann.UI.Views;
 using Microsoft.Win32;
+using Platee.Johann.UI.Views;
 
 namespace Platee.Johann.UI.ViewModels;
 
@@ -40,6 +40,7 @@ public sealed partial class MainViewModel : ObservableObject
     // Processing state — drives top bar spinner + status text
     [ObservableProperty] private bool _isProcessing;
     [ObservableProperty] private string _statusText = "Bereit";
+    [ObservableProperty] private bool _isProcessLogOpen;
     public ObservableCollection<ProcessLogItem> ProcessLog { get; } = [];
 
     // Filter & Sort
@@ -66,7 +67,10 @@ public sealed partial class MainViewModel : ObservableObject
         _processor = processor;
         _settingsRepo = settingsRepo;
         _settingsHolder = settingsHolder;
-        _detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, Sections);
+        _detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, Sections,
+            addLog: AddProcessLog,
+            completeLog: CompleteProcessLog,
+            updateStatus: s => System.Windows.Application.Current.Dispatcher.Invoke(() => StatusText = s));
         _detail.EntryStatusChanged += changedEntry => { _ = LoadEntriesAsync(SelectedDateItem?.Date); };
     }
 
@@ -190,10 +194,18 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenProcessDetail() => new ProcessDetailWindow(ProcessLog).Show();
+    private void OpenProcessDetail() => IsProcessLogOpen = !IsProcessLogOpen;
 
     [RelayCommand]
     private void ClearProcessLog() => ProcessLog.Clear();
+
+    [RelayCommand]
+    private void RemoveCompletedLogs()
+    {
+        var completed = ProcessLog.Where(x => !x.IsRunning).ToList();
+        foreach (var item in completed)
+            ProcessLog.Remove(item);
+    }
 
     // ── Commands ──────────────────────────────────────────────────────────────
 
@@ -207,8 +219,7 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task AddEntry()
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
-        var todayEntries = await _repository.GetEntriesForDateAsync(today);
-        var nextSeq = todayEntries.Count + 1;
+        var nextSeq = await _repository.GetNextSequenceNumberAsync(today);
 
         var dialogVm = new NewEntryViewModel(nextSeq);
         var dialog = new NewEntryView(dialogVm)

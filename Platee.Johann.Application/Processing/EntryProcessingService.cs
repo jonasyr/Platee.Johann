@@ -15,10 +15,6 @@ namespace Platee.Johann.Application.Processing;
 /// </summary>
 public sealed class EntryProcessingService : IEntryProcessor
 {
-    // Serializes sequence-number assignment across concurrent ProcessAudioAsync calls
-    // so that simultaneous processing of multiple files never produces duplicate seq numbers.
-    private static readonly SemaphoreSlim _seqLock = new(1, 1);
-
     private readonly IAudioTranscriber _transcriber;
     private readonly SummaryGenerator _summaryGenerator;
     private readonly HeaderParser _parser;
@@ -69,19 +65,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         progress?.Report(new("Analysiere Header…", 2, total));
         var header = _parser.Parse(transcription.Transcript);
 
-        // Serialize seq assignment: read count, reserve number, immediately persist a
-        // placeholder — all while holding the lock so concurrent calls get unique numbers.
-        await _seqLock.WaitAsync(ct);
-        int seq;
-        try
-        {
-            var existingEntries = await _repository.GetEntriesForDateAsync(date, ct);
-            seq = existingEntries.Count + 1;
-        }
-        finally
-        {
-            _seqLock.Release();
-        }
+        int seq = await _repository.GetNextSequenceNumberAsync(date, ct);
 
         // Use RemainderText (transcript with type/project tokens stripped) so the
         // title doesn't start with "Aufgabe Johann …" but with the actual content.

@@ -14,10 +14,12 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     private readonly IEntryRepository? _repository;
     private readonly string _outputRoot;
     private readonly SectionVisibilityViewModel _sections;
+    private readonly Func<string, bool, ProcessLogItem>? _addLog;
+    private readonly Action<ProcessLogItem, string>? _completeLog;
+    private readonly Action<string>? _updateStatus;
 
     [ObservableProperty] private Entry? _entry;
     [ObservableProperty] private bool _isTranscriptExpanded;
-    [ObservableProperty] private string _statusMessage = string.Empty;
 
     // Zoom
     [ObservableProperty] private double _detailZoom = 1.0;
@@ -62,20 +64,25 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers, string outputRoot,
                                 IEntryProcessor? processor = null,
                                 IEntryRepository? repository = null,
-                                SectionVisibilityViewModel? sections = null)
+                                SectionVisibilityViewModel? sections = null,
+                                Func<string, bool, ProcessLogItem>? addLog = null,
+                                Action<ProcessLogItem, string>? completeLog = null,
+                                Action<string>? updateStatus = null)
     {
         _renderers = renderers;
         _outputRoot = outputRoot;
         _processor = processor;
         _repository = repository;
         _sections = sections ?? new SectionVisibilityViewModel();
+        _addLog = addLog;
+        _completeLog = completeLog;
+        _updateStatus = updateStatus;
         _sections.PropertyChanged += (_, _) => RefreshSectionVisibility();
     }
 
     partial void OnEntryChanged(Entry? value)
     {
         IsTranscriptExpanded = false;
-        StatusMessage = string.Empty;
         OnPropertyChanged(nameof(DisplayAbstract));
         OnPropertyChanged(nameof(DisplayLongSummary));
         OnPropertyChanged(nameof(DisplayProseSummary));
@@ -162,7 +169,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         var updated = Entry with { IsDone = !Entry.IsDone };
         await _repository.SaveAsync(updated);
         Entry = updated;
-        StatusMessage = Entry.IsDone ? "✓ Als erledigt markiert." : "Erledigt-Markierung aufgehoben.";
+        _addLog?.Invoke(Entry.IsDone ? "✓ Als erledigt markiert." : "Erledigt-Markierung aufgehoben.", false);
         EntryStatusChanged?.Invoke(updated);
     }
 
@@ -178,7 +185,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             ? Entry.EmailText
             : BuildBasicEmailText(Entry);
         System.Windows.Clipboard.SetText(text);
-        StatusMessage = "✓ E-Mail in Zwischenablage kopiert!";
+        _addLog?.Invoke("✓ E-Mail in Zwischenablage kopiert!", false);
     }
 
     /// <summary>
@@ -197,11 +204,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         {
             System.Diagnostics.Process.Start(
                 new System.Diagnostics.ProcessStartInfo(mailto) { UseShellExecute = true });
-            StatusMessage = "✓ Outlook geöffnet.";
+            _addLog?.Invoke("✓ Outlook geöffnet.", false);
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Fehler: {ex.Message}";
+            _addLog?.Invoke($"Fehler: {ex.Message}", false);
         }
     }
 
@@ -273,7 +280,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         sb.AppendLine($"[Johann · {Entry.CreatedAt:dd.MM.yyyy} · {Entry.ProjectName}]");
 
         System.Windows.Clipboard.SetText(sb.ToString());
-        StatusMessage = "✓ Alles kopiert!";
+        _addLog?.Invoke("✓ Alles kopiert!", false);
     }
 
     partial void OnDetailZoomChanged(double value) => OnPropertyChanged(nameof(ZoomText));
@@ -296,7 +303,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     private void ReprocessSection(string section)
     {
         // IEntryProcessor does not support per-section reprocessing yet.
-        StatusMessage = $"Sektion '{section}' einzeln neu generieren ist noch nicht verfügbar.";
+        _addLog?.Invoke($"Sektion '{section}' einzeln neu generieren ist noch nicht verfügbar.", false);
     }
 
     [RelayCommand(CanExecute = nameof(CanReprocess))]
@@ -304,20 +311,21 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     {
         if (Entry is null || _processor is null) return;
 
+        var logItem = _addLog?.Invoke("Verarbeite…", true);
         try
         {
-            StatusMessage = "Verarbeite…";
-
             var progress = new Progress<ProcessingProgress>(p =>
-                StatusMessage = $"{p.Stage} ({p.StepIndex}/{p.TotalSteps})");
+                _updateStatus?.Invoke($"{p.Stage} ({p.StepIndex}/{p.TotalSteps})"));
 
             var updated = await _processor.ReprocessAsync(Entry, progress, ct);
             Entry = updated;
-            StatusMessage = "Verarbeitung abgeschlossen!";
+            if (logItem is not null) _completeLog?.Invoke(logItem, "Verarbeitung abgeschlossen!");
+            else _addLog?.Invoke("Verarbeitung abgeschlossen!", false);
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Fehler: {ex.Message}";
+            if (logItem is not null) _completeLog?.Invoke(logItem, $"Fehler: {ex.Message}");
+            else _addLog?.Invoke($"Fehler: {ex.Message}", false);
         }
     }
 
@@ -368,14 +376,13 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
         if (renderer is null)
         {
-            StatusMessage = $"{rendererName}-Renderer nicht verfügbar.";
+            _addLog?.Invoke($"{rendererName}-Renderer nicht verfügbar.", false);
             return null;
         }
 
+        var logItem = _addLog?.Invoke($"{rendererName} wird erstellt…", true);
         try
         {
-            StatusMessage = $"{rendererName} wird erstellt…";
-
             var dateDir = Path.Combine(_outputRoot, Entry!.CreatedAt.ToString("yyyy-MM-dd"));
             var opts = new RenderOptions(
                 OutputDirectory: dateDir,
@@ -385,12 +392,14 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
             var result = await renderer.RenderAsync(Entry!, opts, ct);
             var filePath = Path.Combine(dateDir, result.SuggestedFilename);
-            StatusMessage = $"Gespeichert: {result.SuggestedFilename}";
+            if (logItem is not null) _completeLog?.Invoke(logItem, $"Gespeichert: {result.SuggestedFilename}");
+            else _addLog?.Invoke($"Gespeichert: {result.SuggestedFilename}", false);
             return filePath;
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Fehler: {ex.Message}";
+            if (logItem is not null) _completeLog?.Invoke(logItem, $"Fehler: {ex.Message}");
+            else _addLog?.Invoke($"Fehler: {ex.Message}", false);
             return null;
         }
     }

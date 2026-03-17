@@ -47,11 +47,12 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <conv:NullToVisibilityConverter x:Key="NullToVis"/>
         <conv:MarkdownFlowDocumentConverter x:Key="MdToDoc"/>
+        <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="32"/>
+            <RowDefinition Height="36"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -70,24 +71,89 @@
                 <DockPanel Margin="8,0">
                     <!-- Error / status message on the left -->
                     <TextBlock Text="{Binding ErrorMessage}" VerticalAlignment="Center"
-                               Foreground="#C0392B" FontSize="11"
+                               Foreground="#C0392B" FontSize="12"
                                Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVis}}"/>
                     <!-- Right side: status indicator + settings -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right"
                                 VerticalAlignment="Center" Margin="0,4">
                         <!-- Spinner (visible only while processing) -->
-                        <ProgressBar IsIndeterminate="True" Width="80" Height="6" VerticalAlignment="Center"
+                        <ProgressBar IsIndeterminate="True" Width="100" Height="8" VerticalAlignment="Center"
                                      Margin="0,0,6,0" Foreground="#E63123"
                                      Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVis}}"/>
-                        <Button Content="{Binding StatusText}" Command="{Binding OpenProcessDetailCommand}"
-                                ToolTip="Status-Details anzeigen" FontSize="11"
+                        <Button x:Name="StatusTextButton"
+                                Content="{Binding StatusText}" Command="{Binding OpenProcessDetailCommand}"
+                                ToolTip="Status-Details anzeigen" FontSize="12"
                                 Background="Transparent" BorderThickness="0" Margin="0,0,8,0"
                                 Cursor="Hand"/>
                         <Button Content="⚙ Einstellungen" Command="{Binding OpenSettingsCommand}"
                                 ToolTip="Einstellungen öffnen"
                                 Background="Transparent" BorderThickness="0"
-                                FontSize="11" Padding="6,2" Cursor="Hand"/>
+                                FontSize="12" Padding="6,2" Cursor="Hand"/>
                     </StackPanel>
+                    <!-- Process log popup (anchored to StatusTextButton) -->
+                    <Popup x:Name="ProcessLogPopup"
+                           IsOpen="{Binding IsProcessLogOpen, Mode=TwoWay}"
+                           PlacementTarget="{Binding ElementName=StatusTextButton}"
+                           Placement="Bottom"
+                           StaysOpen="False"
+                           AllowsTransparency="True"
+                           PopupAnimation="Fade">
+                        <Border Width="420" MaxHeight="320"
+                                Background="White" BorderBrush="#CCCCCC" BorderThickness="1"
+                                CornerRadius="4">
+                            <Border.Effect>
+                                <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.15"/>
+                            </Border.Effect>
+                            <DockPanel Margin="0">
+                                <!-- Header bar -->
+                                <Border DockPanel.Dock="Top" Background="#F5F5F5" BorderThickness="0,0,0,1"
+                                        BorderBrush="#E0E0E0" Padding="10,6">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Content="Erledigte löschen" FontSize="10" Padding="6,2"
+                                                    Cursor="Hand" Command="{Binding RemoveCompletedLogsCommand}"/>
+                                            <Button Content="Alle löschen" FontSize="10" Padding="6,2" Margin="4,0,0,0"
+                                                    Cursor="Hand" Command="{Binding ClearProcessLogCommand}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="Status-Log" FontWeight="SemiBold" FontSize="12"
+                                                   VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                </Border>
+                                <!-- Log items -->
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding ProcessLog}" Margin="0">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="8,4,8,0" Padding="10,8"
+                                                        BorderThickness="0,0,0,1" BorderBrush="#F0F0F0"
+                                                        Background="White">
+                                                    <DockPanel>
+                                                        <!-- Time -->
+                                                        <TextBlock DockPanel.Dock="Left" Text="{Binding DisplayTime}"
+                                                                   FontSize="10" Foreground="#999"
+                                                                   VerticalAlignment="Center" Margin="0,0,8,0" Width="44"/>
+                                                        <!-- Right: spinner or result -->
+                                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
+                                                                    VerticalAlignment="Center">
+                                                            <ProgressBar IsIndeterminate="True" Width="50" Height="4"
+                                                                         Foreground="#E63123" VerticalAlignment="Center"
+                                                                         Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}"/>
+                                                            <TextBlock Text="{Binding ResultMessage}" FontSize="10"
+                                                                       Foreground="#555" VerticalAlignment="Center"
+                                                                       Visibility="{Binding IsRunning, Converter={StaticResource InverseBoolToVis}}"/>
+                                                        </StackPanel>
+                                                        <!-- Message -->
+                                                        <TextBlock Text="{Binding Message}" FontSize="11"
+                                                                   TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                    </DockPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                    </Popup>
                 </DockPanel>
             </Border>
         </Grid>
@@ -111,9 +177,9 @@
                         BorderBrush="#E0E0E0" Background="#F5F5F5">
                     <StackPanel>
                         <TextBlock Text="Abschnitte" FontSize="10" Foreground="#999" Margin="0,0,0,4"/>
-                        <CheckBox Content="Fließtext"      IsChecked="{Binding Sections.ShowProseSummary}"      FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Strukturiert"   IsChecked="{Binding Sections.ShowLongSummary}"       FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Aufgabe"        IsChecked="{Binding Sections.ShowTaskList}"          FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Ausführlich"    IsChecked="{Binding Sections.ShowProseSummary}"      FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Zusammenfassung" IsChecked="{Binding Sections.ShowLongSummary}"     FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Aufgaben"       IsChecked="{Binding Sections.ShowTaskList}"          FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Gesprächsnotiz" IsChecked="{Binding Sections.ShowConversationNote}"  FontSize="11" Margin="0,1"/>
                         <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" FontSize="11" Margin="0,1"/>
@@ -198,28 +264,18 @@
 
             <!-- === RIGHT: Detail view === -->
             <DockPanel Grid.Column="4" Background="White">
-                <!-- Zoom controls -->
-                <Border DockPanel.Dock="Bottom" Padding="4,2" BorderThickness="0,1,0,0"
-                        BorderBrush="#E8E8E8" Background="#FAFAFA">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="−" Command="{Binding Detail.ZoomOutCommand}"
-                                ToolTip="Verkleinern" Width="22" Height="22" Padding="0"
-                                FontSize="14" Cursor="Hand"/>
-                        <TextBlock Text="{Binding Detail.ZoomText}" VerticalAlignment="Center"
-                                   Margin="4,0" FontSize="11" MinWidth="40" TextAlignment="Center"/>
-                        <Button Content="+" Command="{Binding Detail.ZoomInCommand}"
-                                ToolTip="Vergrößern" Width="22" Height="22" Padding="0"
-                                FontSize="14" Cursor="Hand"/>
-                    </StackPanel>
-                </Border>
-
                 <!-- Action toolbar -->
                 <Border DockPanel.Dock="Bottom" Padding="8,6" BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0">
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding Detail.StatusMessage}"
-                                   VerticalAlignment="Center" Foreground="#666" FontSize="12"
-                                   Margin="8,0"/>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                            <Button Content="−" Command="{Binding Detail.ZoomOutCommand}"
+                                    ToolTip="Verkleinern" Width="22" Height="22" Padding="0" FontSize="14" Cursor="Hand"/>
+                            <TextBlock Text="{Binding Detail.ZoomText}" VerticalAlignment="Center"
+                                       Margin="4,0" FontSize="11" MinWidth="40" TextAlignment="Center"/>
+                            <Button Content="+" Command="{Binding Detail.ZoomInCommand}"
+                                    ToolTip="Vergrößern" Width="22" Height="22" Padding="0" FontSize="14" Cursor="Hand"/>
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Button Content="HTML"
                                     Command="{Binding Detail.GenerateHtmlCommand}"
@@ -267,14 +323,14 @@
                                     ToolTip="GPT-Zusammenfassungen neu generieren">
                                 <Button.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="Fließtext neu generieren"
+                                        <MenuItem Header="Ausführliche Zusammenfassung neu generieren"
                                                   Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
                                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="Fließtext"/>
-                                        <MenuItem Header="Strukturiert neu generieren"
+                                                  CommandParameter="Ausführliche Zusammenfassung"/>
+                                        <MenuItem Header="Zusammenfassung neu generieren"
                                                   Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
                                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="Strukturiert"/>
+                                                  CommandParameter="Zusammenfassung"/>
                                         <MenuItem Header="Aufgaben neu generieren"
                                                   Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
                                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -455,7 +511,7 @@
                         <!-- E-Mail Text -->
                         <StackPanel Visibility="{Binding Detail.ShowEmailSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,0,0,16">
-                            <TextBlock Text="E-Mail Text" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Text="E-Mail" Style="{StaticResource SectionHeaderStyle}"/>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayEmailText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -471,7 +527,7 @@
                         <!-- Transcript -->
                         <StackPanel Visibility="{Binding Detail.ShowTranscriptSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,0,0,16">
-                            <TextBlock Text="Originaltranskript" Style="{StaticResource SectionHeaderStyle}"/>
+                            <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
                             <TextBox Text="{Binding Detail.DisplayTranscript, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"
                                      TextWrapping="Wrap" Foreground="#555"/>
