@@ -78,7 +78,7 @@ public sealed class HtmlRenderer : IEntryRenderer
         sb.AppendLine("  </p>");
         sb.AppendLine("</div>");
 
-        // Content sections
+        // Content sections — visibility controlled by checkboxes in the UI
         if (!string.IsNullOrWhiteSpace(entry.Abstract))
             AppendSection(sb, "Kurzfassung", entry.Abstract!, "section-abstract");
 
