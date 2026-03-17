@@ -1,4 +1,5 @@
 using Johann.Application.Interfaces;
+using Johann.Application.Processing;
 using Johann.Application.Settings;
 using Johann.Domain.Entities;
 using Johann.Domain.Enums;
@@ -55,8 +56,9 @@ public sealed class PdfRenderer : IEntryRenderer
                 page.Margin(2, Unit.Centimetre);
                 page.DefaultTextStyle(x => x.FontFamily("Segoe UI", "Arial").FontSize(10));
 
+                var sections = options.Sections ?? new SectionVisibility();
                 page.Header().Element(header => ComposeHeader(header, entry));
-                page.Content().Element(content => ComposeContent(content, entry, options.IncludeTranscript));
+                page.Content().Element(content => ComposeContent(content, entry, sections));
                 page.Footer().Column(col =>
                 {
                     col.Item().AlignCenter().Text(x =>
@@ -91,6 +93,7 @@ public sealed class PdfRenderer : IEntryRenderer
                         EntryType.Gesprächsnotiz => "#2980B9",
                         EntryType.EMail => "#27AE60",
                         EntryType.Stundenzettel => "#8E44AD",
+                        EntryType.Analog => "#795548",
                         _ => "#555555",
                     };
 
@@ -132,139 +135,89 @@ public sealed class PdfRenderer : IEntryRenderer
         });
     }
 
-    private static void ComposeContent(IContainer content, Entry entry, bool includeTranscript)
+    private static void ComposeContent(IContainer content, Entry entry, SectionVisibility sections)
     {
         content.Column(col =>
         {
             col.Spacing(10);
 
-            switch (entry.Type)
-            {
-                case EntryType.Stundenzettel:
-                    ComposeStundenzettel(col, entry);
-                    break;
-                case EntryType.Aufgabe:
-                    ComposeAufgabe(col, entry, includeTranscript);
-                    break;
-                case EntryType.Gesprächsnotiz:
-                    ComposeGesprächsnotiz(col, entry, includeTranscript);
-                    break;
-                default:
-                    ComposeStandard(col, entry, includeTranscript);
-                    break;
-            }
-        });
-    }
-
-    private static void ComposeStandard(ColumnDescriptor col, Entry entry, bool includeTranscript)
-    {
-        if (!string.IsNullOrWhiteSpace(entry.Abstract))
-        {
-            col.Item().Element(c => Section(c, "Kurzfassung",
-                entry.Abstract!, "#FFF5F4", "#FFDBD8"));
-        }
-
-        if (!string.IsNullOrWhiteSpace(entry.LongSummary))
-        {
-            col.Item().Element(c => Section(c, "Zusammenfassung",
-                entry.LongSummary!, "#F5F5F5", "#E0E0E0"));
-        }
-
-        if (!string.IsNullOrWhiteSpace(entry.ProseSummary))
-        {
-            col.Item().Element(c => Section(c, "Ausführlich",
-                entry.ProseSummary!, "#F0F8FF", "#B8D4F0"));
-        }
-
-        if (includeTranscript && !string.IsNullOrWhiteSpace(entry.Transcript))
-        {
-            col.Item().Element(c => Section(c, "Transkript",
-                entry.Transcript!, "#FAFAFA", "#E8E8E8"));
-        }
-    }
-
-    private static void ComposeAufgabe(ColumnDescriptor col, Entry entry, bool includeTranscript)
-    {
-        if (!string.IsNullOrWhiteSpace(entry.Abstract))
-            col.Item().Element(c => Section(c, "Kurzfassung", entry.Abstract!, "#FFF5F4", "#FFDBD8"));
-
-        if (!string.IsNullOrWhiteSpace(entry.TaskList))
-        {
-            col.Item().Column(inner =>
-            {
-                inner.Item().Text("Aufgaben").Bold().FontSize(11).FontColor("#555");
-                inner.Item().PaddingTop(4)
-                     .Border(1).BorderColor("#E63123")
-                     .Background("#FFF8F8")
-                     .Padding(10)
-                     .Text(entry.TaskList!).FontSize(10);
-            });
-        }
-
-        if (!string.IsNullOrWhiteSpace(entry.LongSummary))
-            col.Item().Element(c => Section(c, "Zusammenfassung", entry.LongSummary!, "#F5F5F5", "#E0E0E0"));
-
-        if (includeTranscript && !string.IsNullOrWhiteSpace(entry.Transcript))
-            col.Item().Element(c => Section(c, "Transkript", entry.Transcript!, "#FAFAFA", "#E8E8E8"));
-    }
-
-    private static void ComposeGesprächsnotiz(ColumnDescriptor col, Entry entry, bool includeTranscript)
-    {
-        if (!string.IsNullOrWhiteSpace(entry.ConversationNote))
-        {
-            col.Item().Column(inner =>
-            {
-                inner.Item().Text("Gesprächsnotiz").Bold().FontSize(11).FontColor("#2980B9");
-                inner.Item().PaddingTop(4)
-                     .Border(1).BorderColor("#2980B9")
-                     .Background("#F0F8FF")
-                     .Padding(10)
-                     .Text(entry.ConversationNote!).FontSize(10);
-            });
-        }
-
-        if (!string.IsNullOrWhiteSpace(entry.Abstract))
-            col.Item().Element(c => Section(c, "Kurzfassung", entry.Abstract!, "#FFF5F4", "#FFDBD8"));
-
-        if (!string.IsNullOrWhiteSpace(entry.LongSummary))
-            col.Item().Element(c => Section(c, "Zusammenfassung", entry.LongSummary!, "#F5F5F5", "#E0E0E0"));
-
-        if (includeTranscript && !string.IsNullOrWhiteSpace(entry.Transcript))
-            col.Item().Element(c => Section(c, "Transkript", entry.Transcript!, "#FAFAFA", "#E8E8E8"));
-    }
-
-    private static void ComposeStundenzettel(ColumnDescriptor col, Entry entry)
-    {
-        // Compact layout: just the essentials
-        col.Item().Table(table =>
-        {
-            table.ColumnsDefinition(c =>
-            {
-                c.RelativeColumn(1);
-                c.RelativeColumn(3);
-            });
-
-            void Row(string label, string value)
-            {
-                table.Cell().Background("#F5F5F5").Padding(6)
-                     .Text(label).Bold().FontSize(10);
-                table.Cell().Padding(6)
-                     .Text(value).FontSize(10);
-            }
-
-            Row("Datum", entry.CreatedAt.ToString("dd.MM.yyyy"));
-            Row("Projekt", entry.ProjectName);
-            Row("Titel", entry.Title);
-
-            if (entry.DurationSeconds > 0)
-                Row("Dauer", FormatDuration(entry.DurationSeconds));
-
             if (!string.IsNullOrWhiteSpace(entry.Abstract))
-                Row("Beschreibung", entry.Abstract!);
-        });
+                col.Item().Element(c => Section(c, "Kurzfassung", entry.Abstract!, "#FFF5F4", "#FFDBD8"));
 
-        if (!string.IsNullOrWhiteSpace(entry.LongSummary))
-            col.Item().Element(c => Section(c, "Details", entry.LongSummary!, "#F5F5F5", "#E0E0E0"));
+            if (sections.TaskList && !string.IsNullOrWhiteSpace(entry.TaskList))
+            {
+                col.Item().Column(inner =>
+                {
+                    inner.Item().Text("Aufgaben").Bold().FontSize(11).FontColor("#555");
+                    inner.Item().PaddingTop(4)
+                         .Border(1).BorderColor("#E63123")
+                         .Background("#FFF8F8")
+                         .Padding(10)
+                         .Text(entry.TaskList!).FontSize(10);
+                });
+            }
+
+            if (sections.ConversationNote && !string.IsNullOrWhiteSpace(entry.ConversationNote))
+            {
+                col.Item().Column(inner =>
+                {
+                    inner.Item().Text("Gesprächsnotiz").Bold().FontSize(11).FontColor("#2980B9");
+                    inner.Item().PaddingTop(4)
+                         .Border(1).BorderColor("#2980B9")
+                         .Background("#F0F8FF")
+                         .Padding(10)
+                         .Text(entry.ConversationNote!).FontSize(10);
+                });
+            }
+
+            if (sections.StundenzettelText && !string.IsNullOrWhiteSpace(entry.StundenzettelText))
+            {
+                col.Item().Column(inner =>
+                {
+                    inner.Item().Text("Stundenzettel").Bold().FontSize(11).FontColor("#8E44AD");
+                    inner.Item().PaddingTop(4)
+                         .Border(1).BorderColor("#8E44AD")
+                         .Background("#FAF0FF")
+                         .Padding(10)
+                         .Text(entry.StundenzettelText!).FontSize(10);
+                });
+            }
+
+            if (sections.AnalogText && !string.IsNullOrWhiteSpace(entry.AnalogText))
+            {
+                col.Item().Column(inner =>
+                {
+                    inner.Item().Text("Analog").Bold().FontSize(11).FontColor("#555");
+                    inner.Item().PaddingTop(4)
+                         .Border(1).BorderColor("#888888")
+                         .Background("#F8F8F8")
+                         .Padding(10)
+                         .Text(entry.AnalogText!).FontSize(10);
+                });
+            }
+
+            if (sections.EmailText && !string.IsNullOrWhiteSpace(entry.EmailText))
+            {
+                col.Item().Column(inner =>
+                {
+                    inner.Item().Text("E-Mail").Bold().FontSize(11).FontColor("#27AE60");
+                    inner.Item().PaddingTop(4)
+                         .Border(1).BorderColor("#27AE60")
+                         .Background("#F0FFF4")
+                         .Padding(10)
+                         .Text(entry.EmailText!).FontSize(10);
+                });
+            }
+
+            if (sections.LongSummary && !string.IsNullOrWhiteSpace(entry.LongSummary))
+                col.Item().Element(c => Section(c, "Zusammenfassung", entry.LongSummary!, "#F5F5F5", "#E0E0E0"));
+
+            if (sections.ProseSummary && !string.IsNullOrWhiteSpace(entry.ProseSummary))
+                col.Item().Element(c => Section(c, "Ausführlich", entry.ProseSummary!, "#F0F8FF", "#B8D4F0"));
+
+            if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.Transcript))
+                col.Item().Element(c => Section(c, "Transkript", entry.Transcript!, "#FAFAFA", "#E8E8E8"));
+        });
     }
 
     private static void Section(IContainer container, string title,

@@ -1,4 +1,5 @@
 using Johann.Application.Interfaces;
+using Johann.Application.Processing;
 using Johann.Domain.Entities;
 using Johann.Domain.Services;
 using System.Text;
@@ -30,7 +31,8 @@ public sealed class HtmlRenderer : IEntryRenderer
         Directory.CreateDirectory(outputDir);
         var filePath = Path.Combine(outputDir, filename);
 
-        var html = BuildEntryHtml(entry, options.IncludeTranscript);
+        var sections = options.Sections ?? new SectionVisibility();
+        var html = BuildEntryHtml(entry, sections);
         await File.WriteAllTextAsync(filePath, html, Encoding.UTF8, ct);
 
         // Regenerate the daily overview after saving the entry HTML
@@ -44,7 +46,7 @@ public sealed class HtmlRenderer : IEntryRenderer
         return new RenderResult(bytes, "text/html", filename);
     }
 
-    private static string BuildEntryHtml(Entry entry, bool includeTranscript)
+    private static string BuildEntryHtml(Entry entry, SectionVisibility sections)
     {
         var typeColor = entry.Type switch
         {
@@ -52,6 +54,7 @@ public sealed class HtmlRenderer : IEntryRenderer
             Domain.Enums.EntryType.Gesprächsnotiz => "#2980B9",
             Domain.Enums.EntryType.EMail => "#27AE60",
             Domain.Enums.EntryType.Stundenzettel => "#8E44AD",
+            Domain.Enums.EntryType.Analog => "#795548",
             _ => "#555555",
         };
 
@@ -79,19 +82,28 @@ public sealed class HtmlRenderer : IEntryRenderer
         if (!string.IsNullOrWhiteSpace(entry.Abstract))
             AppendSection(sb, "Kurzfassung", entry.Abstract!, "section-abstract");
 
-        if (!string.IsNullOrWhiteSpace(entry.TaskList))
+        if (sections.TaskList && !string.IsNullOrWhiteSpace(entry.TaskList))
             AppendSection(sb, "Aufgaben", entry.TaskList!, "section-task");
 
-        if (!string.IsNullOrWhiteSpace(entry.ConversationNote))
+        if (sections.ConversationNote && !string.IsNullOrWhiteSpace(entry.ConversationNote))
             AppendSection(sb, "Gesprächsnotiz", entry.ConversationNote!, "section-note");
 
-        if (!string.IsNullOrWhiteSpace(entry.LongSummary))
+        if (sections.StundenzettelText && !string.IsNullOrWhiteSpace(entry.StundenzettelText))
+            AppendSection(sb, "Stundenzettel", entry.StundenzettelText!, "section-stundenzettel");
+
+        if (sections.AnalogText && !string.IsNullOrWhiteSpace(entry.AnalogText))
+            AppendSection(sb, "Analog", entry.AnalogText!, "section-analog");
+
+        if (sections.EmailText && !string.IsNullOrWhiteSpace(entry.EmailText))
+            AppendSection(sb, "E-Mail", entry.EmailText!, "section-email");
+
+        if (sections.LongSummary && !string.IsNullOrWhiteSpace(entry.LongSummary))
             AppendSection(sb, "Zusammenfassung", entry.LongSummary!, "section-summary");
 
-        if (!string.IsNullOrWhiteSpace(entry.ProseSummary))
+        if (sections.ProseSummary && !string.IsNullOrWhiteSpace(entry.ProseSummary))
             AppendSection(sb, "Ausführliche Zusammenfassung", entry.ProseSummary!, "section-prose");
 
-        if (includeTranscript && !string.IsNullOrWhiteSpace(entry.Transcript))
+        if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.Transcript))
         {
             sb.AppendLine("<details><summary class=\"transcript-toggle\">Originaltranskript</summary>");
             AppendSection(sb, null, entry.Transcript!, "section-transcript", isPlainText: true);
@@ -151,6 +163,9 @@ public sealed class HtmlRenderer : IEntryRenderer
   .section-summary .md-content, .section-prose .md-content {{
       background: #F5F5F5; border: 1px solid #E0E0E0;
       border-radius: 4px; padding: 12px; }}
+  .section-stundenzettel .md-content {{ background: #FAF0FF; border: 1px solid #8E44AD; border-radius: 4px; padding: 12px; }}
+  .section-analog .md-content {{ background: #F8F8F8; border: 1px solid #888888; border-radius: 4px; padding: 12px; }}
+  .section-email .md-content {{ background: #F0FFF4; border: 1px solid #27AE60; border-radius: 4px; padding: 12px; }}
   .section-transcript .md-content {{ background: #FAFAFA; border: 1px solid #E8E8E8;
                                       border-radius: 4px; padding: 12px; font-size: 12px; }}
   .md-content h1, .md-content h2 {{ font-size: 14px; font-weight: 600; color: #333;
