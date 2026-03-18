@@ -13,7 +13,11 @@ param(
     [Parameter(Mandatory)]
     [string]$Version,
 
-    [string]$GithubToken = $env:GITHUB_TOKEN
+    [string]$GithubToken = $env:GITHUB_TOKEN,
+
+    # Netzwerkpfad, in den Setup + Releases kopiert werden.
+    # Kann per Parameter überschrieben werden, Standard ist Z:\12_Tools\Peano\Johann
+    [string]$DeployPath = "Z:\12_Tools\Peano\Johann"
 )
 
 $ErrorActionPreference = "Stop"
@@ -74,6 +78,27 @@ if ($GithubToken) {
     Write-Host "[3/3] Kein GitHub-Token - Upload uebersprungen." -ForegroundColor DarkYellow
     Write-Host "      Token setzen: [System.Environment]::SetEnvironmentVariable('GITHUB_TOKEN','...','User')" -ForegroundColor DarkYellow
 }
+
+# 4. Releases in den Deploy-Pfad kopieren (Netzlaufwerk / lokaler Freigabepfad)
+Write-Host ""
+Write-Host "[4/4] Kopiere Releases nach $DeployPath ..." -ForegroundColor Yellow
+
+if (-not (Test-Path $DeployPath)) {
+    Write-Host "      Erstelle Verzeichnis $DeployPath ..." -ForegroundColor DarkYellow
+    New-Item -ItemType Directory -Path $DeployPath -Force | Out-Null
+}
+
+# Alle Release-Dateien kopieren (Setup.exe, nupkg, json, RELEASES)
+Get-ChildItem -Path $ReleasesDir | ForEach-Object {
+    Copy-Item -Path $_.FullName -Destination $DeployPath -Force
+    Write-Host "      Kopiert: $($_.Name)" -ForegroundColor DarkGray
+}
+
+Write-Host "Deploy abgeschlossen: $DeployPath" -ForegroundColor Green
+Write-Host ""
+Write-Host "User-Anleitung:" -ForegroundColor Cyan
+Write-Host "  $DeployPath\Platee.Johann-win-Setup.exe" -ForegroundColor White
+Write-Host "  Doppelklick => installiert JohannCS, Updates automatisch beim Programmstart." -ForegroundColor DarkGray
 
 Write-Host ""
 Write-Host "Fertig!" -ForegroundColor Green
