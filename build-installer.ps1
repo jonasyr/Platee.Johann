@@ -27,10 +27,10 @@ $ExeName    = "Platee.Johann.UI.exe"
 $IconPath   = "$RepoRoot\Johann.ico"
 
 Write-Host ""
-Write-Host "=== Platé.Johann v$Version – Installer-Build ===" -ForegroundColor Cyan
+Write-Host "=== Plate.Johann v$Version - Installer-Build ===" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Publish (self-contained, kein SingleFile – Velopack braucht einzelne DLLs)
+# 1. Publish (self-contained, kein SingleFile - Velopack braucht einzelne DLLs)
 Write-Host "[1/3] dotnet publish..." -ForegroundColor Yellow
 dotnet publish $UiProject `
     -c Release `
@@ -71,8 +71,8 @@ if ($GithubToken) {
     if ($LASTEXITCODE -ne 0) { throw "GitHub-Upload fehlgeschlagen." }
     Write-Host "Upload abgeschlossen!" -ForegroundColor Green
 } else {
-    Write-Host "[3/3] Kein GitHub-Token – Upload übersprungen." -ForegroundColor DarkYellow
-    Write-Host "      Token übergeben: .\build-installer.ps1 -Version $Version -GithubToken <token>" -ForegroundColor DarkYellow
+    Write-Host "[3/3] Kein GitHub-Token - Upload uebersprungen." -ForegroundColor DarkYellow
+    Write-Host "      Token setzen: [System.Environment]::SetEnvironmentVariable('GITHUB_TOKEN','...','User')" -ForegroundColor DarkYellow
 }
 
 Write-Host ""
