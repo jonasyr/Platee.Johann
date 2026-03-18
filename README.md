@@ -138,6 +138,15 @@ In jedem Tages-Ordner liegt eine `_ItemÜbersicht.html` – Karten-Ansicht aller
 
 Das **⚙ Einstellungen**-Symbol öffnet den Einstellungs-Dialog.
 
+### Allgemein – Name und Firma
+
+**Beim ersten Start unbedingt ausfüllen.** Name und Firma werden in Kopf- und Fußzeile jedes PDFs eingedruckt.
+
+| Feld | Zweck |
+|---|---|
+| **Name** | Erscheint im PDF-Kopf |
+| **Firma** | Erscheint im PDF-Kopf neben dem Namen |
+
 ### Verzeichnisse
 - **Eingang:** `Dokumente\Johann\Eingang` – MP3s hier ablegen → automatische Verarbeitung
 - **Ausgabe:** `Dokumente\Johann\output` – alle erzeugten Dateien
