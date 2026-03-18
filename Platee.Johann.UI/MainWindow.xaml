@@ -97,6 +97,10 @@
                                 ToolTip="Einstellungen öffnen"
                                 Background="Transparent" BorderThickness="0"
                                 FontSize="12" Padding="6,2" Cursor="Hand"/>
+                        <Button Content="?" Click="HelpButton_Click"
+                                ToolTip="Dokumentation öffnen"
+                                Background="Transparent" BorderThickness="0"
+                                FontSize="12" Padding="6,2" Cursor="Hand" Margin="4,0,0,0"/>
                     </StackPanel>
                     <!-- Process log popup (anchored to StatusTextButton) -->
                     <Popup x:Name="ProcessLogPopup"

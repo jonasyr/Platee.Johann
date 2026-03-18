@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -87,5 +88,14 @@ public partial class MainWindow : Window
             sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta / 3.0);
             e.Handled = true;
         }
+    }
+
+    private void HelpButton_Click(object sender, RoutedEventArgs e)
+    {
+        const string readmePath = @"X:\PRO_Programmierung\Peano.APP\APP17_Johann\Platee.Johann\README.md";
+        if (File.Exists(readmePath))
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(readmePath) { UseShellExecute = true });
+        else
+            MessageBox.Show($"Dokumentation nicht gefunden:\n{readmePath}", "Hilfe", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 }
