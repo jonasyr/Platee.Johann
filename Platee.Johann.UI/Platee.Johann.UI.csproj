@@ -16,6 +16,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>..\Johann.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="..\Johann.ico" Link="Johann.ico" />
+  </ItemGroup>
 
 </Project>
