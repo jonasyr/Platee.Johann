@@ -1,6 +1,8 @@
 using System.IO;
 using System.Windows;
 using Platee.Johann.Application.Processing;
+using Velopack;
+using Velopack.Sources;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Infrastructure.Json;
@@ -153,6 +155,33 @@ public partial class App : System.Windows.Application
 
         var mainWindow = new MainWindow(viewModel);
         mainWindow.Show();
+
+        _ = CheckForUpdatesAsync();
+    }
+
+    private static async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            var mgr = new UpdateManager(new GithubSource("https://github.com/jonasyr/JohannCS", null, false));
+            var newVersion = await mgr.CheckForUpdatesAsync();
+            if (newVersion == null) return;
+
+            var result = MessageBox.Show(
+                $"Version {newVersion.TargetFullRelease.Version} ist verfügbar.\nJetzt herunterladen und neu starten?",
+                "Platé.Johann – Update verfügbar",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+
+            if (result != MessageBoxResult.Yes) return;
+
+            await mgr.DownloadUpdatesAsync(newVersion);
+            mgr.ApplyUpdatesAndRestart(newVersion);
+        }
+        catch
+        {
+            // Nicht über Velopack installiert oder offline – still ignorieren
+        }
     }
 
     private static string ResolveDefaultOutputRoot()

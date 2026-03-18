@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Velopack" Version="0.0.895" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -17,6 +18,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>..\Johann.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <StartupObject>Platee.Johann.UI.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
