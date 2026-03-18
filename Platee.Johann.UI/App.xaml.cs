@@ -163,7 +163,10 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            var mgr = new UpdateManager(new GithubSource("https://github.com/jonasyr/Platee.Johann", null, false));
+            // Updates werden vom Netzwerkpfad geprüft, in den das Build-Script die Releases kopiert.
+            const string releasePath = @"Z:\12_Tools\Peano\Johann";
+            if (!Directory.Exists(releasePath)) return;
+            var mgr = new UpdateManager(new SimpleFileSource(releasePath));
             var newVersion = await mgr.CheckForUpdatesAsync();
             if (newVersion == null) return;
 
