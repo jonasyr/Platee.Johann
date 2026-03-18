@@ -113,14 +113,18 @@ Kein `Titel … Ende`? Dann generiert GPT den Titel automatisch aus dem Inhalt.
 
 ### Aktions-Buttons
 
-| Button | Funktion |
-|---|---|
-| **HTML** | Erzeugt HTML-Datei, öffnet im Browser, aktualisiert Tages-Übersicht |
-| **PDF** | Erzeugt formatiertes PDF (Layout je nach Typ) und öffnet es |
-| **E-Mail** | Generiert E-Mail-Text per KI, kopiert direkt in Zwischenablage |
-| **Kopieren** | Kopiert alle sichtbaren Abschnitte mit Überschriften in Zwischenablage |
-| **↻ Neu generieren** | Alle KI-Abschnitte neu generieren (Rechtsklick: einzelne Abschnitte wählbar) |
-| **Als erledigt markieren** | Eintrag als abgeschlossen markieren (grünes Häkchen in der Liste) |
+| Button | Klick | Rechtsklick |
+|---|---|---|
+| **HTML** | HTML-Datei erstellen und im Browser öffnen; aktualisiert Tages-Übersicht | HTML-Inhalt in Zwischenablage kopieren |
+| **PDF** | PDF erstellen und öffnen | PDF-Datei in Zwischenablage kopieren (als Datei, direkt einfügbar) |
+| **E-Mail** | E-Mail-Text in Zwischenablage kopieren | In Outlook öffnen (mailto-Link mit Betreff und Text) |
+| **Kopieren** | Alle sichtbaren Abschnitte mit Überschriften in Zwischenablage | — |
+| **↻ Neu generieren** | Alle KI-Abschnitte neu generieren | Einzelne Abschnitte wählen (Ausführlich, Zusammenfassung, Aufgaben, …) |
+| **Als erledigt markieren** | Eintrag abschließen – grünes Häkchen in der Liste | — |
+
+### Drag & Drop
+
+Einen Eintrag in der Liste **anklicken und ziehen** erzeugt automatisch die PDF-Datei und startet einen Datei-Drag. Die PDF lässt sich so direkt in Explorer-Fenster, E-Mail-Programme oder andere Anwendungen ziehen.
 
 ---
 
