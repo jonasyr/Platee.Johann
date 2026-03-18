@@ -92,10 +92,10 @@ public partial class MainWindow : Window
 
     private void HelpButton_Click(object sender, RoutedEventArgs e)
     {
-        const string readmePath = @"X:\PRO_Programmierung\Peano.APP\APP17_Johann\Platee.Johann\README.md";
-        if (File.Exists(readmePath))
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(readmePath) { UseShellExecute = true });
+        const string handbuchPath = @"X:\PRO_Programmierung\Peano.APP\APP17_Johann\Platee.Johann\HANDBUCH.html";
+        if (File.Exists(handbuchPath))
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(handbuchPath) { UseShellExecute = true });
         else
-            MessageBox.Show($"Dokumentation nicht gefunden:\n{readmePath}", "Hilfe", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show($"Dokumentation nicht gefunden:\n{handbuchPath}", "Hilfe", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 }

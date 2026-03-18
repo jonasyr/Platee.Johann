@@ -1,223 +1,207 @@
-# Johann – Benutzerhandbuch
+# Platé.Johann – Benutzerhandbuch
 
-**Johann** ist eine Desktop-Anwendung für Windows, die Sprachaufnahmen (MP3-Dateien) automatisch transkribiert, mit KI zusammenfasst und strukturiert ablegt. Die App ermöglicht es, alle gespeicherten Einträge zu durchsuchen, zu exportieren und weiterzuverarbeiten.
+**Johann** ist ein KI-gestütztes Diktat-Werkzeug für Windows. Du sprichst ein Diktat auf dein Smartphone, legst die MP3-Datei in den Eingangsordner – und Johann erledigt den Rest: Transkription via OpenAI Whisper, automatische Zusammenfassung, strukturierte Ablage als HTML und PDF.
 
 ---
 
 ## Schnellstart
 
-1. Die Datei `Johann.UI.exe` doppelklicken – keine Installation notwendig.
-2. Beim ersten Start wird der Ordner `Dokumente\Johann\output` automatisch angelegt.
-3. OpenAI API-Key einrichten, um KI-Funktionen zu nutzen.
+1. `Johann.UI.exe` doppelklicken – keine Installation nötig.
+2. Beim ersten Start erscheint ein Dialog: **.env-Datei einrichten** → **Ja** klicken. Damit wird der API-Schlüssel automatisch hinterlegt.
+3. MP3-Datei in `Dokumente\Johann\Eingang` legen → Johann verarbeitet sie sofort im Hintergrund.
+4. Fertiger Eintrag erscheint automatisch in der Liste – kein Neustart nötig.
+
+> Ohne API-Schlüssel funktioniert Johann als reiner Viewer für bereits vorhandene Einträge.
 
 ---
 
-## Benutzeroberfläche im Überblick
+## Die Oberfläche
 
-Die App ist in drei Bereiche aufgeteilt:
-
-```txt
-┌─────────┬──────────────────────┬──────────────────────────────────────────┐
-│  Datum  │  Einträge            │  Detail                                  │
-│         │                      │                                          │
-│ 27.02.  │ 001_Johann_wir_...   │  [Aufgabe]  Johann                       │
-│ 26.02.  │ 002_Iris_kurzes_...  │  Johann_wir_müssen_Änderungen_vornehmen  │
-│ 25.02.  │ 003_Allg_projekt_... │  27.02.2026 · 0:45                       │
-│         │                      │  ─────────────────────────────────────   │
-│         │                      │  Abstract / Zusammenfassung / Aufgaben   │
-│         │                      │  ...                                     │
-│         │ [+ Neues Element]    │  [HTML] [PDF] [E-Mail] [Kopieren]        │
-│         │ [🎙 MP3]             │  ☑ Transkript  [Verarbeiten]             │
-└─────────┴──────────────────────┴──────────────────────────────────────────┘
+```
+┌──────────┬─────────────────────┬──────────────────────────────────────────┐
+│  Datum   │  Einträge           │  Detail                                  │
+│          │                     │                                          │
+│ 17.03.   │ 001 intern          │  [Aufgabe]  Johann                       │
+│ 16.03.   │   Citroën abholen…  │  Johann – wir müssen Änderungen vornehm. │
+│ 15.03.   │ 002 Iris            │  17.03.2026 · 1:12                       │
+│          │   ich weiß gar…     │  ────────────────────────────────────    │
+│          │                     │  Kurzfassung / Zusammenfassung / …       │
+│          │ [+ Neues Element]   │  [HTML] [PDF] [E-Mail] [Kopieren]        │
+└──────────┴─────────────────────┴──────────────────────────────────────────┘
 ```
 
-### Linke Spalte – Datumsauswahl
+**Links – Datumsleiste**
+Alle Tage mit Einträgen, neueste zuerst. Klick auf ein Datum filtert die Liste.
 
-- Listet alle Tage, für die Einträge vorhanden sind (neueste zuerst).
-- Klick auf ein Datum → die Eintrags-Liste in der Mitte aktualisiert sich sofort.
+**Mitte – Einträge des Tages**
+Nummer, Projektname und erste Wörter des Titels. Badge darunter zeigt den Typ.
 
-### Mittlere Spalte – Eintrags-Liste
-
-- Zeigt alle Einträge des ausgewählten Tages.
-- Jeder Eintrag zeigt **NNN_Projektname_ErsteWörter** sowie den Typ (Aufgabe, Gesprächsnotiz, etc.) darunter.
-- Klick auf einen Eintrag → der Detail-Bereich rechts öffnet sich.
-
-**Schaltflächen unten:**
-
-- **+ Neues Element** – manuellen Eintrag anlegen (Text eingeben, Typ und Projekt wählen).
-- **🎙 MP3** – eine oder mehrere MP3-Dateien auswählen; die App transkribiert und fasst sie zusammen.
-
-### Rechte Spalte – Detail-Ansicht
-
-Zeigt den vollständigen Inhalt des ausgewählten Eintrags:
-
-| Bereich | Inhalt |
-| --- | --- |
-| **Abstract** | Kurze Zusammenfassung (1–3 Sätze) |
-| **Zusammenfassung** | Strukturierte Gliederung (Markdown) |
-| **Ausführliche Zusammenfassung** | Fließtext-Zusammenfassung |
-| **Aufgaben** | Aufgabenliste (nur bei Typ „Aufgabe") |
-| **Gesprächsnotiz** | Protokoll (nur bei Typ „Gesprächsnotiz") |
-| **Originaltranskript** | Vollständiges Transkript (ausklappbar) |
+**Rechts – Detailansicht**
+Vollständiger Inhalt: alle KI-Abschnitte, Exportbuttons und das aufklappbare Transkript.
 
 ---
 
-## Buttons in der Aktionsleiste (Detail-Ansicht)
+## Workflow
 
-| Button | Funktion |
-| --- | --- |
-| **HTML** | Erzeugt eine HTML-Datei für diesen Eintrag und öffnet sie im Browser. Aktualisiert gleichzeitig die Tages-Übersicht `_ItemÜbersicht.html`. |
-| **PDF** | Erzeugt ein PDF mit Layout je nach Eintragstyp und öffnet es. |
-| **E-Mail** | Generiert einen E-Mail-Text via KI (GPT) und kopiert ihn direkt in die Zwischenablage – kein Datei-Dialog, sofort einfügbar. |
-| **Kopieren** | Kopiert **alles** (Titel, Abstract, Zusammenfassung, Ausführliche Zusammenfassung, Aufgaben, Gesprächsnotiz, und ggf. Transkript) mit Abschnittsüberschriften in die Zwischenablage. |
-| **☑ Transkript** | Checkbox: Legt fest, ob das Originaltranskript in PDF, HTML und beim Kopieren enthalten sein soll. Standard: aktiviert. |
-| **Verarbeiten** | Regeneriert alle KI-Zusammenfassungen für den aktuellen Eintrag neu (setzt einen konfigurierten API-Key voraus). |
+### MP3 einlesen (Eingangsordner)
+
+MP3 in `Dokumente\Johann\Eingang` legen – Johann erkennt die Datei automatisch und verarbeitet sie sofort. Kein Klick nötig. Ideal für automatische Synchronisation über OneDrive vom Smartphone.
+
+### Manuellen Eintrag anlegen
+
+**+ Neues Element** öffnet einen Dialog: Typ und Projekt wählen, Text eingeben. Mit API-Schlüssel werden KI-Abschnitte sofort generiert.
+
+### Fortschritt verfolgen
+
+Das **🔔 Status-Log** (oben rechts) zeigt alle laufenden und abgeschlossenen Verarbeitungen. Bei Fehlern erscheint der Hinweis direkt dort.
 
 ---
 
-## Eintragstypen
+## Diktat-Schema
 
-Johann unterscheidet fünf Typen, die automatisch aus dem Sprachbefehl erkannt werden:
+Johann erkennt Typ, Projekt und Titel automatisch aus dem gesprochenen Anfang:
 
-| Typ | Erkennungswort | Besonderheiten |
-| --- | --- | --- |
-| **Projekt** | *(Standard, kein Keyword)* | Allgemeiner Eintrag |
-| **Aufgabe** | „Aufgabe" | Aufgabenliste wird generiert |
-| **Gesprächsnotiz** | „Gesprächsnotiz" | Protokoll wird generiert; im Dateinamen enthalten |
-| **E-Mail** | „E-Mail" oder „Email" | E-Mail-Text wird generiert |
+```
+[Typ]  [Projektname]  Titel [Titel] Ende  [Inhalt]
+```
+
+- **Typ** *(optional, erstes Wort)* – steuert Eintragstyp und KI-Bausteine
+- **Projektname** – zweites Wort nach dem Typ (oder erstes, wenn kein Typ)
+- **Titel** *(optional)* – nach dem Schlüsselwort `Titel`, beendet mit `Ende`
+- **Inhalt** – alles nach `Ende` (oder der gesamte Rest, wenn kein Titel angegeben)
+
+**Beispiele:**
+
+| Gesprochener Anfang | Typ | Projekt | Titel |
+|---|---|---|---|
+| `Aufgabe Johann Titel App anpassen Ende wir müssen…` | Aufgabe | Johann | „App anpassen" |
+| `Gesprächsnotiz Iris Titel Meeting Ende Iris möchte…` | Gesprächsnotiz | Iris | „Meeting" |
+| `E-Mail Müller Titel Angebot März Ende guten Tag…` | E-Mail | Müller | „Angebot März" |
+| `intern Citroën abholen…` | Projekt | intern | *(GPT generiert)* |
+
+Kein `Titel … Ende`? Dann generiert GPT den Titel automatisch aus dem Inhalt.
+
+### Eintragstypen
+
+| Typ | Schlüsselwort | KI-Besonderheit |
+|---|---|---|
+| **Projekt** | *(keines – Standard)* | Kurzfassung, Zusammenfassung, Ausführlich |
+| **Aufgabe** | „Aufgabe" | + Aufgabenliste |
+| **Gesprächsnotiz** | „Gesprächsnotiz" | + Gesprächsprotokoll; Name im Dateinamen |
+| **E-Mail** | „E-Mail" / „Email" | + E-Mail-Text direkt in Zwischenablage |
 | **Stundenzettel** | „Stundenzettel" | Kompaktes PDF-Layout |
-
-**Beispiel-Diktat:** *„Aufgabe Johann wir müssen noch einige Änderungen an der App vornehmen"*
-→ Typ: Aufgabe, Projekt: Johann, Titel: „wir müssen noch einige Änderungen"
+| **Analog** | „Analog" | Freitext-Abschnitt statt Zusammenfassung |
 
 ---
 
-## Dateistruktur
+## Detailansicht – Abschnitte und Export
 
-Alle Daten liegen in `Dokumente\Johann\output\`:
+### Abschnitte
 
-```txt
-Dokumente\Johann\output\
-└── YYYY-MM-DD\
-    ├── _ItemÜbersicht.html          ← Tages-Übersicht (auto-generiert)
-    ├── YYMMDD_NNN_Projekt_Titel.pdf
-    ├── YYMMDD_NNN_Projekt_Titel.html
-    └── _raw\
-        ├── YYMMDD_NNN_Projekt_Titel_status.json   ← Datenspeicher
-        ├── YYMMDD_NNN_Projekt_Titel.mp3           ← Original-Audio (Kopie)
-        └── YYMMDD_NNN_Projekt_Titel.txt           ← Transkript-Text
-```
+Über die Checkboxen links werden Abschnitte ein-/ausgeblendet. Ausgeblendete Abschnitte sind auch bei PDF, HTML und Kopieren nicht enthalten.
 
-**Namensschema:** `YYMMDD_NNN[_Gesprächsnotiz]_Projektname_ErsteFünfWorteDesTitels`
+| Abschnitt | Inhalt |
+|---|---|
+| **Ausführlich** | Fließtext-Zusammenfassung |
+| **Zusammenfassung** | Strukturierte Gliederung (Markdown) |
+| **Aufgaben** | Aufgabenliste (nur Typ „Aufgabe") |
+| **Gesprächsnotiz** | Protokoll (nur Typ „Gesprächsnotiz") |
+| **E-Mail** | E-Mail-Text (nur Typ „E-Mail") |
+| **Stundenzettel** | Zeiterfassung (nur Typ „Stundenzettel") |
+| **Analog** | Freitext (nur Typ „Analog") |
+| **Transkript** | Vollständiger Originaltext (ausklappbar) |
 
-- `YYMMDD` = Datum (z.B. 260227)
-- `NNN` = laufende Nummer des Tages (001, 002, …)
-- `_Gesprächsnotiz` = nur bei diesem Typ eingeschaltet
-- Projektname und Titel: erste fünf Wörter, Sonderzeichen durch `_` ersetzt
+### Aktions-Buttons
 
----
+| Button | Klick | Rechtsklick |
+|---|---|---|
+| **HTML** | HTML-Datei erstellen und im Browser öffnen; aktualisiert Tages-Übersicht | HTML-Inhalt in Zwischenablage kopieren |
+| **PDF** | PDF erstellen und öffnen | PDF-Datei in Zwischenablage kopieren (als Datei, direkt einfügbar) |
+| **E-Mail** | E-Mail-Text in Zwischenablage kopieren | In Outlook öffnen (mailto-Link mit Betreff und Text) |
+| **Kopieren** | Alle sichtbaren Abschnitte mit Überschriften in Zwischenablage | — |
+| **↻ Neu generieren** | Alle KI-Abschnitte neu generieren | Einzelne Abschnitte wählen (Ausführlich, Zusammenfassung, Aufgaben, …) |
+| **Als erledigt markieren** | Eintrag abschließen – grünes Häkchen in der Liste | — |
 
-## MP3-Dateien verarbeiten
+### Drag & Drop
 
-1. **🎙 MP3**-Button klicken.
-2. Eine oder mehrere MP3-Dateien auswählen (Mehrfachauswahl mit Strg/Shift möglich).
-3. Die App:
-   - Transkribiert jede Datei via OpenAI Whisper.
-   - Erkennt Typ und Projekt aus dem gesprochenen Header.
-   - Generiert Abstract, Zusammenfassung, Ausführliche Zusammenfassung parallel.
-   - Speichert alles in `Dokumente\Johann\output\HEUTE\`.
-   - Aktualisiert die Tages-Übersicht `_ItemÜbersicht.html`.
-4. Fortschritt wird in der Statusleiste unten angezeigt.
-5. Die Einträge erscheinen sofort in der Liste – kein Neustart nötig.
-
-> **Hinweis:** Ohne API-Key können MP3s nicht verarbeitet werden. Der Button ist dann ausgegraut, und es erscheint eine Fehlermeldung in der Statusleiste.
+Einen Eintrag in der Liste **anklicken und ziehen** erzeugt automatisch die PDF-Datei und startet einen Datei-Drag. Die PDF lässt sich so direkt in Explorer-Fenster, E-Mail-Programme oder andere Anwendungen ziehen.
 
 ---
 
-## Manuelle Einträge
+## Tages-Übersicht
 
-1. **+ Neues Element** klicken.
-2. Im Dialog: Typ, Projekt und Text eingeben (Text wird als Transkript behandelt).
-3. Mit **Speichern** bestätigen.
-4. Falls ein API-Key vorhanden ist, wird sofort automatisch eine KI-Zusammenfassung generiert.
+In jedem Tages-Ordner liegt eine `_ItemÜbersicht.html` – Karten-Ansicht aller Einträge des Tages mit Typ, Projekt, Titel und Kurzfassung. Wird bei jeder Änderung automatisch aktualisiert und kann als Browser-Lesezeichen gespeichert werden.
 
 ---
 
 ## Einstellungen
 
-Das **⚙**-Symbol unten rechts öffnet die Einstellungen. Hier können alle GPT-Prompts bearbeitet werden:
+Das **⚙ Einstellungen**-Symbol öffnet den Einstellungs-Dialog.
 
-| Tab | Prompt |
-| --- | --- |
-| System | Systemrolle für den KI-Assistenten |
-| Abstract | Kurzfassung-Generierung |
-| Zusammenfassung | Strukturierte Gliederung |
-| Fließtext | Ausführliche Zusammenfassung |
-| E-Mail | E-Mail-Generierung |
+### Allgemein – Name und Firma
 
-**Speichern** übernimmt die Änderungen sofort – laufende Verarbeitungen nutzen die neuen Prompts ab dem nächsten Aufruf.
-**Zurücksetzen** stellt die Original-Prompts wieder her.
+**Beim ersten Start unbedingt ausfüllen.** Name und Firma werden in Kopf- und Fußzeile jedes PDFs eingedruckt.
 
-Die Einstellungen werden in `Dokumente\Johann\settings.json` gespeichert.
+| Feld | Zweck |
+|---|---|
+| **Name** | Erscheint im PDF-Kopf |
+| **Firma** | Erscheint im PDF-Kopf neben dem Namen |
 
----
+### Verzeichnisse
+- **Eingang:** `Dokumente\Johann\Eingang` – MP3s hier ablegen → automatische Verarbeitung
+- **Ausgabe:** `Dokumente\Johann\output` – alle erzeugten Dateien
+- **Archiv:** Unterordner von Eingang – verarbeitete MP3s werden hierhin verschoben
 
-## API-Key einrichten
+### Prompts anpassen
 
-Die KI-Funktionen (Transkription, Zusammenfassungen, E-Mail-Generierung) erfordern einen OpenAI API-Key.
+Jeder KI-Abschnitt hat einen eigenen Tab (Kurzfassung, Zusammenfassung, Ausführlich, E-Mail, Aufgaben, Gesprächsnotiz, Stundenzettel, Analog). **Zurücksetzen** stellt die Originalversion wieder her. Bereits vorhandene Einträge können per **↻ Neu generieren** aktualisiert werden.
 
-**Methode 1 – Umgebungsvariable (empfohlen):**
-
-1. Windows-Suche → „Umgebungsvariablen bearbeiten" öffnen.
-2. Neue Variable anlegen: Name `OPENAI_API_KEY`, Wert: `sk-proj-...`.
-3. Johann neu starten.
-
-**Methode 2 – .env-Datei:**
-
-1. Datei `.env` im selben Ordner wie `Johann.UI.exe` anlegen.
-2. Inhalt: `OPENAI_API_KEY=sk-proj-...`
-3. Johann neu starten.
-
-Wenn kein Key vorhanden ist, funktioniert die App weiterhin als reiner Viewer für bereits verarbeitete Einträge.
+Einstellungen werden in `Dokumente\Johann\settings.json` gespeichert.
 
 ---
 
-## Tages-Übersicht (_ItemÜbersicht.html)
+## Dateiablage
 
-In jedem Tages-Ordner (`Dokumente\Johann\output\YYYY-MM-DD\`) wird automatisch eine `_ItemÜbersicht.html` erzeugt oder aktualisiert, sobald:
+```
+Dokumente\Johann\output\
+└── 2026-03-17\
+    ├── _ItemÜbersicht.html
+    ├── 260317_001_Johann_App_anpassen.pdf
+    ├── 260317_001_Johann_App_anpassen.html
+    └── _raw\
+        ├── …_status.json      ← Datenspeicher
+        ├── …_original.mp3     ← Audio-Kopie
+        └── …_transcript.txt   ← Transkript
+```
 
-- ein neuer Eintrag via MP3 oder manuell gespeichert wird,
-- ein Eintrag neu verarbeitet wird, oder
-- der HTML-Export-Button für einen Eintrag gedrückt wird.
-
-Die Übersicht zeigt alle Einträge des Tages als Karten mit Typ-Badge, Projekt, Titel und Abstract. Sie kann direkt im Browser geöffnet werden und enthält Links zu den einzelnen HTML-Dateien.
-
----
-
-## Fehlerprotokoll
-
-Bei Abstürzen wird automatisch eine Datei `Johann_crash.txt` auf dem Desktop erstellt. Diese enthält Zeitstempel und den vollständigen Fehlertext und kann für die Fehlerbehebung verwendet werden.
-
----
-
-## Noch nicht implementiert / Geplant
-
-- **Suchfunktion** – Volltextsuche über alle Einträge
-- **Eintragsbearbeitung** – nachträgliches Bearbeiten von Titel, Projekt oder Typ im Detail-Bereich
-- **Stundenzettel-Auswertung** – automatische Summierung von Zeiten pro Projekt
-- **Direktversand per E-Mail** – aktuell wird die E-Mail nur in die Zwischenablage kopiert
-- **Mehrsprachigkeit** – aktuell nur Deutsch
+Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren oder auf OneDrive synchronisieren lassen.
 
 ---
 
-## Technische Hinweise
+## Best Practices
 
-- **Betriebssystem:** Windows 10 / 11 (64-Bit)
-- **Ausgabeordner:** `Dokumente\Johann\output\` (kann per Kommandozeilenargument überschrieben werden: `Johann.UI.exe "C:\anderer\pfad"`)
-- **Datenspeicher:** JSON-Dateien (kein Server, keine Datenbank)
-- **Kompatibilität:** Liest auch Einträge, die vom Python-Vorgängersystem erstellt wurden
-- **Keine Installation:** Einzelne EXE-Datei, läuft ohne .NET-Installation
+**Diktat-Einstieg klar sprechen** – Typ und Projektname direkt am Anfang, dann kurze Pause. `Titel … Ende` für einen kontrollierten Titel verwenden, sonst übernimmt GPT.
+
+**Projektnamen konsistent halten** – Johann speichert exakt wie erkannt. Immer denselben Begriff verwenden.
+
+**Eingangsordner für den Alltag** – MP3s per OneDrive-Synchronisation vom Smartphone direkt in `Dokumente\Johann\Eingang`. Johann erledigt den Rest ohne weiteren Eingriff.
+
+**Tages-Übersicht als Browser-Lesezeichen** – `_ItemÜbersicht.html` ablegen und nach einem Arbeitstag alle Einträge auf einen Blick sehen, ohne die App zu öffnen.
+
+**Prompts anpassen** – Wenn Zusammenfassungen nicht passen: Prompt-Tab öffnen, Stil/Länge/Format ergänzen, dann **↻ Neu generieren**.
 
 ---
 
-*Johann – Entwickelt mit C# / WPF / .NET 8*
+## Problembehandlung
+
+| Problem | Lösung |
+|---|---|
+| Buttons ausgegraut, keine Verarbeitung | API-Schlüssel fehlt → Startdialog nutzen oder `.env` in `Dokumente\Johann` ablegen |
+| MP3 im Eingangsordner wird nicht erkannt | Dateiformat prüfen (`.mp3`), Eingangsordner in Einstellungen kontrollieren |
+| Eintrag hat falschen Typ | Diktat-Einstieg anpassen, dann **↻ Neu generieren** |
+| KI-Abschnitte leer | API-Schlüssel und Internetverbindung prüfen, Status-Log prüfen |
+| Absturz | `Johann_crash.txt` auf dem Desktop enthält den vollständigen Fehlertext |
+
+---
+
+*Platé.Johann · Windows 10/11 · Keine Installation · Daten bleiben lokal*

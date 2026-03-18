@@ -122,8 +122,8 @@
                 </Grid>
             </TabItem>
 
-            <!-- ── Abstract ────────────────────────────────────────────────── -->
-            <TabItem Header="Abstract">
+            <!-- ── Kurzfassung ─────────────────────────────────────────────── -->
+            <TabItem Header="Kurzfassung">
                 <Grid Margin="12,10,12,8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -136,8 +136,8 @@
                 </Grid>
             </TabItem>
 
-            <!-- ── Strukturiert ─────────────────────────────────────────────── -->
-            <TabItem Header="Strukturiert">
+            <!-- ── Zusammenfassung ─────────────────────────────────────────── -->
+            <TabItem Header="Zusammenfassung">
                 <Grid Margin="12,10,12,8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -150,8 +150,8 @@
                 </Grid>
             </TabItem>
 
-            <!-- ── Fließtext ───────────────────────────────────────────────── -->
-            <TabItem Header="Fließtext">
+            <!-- ── Ausführlich ─────────────────────────────────────────────── -->
+            <TabItem Header="Ausführlich">
                 <Grid Margin="12,10,12,8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -178,8 +178,8 @@
                 </Grid>
             </TabItem>
 
-            <!-- ── Aufgabe ─────────────────────────────────────────────────── -->
-            <TabItem Header="Aufgabe">
+            <!-- ── Aufgaben ────────────────────────────────────────────────── -->
+            <TabItem Header="Aufgaben">
                 <Grid Margin="12,10,12,8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
