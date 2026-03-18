@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Platé.Johann – Benutzerhandbuch</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent:      #E63123;
+      --accent-dark: #C0392B;
+      --bg:          #F0F0F0;
+      --bg-light:    #FAFAFA;
+      --surface:     #FFFFFF;
+      --border:      #E0E0E0;
+      --border-mid:  #CCCCCC;
+      --text:        #333333;
+      --text-mid:    #555555;
+      --text-muted:  #888888;
+      --green:       #27AE60;
+      --abstract-bg: #FFF5F4;
+      --abstract-bd: #FFDBD8;
+      --nav-w:       250px;
+      --header-h:    54px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.65;
+    }
+
+    /* ── Header ─────────────────────────────────────── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--header-h);
+      background: var(--accent);
+      display: flex; align-items: center;
+      padding: 0 28px;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    header .logo { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: .2px; }
+    header .sub  { color: rgba(255,255,255,.65); font-size: 13px; margin-left: 14px; }
+
+    /* ── Layout ─────────────────────────────────────── */
+    .layout { display: flex; margin-top: var(--header-h); min-height: calc(100vh - var(--header-h)); }
+
+    /* ── Sidebar ─────────────────────────────────────── */
+    nav {
+      position: fixed; top: var(--header-h); left: 0;
+      width: var(--nav-w); height: calc(100vh - var(--header-h));
+      overflow-y: auto; background: var(--surface);
+      border-right: 1px solid var(--border); padding: 20px 0;
+    }
+    .nav-group { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px;
+                 color: var(--text-muted); padding: 18px 18px 5px; font-weight: 700; }
+    .nav-group:first-child { padding-top: 4px; }
+    nav a {
+      display: block; padding: 7px 18px;
+      color: var(--text-mid); text-decoration: none; font-size: 13px;
+      border-left: 3px solid transparent; transition: all .15s;
+    }
+    nav a:hover, nav a.active { color: var(--accent); border-left-color: var(--accent); background: #fdf1f0; }
+
+    /* ── Main ────────────────────────────────────────── */
+    main { margin-left: var(--nav-w); padding: 44px 52px 80px; max-width: 860px; flex: 1; }
+
+    /* ── Section ─────────────────────────────────────── */
+    .section { margin-bottom: 56px; }
+    .section-title {
+      display: flex; align-items: center; gap: 12px;
+      padding-bottom: 12px; margin-bottom: 22px;
+      border-bottom: 2px solid var(--accent);
+    }
+    .num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    h2 { font-size: 20px; font-weight: 700; color: var(--text); }
+    h3 { font-size: 15px; font-weight: 600; color: var(--text); margin: 26px 0 10px; }
+    p  { color: var(--text-mid); margin-bottom: 12px; }
+
+    /* ── Cards ───────────────────────────────────────── */
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 18px 0; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 18px 20px;
+    }
+    .card-accent { border-left: 4px solid var(--accent); }
+    .card-green  { border-left: 4px solid var(--green); background: #f4fbf7; }
+    .card strong { display: block; margin-bottom: 7px; color: var(--text); }
+
+    /* ── Steps ───────────────────────────────────────── */
+    ol.steps { list-style: none; counter-reset: step; margin: 16px 0; }
+    ol.steps li {
+      counter-increment: step; display: flex; gap: 14px;
+      align-items: flex-start; margin-bottom: 13px;
+    }
+    ol.steps li::before {
+      content: counter(step); background: var(--accent); color: #fff;
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; margin-top: 1px;
+    }
+    ol.steps li p { margin: 0; }
+
+    /* ── Tip ─────────────────────────────────────────── */
+    .tip {
+      display: flex; gap: 12px; align-items: flex-start;
+      background: var(--abstract-bg); border: 1px solid var(--abstract-bd);
+      border-radius: 6px; padding: 13px 16px; margin: 14px 0;
+    }
+    .tip .icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+    .tip p { margin: 0; font-size: 13px; }
+
+    /* ── Tables ──────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; margin: 14px 0; }
+    table {
+      width: 100%; border-collapse: collapse;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; overflow: hidden; font-size: 13px;
+    }
+    thead { background: var(--accent); }
+    thead th { color: #fff; font-weight: 600; text-align: left; padding: 9px 14px; font-size: 12px; }
+    tbody tr:nth-child(odd)  { background: var(--bg-light); }
+    tbody tr:nth-child(even) { background: var(--surface); }
+    tbody tr:hover { background: #fdf1f0; }
+    td { padding: 9px 14px; color: var(--text-mid); border-top: 1px solid var(--border); vertical-align: top; }
+    td:first-child { font-weight: 600; color: var(--text); white-space: nowrap; }
+
+    /* ── Code blocks ─────────────────────────────────── */
+    pre {
+      background: #1e1e1e; color: #d4d4d4;
+      border-radius: 6px; padding: 18px 22px;
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 12.5px; line-height: 1.75; overflow-x: auto; margin: 14px 0;
+    }
+    pre .c { color: #6A9955; }
+    pre .p { color: #9CDCFE; }
+    pre .d { color: #569CD6; }
+    pre .k { color: #E63123; font-weight: 600; }
+    code {
+      background: #f0f0f0; padding: 1px 6px; border-radius: 3px;
+      font-family: Consolas, monospace; font-size: 13px;
+    }
+
+    /* ── Mockup ──────────────────────────────────────── */
+    .mockup {
+      background: #1e1e1e; color: #ccc; border-radius: 6px;
+      padding: 18px 22px; font-family: Consolas, 'Courier New', monospace;
+      font-size: 12.5px; line-height: 1.9; overflow-x: auto; margin: 14px 0;
+    }
+    .mockup .r { color: #E63123; }
+    .mockup .g { color: #6A9955; }
+    .mockup .b { color: #9CDCFE; }
+
+    /* ── Badge ───────────────────────────────────────── */
+    .badge {
+      display: inline-block; font-size: 11px; padding: 2px 8px;
+      border-radius: 10px; font-weight: 600;
+    }
+    .badge-red  { background: #fde8e7; color: var(--accent); }
+    .badge-gray { background: #efefef; color: var(--text-mid); }
+
+    /* ── Scrollbar ───────────────────────────────────── */
+    nav::-webkit-scrollbar { width: 4px; }
+    nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Footer ──────────────────────────────────────── */
+    footer {
+      margin-left: var(--nav-w); padding: 18px 52px;
+      border-top: 1px solid var(--border); background: var(--surface);
+      font-size: 12px; color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Platé.Johann</span>
+  <span class="sub">Benutzerhandbuch</span>
+</header>
+
+<div class="layout">
+
+<!-- ── Sidebar ─────────────────────────────────────────────── -->
+<nav id="nav">
+  <div class="nav-group">Einstieg</div>
+  <a href="#was-ist">Was ist Johann?</a>
+  <a href="#schnellstart">Schnellstart</a>
+
+  <div class="nav-group">Bedienung</div>
+  <a href="#oberflaeche">Die Oberfläche</a>
+  <a href="#workflow">Workflow</a>
+  <a href="#detail">Detailansicht &amp; Export</a>
+
+  <div class="nav-group">Diktat</div>
+  <a href="#schema">Diktat-Schema</a>
+  <a href="#typen">Eintragstypen</a>
+
+  <div class="nav-group">Konfiguration</div>
+  <a href="#einstellungen">Einstellungen</a>
+  <a href="#ablage">Dateiablage</a>
+
+  <div class="nav-group">Tipps &amp; Hilfe</div>
+  <a href="#bestpractice">Best Practices</a>
+  <a href="#probleme">Problembehandlung</a>
+</nav>
+
+<!-- ── Content ──────────────────────────────────────────────── -->
+<main>
+
+  <!-- 1 Was ist Johann -->
+  <section class="section" id="was-ist">
+    <div class="section-title"><div class="num">1</div><h2>Was ist Johann?</h2></div>
+
+    <p>
+      <strong>Johann</strong> ist ein KI-gestütztes Diktat-Werkzeug für Windows.
+      Du sprichst ein Diktat auf dein Smartphone, legst die MP3 in den Eingangsordner –
+      und Johann erledigt den Rest: Transkription via OpenAI Whisper, automatische Zusammenfassung,
+      strukturierte Ablage als HTML und PDF.
+    </p>
+
+    <div class="cards">
+      <div class="card card-accent">
+        <strong>🎙 Aufnehmen</strong>
+        <p style="font-size:13px;margin:0;">MP3 in den Eingangsordner legen – automatische Verarbeitung startet sofort, kein Klick nötig.</p>
+      </div>
+      <div class="card card-accent">
+        <strong>🤖 KI-Analyse</strong>
+        <p style="font-size:13px;margin:0;">Whisper transkribiert, GPT fasst zusammen – Kurzfassung, strukturierte Gliederung, Fließtext.</p>
+      </div>
+      <div class="card card-accent">
+        <strong>📄 Export</strong>
+        <p style="font-size:13px;margin:0;">HTML und PDF auf Knopfdruck. Alles lokal, kein Server, keine Cloud.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 Schnellstart -->
+  <section class="section" id="schnellstart">
+    <div class="section-title"><div class="num">2</div><h2>Schnellstart</h2></div>
+
+    <ol class="steps">
+      <li><p><strong>Johann.UI.exe</strong> doppelklicken – keine Installation nötig.</p></li>
+      <li><p>Beim ersten Start erscheint ein Dialog: <em>„.env-Datei einrichten"</em> → <strong>Ja</strong> klicken. Damit wird der API-Schlüssel automatisch hinterlegt.</p></li>
+      <li><p>MP3-Datei in <code>Dokumente\Johann\Eingang</code> legen → Johann verarbeitet sie sofort im Hintergrund.</p></li>
+      <li><p>Fertiger Eintrag erscheint automatisch in der Liste – kein Neustart nötig.</p></li>
+    </ol>
+
+    <div class="tip">
+      <span class="icon">ℹ️</span>
+      <p>Ohne API-Schlüssel funktioniert Johann als reiner Viewer für bereits vorhandene Einträge. KI-Funktionen sind ausgegraut.</p>
+    </div>
+  </section>
+
+  <!-- 3 Oberfläche -->
+  <section class="section" id="oberflaeche">
+    <div class="section-title"><div class="num">3</div><h2>Die Oberfläche</h2></div>
+
+    <div class="mockup">
+<span class="g">┌──────────┬──────────────────────┬─────────────────────────────────────────────┐</span>
+<span class="g">│</span> <span class="r">Datum</span>    <span class="g">│</span> <span class="r">Einträge</span>             <span class="g">│</span> <span class="r">Detail</span>                                      <span class="g">│</span>
+<span class="g">├──────────┼──────────────────────┼─────────────────────────────────────────────┤</span>
+<span class="g">│</span> 17.03.   <span class="g">│</span> 001 intern           <span class="g">│</span> [Aufgabe]  Johann                            <span class="g">│</span>
+<span class="g">│</span> 16.03.   <span class="g">│</span>   Citroën abholen…  <span class="g">│</span> Johann – App anpassen                        <span class="g">│</span>
+<span class="g">│</span> 15.03.   <span class="g">│</span> 002 Iris             <span class="g">│</span> 17.03.2026 · 1:12                            <span class="g">│</span>
+<span class="g">│</span>          <span class="g">│</span>   ich weiß gar…     <span class="g">│</span> ───────────────────────────────────────────  <span class="g">│</span>
+<span class="g">│</span>          <span class="g">│</span>                     <span class="g">│</span> Kurzfassung / Zusammenfassung / Ausführlich  <span class="g">│</span>
+<span class="g">│</span>          <span class="g">│</span>                     <span class="g">│</span> [HTML] [PDF] [E-Mail] [Kopieren]             <span class="g">│</span>
+<span class="g">│</span>          <span class="g">│</span> [+ Neues Element]   <span class="g">│</span>                                              <span class="g">│</span>
+<span class="g">└──────────┴──────────────────────┴─────────────────────────────────────────────┘</span>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <strong style="color:var(--accent)">Links – Datum</strong>
+        <p style="font-size:13px;margin:0;">Alle Tage mit Einträgen, neueste zuerst. Klick filtert die Liste sofort.</p>
+      </div>
+      <div class="card">
+        <strong style="color:var(--accent)">Mitte – Einträge</strong>
+        <p style="font-size:13px;margin:0;">Nummer, Projektname, erste Wörter des Titels, Typ-Badge. <strong>+ Neues Element</strong> legt manuellen Eintrag an.</p>
+      </div>
+      <div class="card">
+        <strong style="color:var(--accent)">Rechts – Detail</strong>
+        <p style="font-size:13px;margin:0;">Vollständiger Inhalt: alle KI-Abschnitte, Exportbuttons und aufklappbares Transkript.</p>
+      </div>
+    </div>
+
+    <h3>Statusleiste</h3>
+    <p>Die Leiste oben zeigt laufende Verarbeitungen. Das <strong>🔔 Status-Log</strong> (oben rechts) öffnet alle Einträge inklusive Fehlerhinweise.</p>
+  </section>
+
+  <!-- 4 Workflow -->
+  <section class="section" id="workflow">
+    <div class="section-title"><div class="num">4</div><h2>Workflow</h2></div>
+
+    <h3>MP3 einlesen – Eingangsordner</h3>
+    <div class="card card-green" style="margin-bottom:14px;">
+      <strong>Automatisch (empfohlen)</strong>
+      <p style="font-size:13px;margin:0;">MP3 in <code>Dokumente\Johann\Eingang</code> legen. Johann erkennt die Datei sofort und startet die Verarbeitung – kein Klick nötig. Verarbeitete Dateien werden anschließend ins Archiv-Unterverzeichnis verschoben.</p>
+    </div>
+    <div class="tip">
+      <span class="icon">💡</span>
+      <p>Ideal für OneDrive-Synchronisation vom Smartphone: Aufnahme erstellen → OneDrive synchronisiert automatisch → Johann verarbeitet im Hintergrund.</p>
+    </div>
+
+    <h3>Manuellen Eintrag anlegen</h3>
+    <ol class="steps">
+      <li><p><strong>+ Neues Element</strong> klicken.</p></li>
+      <li><p>Typ wählen, Projektname eingeben, Text verfassen.</p></li>
+      <li><p>Speichern – mit API-Schlüssel werden KI-Abschnitte sofort generiert.</p></li>
+    </ol>
+
+    <h3>Fortschritt verfolgen</h3>
+    <p>Das <strong>🔔 Status-Log</strong> zeigt alle laufenden und abgeschlossenen Verarbeitungen. Bei Fehlern erscheint der Hinweis direkt dort im Klartext.</p>
+  </section>
+
+  <!-- 5 Detail -->
+  <section class="section" id="detail">
+    <div class="section-title"><div class="num">5</div><h2>Detailansicht &amp; Export</h2></div>
+
+    <h3>Abschnitte</h3>
+    <p>Die Checkboxen links steuern, welche Abschnitte sichtbar sind – und was bei PDF, HTML und Kopieren enthalten wird.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Abschnitt</th><th>Inhalt</th><th>Typ</th></tr></thead>
+        <tbody>
+          <tr><td>Ausführlich</td><td>Fließtext-Zusammenfassung</td><td>Alle</td></tr>
+          <tr><td>Zusammenfassung</td><td>Strukturierte Gliederung (Markdown)</td><td>Alle</td></tr>
+          <tr><td>Aufgaben</td><td>Aufgabenliste</td><td>Aufgabe</td></tr>
+          <tr><td>Gesprächsnotiz</td><td>Gesprächsprotokoll</td><td>Gesprächsnotiz</td></tr>
+          <tr><td>E-Mail</td><td>Fertiger E-Mail-Text</td><td>E-Mail</td></tr>
+          <tr><td>Stundenzettel</td><td>Zeiterfassung</td><td>Stundenzettel</td></tr>
+          <tr><td>Analog</td><td>Freitext-Abschnitt</td><td>Analog</td></tr>
+          <tr><td>Transkript</td><td>Vollständiger Originaltext (ausklappbar)</td><td>Alle</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Aktions-Buttons</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Button</th><th>Funktion</th></tr></thead>
+        <tbody>
+          <tr><td>HTML</td><td>Erzeugt HTML-Datei, öffnet im Browser, aktualisiert die Tages-Übersicht. Rechtsklick: in Zwischenablage kopieren.</td></tr>
+          <tr><td>PDF</td><td>Erzeugt formatiertes PDF (Layout je nach Typ) und öffnet es direkt.</td></tr>
+          <tr><td>E-Mail</td><td>Generiert E-Mail-Text per KI und kopiert ihn direkt in die Zwischenablage.</td></tr>
+          <tr><td>Kopieren</td><td>Kopiert alle sichtbaren Abschnitte mit Überschriften in die Zwischenablage.</td></tr>
+          <tr><td>↻ Neu generieren</td><td>Alle KI-Abschnitte neu generieren. <strong>Rechtsklick</strong> für einzelne Abschnitte (Ausführlich, Zusammenfassung, Aufgaben, …).</td></tr>
+          <tr><td>Als erledigt markieren</td><td>Eintrag abschließen – grünes Häkchen in der Liste. Erneuter Klick hebt es auf.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Tages-Übersicht</h3>
+    <p>
+      In jedem Tages-Ordner liegt eine <code>_ItemÜbersicht.html</code> – Karten-Ansicht aller Einträge des Tages mit Typ, Projekt, Titel und Kurzfassung.
+      Wird bei jeder Änderung automatisch aktualisiert. Als Browser-Lesezeichen speichern für den schnellen Tagesüberblick.
+    </p>
+  </section>
+
+  <!-- 6 Schema -->
+  <section class="section" id="schema">
+    <div class="section-title"><div class="num">6</div><h2>Diktat-Schema</h2></div>
+
+    <p>Johann erkennt Typ, Projekt und Titel automatisch aus dem gesprochenen Anfang:</p>
+
+    <pre><span class="k">[Typ]</span>  <span class="b">[Projektname]</span>  <span class="p">Titel [Titel] Ende</span>  [Inhalt des Diktats …]</pre>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Teil</th><th>Pflicht</th><th>Erklärung</th></tr></thead>
+        <tbody>
+          <tr><td>Typ</td><td>Nein</td><td>Erstes Wort – bestimmt den Eintragstyp. Fehlt es, wird „Projekt" angenommen.</td></tr>
+          <tr><td>Projektname</td><td>Ja</td><td>Nächstes Wort nach dem Typ (oder das erste Wort, wenn kein Typ angegeben).</td></tr>
+          <tr><td><code>Titel … Ende</code></td><td>Nein</td><td>Schlüsselwort <code>Titel</code> gefolgt vom Titel-Text, abgeschlossen mit <code>Ende</code>. Ohne diesen Block generiert GPT den Titel automatisch.</td></tr>
+          <tr><td>Inhalt</td><td>Ja</td><td>Alles nach <code>Ende</code> – oder der gesamte Rest, wenn kein Titel-Block angegeben.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Beispiele</h3>
+    <pre><span class="g"># Typ + Projekt + Titel + Inhalt</span>
+<span class="k">Aufgabe</span>        <span class="b">Johann</span>  <span class="p">Titel App anpassen Ende</span>  wir müssen die Navigation noch …
+<span class="k">Gesprächsnotiz</span> <span class="b">Iris</span>    <span class="p">Titel Meeting Ende</span>       Iris möchte das Konzept bis …
+<span class="k">E-Mail</span>         <span class="b">Müller</span>  <span class="p">Titel Angebot März Ende</span>  guten Tag, anbei unser Angebot …
+<span class="k">Stundenzettel</span>  <span class="b">intern</span>  <span class="p">Titel KW12 Ende</span>          3 Stunden Entwicklung …
+
+<span class="g"># Nur Typ + Projekt (GPT generiert Titel)</span>
+<span class="k">Aufgabe</span> <span class="b">Johann</span>  wir müssen die App noch anpassen, außerdem …
+
+<span class="g"># Nur Projekt, kein Typ → wird als „Projekt" erkannt</span>
+<span class="b">intern</span>  heute Citroën abholen, dann Renault einlesen …</pre>
+
+    <div class="tip">
+      <span class="icon">💡</span>
+      <p>Typ und Projektname klar und direkt am Anfang sprechen. <code>Titel … Ende</code> für kontrollierten Titel verwenden – sonst übernimmt GPT auf Basis des Inhalts.</p>
+    </div>
+  </section>
+
+  <!-- 7 Typen -->
+  <section class="section" id="typen">
+    <div class="section-title"><div class="num">7</div><h2>Eintragstypen</h2></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Typ</th><th>Schlüsselwort</th><th>KI-Besonderheit</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="badge badge-gray">Projekt</span></td>
+            <td><em>keines – Standard</em></td>
+            <td>Kurzfassung, Zusammenfassung, Ausführlich</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">Aufgabe</span></td>
+            <td>„Aufgabe"</td>
+            <td>+ Aufgabenliste</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">Gesprächsnotiz</span></td>
+            <td>„Gesprächsnotiz"</td>
+            <td>+ Gesprächsprotokoll; Typ-Name im Dateinamen</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-red">E-Mail</span></td>
+            <td>„E-Mail" / „Email"</td>
+            <td>+ E-Mail-Text direkt in Zwischenablage</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-gray">Stundenzettel</span></td>
+            <td>„Stundenzettel"</td>
+            <td>Kompaktes PDF-Layout für Zeiterfassung</td>
+          </tr>
+          <tr>
+            <td><span class="badge badge-gray">Analog</span></td>
+            <td>„Analog"</td>
+            <td>Freitext-Abschnitt statt Standard-Zusammenfassung</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 8 Einstellungen -->
+  <section class="section" id="einstellungen">
+    <div class="section-title"><div class="num">8</div><h2>Einstellungen</h2></div>
+
+    <p>Das <strong>⚙ Einstellungen</strong>-Symbol öffnet den Dialog. Änderungen wirken ab der nächsten Verarbeitung.</p>
+
+    <h3>Verzeichnisse</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ordner</th><th>Standard</th><th>Funktion</th></tr></thead>
+        <tbody>
+          <tr><td>Eingang</td><td><code>Dokumente\Johann\Eingang</code></td><td>MP3s hier ablegen → automatische Verarbeitung</td></tr>
+          <tr><td>Ausgabe</td><td><code>Dokumente\Johann\output</code></td><td>Alle erzeugten Dateien (JSON, HTML, PDF)</td></tr>
+          <tr><td>Archiv</td><td><code>Eingang\Archiv</code></td><td>Verarbeitete MP3s werden hierhin verschoben</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Prompts anpassen</h3>
+    <p>Jeder KI-Abschnitt hat einen eigenen Tab. <strong>Zurücksetzen</strong> stellt die Originalversion wieder her.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Tab</th><th>Steuert</th></tr></thead>
+        <tbody>
+          <tr><td>System-Nachricht</td><td>Grundverhalten und Tonalität des KI-Assistenten</td></tr>
+          <tr><td>Kurzfassung</td><td>2–4 Kernpunkte des Diktats</td></tr>
+          <tr><td>Zusammenfassung</td><td>Strukturierte Gliederung in Markdown</td></tr>
+          <tr><td>Ausführlich</td><td>Fließtext-Zusammenfassung</td></tr>
+          <tr><td>E-Mail</td><td>E-Mail-Text-Generierung</td></tr>
+          <tr><td>Aufgaben / Gesprächsnotiz / Stundenzettel / Analog</td><td>Typ-spezifische Ausgabe</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tip">
+      <span class="icon">💡</span>
+      <p>Bestehende Einträge bleiben unverändert. Nach einer Prompt-Anpassung einfach <strong>↻ Neu generieren</strong> (oder Rechtsklick für einzelne Abschnitte) klicken.</p>
+    </div>
+  </section>
+
+  <!-- 9 Ablage -->
+  <section class="section" id="ablage">
+    <div class="section-title"><div class="num">9</div><h2>Dateiablage</h2></div>
+
+    <p>Alle Daten liegen lokal – kein Server, keine Datenbank. Dateien lassen sich kopieren, archivieren oder via OneDrive synchronisieren.</p>
+
+    <pre><span class="g"># Alle Daten in:</span>
+<span class="d">Dokumente\Johann\output\</span>
+└── <span class="p">2026-03-17\</span>
+    ├── <span class="p">_ItemÜbersicht.html</span>                  <span class="g">← Tages-Übersicht (auto)</span>
+    ├── <span class="p">260317_001_Johann_App_anpassen.pdf</span>
+    ├── <span class="p">260317_001_Johann_App_anpassen.html</span>
+    └── <span class="d">_raw\</span>
+        ├── <span class="p">…_status.json</span>                    <span class="g">← Datenspeicher</span>
+        ├── <span class="p">…_original.mp3</span>                   <span class="g">← Audio-Kopie</span>
+        └── <span class="p">…_transcript.txt</span>                 <span class="g">← Transkript</span></pre>
+
+    <h3>Dateinamen-Schema</h3>
+    <p><code>YYMMDD_NNN[_Gesprächsnotiz]_Projektname_ErsteFünfWörterDesTitels</code></p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Teil</th><th>Beispiel</th><th>Bedeutung</th></tr></thead>
+        <tbody>
+          <tr><td><code>YYMMDD</code></td><td>260317</td><td>Datum des Eintrags</td></tr>
+          <tr><td><code>NNN</code></td><td>001</td><td>Laufende Nummer des Tages</td></tr>
+          <tr><td>Projektname</td><td>Johann</td><td>Wie gesprochen, Sonderzeichen → _</td></tr>
+          <tr><td>Titel</td><td>App_anpassen</td><td>Erste fünf Wörter des Titels</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 10 Best Practices -->
+  <section class="section" id="bestpractice">
+    <div class="section-title"><div class="num">10</div><h2>Best Practices</h2></div>
+
+    <div class="card card-accent" style="margin-bottom:12px;">
+      <strong>Diktat-Einstieg klar sprechen</strong>
+      <p style="font-size:13px;margin:0;">Typ und Projektname direkt am Anfang, dann kurze Pause. <code>Titel … Ende</code> für einen kontrollierten Titel verwenden – sonst übernimmt GPT automatisch.</p>
+    </div>
+    <div class="card card-accent" style="margin-bottom:12px;">
+      <strong>Projektnamen konsistent halten</strong>
+      <p style="font-size:13px;margin:0;">Johann speichert exakt wie erkannt. Immer denselben Begriff verwenden – z.&nbsp;B. immer „Johann" statt mal „Johann" mal „App".</p>
+    </div>
+    <div class="card card-accent" style="margin-bottom:12px;">
+      <strong>Eingangsordner für den Alltag</strong>
+      <p style="font-size:13px;margin:0;">MP3s per OneDrive-Synchronisation vom Smartphone direkt in <code>Dokumente\Johann\Eingang</code>. Johann verarbeitet im Hintergrund – ohne weiteren Eingriff.</p>
+    </div>
+    <div class="card card-accent" style="margin-bottom:12px;">
+      <strong>Tages-Übersicht als Browser-Lesezeichen</strong>
+      <p style="font-size:13px;margin:0;"><code>_ItemÜbersicht.html</code> im Browser als Lesezeichen ablegen und nach einem Arbeitstag alle Einträge auf einen Blick sehen – ohne die App zu öffnen.</p>
+    </div>
+    <div class="card card-accent">
+      <strong>Prompts auf den eigenen Stil abstimmen</strong>
+      <p style="font-size:13px;margin:0;">Einstellungen → Prompt-Tab öffnen und konkrete Vorgaben ergänzen (Länge, Tonalität, Formatwünsche). Dann <strong>↻ Neu generieren</strong> für bestehende Einträge.</p>
+    </div>
+  </section>
+
+  <!-- 11 Probleme -->
+  <section class="section" id="probleme">
+    <div class="section-title"><div class="num">11</div><h2>Problembehandlung</h2></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Problem</th><th>Lösung</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Buttons ausgegraut, keine Verarbeitung</td>
+            <td>API-Schlüssel fehlt. Startdialog nutzen oder <code>.env</code>-Datei manuell in <code>Dokumente\Johann</code> ablegen (<code>OPENAI_API_KEY=sk-proj-…</code>).</td>
+          </tr>
+          <tr>
+            <td>MP3 im Eingangsordner wird nicht erkannt</td>
+            <td>Dateiformat prüfen (nur <code>.mp3</code>). Eingangsordner in den Einstellungen kontrollieren.</td>
+          </tr>
+          <tr>
+            <td>Eintrag hat falschen Typ</td>
+            <td>Diktat-Einstieg anpassen (Schlüsselwort klar sprechen). Eintrag mit <strong>↻ Neu generieren</strong> aktualisieren.</td>
+          </tr>
+          <tr>
+            <td>KI-Abschnitte leer nach Verarbeitung</td>
+            <td>API-Schlüssel und Internetverbindung prüfen. Status-Log (🔔) auf Fehlermeldungen prüfen.</td>
+          </tr>
+          <tr>
+            <td>Absturz der Anwendung</td>
+            <td><code>Johann_crash.txt</code> auf dem Desktop enthält Zeitstempel und vollständigen Fehlertext.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tip">
+      <span class="icon">📋</span>
+      <p>Das <strong>🔔 Status-Log</strong> oben rechts zeigt alle Fehler im Klartext – immer dort zuerst nachschauen.</p>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<footer>
+  Platé.Johann &nbsp;·&nbsp; Windows 10/11 &nbsp;·&nbsp; Keine Installation erforderlich &nbsp;·&nbsp; Daten bleiben lokal
+</footer>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const links    = document.querySelectorAll('nav a');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(a => a.classList.remove('active'));
+        const l = document.querySelector(`nav a[href="#${e.target.id}"]`);
+        if (l) l.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-25% 0px -65% 0px' });
+  sections.forEach(s => obs.observe(s));
+</script>
+</body>
+</html>
