@@ -78,6 +78,9 @@ public partial class App : System.Windows.Application
 
         var settingsHolder = new SettingsHolder(initialSettings);
 
+        // ── .env-Prüfung ──────────────────────────────────────────────────────
+        EnsureEnvFile(settingsDir);
+
         // ── Manual DI ─────────────────────────────────────────────────────────
         IEntryRepository repository = new JsonRepository(outputRoot);
 
@@ -185,6 +188,45 @@ public partial class App : System.Windows.Application
         {
             // Nicht über Velopack installiert oder offline – still ignorieren
         }
+    }
+
+    private static void EnsureEnvFile(string johannDir)
+    {
+        const string sourceEnv = @"X:\PRO_Programmierung\Peano.APP\APP17_Johann\Platee.Johann\.env";
+
+        var targetEnv = Path.Combine(johannDir, ".env");
+        if (File.Exists(targetEnv)) return;
+
+        var result = MessageBox.Show(
+            "Die .env-Datei wurde nicht gefunden.\n\n" +
+            "Diese Datei enthält den API-Schlüssel und wird für die KI-Verarbeitung benötigt.\n\n" +
+            "Soll die Datei jetzt automatisch eingerichtet werden?",
+            "Platé.Johann – Einrichtung erforderlich",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        if (!File.Exists(sourceEnv))
+        {
+            MessageBox.Show(
+                $"Die Quelldatei wurde nicht gefunden:\n{sourceEnv}\n\n" +
+                "Bitte die .env-Datei manuell nach\n" +
+                $"{targetEnv}\nkopieren.",
+                "Platé.Johann – Datei nicht gefunden",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        Directory.CreateDirectory(johannDir);
+        File.Copy(sourceEnv, targetEnv);
+
+        MessageBox.Show(
+            "Die .env-Datei wurde erfolgreich eingerichtet.",
+            "Platé.Johann – Einrichtung abgeschlossen",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 
     private static string ResolveDefaultOutputRoot()

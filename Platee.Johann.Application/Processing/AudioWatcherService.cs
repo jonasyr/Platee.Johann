@@ -84,6 +84,10 @@ public sealed class AudioWatcherService : IDisposable
         {
             if (!File.Exists(filePath)) return; // may have been processed while waiting
 
+            if (!_processor.CanProcess)
+                throw new InvalidOperationException(
+                    "Kein API-Schlüssel konfiguriert. .env-Datei in Dokumente\\Johann ablegen.");
+
             using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
                 stream.Close();
 

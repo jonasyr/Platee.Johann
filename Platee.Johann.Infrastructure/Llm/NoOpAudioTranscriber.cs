@@ -13,5 +13,5 @@ public sealed class NoOpAudioTranscriber : IAudioTranscriber
     public Task<TranscriptionResult> TranscribeAsync(
         string audioFilePath, CancellationToken ct = default)
         => throw new InvalidOperationException(
-            "Kein Audio-Transkriptions-Dienst verfügbar. Bitte OPENAI_API_KEY konfigurieren.");
+            "Kein API-Schlüssel konfiguriert. .env-Datei in Dokumente\\Johann ablegen.");
 }
