@@ -4,7 +4,8 @@ namespace Platee.Johann.Infrastructure.Llm;
 /// Resolves the OpenAI API key from environment variables or a .env file.
 /// Search order:
 ///   1. OPENAI_API_KEY environment variable
-///   2. Walk up to 5 parent directories looking for a .env file
+///   2. Documents\Johann\.env  (stable user location, survives Velopack updates)
+///   3. Walk up to 5 parent directories looking for a .env file
 /// </summary>
 public static class ApiKeyProvider
 {
@@ -15,7 +16,18 @@ public static class ApiKeyProvider
         if (!string.IsNullOrWhiteSpace(fromEnv))
             return fromEnv.Trim();
 
-        // 2. Walk up parent directories looking for a .env file
+        // 2. Documents\Johann\.env – easy to find, survives app updates
+        var documentsEnv = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "Johann", ".env");
+        if (File.Exists(documentsEnv))
+        {
+            var key = ParseEnvFile(documentsEnv, "OPENAI_API_KEY");
+            if (!string.IsNullOrWhiteSpace(key))
+                return key;
+        }
+
+        // 3. Walk up parent directories looking for a .env file
         var dir = new DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory);
         for (var i = 0; i < 5; i++)
         {
