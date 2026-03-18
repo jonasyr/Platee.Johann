@@ -46,7 +46,7 @@ if ($LASTEXITCODE -ne 0) { throw "dotnet publish fehlgeschlagen." }
 Write-Host ""
 Write-Host "[2/3] vpk pack..." -ForegroundColor Yellow
 vpk pack `
-    --packId "JohannCS" `
+    --packId "Platee.Johann" `
     --packVersion $Version `
     --packDir $AppDir `
     --mainExe $ExeName `
@@ -63,7 +63,7 @@ Write-Host ""
 if ($GithubToken) {
     Write-Host "[3/3] Lade auf GitHub hoch (Tag: v$Version)..." -ForegroundColor Yellow
     vpk upload github `
-        --repoUrl "https://github.com/jonasyr/JohannCS" `
+        --repoUrl "https://github.com/jonasyr/Platee.Johann" `
         --token $GithubToken `
         --tag "v$Version" `
         --outputDir $ReleasesDir

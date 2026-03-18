@@ -163,7 +163,7 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            var mgr = new UpdateManager(new GithubSource("https://github.com/jonasyr/JohannCS", null, false));
+            var mgr = new UpdateManager(new GithubSource("https://github.com/jonasyr/Platee.Johann", null, false));
             var newVersion = await mgr.CheckForUpdatesAsync();
             if (newVersion == null) return;
 
