@@ -56,7 +56,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     public bool HasEntry => Entry is not null;
     public bool HasNoEntry => Entry is null;
     public bool IsAudio => Entry?.SourceType == "audio";
-    public bool CanReprocess => Entry is not null && _processor is not null;
+    public bool CanReprocess => Entry is not null && _processor?.CanProcess == true;
 
     /// <summary>Raised after an entry's IsDone status is toggled so the list can refresh.</summary>
     public event Action<Entry>? EntryStatusChanged;
@@ -325,6 +325,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     private async Task ReprocessAsync(CancellationToken ct)
     {
         if (Entry is null || _processor is null) return;
+        if (!_processor.CanProcess)
+        {
+            _addLog?.Invoke("Kein API-Schlüssel konfiguriert. .env-Datei in Dokumente\\Johann ablegen.", false);
+            return;
+        }
 
         var logItem = _addLog?.Invoke("Alle Abschnitte werden neu generiert…", true);
         try
