@@ -249,7 +249,7 @@
     <div class="section-title"><div class="num">2</div><h2>Schnellstart</h2></div>
 
     <ol class="steps">
-      <li><p><strong>Johann.UI.exe</strong> doppelklicken – keine Installation nötig.</p></li>
+      <li><p>Setup starten: <code>Z:\12_Tools\Peano\Johann\Platee.Johann-win-Setup.exe</code> – Installer durchlaufen lassen.</p></li>
       <li><p>Beim ersten Start erscheint ein Dialog: <em>„.env-Datei einrichten"</em> → <strong>Ja</strong> klicken. Damit wird der API-Schlüssel automatisch hinterlegt.</p></li>
       <li><p>MP3-Datei in <code>Dokumente\Johann\Eingang</code> legen → Johann verarbeitet sie sofort im Hintergrund.</p></li>
       <li><p>Fertiger Eintrag erscheint automatisch in der Liste – kein Neustart nötig.</p></li>
@@ -265,18 +265,35 @@
   <section class="section" id="oberflaeche">
     <div class="section-title"><div class="num">3</div><h2>Die Oberfläche</h2></div>
 
-    <div class="mockup">
-<span class="g">┌──────────┬──────────────────────┬─────────────────────────────────────────────┐</span>
-<span class="g">│</span> <span class="r">Datum</span>    <span class="g">│</span> <span class="r">Einträge</span>             <span class="g">│</span> <span class="r">Detail</span>                                      <span class="g">│</span>
-<span class="g">├──────────┼──────────────────────┼─────────────────────────────────────────────┤</span>
-<span class="g">│</span> 17.03.   <span class="g">│</span> 001 intern           <span class="g">│</span> [Aufgabe]  Johann                            <span class="g">│</span>
-<span class="g">│</span> 16.03.   <span class="g">│</span>   Citroën abholen…  <span class="g">│</span> Johann – App anpassen                        <span class="g">│</span>
-<span class="g">│</span> 15.03.   <span class="g">│</span> 002 Iris             <span class="g">│</span> 17.03.2026 · 1:12                            <span class="g">│</span>
-<span class="g">│</span>          <span class="g">│</span>   ich weiß gar…     <span class="g">│</span> ───────────────────────────────────────────  <span class="g">│</span>
-<span class="g">│</span>          <span class="g">│</span>                     <span class="g">│</span> Kurzfassung / Zusammenfassung / Ausführlich  <span class="g">│</span>
-<span class="g">│</span>          <span class="g">│</span>                     <span class="g">│</span> [HTML] [PDF] [E-Mail] [Kopieren]             <span class="g">│</span>
-<span class="g">│</span>          <span class="g">│</span> [+ Neues Element]   <span class="g">│</span>                                              <span class="g">│</span>
-<span class="g">└──────────┴──────────────────────┴─────────────────────────────────────────────┘</span>
+    <div style="display:grid;grid-template-columns:110px 1fr 2fr;gap:0;border:1px solid #444;border-radius:6px;overflow:hidden;font-family:Consolas,'Courier New',monospace;font-size:12.5px;margin:14px 0;">
+      <!-- Header -->
+      <div style="background:#2d2d2d;color:#E63123;font-weight:700;padding:7px 12px;border-right:1px solid #444;border-bottom:1px solid #444;">Datum</div>
+      <div style="background:#2d2d2d;color:#E63123;font-weight:700;padding:7px 12px;border-right:1px solid #444;border-bottom:1px solid #444;">Einträge</div>
+      <div style="background:#2d2d2d;color:#E63123;font-weight:700;padding:7px 12px;border-bottom:1px solid #444;">Detail</div>
+      <!-- Body left - Datum -->
+      <div style="background:#1e1e1e;color:#ccc;padding:10px 12px;border-right:1px solid #333;line-height:2.1;">
+        17.03.<br>16.03.<br>15.03.
+      </div>
+      <!-- Body middle - Einträge -->
+      <div style="background:#1e1e1e;color:#ccc;padding:10px 12px;border-right:1px solid #333;line-height:1.7;">
+        <div style="margin-bottom:8px;"><span style="color:#9CDCFE;">001</span> intern<br><span style="color:#888;font-size:11px;">Citroën abholen…</span></div>
+        <div style="margin-bottom:8px;"><span style="color:#9CDCFE;">002</span> Iris<br><span style="color:#888;font-size:11px;">ich weiß gar…</span></div>
+        <div style="margin-top:14px;color:#E63123;">+ Neues Element</div>
+      </div>
+      <!-- Body right - Detail -->
+      <div style="background:#1e1e1e;color:#ccc;padding:10px 14px;line-height:1.7;">
+        <div style="margin-bottom:4px;"><span style="background:#fde8e7;color:#E63123;font-size:11px;padding:1px 7px;border-radius:10px;font-weight:700;">Aufgabe</span> <strong style="color:#fff;">Johann</strong></div>
+        <div style="color:#888;font-size:11px;margin-bottom:6px;">17.03.2026 · 1:12 min</div>
+        <div style="border-top:1px solid #444;margin:8px 0;"></div>
+        <div style="margin-bottom:6px;color:#9CDCFE;">☑ Ausführlich &nbsp; ☑ Zusammenfassung &nbsp; ☑ Aufgaben</div>
+        <div style="color:#888;font-size:11px;margin-bottom:8px;">Tabs: Kurzfassung · Zusammenfassung · Ausführlich · Aufgaben · …</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <span style="background:#2d2d2d;border:1px solid #555;padding:2px 10px;border-radius:4px;font-size:11px;">HTML</span>
+          <span style="background:#2d2d2d;border:1px solid #555;padding:2px 10px;border-radius:4px;font-size:11px;">PDF</span>
+          <span style="background:#2d2d2d;border:1px solid #555;padding:2px 10px;border-radius:4px;font-size:11px;">E-Mail</span>
+          <span style="background:#2d2d2d;border:1px solid #555;padding:2px 10px;border-radius:4px;font-size:11px;">Kopieren</span>
+        </div>
+      </div>
     </div>
 
     <div class="cards">
@@ -329,19 +346,21 @@
 
     <h3>Abschnitte</h3>
     <p>Die Checkboxen links steuern, welche Abschnitte sichtbar sind – und was bei PDF, HTML und Kopieren enthalten wird.</p>
+    <p><strong>Alle Abschnitte werden für jeden Eintrag generiert.</strong> Die Checkbox-Vorauswahl richtet sich nach dem Eintragstyp – sie kann jederzeit manuell angepasst werden.</p>
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Abschnitt</th><th>Inhalt</th><th>Typ</th></tr></thead>
+        <thead><tr><th>Abschnitt</th><th>Inhalt</th><th>Standard aktiv bei</th></tr></thead>
         <tbody>
-          <tr><td>Ausführlich</td><td>Fließtext-Zusammenfassung</td><td>Alle</td></tr>
-          <tr><td>Zusammenfassung</td><td>Strukturierte Gliederung (Markdown)</td><td>Alle</td></tr>
-          <tr><td>Aufgaben</td><td>Aufgabenliste</td><td>Aufgabe</td></tr>
-          <tr><td>Gesprächsnotiz</td><td>Gesprächsprotokoll</td><td>Gesprächsnotiz</td></tr>
-          <tr><td>E-Mail</td><td>Fertiger E-Mail-Text</td><td>E-Mail</td></tr>
-          <tr><td>Stundenzettel</td><td>Zeiterfassung</td><td>Stundenzettel</td></tr>
-          <tr><td>Analog</td><td>Freitext-Abschnitt</td><td>Analog</td></tr>
-          <tr><td>Transkript</td><td>Vollständiger Originaltext (ausklappbar)</td><td>Alle</td></tr>
+          <tr><td>Ausführlich</td><td>Fließtext-Zusammenfassung</td><td>Alle Typen</td></tr>
+          <tr><td>Zusammenfassung</td><td>Strukturierte Gliederung (Markdown)</td><td>Alle Typen</td></tr>
+          <tr><td>Kurzfassung</td><td>Ein-Satz-Zusammenfassung</td><td>Alle Typen</td></tr>
+          <tr><td>Aufgaben</td><td>Aufgabenliste</td><td>Typ „Aufgabe"</td></tr>
+          <tr><td>Gesprächsnotiz</td><td>Gesprächsprotokoll</td><td>Typ „Gesprächsnotiz"</td></tr>
+          <tr><td>E-Mail</td><td>Fertiger E-Mail-Text</td><td>Typ „E-Mail"</td></tr>
+          <tr><td>Stundenzettel</td><td>Zeiterfassung</td><td>Typ „Stundenzettel"</td></tr>
+          <tr><td>Analog</td><td>Freitext-Abschnitt</td><td>Typ „Analog"</td></tr>
+          <tr><td>Transkript</td><td>Vollständiger Originaltext (ausklappbar)</td><td>Alle Typen</td></tr>
         </tbody>
       </table>
     </div>

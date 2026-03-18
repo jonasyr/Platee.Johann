@@ -6,7 +6,7 @@
 
 ## Schnellstart
 
-1. `Johann.UI.exe` doppelklicken – keine Installation nötig.
+1. Setup-Datei starten: `Z:\12_Tools\Peano\Johann\Platee.Johann-win-Setup.exe` und Installation abschließen.
 2. Beim ersten Start erscheint ein Dialog: **.env-Datei einrichten** → **Ja** klicken. Damit wird der API-Schlüssel automatisch hinterlegt.
 3. MP3-Datei in `Dokumente\Johann\Eingang` legen → Johann verarbeitet sie sofort im Hintergrund.
 4. Fertiger Eintrag erscheint automatisch in der Liste – kein Neustart nötig.
@@ -100,16 +100,19 @@ Kein `Titel … Ende`? Dann generiert GPT den Titel automatisch aus dem Inhalt.
 
 Über die Checkboxen links werden Abschnitte ein-/ausgeblendet. Ausgeblendete Abschnitte sind auch bei PDF, HTML und Kopieren nicht enthalten.
 
-| Abschnitt | Inhalt |
-|---|---|
-| **Ausführlich** | Fließtext-Zusammenfassung |
-| **Zusammenfassung** | Strukturierte Gliederung (Markdown) |
-| **Aufgaben** | Aufgabenliste (nur Typ „Aufgabe") |
-| **Gesprächsnotiz** | Protokoll (nur Typ „Gesprächsnotiz") |
-| **E-Mail** | E-Mail-Text (nur Typ „E-Mail") |
-| **Stundenzettel** | Zeiterfassung (nur Typ „Stundenzettel") |
-| **Analog** | Freitext (nur Typ „Analog") |
-| **Transkript** | Vollständiger Originaltext (ausklappbar) |
+**Alle Abschnitte werden für jeden Eintrag generiert.** Die Checkbox-Vorauswahl richtet sich nach dem Typ – sie kann jederzeit manuell angepasst werden.
+
+| Abschnitt | Inhalt | Standard aktiv bei |
+|---|---|---|
+| **Ausführlich** | Fließtext-Zusammenfassung | Alle Typen |
+| **Zusammenfassung** | Strukturierte Gliederung (Markdown) | Alle Typen |
+| **Kurzfassung** | Ein-Satz-Zusammenfassung | Alle Typen |
+| **Aufgaben** | Aufgabenliste | Typ „Aufgabe" |
+| **Gesprächsnotiz** | Gesprächsprotokoll | Typ „Gesprächsnotiz" |
+| **E-Mail** | Fertiger E-Mail-Text | Typ „E-Mail" |
+| **Stundenzettel** | Zeiterfassung | Typ „Stundenzettel" |
+| **Analog** | Freitext-Abschnitt | Typ „Analog" |
+| **Transkript** | Vollständiger Originaltext (ausklappbar) | Alle Typen |
 
 ### Aktions-Buttons
 
