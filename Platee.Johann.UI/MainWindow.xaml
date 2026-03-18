@@ -7,6 +7,7 @@
         xmlns:conv="clr-namespace:Platee.Johann.UI.Converters"
         mc:Ignorable="d"
         Title="Platé.Johann" Height="700" Width="1200"
+        Icon="Johann.ico"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
