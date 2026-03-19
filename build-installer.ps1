@@ -85,7 +85,7 @@ if ($GithubToken) {
 #   <DeployPath>/                          ← Auto-Updater liest hier (SimpleFileSource)
 #     RELEASES
 #     releases.win.json
-#     Platee.Johann-Setup.exe             (immer aktuelle Version)
+#     Setup.exe                           (immer aktuelle Version)
 #     Platee.Johann-win-Portable.zip      (immer aktuelle Version)
 #     Platee.Johann-<Version>-full.nupkg  (aktuelle Version)
 #     Platee.Johann-<Version>-delta.nupkg (aktuelle Version)
@@ -153,8 +153,8 @@ foreach ($file in @("RELEASES", "releases.win.json", "assets.win.json")) {
 # Setup.exe umbenannt ins Root kopieren
 $setupSrc = Join-Path $ReleasesDir "Platee.Johann-win-Setup.exe"
 if (Test-Path $setupSrc) {
-    Copy-Item -Path $setupSrc -Destination (Join-Path $DeployPath "Platee.Johann-Setup.exe") -Force
-    Write-Host "      Kopiert: Platee.Johann-win-Setup.exe -> Platee.Johann-Setup.exe" -ForegroundColor DarkGray
+    Copy-Item -Path $setupSrc -Destination (Join-Path $DeployPath "Setup.exe") -Force
+    Write-Host "      Kopiert: Platee.Johann-win-Setup.exe -> Setup.exe" -ForegroundColor DarkGray
 }
 
 # Portable.zip ins Root kopieren
@@ -167,7 +167,7 @@ if (Test-Path $portableSrc) {
 Write-Host "Deploy abgeschlossen: $DeployPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "User-Anleitung:" -ForegroundColor Cyan
-Write-Host "  $DeployPath\Platee.Johann-Setup.exe" -ForegroundColor White
+Write-Host "  $DeployPath\Setup.exe" -ForegroundColor White
 Write-Host "  Doppelklick => installiert Johann, Updates automatisch beim Programmstart." -ForegroundColor DarkGray
 
 Write-Host ""
