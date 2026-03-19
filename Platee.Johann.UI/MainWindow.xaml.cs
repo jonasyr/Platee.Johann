@@ -1,4 +1,5 @@
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,6 +11,9 @@ namespace Platee.Johann.UI;
 
 public partial class MainWindow : Window
 {
+    public string AppVersion { get; } =
+        "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?");
+
     private readonly MainViewModel _viewModel;
     private Point _dragStartPoint;
     private bool  _isDragging;

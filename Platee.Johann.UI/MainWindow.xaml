@@ -6,7 +6,8 @@
         xmlns:vm="clr-namespace:Platee.Johann.UI.ViewModels"
         xmlns:conv="clr-namespace:Platee.Johann.UI.Converters"
         mc:Ignorable="d"
-        Title="Platé.Johann" Height="700" Width="1200"
+        Title="{Binding AppVersion, RelativeSource={RelativeSource Self}, StringFormat='Platé.Johann {0}'}"
+        Height="700" Width="1200"
         Icon="Johann.ico"
         WindowStartupLocation="CenterScreen">
 

@@ -34,7 +34,12 @@ Write-Host ""
 Write-Host "=== Plate.Johann v$Version - Installer-Build ===" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Publish (self-contained, kein SingleFile - Velopack braucht einzelne DLLs)
+# 1. Version im .csproj aktualisieren
+Write-Host "[0/3] Setze Version $Version im .csproj..." -ForegroundColor Yellow
+(Get-Content $UiProject) -replace '<Version>.*</Version>', "<Version>$Version</Version>" |
+    Set-Content $UiProject
+
+# 2. Publish (self-contained, kein SingleFile - Velopack braucht einzelne DLLs)
 Write-Host "[1/3] dotnet publish..." -ForegroundColor Yellow
 dotnet publish $UiProject `
     -c Release `
