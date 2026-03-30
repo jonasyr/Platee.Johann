@@ -96,7 +96,7 @@ public sealed class SummaryGeneratorTests
     }
 
     [Fact]
-    public async Task GenerateLongSummaryAsync_UsesStructuredWordLimit()
+    public async Task GenerateLongSummaryAsync_PassesTranscriptToLlm()
     {
         var llm = Substitute.For<ILlmProvider>();
         llm.IsAvailable.Returns(true);
@@ -104,13 +104,13 @@ public sealed class SummaryGeneratorTests
            .Returns("Zusammenfassung");
 
         var sut = new SummaryGenerator(llm);
-        var mediumTranscript = BuildTranscript(500); // 300-1000 → limit=150
+        var transcript = BuildTranscript(500);
 
-        await sut.GenerateLongSummaryAsync(mediumTranscript);
+        await sut.GenerateLongSummaryAsync(transcript);
 
         await llm.Received(1).GenerateAsync(
             Arg.Any<string>(),
-            Arg.Is<string>(s => s.Contains("150")),
+            Arg.Is<string>(s => s.Contains(transcript)),
             Arg.Any<LlmOptions>());
     }
 

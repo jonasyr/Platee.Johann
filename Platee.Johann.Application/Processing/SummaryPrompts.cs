@@ -25,24 +25,23 @@ public static class SummaryPrompts
 
     public const string Structured =
         "Du erhältst ein Transkript eines Sprach-Diktats auf Deutsch.\n" +
-        "Das Transkript kann sehr lang sein - nimm dir Zeit, alle Inhalte gründlich zu analysieren.\n\n" +
-        "Erstelle eine strukturierte Zusammenfassung. Verwende NUR die Abschnitte, die relevant sind:\n\n" +
-        "### Kontext & Ziel\n" +
-        "(Worum geht es, was ist der Anlass)\n\n" +
-        "### Hauptpunkte\n" +
-        "(Die wichtigsten Inhalte/Argumente - bei langen Transkripten sei ausführlich)\n\n" +
-        "### Entscheidungen / Erkenntnisse\n" +
-        "(Was wurde beschlossen oder festgestellt)\n\n" +
+        "Das Transkript kann sehr lang sein - analysiere alle Inhalte gründlich.\n\n" +
+        "Erstelle eine strukturierte Zusammenfassung. Verwende nur die Abschnitte, die relevant sind. Ordne jeden Inhalt nur der passendsten der folgenden Überschriften zu\n\n" +
+        "### Kontext\n" +
+        "(Worum geht es, was ist der Anlass, prägnant, kurz)\n\n" +
+        "### Kernaussagen\n" +
+        "(Die wichtigsten Inhalte, Themen, Argumente, darf ausführlich sein, keine Entscheidungen oder To-Dos)\n\n" +
+        "### Entscheidungen\n" +
+        "(Was wurde beschlossen oder festgestellt, keine todos)\n\n" +
         "### Offene Punkte / ToDos\n" +
-        "(Was muss noch geklärt oder erledigt werden)\n\n" +
-        "### Zusätzliche Details\n" +
-        "(Nur bei sehr langen Transkripten: wichtige Nebenpunkte, die nicht oben passen)\n\n" +
+        "(nenne konkrete Aktionen die erfolgen müssen und wenn möglich ergänzen wer Handlung durchführen soll, kurz und prägnant)\n\n" +
         "Regeln:\n" +
-        "- Maximal {word_limit} Wörter insgesamt\n" +
-        "- Fasse prägnant zusammen, fokussiere auf Kernpunkte\n" +
-        "- Keine unnötigen Details oder Ausschmückungen\n" +
-        "- Nutze Unterpunkte und Aufzählungen für Klarheit\n" +
-        "- Lass irrelevante Abschnitte weg\n" +
+        "- Bevorzuge Informationsdichte statt extreme Kürze\n" +
+        "- prägnante Zusammenfassung, aber inhaltlich vollständig\n" +
+        "- Jede Information darf nur einer Überschrift zugeordnet werden, entscheide zu welcher Überschrift eine Information am besten passt\n" +
+        "- verwende nur die im Transkript genannten Informationen, keine Annahmen oder Interpretationen hinzufügen\n" +
+        "- Nutze Unterpunkte und Aufzählungen für Struktur\n" +
+        "- Lass irrelevante Abschnitte weg, berücksichtige Inhalte als relevant, wenn sie mindestens eines der folgenden Kriterien erfüllen: enthalten eine Entscheidung, ein Ergebnis oder eine Schlussfolgerung, führen zu einer konkreten Handlung oder einem ToDo, betreffen das Hauptthema oder Ziel des Gesprächs, werden mehrfach erwähnt oder besonders betont\n" +
         "- Verwende ### für Hauptüberschriften\n\n" +
         "Transkript:\n{transcript}";
 
@@ -70,22 +69,42 @@ public static class SummaryPrompts
         "Du erhältst eine Zusammenfassung eines Sprach-Diktats.\n" +
         "Erstelle daraus eine professionelle, freundliche E-Mail.\n\n" +
         "Anforderungen:\n" +
-        "- Betreff: Prägnant und aussagekräftig (beginne mit \"Betreff: \")\n" +
-        "- Ton: Professionell aber persönlich, nicht steif oder übermäßig formell\n" +
+        "- Betreff: Kurz, Prägnant, aussagekräftig (beginne mit \"Betreff: \")\n" +
+        "- Ton: Professionell, persönlich, freundlich, kollegial\n" +
         "- Inhalt: Die wichtigsten Punkte klar und präzise kommunizieren\n" +
-        "- Struktur: Gut gegliedert, leicht lesbar\n" +
+        "- Struktur: gut gegliedert, leicht lesbar, verständlich\n" +
         "- Länge: So kompakt wie möglich bei vollständiger Information\n" +
-        "- Abschluss: Freundliche, passende Grußformel\n\n" +
+        "- mit Grußformel beginnen, wenn möglich: Namen des Empfängers erkennen und in Begrüßungsformel integrieren (erkennbar beispielsweise an \"Lieber/Liebe...\" zu Beginn des Transkripts), falls nicht erkennbar: neutrale Formulierung\n" +
+        "- Abschluss: Dank und Einladung, Rückfragen zu stellen, keine Grußformel am Ende der Mail, falls vorhanden: Handlungsaufforderung\n" +
+        "- keine Informationen ergänzen, die nicht aus Transkript hervorgehen\n" +
+        "- Ich-Perspektive ausgehend vom Sprecher\n" +
+        "- Vermeide Wiederholungen von Inhalten oder Formulierungen; fasse ähnliche Punkte zusammen\n" +
+        "- siezen\n\n" +
         "Stil:\n" +
         "- Höflich und respektvoll\n" +
         "- Direkt und klar (keine unnötigen Floskeln)\n" +
-        "- Aktive Sprache, vollständige Sätze\n" +
-        "- Professionelles Deutsch\n\n" +
+        "- Aktive Sprache, kurze und vollständige Sätze\n" +
+        "- Fließtext, keine Stichpunkte\n" +
+        "- Professionelles Deutsch\n" +
+        "- positive Sprache\n\n" +
         "Zusammenfassung:\n{prose_summary}";
 
     public const string Aufgabe =
-        "Du erhältst ein Transkript eines Sprach-Diktats auf Deutsch.\n" +
-        "Fasse die beschriebene Aufgabe prägnant zusammen, nenne Fristen, Verantwortlichkeiten und die genauen ToDos.\n\n" +
+        "Du erhältst ein Transkript eines Sprach-Diktats auf Deutsch.\n\n" +
+        "Gebe in einem Satz den Kontext an.\n\n" +
+        "Extrahiere die im Transkript genannten Aufgaben.\n" +
+        "Struktur:\n" +
+        "- Je Aufgabe ein Stichpunkt\n" +
+        "- fasse zusammengehörige Handlungen zu einer Aufgabe zusammen\n" +
+        "- falls vorhanden: nenne Frist\n" +
+        "- falls vorhanden: nenne Person die Aufgabe ausführen soll\n\n" +
+        "Regeln:\n" +
+        "- nutze nur Informationen die explizit im Transkript stehen\n" +
+        "- keine Ergänzungen oder Annahmen\n" +
+        "- kurz und präzise formulieren\n" +
+        "- keine Dopplungen\n" +
+        "- chronologische Abfolge beibehalten\n" +
+        "- Korrigiere dabei offensichtliche Transkriptions- und Spracherkennungsfehler.\n\n" +
         "Transkript:\n{transcript}";
 
     public const string Gespraechsnotiz =

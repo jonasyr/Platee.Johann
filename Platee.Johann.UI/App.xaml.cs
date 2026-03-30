@@ -47,24 +47,25 @@ public partial class App : System.Windows.Application
 
         // Locate the output directory.
         // Priority: 1. Ausgabeverzeichnis from Config, 2. CLI Argument, 3. Default fallback
-        if (string.IsNullOrWhiteSpace(initialSettings.Ausgabeverzeichnis))
+        // Falls back to default if the configured path cannot be created (e.g. path from a different machine).
+        if (string.IsNullOrWhiteSpace(initialSettings.Ausgabeverzeichnis)
+            || !TryEnsureDirectory(initialSettings.Ausgabeverzeichnis))
         {
             var newAusgabe = e.Args.Length > 0 && Directory.Exists(e.Args[0])
                 ? e.Args[0]
                 : ResolveDefaultOutputRoot();
 
-            Directory.CreateDirectory(newAusgabe);
             initialSettings = initialSettings with { Ausgabeverzeichnis = newAusgabe };
         }
 
-        if (string.IsNullOrWhiteSpace(initialSettings.Quellverzeichnis))
+        if (string.IsNullOrWhiteSpace(initialSettings.Quellverzeichnis)
+            || !TryEnsureDirectory(initialSettings.Quellverzeichnis))
         {
-            var newQuell = ResolveDefaultInputRoot();
-            Directory.CreateDirectory(newQuell);
-            initialSettings = initialSettings with { Quellverzeichnis = newQuell };
+            initialSettings = initialSettings with { Quellverzeichnis = ResolveDefaultInputRoot() };
         }
 
-        if (string.IsNullOrWhiteSpace(initialSettings.Archivverzeichnis) && !string.IsNullOrWhiteSpace(initialSettings.Quellverzeichnis))
+        if (string.IsNullOrWhiteSpace(initialSettings.Archivverzeichnis)
+            || !TryEnsureDirectory(initialSettings.Archivverzeichnis))
         {
             var newArchiv = Path.Combine(initialSettings.Quellverzeichnis, "Archiv");
             Directory.CreateDirectory(newArchiv);
@@ -227,6 +228,12 @@ public partial class App : System.Windows.Application
             "Platé.Johann – Einrichtung abgeschlossen",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
+    }
+
+    private static bool TryEnsureDirectory(string path)
+    {
+        try { Directory.CreateDirectory(path); return true; }
+        catch { return false; }
     }
 
     private static string ResolveDefaultOutputRoot()
