@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Platee.Johann.Application.Services;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Microsoft.Win32;
@@ -83,7 +84,11 @@ public sealed partial class MainViewModel : ObservableObject
             addLog: AddProcessLog,
             completeLog: CompleteProcessLog,
             updateStatus: s => System.Windows.Application.Current.Dispatcher.Invoke(() => StatusText = s));
-        _detail.EntryStatusChanged += changedEntry => { _ = LoadEntriesAsync(SelectedDateItem?.Date); };
+        _detail.EntryStatusChanged += entry =>
+        {
+            _ = LoadEntriesAsync(SelectedDateItem?.Date);
+            _ = RecalculatePendingCountsAsync();
+        };
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)
@@ -99,6 +104,8 @@ public sealed partial class MainViewModel : ObservableObject
 
             if (AvailableDates.Count > 0)
                 SelectedDateItem = AvailableDates[0];
+
+            await RecalculatePendingCountsAsync(ct);
         }
         catch (Exception ex)
         {
@@ -169,6 +176,7 @@ public sealed partial class MainViewModel : ObservableObject
             if (Entries.Count > 0)
                 SelectedEntry = Entries[0];
 
+            await RecalculatePendingCountsAsync();
             CompleteProcessLog(logItem, $"{Entries.Count} Einträge geladen");
         }
         catch (Exception ex)
@@ -332,7 +340,7 @@ public sealed partial class MainViewModel : ObservableObject
             }
         }
 
-        RefreshAfterEntry(entry);
+        await RefreshAfterEntryAsync(entry);
     }
 
     [RelayCommand]
@@ -376,7 +384,7 @@ public sealed partial class MainViewModel : ObservableObject
             try
             {
                 var entry = await _processor.ProcessAudioAsync(filePath, today, progress);
-                RefreshAfterEntry(entry);
+                await RefreshAfterEntryAsync(entry);
                 CompleteProcessLog(logItem, "Fertig");
             }
             catch (Exception ex)
@@ -410,12 +418,12 @@ public sealed partial class MainViewModel : ObservableObject
     /// Called by the audio watcher (background thread) after it finishes processing a file.
     /// Must be called on the UI thread — caller is responsible for dispatching.
     /// </summary>
-    public void NotifyEntryProcessed(Entry entry) => RefreshAfterEntry(entry);
+    public void NotifyEntryProcessed(Entry entry) => _ = RefreshAfterEntryAsync(entry);
 
     /// <summary>
     /// Inserts/selects the date and entry row in the UI after a new entry is created.
     /// </summary>
-    private void RefreshAfterEntry(Entry entry)
+    private async Task RefreshAfterEntryAsync(Entry entry)
     {
         var entryDate = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
         var existing = AvailableDates.FirstOrDefault(d => d.Date == entryDate);
@@ -435,6 +443,18 @@ public sealed partial class MainViewModel : ObservableObject
         else
         {
             SelectedDateItem = existing;
+        }
+
+        await RecalculatePendingCountsAsync();
+    }
+
+
+    private async Task RecalculatePendingCountsAsync(CancellationToken ct = default)
+    {
+        foreach (var dateItem in AvailableDates.ToList())
+        {
+            ct.ThrowIfCancellationRequested();
+            dateItem.PendingCount = await PendingCountCalculator.GetPendingCountForDateAsync(_repository, dateItem.Date, ct);
         }
     }
 }

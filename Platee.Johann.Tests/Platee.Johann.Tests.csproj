@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="FluentAssertions" Version="8.8.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="NSubstitute" Version="5.3.0" />
@@ -24,6 +25,10 @@
     <ProjectReference Include="..\Platee.Johann.Domain\Platee.Johann.Domain.csproj" />
     <ProjectReference Include="..\Platee.Johann.Application\Platee.Johann.Application.csproj" />
     <ProjectReference Include="..\Platee.Johann.Infrastructure\Platee.Johann.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Platee.Johann.UI\ViewModels\DateItemViewModel.cs" Link="ViewModels/DateItemViewModel.cs" />
   </ItemGroup>
 
 </Project>
