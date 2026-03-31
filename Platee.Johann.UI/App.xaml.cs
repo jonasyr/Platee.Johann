@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using Platee.Johann.Application.Diagnostics;
 using Platee.Johann.Application.Processing;
 using Velopack;
 using Velopack.Sources;
@@ -14,25 +15,27 @@ namespace Platee.Johann.UI;
 
 public partial class App : System.Windows.Application
 {
-    private static readonly string CrashLog =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "Johann_crash.txt");
-
     private AudioWatcherService? _audioWatcher;
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        var crashLogger = new CrashLogWriter(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            typeof(App).Assembly.GetName().Version?.ToString());
+        crashLogger.EnsureLogDirectory();
+
         DispatcherUnhandledException += (_, ex) =>
         {
-            File.AppendAllText(CrashLog, $"[{DateTime.Now}] DISPATCHER: {ex.Exception}\n\n");
+            crashLogger.WriteCrashLog("DISPATCHER", ex.Exception);
             ex.Handled = false;
         };
         AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
         {
-            File.AppendAllText(CrashLog, $"[{DateTime.Now}] UNHANDLED: {ex.ExceptionObject}\n\n");
+            crashLogger.WriteCrashLog("UNHANDLED", ex.ExceptionObject);
         };
         TaskScheduler.UnobservedTaskException += (_, ex) =>
         {
-            File.AppendAllText(CrashLog, $"[{DateTime.Now}] TASK: {ex.Exception}\n\n");
+            crashLogger.WriteCrashLog("TASK", ex.Exception);
         };
 
         base.OnStartup(e);
