@@ -19,6 +19,8 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly string _outputRoot;
     private readonly ISettingsRepository _settingsRepo;
     private readonly SettingsHolder _settingsHolder;
+    private SettingsViewModel? _settingsViewModel;
+    private SettingsView? _settingsWindow;
 
     // Left pane — DateItemViewModel wraps DateOnly and provides DisplayText
     public ObservableCollection<DateItemViewModel> AvailableDates { get; } = [];
@@ -404,12 +406,22 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenSettings()
     {
-        var settingsVm = new SettingsViewModel(_settingsRepo, _settingsHolder);
-        var window = new SettingsView(settingsVm)
+        if (_settingsWindow is { IsLoaded: true })
+        {
+            if (_settingsWindow.WindowState == System.Windows.WindowState.Minimized)
+                _settingsWindow.WindowState = System.Windows.WindowState.Normal;
+
+            _settingsWindow.Activate();
+            return;
+        }
+
+        _settingsViewModel ??= new SettingsViewModel(_settingsRepo, _settingsHolder);
+        _settingsWindow = new SettingsView(_settingsViewModel)
         {
             Owner = System.Windows.Application.Current.MainWindow
         };
-        window.Show(); // non-modal — user can keep working
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.Show(); // non-modal with single-instance behavior
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

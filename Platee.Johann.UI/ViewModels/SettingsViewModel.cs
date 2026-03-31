@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -35,12 +37,29 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _analogPrompt = string.Empty;
 
     [ObservableProperty] private string _statusMessage = string.Empty;
+    [ObservableProperty] private SettingsSectionItem? _selectedSection;
+
+    public IReadOnlyList<SettingsSectionItem> Sections { get; }
+
+    public bool IsGeneralSelected => IsSelected(SectionGeneral);
+    public bool IsPathsSelected => IsSelected(SectionPaths);
+    public bool IsSystemMessageSelected => IsSelected(SectionSystemMessage);
+    public bool IsAbstractSelected => IsSelected(SectionAbstract);
+    public bool IsStructuredSelected => IsSelected(SectionStructured);
+    public bool IsProseSelected => IsSelected(SectionProse);
+    public bool IsEmailSelected => IsSelected(SectionEmail);
+    public bool IsAufgabeSelected => IsSelected(SectionAufgabe);
+    public bool IsGespraechsnotizSelected => IsSelected(SectionGespraechsnotiz);
+    public bool IsStundenzettelSelected => IsSelected(SectionStundenzettel);
+    public bool IsAnalogSelected => IsSelected(SectionAnalog);
 
     public SettingsViewModel(ISettingsRepository repository, SettingsHolder holder)
     {
         _repository = repository;
         _holder = holder;
+        Sections = BuildSections();
         LoadFromHolder();
+        SelectedSection = Sections[0];
     }
 
     [RelayCommand]
@@ -142,4 +161,52 @@ public sealed partial class SettingsViewModel : ObservableObject
         };
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
     }
+
+    partial void OnSelectedSectionChanged(SettingsSectionItem? value)
+    {
+        OnPropertyChanged(nameof(IsGeneralSelected));
+        OnPropertyChanged(nameof(IsPathsSelected));
+        OnPropertyChanged(nameof(IsSystemMessageSelected));
+        OnPropertyChanged(nameof(IsAbstractSelected));
+        OnPropertyChanged(nameof(IsStructuredSelected));
+        OnPropertyChanged(nameof(IsProseSelected));
+        OnPropertyChanged(nameof(IsEmailSelected));
+        OnPropertyChanged(nameof(IsAufgabeSelected));
+        OnPropertyChanged(nameof(IsGespraechsnotizSelected));
+        OnPropertyChanged(nameof(IsStundenzettelSelected));
+        OnPropertyChanged(nameof(IsAnalogSelected));
+    }
+
+    private bool IsSelected(string sectionKey) =>
+        string.Equals(SelectedSection?.Key, sectionKey, StringComparison.Ordinal);
+
+    private static IReadOnlyList<SettingsSectionItem> BuildSections() =>
+        new List<SettingsSectionItem>
+        {
+            new(SectionGeneral, "Allgemein", "Grunddaten"),
+            new(SectionPaths, "Verzeichnisse", "Grunddaten"),
+            new(SectionSystemMessage, "System-Nachricht", "Globale Prompts"),
+            new(SectionAbstract, "Kurzfassung", "Globale Prompts"),
+            new(SectionStructured, "Zusammenfassung", "Globale Prompts"),
+            new(SectionProse, "Ausfuehrlich", "Globale Prompts"),
+            new(SectionEmail, "E-Mail", "Typ-spezifische Prompts"),
+            new(SectionAufgabe, "Aufgaben", "Typ-spezifische Prompts"),
+            new(SectionGespraechsnotiz, "Gespraechsnotiz", "Typ-spezifische Prompts"),
+            new(SectionStundenzettel, "Stundenzettel", "Typ-spezifische Prompts"),
+            new(SectionAnalog, "Analog", "Typ-spezifische Prompts"),
+        };
+
+    private const string SectionGeneral = "general";
+    private const string SectionPaths = "paths";
+    private const string SectionSystemMessage = "system-message";
+    private const string SectionAbstract = "abstract";
+    private const string SectionStructured = "structured";
+    private const string SectionProse = "prose";
+    private const string SectionEmail = "email";
+    private const string SectionAufgabe = "aufgabe";
+    private const string SectionGespraechsnotiz = "gespraechsnotiz";
+    private const string SectionStundenzettel = "stundenzettel";
+    private const string SectionAnalog = "analog";
 }
+
+public sealed record SettingsSectionItem(string Key, string Label, string Group);

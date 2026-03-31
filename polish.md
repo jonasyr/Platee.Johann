@@ -133,3 +133,12 @@
 
 ---
 
+## 🧪 Manueller Regressionstest: Settings-Tabs & Prompt-Felder
+
+1. Einstellungen öffnen.
+2. In einen Prompt-Tab wechseln (z. B. „Zusammenfassung“) und mehrere Zeilen eingeben.
+3. Auf einen anderen Tab wechseln und danach wieder zurück.
+4. Erwartung: Der aktive Tab springt nicht ungewollt auf einen anderen Tab.
+5. „Speichern“ klicken, Fenster schließen und erneut öffnen.
+6. Erwartung: Eingaben sind gespeichert; Tab-Wechsel bleibt stabil, auch bei erneutem Öffnen derselben Settings-Instanz.
+
