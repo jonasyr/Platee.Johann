@@ -6,6 +6,13 @@ namespace Platee.Johann.Tests.Unit;
 
 public sealed class SummaryPromptsTests
 {
+    [Fact]
+    public void SystemMessage_ContainsSpecializedBusinessCommunicationInstructions()
+    {
+        SummaryPrompts.SystemMessage.Should().Contain("HOCHSPEZIALISIERTER EXPERTE");
+        SummaryPrompts.SystemMessage.Should().Contain("### WHAT NOT TO DO ###");
+    }
+
     // ── Structured ────────────────────────────────────────────────────────────
 
     [Fact]
@@ -108,6 +115,14 @@ public sealed class SummaryPromptsTests
     public void Aufgabe_ContainsTranscriptPlaceholder()
     {
         SummaryPrompts.Aufgabe.Should().Contain("{transcript}");
+    }
+
+    [Fact]
+    public void Prose_UsesWholeSentenceReadabilityInstruction()
+    {
+        SummaryPrompts.Prose.Should().Contain("In ganzen Sätzen");
+        SummaryPrompts.Prose.Should().Contain("{transcript}");
+        SummaryPrompts.Prose.Should().NotContain("Fließtext-Zusammenfassung");
     }
 
     // ── AppSettings.Default uses SummaryPrompts ───────────────────────────────

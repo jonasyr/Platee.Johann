@@ -59,6 +59,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         var defaultSettings = AppSettings.Default;
         return new()
         {
+            PromptDefaultsRevision = dto.PromptDefaultsRevision ?? 0,
             Name = dto.Name ?? defaultSettings.Name,
             Firma = dto.Firma ?? defaultSettings.Firma,
             Quellverzeichnis = dto.Quellverzeichnis ?? defaultSettings.Quellverzeichnis,
@@ -80,6 +81,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
 
     private static SettingsDto MapToDto(AppSettings s) => new()
     {
+        PromptDefaultsRevision = s.PromptDefaultsRevision,
         Name = s.Name,
         Firma = s.Firma,
         Quellverzeichnis = s.Quellverzeichnis,
@@ -101,6 +103,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
     // Separate DTO to decouple JSON shape from the domain record
     private sealed class SettingsDto
     {
+        public int? PromptDefaultsRevision { get; set; }
         public string? Name { get; set; }
         public string? Firma { get; set; }
         public string? Quellverzeichnis { get; set; }

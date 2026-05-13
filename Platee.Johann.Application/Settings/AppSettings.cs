@@ -10,6 +10,8 @@ namespace Platee.Johann.Application.Settings;
 /// </summary>
 public sealed record AppSettings
 {
+    public int PromptDefaultsRevision { get; init; } = PromptDefaultsMigration.CurrentRevision;
+
     // User info
     public string Name { get; init; } = "Max Mustermann";
     public string Firma { get; init; } = "Musterfirma GmbH";

@@ -43,10 +43,14 @@ public partial class App : System.Windows.Application
         // ── Settings ──────────────────────────────────────────────────────────
         var settingsDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann");
+        var settingsFilePath = Path.Combine(settingsDir, "settings.json");
         ISettingsRepository settingsRepo = new JsonSettingsRepository(settingsDir);
 
         // Load settings synchronously at startup using Task.Run to avoid UI thread deadlocks
         var initialSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
+
+        var promptMigration = PromptDefaultsMigration.ApplyIfNeeded(initialSettings, settingsFilePath);
+        initialSettings = promptMigration.Settings;
 
         // Locate the output directory.
         // Priority: 1. Ausgabeverzeichnis from Config, 2. CLI Argument, 3. Default fallback
@@ -79,6 +83,16 @@ public partial class App : System.Windows.Application
 
         // Force a save to ensure missing template fields (like directories or new prompts) are written to the JSON
         Task.Run(() => settingsRepo.SaveAsync(initialSettings)).GetAwaiter().GetResult();
+
+        if (promptMigration.DidMigrate && promptMigration.BackupPath is not null)
+        {
+            MessageBox.Show(
+                "Ihre individuellen Prompts wurden mit den neuen Defaults überschrieben.\n\n" +
+                $"Die ursprünglichen Einstellungen wurden gesichert unter:\n{promptMigration.BackupPath}",
+                "Platé.Johann – Prompts aktualisiert",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
 
         var settingsHolder = new SettingsHolder(initialSettings);
 

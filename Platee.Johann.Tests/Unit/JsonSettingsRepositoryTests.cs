@@ -30,6 +30,7 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
     {
         var settings = await _sut.LoadAsync();
 
+        settings.PromptDefaultsRevision.Should().Be(PromptDefaultsMigration.CurrentRevision);
         settings.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
         settings.EmailPrompt.Should().Be(SummaryPrompts.Email);
         settings.AufgabePrompt.Should().Be(SummaryPrompts.Aufgabe);
@@ -50,6 +51,7 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         var loaded = await _sut.LoadAsync();
 
         loaded.Name.Should().Be("Test User");
+        loaded.PromptDefaultsRevision.Should().Be(PromptDefaultsMigration.CurrentRevision);
         loaded.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
         loaded.EmailPrompt.Should().Be(SummaryPrompts.Email);
         loaded.AufgabePrompt.Should().Be(SummaryPrompts.Aufgabe);
@@ -85,6 +87,7 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
 
         var settings = await _sut.LoadAsync();
 
+        settings.PromptDefaultsRevision.Should().Be(PromptDefaultsMigration.CurrentRevision);
         settings.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
         settings.Name.Should().Be(AppSettings.Default.Name);
     }
@@ -100,7 +103,22 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         var settings = await _sut.LoadAsync();
 
         settings.Name.Should().Be("Partial User");
+        settings.PromptDefaultsRevision.Should().Be(0);
         settings.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
         settings.EmailPrompt.Should().Be(SummaryPrompts.Email);
+    }
+
+    [Fact]
+    public async Task SaveAndLoad_RoundTrip_PreservesPromptDefaultsRevision()
+    {
+        var original = AppSettings.Default with
+        {
+            PromptDefaultsRevision = 123,
+        };
+
+        await _sut.SaveAsync(original);
+        var loaded = await _sut.LoadAsync();
+
+        loaded.PromptDefaultsRevision.Should().Be(123);
     }
 }
