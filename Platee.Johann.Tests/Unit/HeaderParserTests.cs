@@ -18,6 +18,7 @@ public sealed class HeaderParserTests
     [InlineData("E-Mail Johann rest", EntryType.EMail, "Johann")]
     [InlineData("email Johann rest", EntryType.EMail, "Johann")]
     [InlineData("Stundenzettel Peano rest", EntryType.Stundenzettel, "Peano")]
+    [InlineData("Analog Notizen rest", EntryType.Analog, "Notizen")]
     [InlineData("Projekt Johann rest", EntryType.Projekt, "Johann")]
     public void Parse_KnownTypeKeyword_SetsTypeAndProject(
         string transcript, EntryType expectedType, string expectedProject)

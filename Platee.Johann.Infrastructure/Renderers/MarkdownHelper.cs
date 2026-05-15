@@ -3,14 +3,14 @@ using Markdig;
 namespace Platee.Johann.Infrastructure.Renderers;
 
 /// <summary>
-/// Converts Markdown to HTML using the Markdig pipeline.
-/// Markdig handles XSS sanitization internally.
+/// Converts Markdown to HTML using a Markdig pipeline with raw HTML disabled.
 /// </summary>
 internal static class MarkdownHelper
 {
     private static readonly MarkdownPipeline Pipeline =
         new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
+            .DisableHtml()
             .Build();
 
     public static string ToHtml(string? markdown)

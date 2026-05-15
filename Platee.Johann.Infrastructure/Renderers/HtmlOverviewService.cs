@@ -1,4 +1,5 @@
 using System.Text;
+using System.Net;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
@@ -166,7 +167,7 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
     }
 
     private static string HtmlEncode(string s)
-        => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+        => WebUtility.HtmlEncode(s);
 
     private static string SanitizeForFilename(string s)
         => System.Text.RegularExpressions.Regex.Replace(s, @"[<>:""/\\|?*\s]+", "_").Trim('_');

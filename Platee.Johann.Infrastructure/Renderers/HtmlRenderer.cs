@@ -2,6 +2,7 @@ using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Services;
+using System.Net;
 using System.Text;
 
 namespace Platee.Johann.Infrastructure.Renderers;
@@ -130,8 +131,7 @@ public sealed class HtmlRenderer : IEntryRenderer
     }
 
     private static string HtmlEncode(string s)
-        => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;")
-            .Replace("\"", "&quot;");
+        => WebUtility.HtmlEncode(s);
 
     private static string FormatDuration(double seconds)
     {

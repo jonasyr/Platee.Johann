@@ -8,6 +8,7 @@ public static class TypeExtractor
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["aufgabe"] = EntryType.Aufgabe,
+            ["analog"] = EntryType.Analog,
             ["email"] = EntryType.EMail,
             ["e-mail"] = EntryType.EMail,
             ["gesprächsnotiz"] = EntryType.Gesprächsnotiz,
