@@ -18,3 +18,6 @@ publish
 .env
 .vscode
 .serena
+
+# Claude Code auto-memory
+.claude/auto-memory/dirty-files*
