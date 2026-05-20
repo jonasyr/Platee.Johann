@@ -1,0 +1,183 @@
+/* ============================================================
+   Platé.Johann — Design Tokens
+   Pulled from HANDBUCH.html + WPF MainWindow.xaml / SettingsView.xaml
+   ------------------------------------------------------------ */
+
+:root {
+  /* ── Brand / Accent ───────────────────────────────────── */
+  --pj-accent:       #E63123;   /* Peano red — header bar, badges, primary buttons */
+  --pj-accent-dark:  #C0392B;   /* error text, hover-darker red, project name run  */
+  --pj-accent-deep:  #C92D21;   /* selected-row border in SettingsView nav         */
+  --pj-accent-soft:  #FFF5F4;   /* tip / abstract background (pink-tinted white)   */
+  --pj-accent-line:  #FFDBD8;   /* tip / abstract border                            */
+  --pj-accent-hover: #fdf1f0;   /* nav-hover wash                                   */
+  --pj-accent-badge: #fde8e7;   /* badge fill                                       */
+
+  /* ── Status ───────────────────────────────────────────── */
+  --pj-success:      #27AE60;   /* "✓" done checkmark, "saved" toast text          */
+  --pj-success-bg:   #f4fbf7;   /* card-green wash                                  */
+  --pj-warning:      #C67C00;   /* path-status warnings in Settings                 */
+
+  /* ── Surfaces ─────────────────────────────────────────── */
+  --pj-bg:           #F0F0F0;   /* app chrome, top bar                              */
+  --pj-bg-light:     #FAFAFA;   /* sidebar pane, zebra rows                         */
+  --pj-bg-pane:      #F5F5F5;   /* popup headers, section footers                   */
+  --pj-bg-rail:      #F9F9F9;   /* sort/filter toolbar                              */
+  --pj-bg-field:     #f0f0f0;   /* inline <code> chip                               */
+  --pj-surface:      #FFFFFF;   /* main panes, cards, popovers                      */
+
+  /* ── Borders ──────────────────────────────────────────── */
+  --pj-border:       #E0E0E0;   /* most dividers                                    */
+  --pj-border-mid:   #CCCCCC;   /* form-control borders, popup outer edge           */
+  --pj-border-soft:  #DADADA;   /* settings frame                                   */
+  --pj-border-list:  #F0F0F0;   /* item-to-item separator inside lists              */
+
+  /* ── Text ─────────────────────────────────────────────── */
+  --pj-text:         #333333;   /* body                                             */
+  --pj-text-mid:     #555555;   /* secondary body, paragraph copy                   */
+  --pj-text-muted:   #888888;   /* meta, timestamps, hint text                      */
+  --pj-text-quiet:   #999999;   /* log timestamps, nav-group caps                   */
+  --pj-text-faint:   #AAAAAA;   /* sequence numbers, empty-state                    */
+  --pj-text-meta:    #666666;   /* sort arrow, project subtitle                     */
+
+  /* ── Code / Mockup palette (VS-Code dark) ─────────────── */
+  --pj-code-bg:      #1E1E1E;
+  --pj-code-bg-2:    #2D2D2D;   /* mockup table header strip                        */
+  --pj-code-line:    #333333;   /* internal divider inside dark mockup              */
+  --pj-code-rule:    #444444;   /* outer border on dark mockup                      */
+  --pj-code-fg:      #D4D4D4;
+  --pj-code-muted:   #CCCCCC;
+  --pj-code-dim:     #888888;
+  --pj-code-string:  #6A9955;   /* comments / strings — vivid green                 */
+  --pj-code-ident:   #9CDCFE;   /* identifiers — pale blue                          */
+  --pj-code-key:     #569CD6;   /* keywords — bold blue                             */
+  --pj-code-keyword: #E63123;   /* domain keyword override (uses brand red)         */
+
+  /* ── Layout sizes ─────────────────────────────────────── */
+  --pj-header-h:     54px;      /* fixed app header in docs site                    */
+  --pj-topbar-h:     36px;      /* top bar in WPF window                            */
+  --pj-nav-w:        250px;     /* docs sidebar                                     */
+  --pj-pane-date:    160px;     /* WPF left pane (date list)                        */
+  --pj-pane-entry:   280px;     /* WPF center pane (entry list)                     */
+  --pj-splitter:     5px;       /* GridSplitter width                               */
+
+  /* ── Radius / Shadow / Spacing ────────────────────────── */
+  --pj-radius-sm:    3px;       /* nav item, code chip                              */
+  --pj-radius:       4px;       /* badges, toggle buttons, type-badge border        */
+  --pj-radius-md:    6px;       /* cards, tip boxes, code blocks, toast             */
+  --pj-radius-pill:  10px;      /* badge pill                                       */
+  --pj-radius-circle: 50%;      /* numbered step + section bullet                   */
+
+  --pj-shadow-header: 0 2px 8px rgba(0,0,0,.20);   /* fixed app header drop        */
+  --pj-shadow-pop:    0 2px 8px rgba(0,0,0,.15);   /* status-log popup              */
+  --pj-shadow-toast:  0 2px 10px rgba(0,0,0,.20);  /* toast overlay                 */
+
+  /* ── Type ─────────────────────────────────────────────── */
+  --pj-font-sans:    "Segoe UI", "Selawik", "Open Sans", Arial, sans-serif;
+  --pj-font-mono:    Consolas, "Courier New", ui-monospace, monospace;
+
+  --pj-fs-display:   20px;    /* H2 section title, entry detail title             */
+  --pj-fs-h3:        15px;
+  --pj-fs-section:   14px;    /* red SectionHeaderStyle in WPF                    */
+  --pj-fs-body:      14px;    /* docs body                                        */
+  --pj-fs-content:   13px;    /* WPF content                                      */
+  --pj-fs-meta:      12px;    /* settings labels, footer                          */
+  --pj-fs-hint:      11px;    /* hints / nav captions / typebadge text            */
+  --pj-fs-micro:     10px;    /* nav-group caps                                   */
+  --pj-fs-code:      12.5px;  /* code blocks                                      */
+
+  --pj-fw-regular:   400;
+  --pj-fw-semibold:  600;
+  --pj-fw-bold:      700;
+
+  --pj-lh-tight:     1.4;
+  --pj-lh-body:      1.65;    /* docs body                                        */
+  --pj-lh-code:      1.75;
+}
+
+/* ============================================================
+   Semantic element styles — drop these on .pj-content blocks
+   so a marketing page or doc inherits the Handbuch look.
+   ------------------------------------------------------------ */
+
+.pj-content {
+  font-family: var(--pj-font-sans);
+  font-size: var(--pj-fs-body);
+  color: var(--pj-text);
+  line-height: var(--pj-lh-body);
+}
+
+.pj-content h1 {
+  font-size: 28px;
+  font-weight: var(--pj-fw-bold);
+  color: var(--pj-text);
+  letter-spacing: .2px;
+  margin: 0 0 .6em;
+}
+
+.pj-content h2 {
+  font-size: var(--pj-fs-display);
+  font-weight: var(--pj-fw-bold);
+  color: var(--pj-text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  margin: 0 0 22px;
+  border-bottom: 2px solid var(--pj-accent);
+}
+
+.pj-content h3 {
+  font-size: var(--pj-fs-h3);
+  font-weight: var(--pj-fw-semibold);
+  color: var(--pj-text);
+  margin: 26px 0 10px;
+}
+
+.pj-content .pj-section-header {  /* the red 14px SemiBold WPF header */
+  font-size: var(--pj-fs-section);
+  font-weight: var(--pj-fw-bold);
+  color: var(--pj-accent);
+  margin: 18px 0 7px;
+  text-transform: none;
+}
+
+.pj-content p {
+  color: var(--pj-text-mid);
+  margin: 0 0 12px;
+}
+
+.pj-content code {
+  background: var(--pj-bg-field);
+  padding: 1px 6px;
+  border-radius: var(--pj-radius-sm);
+  font-family: var(--pj-font-mono);
+  font-size: 13px;
+  color: var(--pj-text);
+}
+
+.pj-content pre {
+  background: var(--pj-code-bg);
+  color: var(--pj-code-fg);
+  border-radius: var(--pj-radius-md);
+  padding: 18px 22px;
+  font-family: var(--pj-font-mono);
+  font-size: var(--pj-fs-code);
+  line-height: var(--pj-lh-code);
+  overflow-x: auto;
+  margin: 14px 0;
+}
+
+.pj-content small,
+.pj-content .pj-hint {
+  font-size: var(--pj-fs-hint);
+  color: var(--pj-text-muted);
+}
+
+.pj-content .pj-cap {     /* nav-group caps, 10px uppercase tracked */
+  font-size: var(--pj-fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--pj-text-muted);
+  font-weight: var(--pj-fw-bold);
+}
