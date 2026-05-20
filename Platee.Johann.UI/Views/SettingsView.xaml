@@ -169,6 +169,10 @@
                         <StackPanel>
                             <TextBlock Style="{StaticResource HintStyle}"
                                        Text="Verzeichnispfade können direkt eingegeben oder per Ordner-Browser ausgewählt werden."/>
+                            <TextBlock Style="{StaticResource HintStyle}"
+                                       Foreground="#C67C00"
+                                       Visibility="{Binding HasPathStatusMessage, Converter={StaticResource BoolToVisibility}}"
+                                       Text="{Binding PathStatusMessage}"/>
 
                             <TextBlock Style="{StaticResource LabelStyle}" Text="Quellverzeichnis (MP3-Eingang)"/>
                             <DockPanel>

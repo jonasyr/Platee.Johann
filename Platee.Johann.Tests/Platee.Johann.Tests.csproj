@@ -29,6 +29,8 @@
 
   <ItemGroup>
     <Compile Include="..\Platee.Johann.UI\ViewModels\DateItemViewModel.cs" Link="ViewModels/DateItemViewModel.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\NewEntryViewModel.cs" Link="ViewModels/NewEntryViewModel.cs" />
+    <Compile Include="..\Platee.Johann.UI\StartupPathResolver.cs" Link="StartupPathResolver.cs" />
   </ItemGroup>
 
 </Project>

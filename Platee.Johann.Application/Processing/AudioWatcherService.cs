@@ -38,29 +38,45 @@ public sealed class AudioWatcherService : IDisposable
         if (string.IsNullOrWhiteSpace(inputPath))
             return;
 
-        Directory.CreateDirectory(inputPath);
-
-        // Process existing files first
-        ProcessExistingFiles(inputPath);
-
-        _watcher = new FileSystemWatcher(inputPath, "*.mp3")
+        try
         {
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime,
-            EnableRaisingEvents = true
-        };
+            Directory.CreateDirectory(inputPath);
 
-        _watcher.Created += OnFileCreated;
+            // Process existing files first
+            ProcessExistingFiles(inputPath);
+
+            _watcher = new FileSystemWatcher(inputPath, "*.mp3")
+            {
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime,
+                EnableRaisingEvents = true
+            };
+
+            _watcher.Created += OnFileCreated;
+        }
+        catch (Exception ex)
+        {
+            _watcher?.Dispose();
+            _watcher = null;
+            EntryProcessingFailed?.Invoke(inputPath, ex);
+        }
     }
 
     private void ProcessExistingFiles(string inputPath)
     {
         // Fire and forget so we don't block startup
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
-            var files = Directory.GetFiles(inputPath, "*.mp3");
-            foreach (var file in files)
+            try
             {
-                await TryProcessFileAsync(file);
+                var files = Directory.GetFiles(inputPath, "*.mp3");
+                foreach (var file in files)
+                {
+                    await TryProcessFileAsync(file);
+                }
+            }
+            catch (Exception ex)
+            {
+                EntryProcessingFailed?.Invoke(inputPath, ex);
             }
         });
     }
@@ -68,10 +84,17 @@ public sealed class AudioWatcherService : IDisposable
     private void OnFileCreated(object sender, FileSystemEventArgs e)
     {
         // Simple delay to ensure file is completely written (primitive debounce)
-        Task.Run(async () =>
+        _ = Task.Run(async () =>
         {
-            await Task.Delay(1000);
-            await TryProcessFileAsync(e.FullPath);
+            try
+            {
+                await Task.Delay(1000);
+                await TryProcessFileAsync(e.FullPath);
+            }
+            catch (Exception ex)
+            {
+                EntryProcessingFailed?.Invoke(e.FullPath, ex);
+            }
         });
     }
 

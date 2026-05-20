@@ -12,7 +12,8 @@ namespace Platee.Johann.UI.ViewModels;
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsRepository _repository;
-    private readonly SettingsHolder _holder;
+    private readonly SettingsHolder _persistedHolder;
+    private readonly SettingsHolder _runtimeHolder;
 
     // ── User info ─────────────────────────────────────────────────────────────
     [ObservableProperty] private string _name = string.Empty;
@@ -37,6 +38,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _analogPrompt = string.Empty;
 
     [ObservableProperty] private string _statusMessage = string.Empty;
+    [ObservableProperty] private string _pathStatusMessage = string.Empty;
     [ObservableProperty] private SettingsSectionItem? _selectedSection;
 
     public IReadOnlyList<SettingsSectionItem> Sections { get; }
@@ -53,12 +55,21 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool IsStundenzettelSelected => IsSelected(SectionStundenzettel);
     public bool IsAnalogSelected => IsSelected(SectionAnalog);
 
-    public SettingsViewModel(ISettingsRepository repository, SettingsHolder holder)
+    public bool HasPathStatusMessage => !string.IsNullOrWhiteSpace(PathStatusMessage);
+
+    public SettingsViewModel(
+        ISettingsRepository repository,
+        SettingsHolder persistedHolder,
+        SettingsHolder? runtimeHolder = null,
+        IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
         _repository = repository;
-        _holder = holder;
+        _persistedHolder = persistedHolder;
+        _runtimeHolder = runtimeHolder ?? persistedHolder;
         Sections = BuildSections();
         LoadFromHolder();
+        if (startupPathIssues is { Count: > 0 })
+            PathStatusMessage = BuildPathStatusMessage(startupPathIssues);
         SelectedSection = Sections[0];
     }
 
@@ -66,7 +77,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private async Task SaveAsync()
     {
         // Preserve all fields — only override what this UI actually exposes.
-        var updated = _holder.Current with
+        var updated = _persistedHolder.Current with
         {
             Name = Name.Trim(),
             Firma = Firma.Trim(),
@@ -85,8 +96,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         };
 
         await _repository.SaveAsync(updated);
-        _holder.Current = updated;
+        _persistedHolder.Current = updated;
+        _runtimeHolder.Current = updated;
         StatusMessage = "✓ Einstellungen gespeichert.";
+        PathStatusMessage = string.Empty;
+        OnPropertyChanged(nameof(HasPathStatusMessage));
     }
 
     [RelayCommand]
@@ -135,7 +149,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private void LoadFromHolder()
     {
-        var s = _holder.Current;
+        var s = _persistedHolder.Current;
         Name = s.Name;
         Firma = s.Firma;
         Quellverzeichnis = s.Quellverzeichnis;
@@ -164,6 +178,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnSelectedSectionChanged(SettingsSectionItem? value)
     {
+        OnPropertyChanged(nameof(HasPathStatusMessage));
         OnPropertyChanged(nameof(IsGeneralSelected));
         OnPropertyChanged(nameof(IsPathsSelected));
         OnPropertyChanged(nameof(IsSystemMessageSelected));
@@ -179,6 +194,12 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private bool IsSelected(string sectionKey) =>
         string.Equals(SelectedSection?.Key, sectionKey, StringComparison.Ordinal);
+
+    private static string BuildPathStatusMessage(IReadOnlyList<StartupPathIssue> issues)
+    {
+        var labels = string.Join(", ", issues.Select(x => x.Label));
+        return $"Hinweis: Die hier angezeigten Pfade sind die gespeicherten Werte. Beim letzten Start wurden für diese Sitzung Ersatzpfade verwendet ({labels}). Bitte bei Bedarf korrigieren und speichern.";
+    }
 
     private static IReadOnlyList<SettingsSectionItem> BuildSections() =>
         new List<SettingsSectionItem>

@@ -18,7 +18,9 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IEntryProcessor _processor;
     private readonly string _outputRoot;
     private readonly ISettingsRepository _settingsRepo;
-    private readonly SettingsHolder _settingsHolder;
+    private readonly SettingsHolder _persistedSettingsHolder;
+    private readonly SettingsHolder _runtimeSettingsHolder;
+    private readonly IReadOnlyList<StartupPathIssue> _startupPathIssues;
     private SettingsViewModel? _settingsViewModel;
     private SettingsView? _settingsWindow;
 
@@ -74,14 +76,17 @@ public sealed partial class MainViewModel : ObservableObject
 
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
                          string outputRoot, IEntryProcessor processor,
-                         ISettingsRepository settingsRepo, SettingsHolder settingsHolder)
+                         ISettingsRepository settingsRepo, SettingsHolder persistedSettingsHolder,
+                         SettingsHolder runtimeSettingsHolder, IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
         _repository = repository;
         _renderers = renderers;
         _outputRoot = outputRoot;
         _processor = processor;
         _settingsRepo = settingsRepo;
-        _settingsHolder = settingsHolder;
+        _persistedSettingsHolder = persistedSettingsHolder;
+        _runtimeSettingsHolder = runtimeSettingsHolder;
+        _startupPathIssues = startupPathIssues ?? [];
         _detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, Sections,
             addLog: AddProcessLog,
             completeLog: CompleteProcessLog,
@@ -415,7 +420,11 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        _settingsViewModel ??= new SettingsViewModel(_settingsRepo, _settingsHolder);
+        _settingsViewModel ??= new SettingsViewModel(
+            _settingsRepo,
+            _persistedSettingsHolder,
+            _runtimeSettingsHolder,
+            _startupPathIssues);
         _settingsWindow = new SettingsView(_settingsViewModel)
         {
             Owner = System.Windows.Application.Current.MainWindow

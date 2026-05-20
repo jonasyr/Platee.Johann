@@ -10,6 +10,7 @@ using Platee.Johann.Infrastructure.Json;
 using Platee.Johann.Infrastructure.Llm;
 using Platee.Johann.Infrastructure.Renderers;
 using Platee.Johann.UI.ViewModels;
+using System.Text;
 
 namespace Platee.Johann.UI;
 
@@ -47,42 +48,23 @@ public partial class App : System.Windows.Application
         ISettingsRepository settingsRepo = new JsonSettingsRepository(settingsDir);
 
         // Load settings synchronously at startup using Task.Run to avoid UI thread deadlocks
-        var initialSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
+        var persistedSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
 
-        var promptMigration = PromptDefaultsMigration.ApplyIfNeeded(initialSettings, settingsFilePath);
-        initialSettings = promptMigration.Settings;
+        var promptMigration = PromptDefaultsMigration.ApplyIfNeeded(persistedSettings, settingsFilePath);
+        persistedSettings = promptMigration.Settings;
 
-        // Locate the output directory.
-        // Priority: 1. Ausgabeverzeichnis from Config, 2. CLI Argument, 3. Default fallback
-        // Falls back to default if the configured path cannot be created (e.g. path from a different machine).
-        if (string.IsNullOrWhiteSpace(initialSettings.Ausgabeverzeichnis)
-            || !TryEnsureDirectory(initialSettings.Ausgabeverzeichnis))
-        {
-            var newAusgabe = e.Args.Length > 0 && Directory.Exists(e.Args[0])
-                ? e.Args[0]
-                : ResolveDefaultOutputRoot();
+        var pathResolution = StartupPathResolver.Resolve(
+            persistedSettings,
+            e.Args,
+            ValidateDirectory,
+            ResolveDefaultInputRoot,
+            ResolveDefaultOutputRoot);
 
-            initialSettings = initialSettings with { Ausgabeverzeichnis = newAusgabe };
-        }
+        var effectiveSettings = pathResolution.EffectiveSettings;
+        var outputRoot = effectiveSettings.Ausgabeverzeichnis;
 
-        if (string.IsNullOrWhiteSpace(initialSettings.Quellverzeichnis)
-            || !TryEnsureDirectory(initialSettings.Quellverzeichnis))
-        {
-            initialSettings = initialSettings with { Quellverzeichnis = ResolveDefaultInputRoot() };
-        }
-
-        if (string.IsNullOrWhiteSpace(initialSettings.Archivverzeichnis)
-            || !TryEnsureDirectory(initialSettings.Archivverzeichnis))
-        {
-            var newArchiv = Path.Combine(initialSettings.Quellverzeichnis, "Archiv");
-            Directory.CreateDirectory(newArchiv);
-            initialSettings = initialSettings with { Archivverzeichnis = newArchiv };
-        }
-
-        var outputRoot = initialSettings.Ausgabeverzeichnis;
-
-        // Force a save to ensure missing template fields (like directories or new prompts) are written to the JSON
-        Task.Run(() => settingsRepo.SaveAsync(initialSettings)).GetAwaiter().GetResult();
+        if (promptMigration.DidMigrate)
+            Task.Run(() => settingsRepo.SaveAsync(persistedSettings)).GetAwaiter().GetResult();
 
         if (promptMigration.DidMigrate && promptMigration.BackupPath is not null)
         {
@@ -94,7 +76,17 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Information);
         }
 
-        var settingsHolder = new SettingsHolder(initialSettings);
+        if (pathResolution.Issues.Count > 0)
+        {
+            MessageBox.Show(
+                BuildPathWarningMessage(pathResolution.Issues),
+                "Platé.Johann – Verzeichnisse angepasst",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+
+        var persistedSettingsHolder = new SettingsHolder(persistedSettings);
+        var runtimeSettingsHolder = new SettingsHolder(effectiveSettings);
 
         // ── .env-Prüfung ──────────────────────────────────────────────────────
         EnsureEnvFile(settingsDir);
@@ -107,7 +99,7 @@ public partial class App : System.Windows.Application
 
         IEntryRenderer[] renderers =
         [
-            new PdfRenderer(settingsHolder),
+            new PdfRenderer(runtimeSettingsHolder),
             new HtmlRenderer(overviewService),   // updates overview after HTML export
             new EmailRenderer(),
         ];
@@ -123,16 +115,17 @@ public partial class App : System.Windows.Application
             ? new WhisperTranscriber(apiKey)
             : new NoOpAudioTranscriber();
 
-        var summaryGenerator = new SummaryGenerator(llmProvider, settingsHolder);
+        var summaryGenerator = new SummaryGenerator(llmProvider, runtimeSettingsHolder);
         IEntryProcessor processor = new EntryProcessingService(
             transcriber, summaryGenerator, new HeaderParser(), repository,
-            outputRoot, overviewService, settingsHolder, renderers);
+            outputRoot, overviewService, runtimeSettingsHolder, renderers);
 
-        _audioWatcher = new AudioWatcherService(processor, settingsHolder);
+        _audioWatcher = new AudioWatcherService(processor, runtimeSettingsHolder);
 
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
-                                           settingsRepo, settingsHolder);
+                                           settingsRepo, persistedSettingsHolder,
+                                           runtimeSettingsHolder, pathResolution.Issues);
 
         // Track per-file log items for the watcher
         var watcherLogs = new System.Collections.Concurrent.ConcurrentDictionary<string, ProcessLogItem>();
@@ -247,10 +240,17 @@ public partial class App : System.Windows.Application
             MessageBoxImage.Information);
     }
 
-    private static bool TryEnsureDirectory(string path)
+    private static DirectoryValidationResult ValidateDirectory(string path)
     {
-        try { Directory.CreateDirectory(path); return true; }
-        catch { return false; }
+        try
+        {
+            Directory.CreateDirectory(path);
+            return new DirectoryValidationResult(true);
+        }
+        catch (Exception ex)
+        {
+            return new DirectoryValidationResult(false, ex.Message);
+        }
     }
 
     private static string ResolveDefaultOutputRoot()
@@ -271,6 +271,26 @@ public partial class App : System.Windows.Application
             "Johann", "Eingang");
         Directory.CreateDirectory(path);
         return path;
+    }
+
+    private static string BuildPathWarningMessage(IReadOnlyList<StartupPathIssue> issues)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Einige konfigurierte Verzeichnisse konnten beim Start nicht verwendet werden.");
+        sb.AppendLine("Die gespeicherten Einstellungen wurden nicht geändert.");
+        sb.AppendLine("Für diese Sitzung werden Ersatzpfade verwendet.");
+        sb.AppendLine();
+
+        foreach (var issue in issues)
+        {
+            sb.AppendLine($"{issue.Label}:");
+            sb.AppendLine($"Gespeichert: {issue.ConfiguredPath}");
+            sb.AppendLine($"Grund: {issue.Reason}");
+            sb.AppendLine($"Verwendet: {issue.FallbackPath}");
+            sb.AppendLine();
+        }
+
+        return sb.ToString().TrimEnd();
     }
 
     protected override void OnExit(ExitEventArgs e)

@@ -12,6 +12,11 @@ public partial class NewEntryView : Window
         Loaded += (_, _) => ProjectBox.Focus();
     }
 
-    private void OnSaveClick(object sender, RoutedEventArgs e) => DialogResult = true;
+    private void OnSaveClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is NewEntryViewModel vm && vm.DialogResult)
+            DialogResult = true;
+    }
+
     private void OnCancelClick(object sender, RoutedEventArgs e) => DialogResult = false;
 }
