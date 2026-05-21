@@ -60,8 +60,8 @@ public sealed class PendingCountCalculatorTests
             => Task.FromResult<IReadOnlyList<DateOnly>>(this.entries.Keys.ToList());
 
         public Task<IReadOnlyList<Entry>> GetEntriesForDateAsync(DateOnly date, CancellationToken ct = default)
-            => Task.FromResult(entries.TryGetValue(date, out var entries)
-                ? entries
+            => Task.FromResult(this.entries.TryGetValue(date, out var dateEntries)
+                ? dateEntries
                 : (IReadOnlyList<Entry>)[]);
 
         public Task<Entry?> GetByJobIdAsync(string jobId, CancellationToken ct = default)
