@@ -14,8 +14,8 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-Write-Host 'Running tests (no build, no restore)...'
-dotnet test Platee.Johann.Tests/Platee.Johann.Tests.csproj --no-build --no-restore
+Write-Host 'Running tests (no restore)...'
+dotnet test Platee.Johann.Tests/Platee.Johann.Tests.csproj --no-restore
 if ($LASTEXITCODE -ne 0) {
     Write-Host 'Error: tests failed. If packages are missing, run: dotnet restore'
     exit $LASTEXITCODE
