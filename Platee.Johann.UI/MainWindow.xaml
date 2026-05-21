@@ -18,8 +18,11 @@
         <SolidColorBrush x:Key="AccentHoverBrush" Color="#FDF1F0"/>
         <SolidColorBrush x:Key="BgBrush" Color="#F0F0F0"/>
         <SolidColorBrush x:Key="BgPaneBrush" Color="#F9F9F9"/>
+        <SolidColorBrush x:Key="BgLightBrush" Color="#FAFAFA"/>
         <SolidColorBrush x:Key="BorderBrush" Color="#E0E0E0"/>
         <SolidColorBrush x:Key="TextBrush" Color="#333333"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#777777"/>
+        <SolidColorBrush x:Key="TextQuietBrush" Color="#666666"/>
         <SolidColorBrush x:Key="TextFaintBrush" Color="#999999"/>
         <SolidColorBrush x:Key="BorderMidBrush" Color="#CCCCCC"/>
         <SolidColorBrush x:Key="SuccessBrush" Color="#27AE60"/>
@@ -137,12 +140,44 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="DateListBoxItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource AccentDarkBrush}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="SortToggleStyle" TargetType="ToggleButton">
             <Setter Property="Padding" Value="8,3"/>
             <Setter Property="Margin" Value="0,0,2,0"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+        <CollectionViewSource x:Key="DatesGrouped" Source="{Binding AvailableDates}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="MonthYearKey"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <conv:NullToVisibilityConverter x:Key="NullToVis"/>
         <conv:MarkdownFlowDocumentConverter x:Key="MdToDoc"/>
@@ -316,12 +351,73 @@
                         <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         FontSize="11" Margin="0,1"/>
                     </StackPanel>
                 </Border>
-                <ListBox ItemsSource="{Binding AvailableDates}"
+                <ListBox ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
                          SelectedItem="{Binding SelectedDateItem}"
-                         BorderThickness="0" Background="Transparent">
+                         BorderThickness="0" Background="Transparent"
+                         ItemContainerStyle="{StaticResource DateListBoxItemStyle}">
+                    <ListBox.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.HeaderTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="10"
+                                               FontWeight="Bold"
+                                               Foreground="{StaticResource TextQuietBrush}"
+                                               Padding="14,10,14,4"
+                                               Background="{StaticResource BgLightBrush}"/>
+                                </DataTemplate>
+                            </GroupStyle.HeaderTemplate>
+                        </GroupStyle>
+                    </ListBox.GroupStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding DisplayText}" Padding="12,6"/>
+                            <DockPanel Margin="0" LastChildFill="False">
+                                <TextBlock Text="{Binding DisplayText}"
+                                           Margin="11,6,8,6"
+                                           VerticalAlignment="Center"
+                                           Foreground="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=Foreground}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding AllDone}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}"/>
+                                                </DataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding AllDone}" Value="True"/>
+                                                        <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentDarkBrush}"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock DockPanel.Dock="Right"
+                                           Text="{Binding PendingCount, StringFormat=· {0}}"
+                                           Margin="0,6,12,6"
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextFaintBrush}"
+                                           Visibility="{Binding AllDone, Converter={StaticResource InverseBoolToVis}}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock DockPanel.Dock="Right"
+                                           Text="✓"
+                                           Margin="0,4,12,4"
+                                           FontSize="16"
+                                           FontWeight="Bold"
+                                           Foreground="{StaticResource SuccessBrush}"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding AllDone, Converter={StaticResource BoolToVis}}"/>
+                            </DockPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>

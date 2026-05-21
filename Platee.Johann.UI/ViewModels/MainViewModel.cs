@@ -21,6 +21,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly SettingsHolder _persistedSettingsHolder;
     private readonly SettingsHolder _runtimeSettingsHolder;
     private readonly IReadOnlyList<StartupPathIssue> _startupPathIssues;
+    private readonly List<DateItemViewModel> _allDates = [];
     private SettingsViewModel? _settingsViewModel;
     private SettingsView? _settingsWindow;
 
@@ -70,7 +71,7 @@ public sealed partial class MainViewModel : ObservableObject
     public string SortByProjectLabel => IsSortByProject ? (IsSortReversed ? "Projekt ↑" : "Projekt ↓") : "Projekt";
 
     public string SelectedDateDisplay =>
-        SelectedDateItem?.DisplayText ?? "Kein Datum gewählt";
+        SelectedDateItem?.Date.ToString("dd.MM.yy") ?? "Kein Datum gewählt";
 
     public bool CanAddAudio => _processor.CanProcess;
     public bool HasRunningJobs => ProcessLog.Any(x => x.IsRunning);
@@ -108,14 +109,15 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             var dates = await _repository.GetAvailableDatesAsync(ct);
-            AvailableDates.Clear();
+            _allDates.Clear();
             foreach (var d in dates)
-                AvailableDates.Add(new DateItemViewModel(d));
-
-            if (AvailableDates.Count > 0)
-                SelectedDateItem = AvailableDates[0];
+                _allDates.Add(new DateItemViewModel(d));
 
             await RecalculatePendingCountsAsync(ct);
+            RefreshAvailableDatesView();
+
+            if (SelectedDateItem is null && AvailableDates.Count > 0)
+                SelectedDateItem = AvailableDates[0];
         }
         catch (Exception ex)
         {
@@ -147,6 +149,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnShowOnlyPendingChanged(bool value)
     {
+        RefreshAvailableDatesView();
         _ = LoadEntriesAsync(SelectedDateItem?.Date);
     }
 
@@ -481,9 +484,9 @@ public sealed partial class MainViewModel : ObservableObject
         if (existing is null)
         {
             var newDateItem = new DateItemViewModel(entryDate);
-            var insertAt = AvailableDates.TakeWhile(d => d.Date > entryDate).Count();
-            AvailableDates.Insert(insertAt, newDateItem);
-            SelectedDateItem = newDateItem;
+            _allDates.Add(newDateItem);
+            RefreshAvailableDatesView();
+            SelectedDateItem = AvailableDates.FirstOrDefault(d => d.Date == entryDate) ?? newDateItem;
         }
         else if (SelectedDateItem?.Date == entryDate)
         {
@@ -501,11 +504,37 @@ public sealed partial class MainViewModel : ObservableObject
 
     private async Task RecalculatePendingCountsAsync(CancellationToken ct = default)
     {
-        foreach (var dateItem in AvailableDates.ToList())
+        foreach (var dateItem in _allDates)
         {
             ct.ThrowIfCancellationRequested();
-            dateItem.PendingCount = await PendingCountCalculator.GetPendingCountForDateAsync(_repository, dateItem.Date, ct);
+            var entries = await _repository.GetEntriesForDateAsync(dateItem.Date, ct);
+            var pending = entries.Count(e => !e.IsDone);
+            dateItem.UpdateCounts(entries.Count, pending);
         }
+        RefreshAvailableDatesView();
+    }
+
+    private void RefreshAvailableDatesView()
+    {
+        var selectedDate = SelectedDateItem?.Date;
+        var visibleDates = _allDates
+            .Where(d => !ShowOnlyPending || d.PendingCount > 0)
+            .OrderByDescending(d => d.Date)
+            .ToList();
+
+        AvailableDates.Clear();
+        foreach (var item in visibleDates)
+            AvailableDates.Add(item);
+
+        if (selectedDate is not null)
+        {
+            var selectedVisible = AvailableDates.FirstOrDefault(d => d.Date == selectedDate.Value);
+            if (!ReferenceEquals(selectedVisible, SelectedDateItem))
+                SelectedDateItem = selectedVisible;
+        }
+
+        if (SelectedDateItem is null && AvailableDates.Count > 0)
+            SelectedDateItem = AvailableDates[0];
     }
 
     private static string? FindHandbookPath()
