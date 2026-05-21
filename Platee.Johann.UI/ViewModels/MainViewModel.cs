@@ -22,6 +22,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly SettingsHolder _runtimeSettingsHolder;
     private readonly IReadOnlyList<StartupPathIssue> _startupPathIssues;
     private readonly List<DateItemViewModel> _allDates = [];
+    private bool _suppressDateSelectionChanged;
     private SettingsViewModel? _settingsViewModel;
     private SettingsView? _settingsWindow;
 
@@ -131,6 +132,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnSelectedDateItemChanged(DateItemViewModel? value)
     {
+        if (_suppressDateSelectionChanged)
+            return;
+
         _ = LoadEntriesAsync(value?.Date);
     }
 
@@ -516,25 +520,33 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void RefreshAvailableDatesView()
     {
-        var selectedDate = SelectedDateItem?.Date;
-        var visibleDates = _allDates
-            .Where(d => !ShowOnlyPending || d.PendingCount > 0)
-            .OrderByDescending(d => d.Date)
-            .ToList();
-
-        AvailableDates.Clear();
-        foreach (var item in visibleDates)
-            AvailableDates.Add(item);
-
-        if (selectedDate is not null)
+        _suppressDateSelectionChanged = true;
+        try
         {
-            var selectedVisible = AvailableDates.FirstOrDefault(d => d.Date == selectedDate.Value);
-            if (!ReferenceEquals(selectedVisible, SelectedDateItem))
-                SelectedDateItem = selectedVisible;
-        }
+            var selectedDate = SelectedDateItem?.Date;
+            var visibleDates = _allDates
+                .Where(d => !ShowOnlyPending || d.PendingCount > 0)
+                .OrderByDescending(d => d.Date)
+                .ToList();
 
-        if (SelectedDateItem is null && AvailableDates.Count > 0)
-            SelectedDateItem = AvailableDates[0];
+            AvailableDates.Clear();
+            foreach (var item in visibleDates)
+                AvailableDates.Add(item);
+
+            if (selectedDate is not null)
+            {
+                var selectedVisible = AvailableDates.FirstOrDefault(d => d.Date == selectedDate.Value);
+                if (!ReferenceEquals(selectedVisible, SelectedDateItem))
+                    SelectedDateItem = selectedVisible;
+            }
+
+            if (SelectedDateItem is null && AvailableDates.Count > 0)
+                SelectedDateItem = AvailableDates[0];
+        }
+        finally
+        {
+            _suppressDateSelectionChanged = false;
+        }
     }
 
     private static string? FindHandbookPath()
