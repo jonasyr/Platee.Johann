@@ -1,9 +1,9 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
+using NSubstitute;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
-using NSubstitute;
-
-namespace Platee.Johann.Tests.Unit;
 
 /// <summary>
 /// Tests for the four new entry-type-specific generation methods added to SummaryGenerator
@@ -16,7 +16,6 @@ namespace Platee.Johann.Tests.Unit;
 public sealed class SummaryGeneratorTypeTests
 {
     // ── GenerateAufgabeAsync ──────────────────────────────────────────────────
-
     [Fact]
     public async Task GenerateAufgabeAsync_WhenLlmUnavailable_ReturnsNull()
     {
@@ -49,7 +48,6 @@ public sealed class SummaryGeneratorTypeTests
     }
 
     // ── GenerateGespraechsnotizAsync ──────────────────────────────────────────
-
     [Fact]
     public async Task GenerateGespraechsnotizAsync_WhenLlmUnavailable_ReturnsNull()
     {
@@ -82,7 +80,6 @@ public sealed class SummaryGeneratorTypeTests
     }
 
     // ── GenerateStundenzettelAsync ────────────────────────────────────────────
-
     [Fact]
     public async Task GenerateStundenzettelAsync_WhenLlmUnavailable_ReturnsNull()
     {
@@ -115,7 +112,6 @@ public sealed class SummaryGeneratorTypeTests
     }
 
     // ── GenerateAnalogAsync ───────────────────────────────────────────────────
-
     [Fact]
     public async Task GenerateAnalogAsync_WhenLlmUnavailable_ReturnsNull()
     {
@@ -148,7 +144,6 @@ public sealed class SummaryGeneratorTypeTests
     }
 
     // ── GenerateEmailTextAsync (existing method, verifies prose_summary injection) ──
-
     [Fact]
     public async Task GenerateEmailTextAsync_calls_EmailPrompt_with_proseSummary()
     {

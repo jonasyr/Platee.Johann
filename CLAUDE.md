@@ -129,6 +129,10 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 <!-- MANUAL -->
 ## Custom Notes
 
+- Install repo hooks with `./scripts/install-hooks.ps1`.
+- Pre-commit runs quick hygiene checks and auto-formats staged C# files via `dotnet-format` (run `dotnet tool restore` once).
+- Pre-push runs `dotnet build` and `dotnet test` with `--no-restore`.
+
 <!-- Add project-specific notes here. This section is never auto-modified. -->
 
 <!-- END MANUAL -->

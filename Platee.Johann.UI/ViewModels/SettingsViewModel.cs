@@ -1,61 +1,88 @@
+namespace Platee.Johann.UI.ViewModels;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
-using Microsoft.Win32;
-
-namespace Platee.Johann.UI.ViewModels;
 
 public sealed partial class SettingsViewModel : ObservableObject
 {
-    private readonly ISettingsRepository _repository;
-    private readonly SettingsHolder _persistedHolder;
-    private readonly SettingsHolder _runtimeHolder;
+    private readonly ISettingsRepository repository;
+    private readonly SettingsHolder persistedHolder;
+    private readonly SettingsHolder runtimeHolder;
 
     // ── User info ─────────────────────────────────────────────────────────────
-    [ObservableProperty] private string _name = string.Empty;
-    [ObservableProperty] private string _firma = string.Empty;
+    [ObservableProperty]
+    private string name = string.Empty;
+    [ObservableProperty]
+    private string firma = string.Empty;
 
     // ── Directories ───────────────────────────────────────────────────────────
-    [ObservableProperty] private string _quellverzeichnis = string.Empty;
-    [ObservableProperty] private string _archivverzeichnis = string.Empty;
-    [ObservableProperty] private string _ausgabeverzeichnis = string.Empty;
+    [ObservableProperty]
+    private string quellverzeichnis = string.Empty;
+    [ObservableProperty]
+    private string archivverzeichnis = string.Empty;
+    [ObservableProperty]
+    private string ausgabeverzeichnis = string.Empty;
 
     // ── General prompts ───────────────────────────────────────────────────────
-    [ObservableProperty] private string _systemMessage = string.Empty;
-    [ObservableProperty] private string _abstractPrompt = string.Empty;
-    [ObservableProperty] private string _structuredPrompt = string.Empty;
-    [ObservableProperty] private string _prosePrompt = string.Empty;
+    [ObservableProperty]
+    private string systemMessage = string.Empty;
+    [ObservableProperty]
+    private string abstractPrompt = string.Empty;
+    [ObservableProperty]
+    private string structuredPrompt = string.Empty;
+    [ObservableProperty]
+    private string prosePrompt = string.Empty;
 
     // ── Type-specific prompts ─────────────────────────────────────────────────
-    [ObservableProperty] private string _emailPrompt = string.Empty;
-    [ObservableProperty] private string _aufgabePrompt = string.Empty;
-    [ObservableProperty] private string _gespraechsnotizPrompt = string.Empty;
-    [ObservableProperty] private string _stundenzettelPrompt = string.Empty;
-    [ObservableProperty] private string _analogPrompt = string.Empty;
+    [ObservableProperty]
+    private string emailPrompt = string.Empty;
+    [ObservableProperty]
+    private string aufgabePrompt = string.Empty;
+    [ObservableProperty]
+    private string gespraechsnotizPrompt = string.Empty;
+    [ObservableProperty]
+    private string stundenzettelPrompt = string.Empty;
+    [ObservableProperty]
+    private string analogPrompt = string.Empty;
 
-    [ObservableProperty] private string _statusMessage = string.Empty;
-    [ObservableProperty] private string _pathStatusMessage = string.Empty;
-    [ObservableProperty] private SettingsSectionItem? _selectedSection;
+    [ObservableProperty]
+    private string statusMessage = string.Empty;
+    [ObservableProperty]
+    private string pathStatusMessage = string.Empty;
+    [ObservableProperty]
+    private SettingsSectionItem? selectedSection;
 
     public IReadOnlyList<SettingsSectionItem> Sections { get; }
 
-    public bool IsGeneralSelected => IsSelected(SectionGeneral);
-    public bool IsPathsSelected => IsSelected(SectionPaths);
-    public bool IsSystemMessageSelected => IsSelected(SectionSystemMessage);
-    public bool IsAbstractSelected => IsSelected(SectionAbstract);
-    public bool IsStructuredSelected => IsSelected(SectionStructured);
-    public bool IsProseSelected => IsSelected(SectionProse);
-    public bool IsEmailSelected => IsSelected(SectionEmail);
-    public bool IsAufgabeSelected => IsSelected(SectionAufgabe);
-    public bool IsGespraechsnotizSelected => IsSelected(SectionGespraechsnotiz);
-    public bool IsStundenzettelSelected => IsSelected(SectionStundenzettel);
-    public bool IsAnalogSelected => IsSelected(SectionAnalog);
+    public bool IsGeneralSelected => this.IsSelected(SectionGeneral);
 
-    public bool HasPathStatusMessage => !string.IsNullOrWhiteSpace(PathStatusMessage);
+    public bool IsPathsSelected => this.IsSelected(SectionPaths);
+
+    public bool IsSystemMessageSelected => this.IsSelected(SectionSystemMessage);
+
+    public bool IsAbstractSelected => this.IsSelected(SectionAbstract);
+
+    public bool IsStructuredSelected => this.IsSelected(SectionStructured);
+
+    public bool IsProseSelected => this.IsSelected(SectionProse);
+
+    public bool IsEmailSelected => this.IsSelected(SectionEmail);
+
+    public bool IsAufgabeSelected => this.IsSelected(SectionAufgabe);
+
+    public bool IsGespraechsnotizSelected => this.IsSelected(SectionGespraechsnotiz);
+
+    public bool IsStundenzettelSelected => this.IsSelected(SectionStundenzettel);
+
+    public bool IsAnalogSelected => this.IsSelected(SectionAnalog);
+
+    public bool HasPathStatusMessage => !string.IsNullOrWhiteSpace(this.PathStatusMessage);
 
     public SettingsViewModel(
         ISettingsRepository repository,
@@ -63,107 +90,118 @@ public sealed partial class SettingsViewModel : ObservableObject
         SettingsHolder? runtimeHolder = null,
         IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
-        _repository = repository;
-        _persistedHolder = persistedHolder;
-        _runtimeHolder = runtimeHolder ?? persistedHolder;
-        Sections = BuildSections();
-        LoadFromHolder();
+        this.repository = repository;
+        this.persistedHolder = persistedHolder;
+        this.runtimeHolder = runtimeHolder ?? persistedHolder;
+        this.Sections = BuildSections();
+        this.LoadFromHolder();
         if (startupPathIssues is { Count: > 0 })
-            PathStatusMessage = BuildPathStatusMessage(startupPathIssues);
-        SelectedSection = Sections[0];
+        {
+            this.PathStatusMessage = BuildPathStatusMessage(startupPathIssues);
+        }
+
+        this.SelectedSection = this.Sections[0];
     }
 
     [RelayCommand]
     private async Task SaveAsync()
     {
         // Preserve all fields — only override what this UI actually exposes.
-        var updated = _persistedHolder.Current with
+        var updated = this.persistedHolder.Current with
         {
-            Name = Name.Trim(),
-            Firma = Firma.Trim(),
-            Quellverzeichnis = Quellverzeichnis.Trim(),
-            Archivverzeichnis = Archivverzeichnis.Trim(),
-            Ausgabeverzeichnis = Ausgabeverzeichnis.Trim(),
-            SystemMessage = SystemMessage.Trim(),
-            AbstractPrompt = AbstractPrompt.Trim(),
-            StructuredPrompt = StructuredPrompt.Trim(),
-            ProsePrompt = ProsePrompt.Trim(),
-            EmailPrompt = EmailPrompt.Trim(),
-            AufgabePrompt = AufgabePrompt.Trim(),
-            GespraechsnotizPrompt = GespraechsnotizPrompt.Trim(),
-            StundenzettelPrompt = StundenzettelPrompt.Trim(),
-            AnalogPrompt = AnalogPrompt.Trim(),
+            Name = this.Name.Trim(),
+            Firma = this.Firma.Trim(),
+            Quellverzeichnis = this.Quellverzeichnis.Trim(),
+            Archivverzeichnis = this.Archivverzeichnis.Trim(),
+            Ausgabeverzeichnis = this.Ausgabeverzeichnis.Trim(),
+            SystemMessage = this.SystemMessage.Trim(),
+            AbstractPrompt = this.AbstractPrompt.Trim(),
+            StructuredPrompt = this.StructuredPrompt.Trim(),
+            ProsePrompt = this.ProsePrompt.Trim(),
+            EmailPrompt = this.EmailPrompt.Trim(),
+            AufgabePrompt = this.AufgabePrompt.Trim(),
+            GespraechsnotizPrompt = this.GespraechsnotizPrompt.Trim(),
+            StundenzettelPrompt = this.StundenzettelPrompt.Trim(),
+            AnalogPrompt = this.AnalogPrompt.Trim(),
         };
 
-        await _repository.SaveAsync(updated);
-        _persistedHolder.Current = updated;
-        _runtimeHolder.Current = updated;
-        StatusMessage = "✓ Einstellungen gespeichert.";
-        PathStatusMessage = string.Empty;
-        OnPropertyChanged(nameof(HasPathStatusMessage));
+        await this.repository.SaveAsync(updated);
+        this.persistedHolder.Current = updated;
+        this.runtimeHolder.Current = updated;
+        this.StatusMessage = "✓ Einstellungen gespeichert.";
+        this.PathStatusMessage = string.Empty;
+        this.OnPropertyChanged(nameof(this.HasPathStatusMessage));
     }
 
     [RelayCommand]
     private void Reset()
     {
         var d = AppSettings.Default;
-        Name = d.Name;
-        Firma = d.Firma;
-        Quellverzeichnis = d.Quellverzeichnis;
-        Archivverzeichnis = d.Archivverzeichnis;
-        Ausgabeverzeichnis = d.Ausgabeverzeichnis;
-        SystemMessage = SummaryPrompts.SystemMessage;
-        AbstractPrompt = SummaryPrompts.Abstract;
-        StructuredPrompt = SummaryPrompts.Structured;
-        ProsePrompt = SummaryPrompts.Prose;
-        EmailPrompt = SummaryPrompts.Email;
-        AufgabePrompt = SummaryPrompts.Aufgabe;
-        GespraechsnotizPrompt = SummaryPrompts.Gespraechsnotiz;
-        StundenzettelPrompt = SummaryPrompts.Stundenzettel;
-        AnalogPrompt = SummaryPrompts.Analog;
-        StatusMessage = "Standard-Werte wiederhergestellt – noch nicht gespeichert.";
+        this.Name = d.Name;
+        this.Firma = d.Firma;
+        this.Quellverzeichnis = d.Quellverzeichnis;
+        this.Archivverzeichnis = d.Archivverzeichnis;
+        this.Ausgabeverzeichnis = d.Ausgabeverzeichnis;
+        this.SystemMessage = SummaryPrompts.SystemMessage;
+        this.AbstractPrompt = SummaryPrompts.Abstract;
+        this.StructuredPrompt = SummaryPrompts.Structured;
+        this.ProsePrompt = SummaryPrompts.Prose;
+        this.EmailPrompt = SummaryPrompts.Email;
+        this.AufgabePrompt = SummaryPrompts.Aufgabe;
+        this.GespraechsnotizPrompt = SummaryPrompts.Gespraechsnotiz;
+        this.StundenzettelPrompt = SummaryPrompts.Stundenzettel;
+        this.AnalogPrompt = SummaryPrompts.Analog;
+        this.StatusMessage = "Standard-Werte wiederhergestellt – noch nicht gespeichert.";
     }
 
     [RelayCommand]
     private void BrowseQuell()
     {
-        var path = PickFolder(Quellverzeichnis);
-        if (path is not null) Quellverzeichnis = path;
+        var path = PickFolder(this.Quellverzeichnis);
+        if (path is not null)
+        {
+            this.Quellverzeichnis = path;
+        }
     }
 
     [RelayCommand]
     private void BrowseArchiv()
     {
-        var path = PickFolder(Archivverzeichnis);
-        if (path is not null) Archivverzeichnis = path;
+        var path = PickFolder(this.Archivverzeichnis);
+        if (path is not null)
+        {
+            this.Archivverzeichnis = path;
+        }
     }
 
     [RelayCommand]
     private void BrowseAusgabe()
     {
-        var path = PickFolder(Ausgabeverzeichnis);
-        if (path is not null) Ausgabeverzeichnis = path;
+        var path = PickFolder(this.Ausgabeverzeichnis);
+        if (path is not null)
+        {
+            this.Ausgabeverzeichnis = path;
+        }
     }
 
     // ── Private ───────────────────────────────────────────────────────────────
-
     private void LoadFromHolder()
     {
-        var s = _persistedHolder.Current;
-        Name = s.Name;
-        Firma = s.Firma;
-        Quellverzeichnis = s.Quellverzeichnis;
-        Archivverzeichnis = s.Archivverzeichnis;
-        Ausgabeverzeichnis = s.Ausgabeverzeichnis;
-        SystemMessage = s.SystemMessage;
-        AbstractPrompt = s.AbstractPrompt;
-        StructuredPrompt = s.StructuredPrompt;
-        ProsePrompt = s.ProsePrompt;
-        EmailPrompt = s.EmailPrompt;
-        AufgabePrompt = s.AufgabePrompt;
-        GespraechsnotizPrompt = s.GespraechsnotizPrompt;
-        StundenzettelPrompt = s.StundenzettelPrompt;
-        AnalogPrompt = s.AnalogPrompt;
+        var s = this.persistedHolder.Current;
+        this.Name = s.Name;
+        this.Firma = s.Firma;
+        this.Quellverzeichnis = s.Quellverzeichnis;
+        this.Archivverzeichnis = s.Archivverzeichnis;
+        this.Ausgabeverzeichnis = s.Ausgabeverzeichnis;
+        this.SystemMessage = s.SystemMessage;
+        this.AbstractPrompt = s.AbstractPrompt;
+        this.StructuredPrompt = s.StructuredPrompt;
+        this.ProsePrompt = s.ProsePrompt;
+        this.EmailPrompt = s.EmailPrompt;
+        this.AufgabePrompt = s.AufgabePrompt;
+        this.GespraechsnotizPrompt = s.GespraechsnotizPrompt;
+        this.StundenzettelPrompt = s.StundenzettelPrompt;
+        this.AnalogPrompt = s.AnalogPrompt;
     }
 
     private static string? PickFolder(string initialDir)
@@ -193,7 +231,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     private bool IsSelected(string sectionKey) =>
-        string.Equals(SelectedSection?.Key, sectionKey, StringComparison.Ordinal);
+        string.Equals(this.SelectedSection?.Key, sectionKey, StringComparison.Ordinal);
 
     private static string BuildPathStatusMessage(IReadOnlyList<StartupPathIssue> issues)
     {

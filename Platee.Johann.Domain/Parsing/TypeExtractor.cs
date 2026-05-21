@@ -1,6 +1,6 @@
-using Platee.Johann.Domain.Enums;
-
 namespace Platee.Johann.Domain.Parsing;
+
+using Platee.Johann.Domain.Enums;
 
 public static class TypeExtractor
 {

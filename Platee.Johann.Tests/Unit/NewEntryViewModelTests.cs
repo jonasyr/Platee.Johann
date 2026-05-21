@@ -1,8 +1,8 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.UI.ViewModels;
-
-namespace Platee.Johann.Tests.Unit;
 
 public sealed class NewEntryViewModelTests
 {

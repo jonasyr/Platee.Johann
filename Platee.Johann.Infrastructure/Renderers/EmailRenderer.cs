@@ -1,9 +1,9 @@
+namespace Platee.Johann.Infrastructure.Renderers;
+
+using System.Text;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Services;
-using System.Text;
-
-namespace Platee.Johann.Infrastructure.Renderers;
 
 /// <summary>
 /// Renders an entry as a plain-text email file (.txt) with

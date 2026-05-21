@@ -1,6 +1,6 @@
-using Platee.Johann.Application.Interfaces;
-
 namespace Platee.Johann.Infrastructure.Llm;
+
+using Platee.Johann.Application.Interfaces;
 
 /// <summary>
 /// Phase 1 stub — LLM not available (no API key configured).

@@ -27,11 +27,15 @@ public static class TitleExtractor
     public static string? TryExtract(string[] words, ref int cursor)
     {
         if (cursor >= words.Length)
+        {
             return null;
+        }
 
         var currentToken = words[cursor].Trim(PunctuationChars);
         if (!TitleKeywords.Contains(currentToken))
+        {
             return null;
+        }
 
         cursor++; // skip "Titel" / "Betreff"
 
@@ -66,6 +70,7 @@ public static class TitleExtractor
                 endeFound = true;
                 break;
             }
+
             tokens.Add(words[cursor++]);
         }
 

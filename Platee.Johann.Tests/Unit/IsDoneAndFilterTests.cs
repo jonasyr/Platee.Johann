@@ -1,10 +1,10 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.ValueObjects;
 using Platee.Johann.Infrastructure.Json;
-
-namespace Platee.Johann.Tests.Unit;
 
 /// <summary>
 /// Tests for IsDone default value, immutable toggle, JSON round-trip preservation,
@@ -13,24 +13,25 @@ namespace Platee.Johann.Tests.Unit;
 /// </summary>
 public sealed class IsDoneAndFilterTests : IDisposable
 {
-    private readonly string _tempDir;
-    private readonly JsonRepository _repo;
+    private readonly string tempDir;
+    private readonly JsonRepository repo;
 
     public IsDoneAndFilterTests()
     {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"JohannIsDoneTests_{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
-        _repo = new JsonRepository(_tempDir);
+        this.tempDir = Path.Combine(Path.GetTempPath(), $"JohannIsDoneTests_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(this.tempDir);
+        this.repo = new JsonRepository(this.tempDir);
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, recursive: true);
+        if (Directory.Exists(this.tempDir))
+        {
+            Directory.Delete(this.tempDir, recursive: true);
+        }
     }
 
     // ── Default value ─────────────────────────────────────────────────────────
-
     [Fact]
     public void Entry_IsDone_defaults_to_false()
     {
@@ -40,7 +41,6 @@ public sealed class IsDoneAndFilterTests : IDisposable
     }
 
     // ── Immutable toggle ──────────────────────────────────────────────────────
-
     [Fact]
     public void Entry_with_expression_creates_new_instance_with_toggled_IsDone()
     {
@@ -55,15 +55,14 @@ public sealed class IsDoneAndFilterTests : IDisposable
     }
 
     // ── JSON round-trip via JsonRepository ───────────────────────────────────
-
     [Fact]
     public async Task JsonRepository_round_trip_preserves_IsDone_true()
     {
         var date = new DateOnly(2026, 3, 17);
         var entry = MakeEntry("isdone_true_001", date: date) with { IsDone = true };
 
-        await _repo.SaveAsync(entry);
-        var loaded = await _repo.GetByJobIdAsync("isdone_true_001");
+        await this.repo.SaveAsync(entry);
+        var loaded = await this.repo.GetByJobIdAsync("isdone_true_001");
 
         loaded.Should().NotBeNull();
         loaded!.IsDone.Should().BeTrue();
@@ -75,15 +74,14 @@ public sealed class IsDoneAndFilterTests : IDisposable
         var date = new DateOnly(2026, 3, 17);
         var entry = MakeEntry("isdone_false_001", date: date) with { IsDone = false };
 
-        await _repo.SaveAsync(entry);
-        var loaded = await _repo.GetByJobIdAsync("isdone_false_001");
+        await this.repo.SaveAsync(entry);
+        var loaded = await this.repo.GetByJobIdAsync("isdone_false_001");
 
         loaded.Should().NotBeNull();
         loaded!.IsDone.Should().BeFalse();
     }
 
     // ── Filter logic ──────────────────────────────────────────────────────────
-
     [Fact]
     public void Filter_ShowOnlyPending_excludes_done_entries()
     {
@@ -103,7 +101,6 @@ public sealed class IsDoneAndFilterTests : IDisposable
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
-
     private static Entry MakeEntry(string jobId, DateOnly? date = null) => new()
     {
         JobId = jobId,

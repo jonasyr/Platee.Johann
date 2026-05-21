@@ -1,10 +1,10 @@
-using System.Text;
+namespace Platee.Johann.Infrastructure.Renderers;
+
 using System.Net;
+using System.Text;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
-
-namespace Platee.Johann.Infrastructure.Renderers;
 
 /// <summary>
 /// Generates the daily _ItemÜbersicht.html overview page in the date directory.
@@ -12,21 +12,21 @@ namespace Platee.Johann.Infrastructure.Renderers;
 /// </summary>
 public sealed class HtmlOverviewService : IHtmlOverviewService
 {
-    private readonly IEntryRepository _repository;
-    private readonly string _outputRoot;
+    private readonly IEntryRepository repository;
+    private readonly string outputRoot;
 
     public HtmlOverviewService(IEntryRepository repository, string outputRoot)
     {
-        _repository = repository;
-        _outputRoot = outputRoot;
+        this.repository = repository;
+        this.outputRoot = outputRoot;
     }
 
     public async Task RegenerateAsync(DateOnly date, CancellationToken ct = default)
     {
-        var entries = await _repository.GetEntriesForDateAsync(date, ct);
+        var entries = await this.repository.GetEntriesForDateAsync(date, ct);
         var html = BuildOverviewHtml(date, entries);
 
-        var dateDir = Path.Combine(_outputRoot, date.ToString("yyyy-MM-dd"));
+        var dateDir = Path.Combine(this.outputRoot, date.ToString("yyyy-MM-dd"));
         Directory.CreateDirectory(dateDir);
 
         var path = Path.Combine(dateDir, "_ItemÜbersicht.html");
@@ -46,7 +46,7 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
             DayOfWeek.Friday => "Freitag",
             DayOfWeek.Saturday => "Samstag",
             DayOfWeek.Sunday => "Sonntag",
-            _ => string.Empty
+            _ => string.Empty,
         };
 
         sb.AppendLine("<!DOCTYPE html>");
@@ -74,7 +74,10 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
         {
             sb.AppendLine("<div class=\"entries\">");
             foreach (var entry in entries)
+            {
                 AppendEntryCard(sb, entry);
+            }
+
             sb.AppendLine("</div>");
         }
 
@@ -104,7 +107,10 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
             .Take(5);
         var fileBase = $"{entry.CreatedAt:yyMMdd}_{entry.SequenceNumber:D3}";
         if (entry.Type == EntryType.Gesprächsnotiz)
+        {
             fileBase += "_Gesprächsnotiz";
+        }
+
         fileBase += $"_{SanitizeForFilename(entry.ProjectName)}_{SanitizeForFilename(string.Join("_", titleWords))}";
 
         sb.AppendLine($"  <div class=\"card\" style=\"border-left: 4px solid {typeColor}\">");

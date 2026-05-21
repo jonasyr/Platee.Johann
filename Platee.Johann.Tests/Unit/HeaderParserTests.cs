@@ -1,15 +1,14 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.Parsing;
 
-namespace Platee.Johann.Tests.Unit;
-
 public sealed class HeaderParserTests
 {
-    private readonly HeaderParser _sut = new();
+    private readonly HeaderParser sut = new();
 
     // --- Type detection ---
-
     [Theory]
     [InlineData("Aufgabe Johann rest", EntryType.Aufgabe, "Johann")]
     [InlineData("aufgabe Johann rest", EntryType.Aufgabe, "Johann")]
@@ -23,7 +22,7 @@ public sealed class HeaderParserTests
     public void Parse_KnownTypeKeyword_SetsTypeAndProject(
         string transcript, EntryType expectedType, string expectedProject)
     {
-        var result = _sut.Parse(transcript);
+        var result = this.sut.Parse(transcript);
         result.Type.Should().Be(expectedType);
         result.ProjectName.Should().Be(expectedProject);
     }
@@ -31,7 +30,7 @@ public sealed class HeaderParserTests
     [Fact]
     public void Parse_NoTypeKeyword_UsesLegacyResolver()
     {
-        var result = _sut.Parse("Hallo, wir arbeiten für Projekt Johann gerade");
+        var result = this.sut.Parse("Hallo, wir arbeiten für Projekt Johann gerade");
         result.Type.Should().Be(EntryType.Projekt);
         result.ProjectName.Should().Be("Johann");
     }
@@ -39,7 +38,7 @@ public sealed class HeaderParserTests
     [Fact]
     public void Parse_UnknownWordNoProjectRegex_FallsBackToAllgemein()
     {
-        var result = _sut.Parse("Hallo wie geht es dir heute");
+        var result = this.sut.Parse("Hallo wie geht es dir heute");
         result.Type.Should().Be(EntryType.Projekt);
         result.ProjectName.Should().Be("Allgemein");
     }
@@ -47,21 +46,20 @@ public sealed class HeaderParserTests
     [Fact]
     public void Parse_EmptyString_ReturnsDefaults()
     {
-        var result = _sut.Parse(string.Empty);
+        var result = this.sut.Parse(string.Empty);
         result.Type.Should().Be(EntryType.Projekt);
         result.ProjectName.Should().Be("Allgemein");
         result.ExplicitTitle.Should().BeNull();
     }
 
     // --- Title extraction ---
-
     [Fact]
     public void Parse_TitelKeyword_ExtractsTitleUntilEnde()
     {
         // "Aufgabe Johann Titel A B C D E F G H I J K L M Ende N"
         // → Title = "A B C D E F G H I J K L M" (13 words, stops at Ende)
         var transcript = "Aufgabe Johann Titel A B C D E F G H I J K L M Ende N";
-        var result = _sut.Parse(transcript);
+        var result = this.sut.Parse(transcript);
 
         result.ExplicitTitle.Should().Be("A B C D E F G H I J K L M");
         result.RemainderText.Should().Be("N");
@@ -72,7 +70,7 @@ public sealed class HeaderParserTests
     {
         var words = string.Join(" ", Enumerable.Range(1, 16).Select(i => $"W{i}"));
         var transcript = $"Aufgabe Johann Titel {words}";
-        var result = _sut.Parse(transcript);
+        var result = this.sut.Parse(transcript);
 
         var titleWords = result.ExplicitTitle!.Split(' ');
         titleWords.Should().HaveCount(15);
@@ -83,14 +81,14 @@ public sealed class HeaderParserTests
     [Fact]
     public void Parse_BetreffKeyword_WorksLikeTitel()
     {
-        var result = _sut.Parse("Aufgabe Johann Betreff Monatsbericht Ende");
+        var result = this.sut.Parse("Aufgabe Johann Betreff Monatsbericht Ende");
         result.ExplicitTitle.Should().Be("Monatsbericht");
     }
 
     [Fact]
     public void Parse_NoTitelKeyword_ExplicitTitleIsNull()
     {
-        var result = _sut.Parse("Aufgabe Johann Das ist der Rest");
+        var result = this.sut.Parse("Aufgabe Johann Das ist der Rest");
         result.ExplicitTitle.Should().BeNull();
         result.RemainderText.Should().Be("Das ist der Rest");
     }
@@ -101,7 +99,7 @@ public sealed class HeaderParserTests
         // "Ende" appears at word 20 (16–29 range): title capped at 15, "Ende" consumed.
         var titlePart = string.Join(" ", Enumerable.Range(1, 20).Select(i => $"W{i}"));
         var transcript = $"Aufgabe Johann Titel {titlePart} Ende Nachtext";
-        var result = _sut.Parse(transcript);
+        var result = this.sut.Parse(transcript);
 
         var titleWords = result.ExplicitTitle!.Split(' ');
         titleWords.Should().HaveCount(15);
@@ -116,7 +114,7 @@ public sealed class HeaderParserTests
         // "Ende" appears 30 words after "Titel" → too late → GPT generates (null title).
         var titlePart = string.Join(" ", Enumerable.Range(1, 30).Select(i => $"W{i}"));
         var transcript = $"Aufgabe Johann Titel {titlePart} Ende Nachtext";
-        var result = _sut.Parse(transcript);
+        var result = this.sut.Parse(transcript);
 
         result.ExplicitTitle.Should().BeNull();
         result.RemainderText.Should().Be("Nachtext");
@@ -124,11 +122,10 @@ public sealed class HeaderParserTests
     }
 
     // --- Remainder ---
-
     [Fact]
     public void Parse_AfterHeaderTokens_RemainderIsCorrect()
     {
-        var result = _sut.Parse("Aufgabe Johann Titel Foo Bar Ende Das ist der Inhalt");
+        var result = this.sut.Parse("Aufgabe Johann Titel Foo Bar Ende Das ist der Inhalt");
         result.RemainderText.Should().Be("Das ist der Inhalt");
     }
 }

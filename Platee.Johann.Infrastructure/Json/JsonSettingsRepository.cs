@@ -1,9 +1,9 @@
+namespace Platee.Johann.Infrastructure.Json;
+
 using System.Text.Json;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
-
-namespace Platee.Johann.Infrastructure.Json;
 
 /// <summary>
 /// Persists <see cref="AppSettings"/> as JSON to Documents\Johann\settings.json.
@@ -11,30 +11,32 @@ namespace Platee.Johann.Infrastructure.Json;
 /// </summary>
 public sealed class JsonSettingsRepository : ISettingsRepository
 {
-    private readonly string _filePath;
+    private readonly string filePath;
 
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     public JsonSettingsRepository(string settingsDirectory)
     {
         Directory.CreateDirectory(settingsDirectory);
-        _filePath = Path.Combine(settingsDirectory, "settings.json");
+        this.filePath = Path.Combine(settingsDirectory, "settings.json");
     }
 
     public async Task<AppSettings> LoadAsync(CancellationToken ct = default)
     {
-        if (!File.Exists(_filePath))
+        if (!File.Exists(this.filePath))
+        {
             return AppSettings.Default;
+        }
 
         try
         {
-            await using var stream = File.OpenRead(_filePath);
+            await using var stream = File.OpenRead(this.filePath);
             var dto = await JsonSerializer.DeserializeAsync<SettingsDto>(stream, Options, ct).ConfigureAwait(false);
             return dto is null ? AppSettings.Default : MapToSettings(dto);
         }
@@ -48,12 +50,11 @@ public sealed class JsonSettingsRepository : ISettingsRepository
     public async Task SaveAsync(AppSettings settings, CancellationToken ct = default)
     {
         var dto = MapToDto(settings);
-        await using var stream = File.Open(_filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+        await using var stream = File.Open(this.filePath, FileMode.Create, FileAccess.Write, FileShare.None);
         await JsonSerializer.SerializeAsync(stream, dto, Options, ct).ConfigureAwait(false);
     }
 
     // ── Mapping ───────────────────────────────────────────────────────────────
-
     private static AppSettings MapToSettings(SettingsDto dto)
     {
         var defaultSettings = AppSettings.Default;
@@ -104,21 +105,33 @@ public sealed class JsonSettingsRepository : ISettingsRepository
     private sealed class SettingsDto
     {
         public int? PromptDefaultsRevision { get; set; }
+
         public string? Name { get; set; }
+
         public string? Firma { get; set; }
+
         public string? Quellverzeichnis { get; set; }
+
         public string? Archivverzeichnis { get; set; }
+
         public string? Ausgabeverzeichnis { get; set; }
 
         public string? SystemMessage { get; set; }
+
         public string? AbstractPrompt { get; set; }
+
         public string? StructuredPrompt { get; set; }
+
         public string? ProsePrompt { get; set; }
 
         public string? EmailPrompt { get; set; }
+
         public string? AufgabePrompt { get; set; }
+
         public string? GespraechsnotizPrompt { get; set; }
+
         public string? StundenzettelPrompt { get; set; }
+
         public string? AnalogPrompt { get; set; }
     }
 }

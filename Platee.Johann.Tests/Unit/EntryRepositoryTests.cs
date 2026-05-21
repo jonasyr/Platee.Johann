@@ -1,39 +1,40 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.ValueObjects;
 using Platee.Johann.Infrastructure.Json;
 
-namespace Platee.Johann.Tests.Unit;
-
 public sealed class EntryRepositoryTests : IDisposable
 {
-    private readonly string _tempDir;
-    private readonly JsonRepository _sut;
+    private readonly string tempDir;
+    private readonly JsonRepository sut;
 
     public EntryRepositoryTests()
     {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"JohannTests_{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
-        _sut = new JsonRepository(_tempDir);
+        this.tempDir = Path.Combine(Path.GetTempPath(), $"JohannTests_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(this.tempDir);
+        this.sut = new JsonRepository(this.tempDir);
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, recursive: true);
+        if (Directory.Exists(this.tempDir))
+        {
+            Directory.Delete(this.tempDir, recursive: true);
+        }
     }
 
     // ── SaveAsync + GetEntriesForDateAsync ────────────────────────────────────
-
     [Fact]
     public async Task SaveAsync_then_GetEntriesForDateAsync_returns_saved_entry()
     {
         var date = new DateOnly(2026, 3, 17);
         var entry = MakeEntry(jobId: "repo_001", seq: 1, date: date);
 
-        await _sut.SaveAsync(entry);
-        var result = await _sut.GetEntriesForDateAsync(date);
+        await this.sut.SaveAsync(entry);
+        var result = await this.sut.GetEntriesForDateAsync(date);
 
         result.Should().HaveCount(1);
         result[0].JobId.Should().Be("repo_001");
@@ -47,13 +48,14 @@ public sealed class EntryRepositoryTests : IDisposable
     {
         var date = new DateOnly(2026, 3, 17);
         var original = MakeEntry(jobId: "repo_002", seq: 2, date: date);
+
         // Use IsDone (not Title) so the filename stays the same — FilenameBuilder includes the title
         var updated = original with { IsDone = true };
 
-        await _sut.SaveAsync(original);
-        await _sut.SaveAsync(updated);
+        await this.sut.SaveAsync(original);
+        await this.sut.SaveAsync(updated);
 
-        var result = await _sut.GetEntriesForDateAsync(date);
+        var result = await this.sut.GetEntriesForDateAsync(date);
 
         // Both saves use the same filename, so only one file exists
         result.Should().HaveCount(1);
@@ -61,7 +63,6 @@ public sealed class EntryRepositoryTests : IDisposable
     }
 
     // ── GetAvailableDatesAsync ────────────────────────────────────────────────
-
     [Fact]
     public async Task GetAvailableDatesAsync_returns_all_dates_with_entries()
     {
@@ -69,27 +70,27 @@ public sealed class EntryRepositoryTests : IDisposable
         var date2 = new DateOnly(2026, 3, 16);
         var date3 = new DateOnly(2026, 3, 17);
 
-        await _sut.SaveAsync(MakeEntry(jobId: "dates_001", seq: 1, date: date1));
-        await _sut.SaveAsync(MakeEntry(jobId: "dates_002", seq: 1, date: date2));
-        await _sut.SaveAsync(MakeEntry(jobId: "dates_003", seq: 1, date: date3));
+        await this.sut.SaveAsync(MakeEntry(jobId: "dates_001", seq: 1, date: date1));
+        await this.sut.SaveAsync(MakeEntry(jobId: "dates_002", seq: 1, date: date2));
+        await this.sut.SaveAsync(MakeEntry(jobId: "dates_003", seq: 1, date: date3));
 
-        var result = await _sut.GetAvailableDatesAsync();
+        var result = await this.sut.GetAvailableDatesAsync();
 
         result.Should().HaveCount(3);
         result.Should().Contain(date1);
         result.Should().Contain(date2);
         result.Should().Contain(date3);
+
         // newest first
         result[0].Should().Be(date3);
         result[2].Should().Be(date1);
     }
 
     // ── GetByJobIdAsync ───────────────────────────────────────────────────────
-
     [Fact]
     public async Task GetByJobIdAsync_returns_null_for_unknown_id()
     {
-        var result = await _sut.GetByJobIdAsync("does_not_exist");
+        var result = await this.sut.GetByJobIdAsync("does_not_exist");
 
         result.Should().BeNull();
     }
@@ -100,15 +101,14 @@ public sealed class EntryRepositoryTests : IDisposable
         var date = new DateOnly(2026, 3, 17);
         var entry = MakeEntry(jobId: "find_me", seq: 1, date: date);
 
-        await _sut.SaveAsync(entry);
-        var result = await _sut.GetByJobIdAsync("find_me");
+        await this.sut.SaveAsync(entry);
+        var result = await this.sut.GetByJobIdAsync("find_me");
 
         result.Should().NotBeNull();
         result!.JobId.Should().Be("find_me");
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
-
     private static Entry MakeEntry(string jobId = "test_001", int seq = 1, DateOnly? date = null) => new()
     {
         JobId = jobId,

@@ -1,13 +1,12 @@
+namespace Platee.Johann.Tests.Unit;
+
 using System.Text.Json;
 using FluentAssertions;
 using Platee.Johann.Infrastructure.Json;
 
-namespace Platee.Johann.Tests.Unit;
-
 public sealed class JsonMigratorTests
 {
     // --- v2 documents pass through unchanged ---
-
     [Fact]
     public void Migrate_V2Document_PreservesAllFields()
     {
@@ -38,7 +37,6 @@ public sealed class JsonMigratorTests
     }
 
     // --- v1 (Python-generated) documents get migrated ---
-
     [Fact]
     public void Migrate_V1WithoutTypeField_DefaultsToProjekt()
     {
@@ -108,7 +106,6 @@ public sealed class JsonMigratorTests
     }
 
     // --- Python snake_case field mapping ---
-
     [Fact]
     public void Migrate_PythonSnakeCaseJson_MapsAllFieldsCorrectly()
     {

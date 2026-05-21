@@ -1,76 +1,79 @@
+namespace Platee.Johann.UI.ViewModels;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.ValueObjects;
 
-namespace Platee.Johann.UI.ViewModels;
-
 public sealed partial class NewEntryViewModel : ObservableObject
 {
     // Form fields
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
-    private EntryType _selectedType = EntryType.Projekt;
+    private EntryType selectedType = EntryType.Projekt;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
-    private string _projectName = string.Empty;
+    private string projectName = string.Empty;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
-    private string _titleText = string.Empty;
+    private string titleText = string.Empty;
 
-    [ObservableProperty] private string _content = string.Empty;
-    [ObservableProperty] private string _validationMessage = string.Empty;
+    [ObservableProperty]
+    private string content = string.Empty;
+    [ObservableProperty]
+    private string validationMessage = string.Empty;
 
     public bool DialogResult { get; private set; }
+
     public Entry? CreatedEntry { get; private set; }
 
     // Binding-friendly list of available types
     public IReadOnlyList<EntryType> AvailableTypes { get; } =
         Enum.GetValues<EntryType>().ToArray();
 
-    private readonly int _sequenceNumber;
-    private readonly DateTimeOffset _createdAt;
+    private readonly int sequenceNumber;
+    private readonly DateTimeOffset createdAt;
 
     public NewEntryViewModel(int sequenceNumber, DateTimeOffset? createdAt = null)
     {
-        _sequenceNumber = sequenceNumber;
-        _createdAt = createdAt ?? DateTimeOffset.Now;
+        this.sequenceNumber = sequenceNumber;
+        this.createdAt = createdAt ?? DateTimeOffset.Now;
     }
 
     private bool CanSave =>
-        !string.IsNullOrWhiteSpace(ProjectName) &&
-        !string.IsNullOrWhiteSpace(TitleText);
+        !string.IsNullOrWhiteSpace(this.ProjectName) &&
+        !string.IsNullOrWhiteSpace(this.TitleText);
 
     [RelayCommand(CanExecute = nameof(CanSave))]
     private void Save()
     {
-        var title = TitleText.Trim();
-        var project = ProjectName.Trim();
-        var jobId = BuildJobId(_createdAt, _sequenceNumber, project);
+        var title = this.TitleText.Trim();
+        var project = this.ProjectName.Trim();
+        var jobId = BuildJobId(this.createdAt, this.sequenceNumber, project);
 
-        CreatedEntry = new Entry
+        this.CreatedEntry = new Entry
         {
             JobId = jobId,
-            SequenceNumber = _sequenceNumber,
-            Type = SelectedType,
+            SequenceNumber = this.sequenceNumber,
+            Type = this.SelectedType,
             ProjectName = project,
             Title = title,
-            CreatedAt = _createdAt,
+            CreatedAt = this.createdAt,
             SourceType = "text",
             Status = ProcessingStatus.Empty,
-            Transcript = string.IsNullOrWhiteSpace(Content) ? null : Content.Trim(),
+            Transcript = string.IsNullOrWhiteSpace(this.Content) ? null : this.Content.Trim(),
         };
 
-        DialogResult = true;
+        this.DialogResult = true;
     }
 
     [RelayCommand]
     private void Cancel()
     {
-        DialogResult = false;
+        this.DialogResult = false;
     }
 
     private static string BuildJobId(DateTimeOffset dt, int seq, string project)

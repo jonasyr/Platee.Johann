@@ -1,6 +1,6 @@
-using Markdig;
-
 namespace Platee.Johann.Infrastructure.Renderers;
+
+using Markdig;
 
 /// <summary>
 /// Converts Markdown to HTML using a Markdig pipeline with raw HTML disabled.
@@ -15,7 +15,11 @@ internal static class MarkdownHelper
 
     public static string ToHtml(string? markdown)
     {
-        if (string.IsNullOrWhiteSpace(markdown)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(markdown))
+        {
+            return string.Empty;
+        }
+
         return Markdown.ToHtml(markdown, Pipeline);
     }
 }

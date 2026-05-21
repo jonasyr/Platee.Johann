@@ -8,5 +8,5 @@ public sealed class SettingsHolder
 {
     public AppSettings Current { get; set; }
 
-    public SettingsHolder(AppSettings initial) => Current = initial;
+    public SettingsHolder(AppSettings initial) => this.Current = initial;
 }

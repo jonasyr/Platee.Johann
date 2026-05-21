@@ -1,26 +1,34 @@
+namespace Platee.Johann.UI.ViewModels;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using Platee.Johann.Application.Processing;
 
-namespace Platee.Johann.UI.ViewModels;
-
 public sealed partial class SectionVisibilityViewModel : ObservableObject
 {
-    [ObservableProperty] private bool _showLongSummary       = true;
-    [ObservableProperty] private bool _showProseSummary      = true;
-    [ObservableProperty] private bool _showTaskList          = true;
-    [ObservableProperty] private bool _showConversationNote  = true;
-    [ObservableProperty] private bool _showEmailText         = false;
-    [ObservableProperty] private bool _showStundenzettelText = false;
-    [ObservableProperty] private bool _showAnalogText        = false;
-    [ObservableProperty] private bool _showTranscript        = true;
+    [ObservableProperty]
+    private bool showLongSummary = true;
+    [ObservableProperty]
+    private bool showProseSummary = true;
+    [ObservableProperty]
+    private bool showTaskList = true;
+    [ObservableProperty]
+    private bool showConversationNote = true;
+    [ObservableProperty]
+    private bool showEmailText = false;
+    [ObservableProperty]
+    private bool showStundenzettelText = false;
+    [ObservableProperty]
+    private bool showAnalogText = false;
+    [ObservableProperty]
+    private bool showTranscript = true;
 
     public SectionVisibility ToSectionVisibility() => new(
-        ShowLongSummary,
-        ShowProseSummary,
-        ShowTaskList,
-        ShowConversationNote,
-        ShowEmailText,
-        ShowStundenzettelText,
-        ShowAnalogText,
-        ShowTranscript);
+        this.ShowLongSummary,
+        this.ShowProseSummary,
+        this.ShowTaskList,
+        this.ShowConversationNote,
+        this.ShowEmailText,
+        this.ShowStundenzettelText,
+        this.ShowAnalogText,
+        this.ShowTranscript);
 }

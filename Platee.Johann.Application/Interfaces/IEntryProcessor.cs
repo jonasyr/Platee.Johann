@@ -1,6 +1,6 @@
-using Platee.Johann.Domain.Entities;
-
 namespace Platee.Johann.Application.Interfaces;
+
+using Platee.Johann.Domain.Entities;
 
 public sealed record ProcessingProgress(
     string Stage,

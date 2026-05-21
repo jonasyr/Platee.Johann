@@ -1,8 +1,8 @@
+namespace Platee.Johann.UI.Converters;
+
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-
-namespace Platee.Johann.UI.Converters;
 
 /// <summary>
 /// Returns Visible when value is non-null/non-empty, Collapsed otherwise.

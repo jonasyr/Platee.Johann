@@ -1,8 +1,8 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
-
-namespace Platee.Johann.Tests.Unit;
 
 public sealed class SummaryPromptsTests
 {
@@ -14,7 +14,6 @@ public sealed class SummaryPromptsTests
     }
 
     // ── Structured ────────────────────────────────────────────────────────────
-
     [Fact]
     public void Structured_ContainsNewSections()
     {
@@ -52,7 +51,6 @@ public sealed class SummaryPromptsTests
     }
 
     // ── Email ─────────────────────────────────────────────────────────────────
-
     [Fact]
     public void Email_ContainsSiezenRequirement()
     {
@@ -84,7 +82,6 @@ public sealed class SummaryPromptsTests
     }
 
     // ── Aufgabe ───────────────────────────────────────────────────────────────
-
     [Fact]
     public void Aufgabe_StartsWithContextSentenceInstruction()
     {
@@ -126,7 +123,6 @@ public sealed class SummaryPromptsTests
     }
 
     // ── AppSettings.Default uses SummaryPrompts ───────────────────────────────
-
     [Fact]
     public void AppSettings_Default_StructuredPrompt_MatchesSummaryPrompts()
     {

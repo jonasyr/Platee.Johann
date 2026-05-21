@@ -1,7 +1,7 @@
+namespace Platee.Johann.UI;
+
 using System.IO;
 using Platee.Johann.Application.Settings;
-
-namespace Platee.Johann.UI;
 
 public sealed record StartupPathIssue(
     string Label,
@@ -74,7 +74,9 @@ internal static class StartupPathResolver
         {
             var configuredResult = validateDirectory(configuredPath);
             if (configuredResult.IsUsable)
+            {
                 return configuredPath;
+            }
         }
 
         var fallbackPath = fallbackPathFactory();
@@ -97,7 +99,9 @@ internal static class StartupPathResolver
             var cliPath = startupArgs[0];
             var cliResult = validateDirectory(cliPath);
             if (cliResult.IsUsable)
+            {
                 return cliPath;
+            }
         }
 
         return resolveDefaultOutputRoot();
@@ -107,6 +111,8 @@ internal static class StartupPathResolver
     {
         var result = validateDirectory(path);
         if (!result.IsUsable)
+        {
             throw new IOException(result.ErrorMessage ?? $"Pfad konnte nicht verwendet werden: {path}");
+        }
     }
 }

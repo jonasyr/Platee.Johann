@@ -1,9 +1,9 @@
+namespace Platee.Johann.Infrastructure.Json;
+
 using System.Text.Json;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Services;
-
-namespace Platee.Johann.Infrastructure.Json;
 
 /// <summary>
 /// Reads and writes Entry records from/to the output directory structure:
@@ -12,8 +12,8 @@ namespace Platee.Johann.Infrastructure.Json;
 /// </summary>
 public sealed class JsonRepository : IEntryRepository
 {
-    private readonly string _outputRoot;
-    private readonly SemaphoreSlim _seqLock = new(1, 1);
+    private readonly string outputRoot;
+    private readonly SemaphoreSlim seqLock = new(1, 1);
 
     private static readonly JsonSerializerOptions WriteOptions = new()
     {
@@ -28,21 +28,25 @@ public sealed class JsonRepository : IEntryRepository
 
     public JsonRepository(string outputRoot)
     {
-        _outputRoot = outputRoot;
+        this.outputRoot = outputRoot;
     }
 
     public Task<IReadOnlyList<DateOnly>> GetAvailableDatesAsync(CancellationToken ct = default)
     {
         var dates = new List<DateOnly>();
 
-        if (!Directory.Exists(_outputRoot))
+        if (!Directory.Exists(this.outputRoot))
+        {
             return Task.FromResult<IReadOnlyList<DateOnly>>(dates);
+        }
 
-        foreach (var dir in Directory.EnumerateDirectories(_outputRoot))
+        foreach (var dir in Directory.EnumerateDirectories(this.outputRoot))
         {
             var name = Path.GetFileName(dir);
             if (DateOnly.TryParseExact(name, "yyyy-MM-dd", out var date))
+            {
                 dates.Add(date);
+            }
         }
 
         dates.Sort((a, b) => b.CompareTo(a)); // newest first
@@ -52,9 +56,11 @@ public sealed class JsonRepository : IEntryRepository
     public async Task<IReadOnlyList<Entry>> GetEntriesForDateAsync(
         DateOnly date, CancellationToken ct = default)
     {
-        var rawDir = GetRawDir(date);
+        var rawDir = this.GetRawDir(date);
         if (!Directory.Exists(rawDir))
+        {
             return [];
+        }
 
         var entries = new List<Entry>();
         foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
@@ -62,7 +68,9 @@ public sealed class JsonRepository : IEntryRepository
             ct.ThrowIfCancellationRequested();
             var entry = await LoadFileAsync(file, ct);
             if (entry is not null)
+            {
                 entries.Add(entry);
+            }
         }
 
         return entries.OrderBy(e => e.SequenceNumber).ToList();
@@ -70,29 +78,37 @@ public sealed class JsonRepository : IEntryRepository
 
     public async Task<Entry?> GetByJobIdAsync(string jobId, CancellationToken ct = default)
     {
-        if (!Directory.Exists(_outputRoot))
+        if (!Directory.Exists(this.outputRoot))
+        {
             return null;
+        }
 
-        foreach (var dir in Directory.EnumerateDirectories(_outputRoot))
+        foreach (var dir in Directory.EnumerateDirectories(this.outputRoot))
         {
             var rawDir = Path.Combine(dir, "_raw");
-            if (!Directory.Exists(rawDir)) continue;
+            if (!Directory.Exists(rawDir))
+            {
+                continue;
+            }
 
             foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
             {
                 ct.ThrowIfCancellationRequested();
                 var entry = await LoadFileAsync(file, ct);
                 if (entry?.JobId == jobId)
+                {
                     return entry;
+                }
             }
         }
+
         return null;
     }
 
     public async Task SaveAsync(Entry entry, CancellationToken ct = default)
     {
         var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
-        var rawDir = GetRawDir(date);
+        var rawDir = this.GetRawDir(date);
         Directory.CreateDirectory(rawDir);
 
         var dto = EntryMapper.ToDto(entry);
@@ -123,10 +139,10 @@ public sealed class JsonRepository : IEntryRepository
     /// </summary>
     public async Task<int> GetNextSequenceNumberAsync(DateOnly date, CancellationToken ct = default)
     {
-        await _seqLock.WaitAsync(ct);
+        await this.seqLock.WaitAsync(ct);
         try
         {
-            var rawDir = GetRawDir(date);
+            var rawDir = this.GetRawDir(date);
             Directory.CreateDirectory(rawDir);
 
             var counterPath = Path.Combine(rawDir, "_counter.json");
@@ -141,7 +157,7 @@ public sealed class JsonRepository : IEntryRepository
             else
             {
                 // Seed from existing entries so existing dates stay consistent
-                var entries = await GetEntriesForDateAsync(date, ct);
+                var entries = await this.GetEntriesForDateAsync(date, ct);
                 next = entries.Count == 0 ? 1 : entries.Max(e => e.SequenceNumber) + 1;
             }
 
@@ -154,12 +170,12 @@ public sealed class JsonRepository : IEntryRepository
         }
         finally
         {
-            _seqLock.Release();
+            this.seqLock.Release();
         }
     }
 
     private string GetRawDir(DateOnly date) =>
-        Path.Combine(_outputRoot, date.ToString("yyyy-MM-dd"), "_raw");
+        Path.Combine(this.outputRoot, date.ToString("yyyy-MM-dd"), "_raw");
 }
 
 file sealed record CounterDoc(int Next);

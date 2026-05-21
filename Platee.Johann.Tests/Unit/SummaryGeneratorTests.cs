@@ -1,14 +1,13 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
+using NSubstitute;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
-using NSubstitute;
-
-namespace Platee.Johann.Tests.Unit;
 
 public sealed class SummaryGeneratorTests
 {
     // ── IsAvailable ───────────────────────────────────────────────────────────
-
     [Fact]
     public void IsAvailable_WhenLlmIsAvailable_ReturnsTrue()
     {
@@ -30,7 +29,6 @@ public sealed class SummaryGeneratorTests
     }
 
     // ── GenerateAbstractAsync ─────────────────────────────────────────────────
-
     [Fact]
     public async Task GenerateAbstractAsync_WhenLlmUnavailable_ReturnsEmpty()
     {
@@ -82,7 +80,6 @@ public sealed class SummaryGeneratorTests
     }
 
     // ── GenerateLongSummaryAsync ──────────────────────────────────────────────
-
     [Fact]
     public async Task GenerateLongSummaryAsync_WhenLlmUnavailable_ReturnsEmpty()
     {
@@ -115,7 +112,6 @@ public sealed class SummaryGeneratorTests
     }
 
     // ── GenerateProseSummaryAsync ─────────────────────────────────────────────
-
     [Fact]
     public async Task GenerateProseSummaryAsync_WhenLlmUnavailable_ReturnsEmpty()
     {
@@ -148,7 +144,6 @@ public sealed class SummaryGeneratorTests
     }
 
     // ── GenerateEmailTextAsync ────────────────────────────────────────────────
-
     [Fact]
     public async Task GenerateEmailTextAsync_WhenLlmUnavailable_ReturnsEmpty()
     {
@@ -180,7 +175,6 @@ public sealed class SummaryGeneratorTests
     }
 
     // -----------------------------------------------------------------------
-
     private static string BuildTranscript(int wordCount)
         => string.Join(" ", Enumerable.Repeat("Wort", wordCount));
 }

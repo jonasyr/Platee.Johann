@@ -1,6 +1,6 @@
-using System.Text.RegularExpressions;
-
 namespace Platee.Johann.Domain.Parsing;
+
+using System.Text.RegularExpressions;
 
 /// <summary>
 /// Replicates the 7 regex patterns from the original Python summarizer.py
@@ -16,7 +16,7 @@ public static class LegacyProjectResolver
         new(@"für\s+(?:das\s+)?projekt\s+([a-zA-ZäöüÄÖÜß0-9\-_]+)", RegexOptions.IgnoreCase),
         new(@"zum\s+(?:das\s+)?projekt\s+([a-zA-ZäöüÄÖÜß0-9\-_]+)", RegexOptions.IgnoreCase),
         new(@"im\s+(?:das\s+)?projekt\s+([a-zA-ZäöüÄÖÜß0-9\-_]+)",  RegexOptions.IgnoreCase),
-        new(@"beim\s+(?:das\s+)?projekt\s+([a-zA-ZäöüÄÖÜß0-9\-_]+)",RegexOptions.IgnoreCase),
+        new(@"beim\s+(?:das\s+)?projekt\s+([a-zA-ZäöüÄÖÜß0-9\-_]+)", RegexOptions.IgnoreCase),
         new(@"projekt\s+([a-zA-ZäöüÄÖÜß0-9\-_]+)",                   RegexOptions.IgnoreCase),
     ];
 
@@ -30,10 +30,12 @@ public static class LegacyProjectResolver
             if (match.Success)
             {
                 var name = match.Groups[1].Value;
+
                 // Title-case like Python's .title()
                 return char.ToUpper(name[0]) + name[1..].ToLower();
             }
         }
+
         return Fallback;
     }
 }

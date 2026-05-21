@@ -1,25 +1,27 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
 
-namespace Platee.Johann.Tests.Unit;
-
 public sealed class PromptDefaultsMigrationTests : IDisposable
 {
-    private readonly string _tempDir;
-    private readonly string _settingsFilePath;
+    private readonly string tempDir;
+    private readonly string settingsFilePath;
 
     public PromptDefaultsMigrationTests()
     {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"JohannPromptMigrationTests_{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
-        _settingsFilePath = Path.Combine(_tempDir, "settings.json");
+        this.tempDir = Path.Combine(Path.GetTempPath(), $"JohannPromptMigrationTests_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(this.tempDir);
+        this.settingsFilePath = Path.Combine(this.tempDir, "settings.json");
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, recursive: true);
+        if (Directory.Exists(this.tempDir))
+        {
+            Directory.Delete(this.tempDir, recursive: true);
+        }
     }
 
     [Fact]
@@ -27,7 +29,7 @@ public sealed class PromptDefaultsMigrationTests : IDisposable
     {
         var settings = AppSettings.Default;
 
-        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, _settingsFilePath);
+        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, this.settingsFilePath);
 
         result.DidMigrate.Should().BeFalse();
         result.BackupPath.Should().BeNull();
@@ -37,7 +39,7 @@ public sealed class PromptDefaultsMigrationTests : IDisposable
     [Fact]
     public void ApplyIfNeeded_WhenOldRevisionAndFileExists_BacksUpAndOverwritesOnlyPrompts()
     {
-        File.WriteAllText(_settingsFilePath, """{"name":"Alt","systemMessage":"custom"}""");
+        File.WriteAllText(this.settingsFilePath, """{"name":"Alt","systemMessage":"custom"}""");
 
         var settings = AppSettings.Default with
         {
@@ -58,7 +60,7 @@ public sealed class PromptDefaultsMigrationTests : IDisposable
             AnalogPrompt = "CUSTOM ANALOG",
         };
 
-        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, _settingsFilePath);
+        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, this.settingsFilePath);
 
         result.DidMigrate.Should().BeTrue();
         result.BackupPath.Should().NotBeNull();
@@ -91,7 +93,7 @@ public sealed class PromptDefaultsMigrationTests : IDisposable
             SystemMessage = "CUSTOM SYSTEM",
         };
 
-        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, _settingsFilePath);
+        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, this.settingsFilePath);
 
         result.DidMigrate.Should().BeTrue();
         result.BackupPath.Should().BeNull();

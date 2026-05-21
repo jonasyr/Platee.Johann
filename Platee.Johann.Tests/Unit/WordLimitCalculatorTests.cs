@@ -1,7 +1,7 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Application.Processing;
-
-namespace Platee.Johann.Tests.Unit;
 
 public sealed class WordLimitCalculatorTests
 {
@@ -74,7 +74,6 @@ public sealed class WordLimitCalculatorTests
     }
 
     // -----------------------------------------------------------------------
-
     private static string BuildTranscript(int wordCount)
         => string.Join(" ", Enumerable.Repeat("Wort", wordCount));
 }

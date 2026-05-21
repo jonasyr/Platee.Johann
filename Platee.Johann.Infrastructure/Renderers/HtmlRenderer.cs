@@ -1,11 +1,11 @@
+namespace Platee.Johann.Infrastructure.Renderers;
+
+using System.Net;
+using System.Text;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Services;
-using System.Net;
-using System.Text;
-
-namespace Platee.Johann.Infrastructure.Renderers;
 
 /// <summary>
 /// Generates a standalone HTML file for a single entry.
@@ -13,13 +13,13 @@ namespace Platee.Johann.Infrastructure.Renderers;
 /// </summary>
 public sealed class HtmlRenderer : IEntryRenderer
 {
-    private readonly IHtmlOverviewService? _overviewService;
+    private readonly IHtmlOverviewService? overviewService;
 
     public string RendererName => "HTML";
 
     public HtmlRenderer(IHtmlOverviewService? overviewService = null)
     {
-        _overviewService = overviewService;
+        this.overviewService = overviewService;
     }
 
     public async Task<RenderResult> RenderAsync(Entry entry, RenderOptions options,
@@ -37,10 +37,10 @@ public sealed class HtmlRenderer : IEntryRenderer
         await File.WriteAllTextAsync(filePath, html, Encoding.UTF8, ct);
 
         // Regenerate the daily overview after saving the entry HTML
-        if (_overviewService is not null)
+        if (this.overviewService is not null)
         {
             var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
-            await _overviewService.RegenerateAsync(date, ct);
+            await this.overviewService.RegenerateAsync(date, ct);
         }
 
         var bytes = Encoding.UTF8.GetBytes(html);
@@ -75,34 +75,53 @@ public sealed class HtmlRenderer : IEntryRenderer
         sb.AppendLine($"  <h1>{HtmlEncode(entry.Title)}</h1>");
         sb.AppendLine($"  <p class=\"meta\">{entry.CreatedAt:dd.MM.yyyy} · #{entry.SequenceNumber:D3}");
         if (entry.DurationSeconds > 0)
+        {
             sb.Append($" · {FormatDuration(entry.DurationSeconds)}");
+        }
+
         sb.AppendLine("  </p>");
         sb.AppendLine("</div>");
 
         // Content sections — visibility controlled by checkboxes in the UI
         if (!string.IsNullOrWhiteSpace(entry.Abstract))
+        {
             AppendSection(sb, "Kurzfassung", entry.Abstract!, "section-abstract");
+        }
 
         if (sections.TaskList && !string.IsNullOrWhiteSpace(entry.TaskList))
+        {
             AppendSection(sb, "Aufgaben", entry.TaskList!, "section-task");
+        }
 
         if (sections.ConversationNote && !string.IsNullOrWhiteSpace(entry.ConversationNote))
+        {
             AppendSection(sb, "Gesprächsnotiz", entry.ConversationNote!, "section-note");
+        }
 
         if (sections.StundenzettelText && !string.IsNullOrWhiteSpace(entry.StundenzettelText))
+        {
             AppendSection(sb, "Stundenzettel", entry.StundenzettelText!, "section-stundenzettel");
+        }
 
         if (sections.AnalogText && !string.IsNullOrWhiteSpace(entry.AnalogText))
+        {
             AppendSection(sb, "Analog", entry.AnalogText!, "section-analog");
+        }
 
         if (sections.EmailText && !string.IsNullOrWhiteSpace(entry.EmailText))
+        {
             AppendSection(sb, "E-Mail", entry.EmailText!, "section-email");
+        }
 
         if (sections.LongSummary && !string.IsNullOrWhiteSpace(entry.LongSummary))
+        {
             AppendSection(sb, "Zusammenfassung", entry.LongSummary!, "section-summary");
+        }
 
         if (sections.ProseSummary && !string.IsNullOrWhiteSpace(entry.ProseSummary))
+        {
             AppendSection(sb, "Ausführliche Zusammenfassung", entry.ProseSummary!, "section-prose");
+        }
 
         if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.Transcript))
         {
@@ -120,12 +139,18 @@ public sealed class HtmlRenderer : IEntryRenderer
     {
         sb.AppendLine($"<div class=\"section {cssClass}\">");
         if (title != null)
+        {
             sb.AppendLine($"  <h2>{HtmlEncode(title)}</h2>");
+        }
 
         if (isPlainText)
+        {
             sb.AppendLine($"  <div class=\"md-content\">{HtmlEncode(body).Replace("\n", "<br>")}</div>");
+        }
         else
+        {
             sb.AppendLine($"  <div class=\"md-content\">{MarkdownHelper.ToHtml(body)}</div>");
+        }
 
         sb.AppendLine("</div>");
     }

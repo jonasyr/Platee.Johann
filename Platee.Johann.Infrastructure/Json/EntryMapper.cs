@@ -1,8 +1,8 @@
+namespace Platee.Johann.Infrastructure.Json;
+
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.ValueObjects;
-
-namespace Platee.Johann.Infrastructure.Json;
 
 internal static class EntryMapper
 {
