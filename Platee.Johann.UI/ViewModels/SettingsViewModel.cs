@@ -204,17 +204,17 @@ public sealed partial class SettingsViewModel : ObservableObject
     private static IReadOnlyList<SettingsSectionItem> BuildSections() =>
         new List<SettingsSectionItem>
         {
-            new(SectionGeneral, "Allgemein", "Grunddaten"),
-            new(SectionPaths, "Verzeichnisse", "Grunddaten"),
-            new(SectionSystemMessage, "System-Nachricht", "Globale Prompts"),
-            new(SectionAbstract, "Kurzfassung", "Globale Prompts"),
-            new(SectionStructured, "Zusammenfassung", "Globale Prompts"),
-            new(SectionProse, "Ausfuehrlich", "Globale Prompts"),
-            new(SectionEmail, "E-Mail", "Typ-spezifische Prompts"),
-            new(SectionAufgabe, "Aufgaben", "Typ-spezifische Prompts"),
-            new(SectionGespraechsnotiz, "Gespraechsnotiz", "Typ-spezifische Prompts"),
-            new(SectionStundenzettel, "Stundenzettel", "Typ-spezifische Prompts"),
-            new(SectionAnalog, "Analog", "Typ-spezifische Prompts"),
+            new(SectionGeneral, "Allgemein", "GRUNDDATEN"),
+            new(SectionPaths, "Verzeichnisse", "GRUNDDATEN"),
+            new(SectionSystemMessage, "System-Nachricht", "GLOBALE PROMPTS"),
+            new(SectionAbstract, "Kurzfassung", "GLOBALE PROMPTS"),
+            new(SectionStructured, "Zusammenfassung", "GLOBALE PROMPTS"),
+            new(SectionProse, "Ausfuehrlich", "GLOBALE PROMPTS"),
+            new(SectionEmail, "E-Mail", "TYP-SPEZIFISCHE PROMPTS"),
+            new(SectionAufgabe, "Aufgaben", "TYP-SPEZIFISCHE PROMPTS"),
+            new(SectionGespraechsnotiz, "Gespraechsnotiz", "TYP-SPEZIFISCHE PROMPTS"),
+            new(SectionStundenzettel, "Stundenzettel", "TYP-SPEZIFISCHE PROMPTS"),
+            new(SectionAnalog, "Analog", "TYP-SPEZIFISCHE PROMPTS"),
         };
 
     private const string SectionGeneral = "general";

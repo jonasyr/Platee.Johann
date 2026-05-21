@@ -173,6 +173,44 @@
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+        <Style x:Key="MicroCapsLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextQuietBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SortRailButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="10,3"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="{StaticResource BgPaneBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderMidBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource AccentDarkBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="LinkButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="4,0,0,0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource AccentDarkBrush}"/>
+                    <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <CollectionViewSource x:Key="DatesGrouped" Source="{Binding AvailableDates}">
             <CollectionViewSource.GroupDescriptions>
                 <PropertyGroupDescription PropertyName="MonthYearKey"/>
@@ -340,7 +378,16 @@
                 <Border DockPanel.Dock="Bottom" Padding="8,6" BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0" Background="#F5F5F5">
                     <StackPanel>
-                        <TextBlock Text="Abschnitte" FontSize="10" Foreground="#999" Margin="0,0,0,4"/>
+                        <StackPanel Margin="0,0,0,6">
+                            <TextBlock DockPanel.Dock="Left"
+                                       Text="Im Eintrag anzeigen"
+                                       Style="{StaticResource MicroCapsLabelStyle}"/>
+                            <TextBlock
+                                       Text="Standard: nach Typ"
+                                       Margin="0,2,0,0"
+                                       FontSize="10"
+                                       Foreground="{StaticResource TextFaintBrush}"/>
+                        </StackPanel>
                         <CheckBox Content="Ausführlich"    IsChecked="{Binding Sections.ShowProseSummary}"      FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Zusammenfassung" IsChecked="{Binding Sections.ShowLongSummary}"     FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Aufgaben"       IsChecked="{Binding Sections.ShowTaskList}"          FontSize="11" Margin="0,1"/>
@@ -349,6 +396,10 @@
                         <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         FontSize="11" Margin="0,1"/>
+                        <Button Content="↻ Standard wiederherstellen"
+                                Command="{Binding ResetSectionsCommand}"
+                                Style="{StaticResource LinkButtonStyle}"
+                                Margin="0,6,0,0"/>
                     </StackPanel>
                 </Border>
                 <ListBox ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
@@ -435,25 +486,74 @@
                 <!-- Sort / Filter toolbar -->
                 <Border DockPanel.Dock="Top" Padding="6,4" BorderThickness="0,0,0,1"
                         BorderBrush="#E0E0E0" Background="#F9F9F9">
-                    <DockPanel>
-                        <CheckBox DockPanel.Dock="Right" Content="Nur unerledigte"
-                                  IsChecked="{Binding ShowOnlyPending}"
-                                  VerticalAlignment="Center" Margin="4,0,0,0" FontSize="11"/>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="↕" VerticalAlignment="Center" FontSize="11"
-                                       Foreground="#666" Margin="0,0,4,0"/>
-                            <ToggleButton Content="{Binding SortByIdLabel}"
-                                          IsChecked="{Binding IsSortById, Mode=OneWay}"
-                                          Command="{Binding SortByIdCommand}"
-                                          Style="{StaticResource SortToggleStyle}"
-                                          ToolTip="Nach Nummer sortieren"/>
-                            <ToggleButton Content="{Binding SortByProjectLabel}"
-                                          IsChecked="{Binding IsSortByProject, Mode=OneWay}"
-                                          Command="{Binding SortByProjectCommand}"
-                                          Style="{StaticResource SortToggleStyle}"
-                                          ToolTip="Nach Projekt sortieren"/>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="SORTIEREN"
+                                       Style="{StaticResource MicroCapsLabelStyle}"
+                                       Width="64"/>
+                            <Button Content="{Binding SortByIdButtonLabel}"
+                                    Command="{Binding SortByIdCommand}"
+                                    ToolTip="Nach Nummer sortieren">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SortRailButtonStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSortById}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsSortById}" Value="True"/>
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background" Value="{StaticResource AccentDarkBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="{Binding SortByProjectButtonLabel}"
+                                    Command="{Binding SortByProjectCommand}"
+                                    Margin="0,0,0,0"
+                                    ToolTip="Nach Projekt sortieren">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SortRailButtonStyle}">
+                                        <Setter Property="Margin" Value="0"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSortByProject}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding IsSortByProject}" Value="True"/>
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background" Value="{StaticResource AccentDarkBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </StackPanel>
-                    </DockPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="FILTER"
+                                       Style="{StaticResource MicroCapsLabelStyle}"
+                                       Width="64"/>
+                            <CheckBox Content="Nur unerledigte"
+                                      IsChecked="{Binding ShowOnlyPending}"
+                                      VerticalAlignment="Center"
+                                      FontSize="11"/>
+                        </StackPanel>
+                    </StackPanel>
                 </Border>
 
                 <Border DockPanel.Dock="Bottom" Padding="8" BorderThickness="0,1,0,0"

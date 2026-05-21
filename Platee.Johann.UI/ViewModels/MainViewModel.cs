@@ -67,6 +67,11 @@ public sealed partial class MainViewModel : ObservableObject
 
     public bool IsSortById => CurrentSort == SortMode.ById;
     public bool IsSortByProject => CurrentSort == SortMode.ByProjectThenId;
+    public string SortBy => IsSortByProject ? "project" : "id";
+    public string SortDir => IsSortReversed ? "desc" : "asc";
+    public string SortDirectionArrow => IsSortReversed ? "↓" : "↑";
+    public string SortByIdButtonLabel => IsSortById ? $"{SortDirectionArrow} Nr" : "Nr";
+    public string SortByProjectButtonLabel => IsSortByProject ? $"{SortDirectionArrow} Projekt" : "Projekt";
 
     public string SortByIdLabel => IsSortById ? (IsSortReversed ? "ID ↑" : "ID ↓") : "ID";
     public string SortByProjectLabel => IsSortByProject ? (IsSortReversed ? "Projekt ↑" : "Projekt ↓") : "Projekt";
@@ -161,12 +166,21 @@ public sealed partial class MainViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsSortById));
         OnPropertyChanged(nameof(IsSortByProject));
+        OnPropertyChanged(nameof(SortBy));
+        OnPropertyChanged(nameof(SortDir));
+        OnPropertyChanged(nameof(SortDirectionArrow));
+        OnPropertyChanged(nameof(SortByIdButtonLabel));
+        OnPropertyChanged(nameof(SortByProjectButtonLabel));
         OnPropertyChanged(nameof(SortByIdLabel));
         OnPropertyChanged(nameof(SortByProjectLabel));
     }
 
     partial void OnIsSortReversedChanged(bool value)
     {
+        OnPropertyChanged(nameof(SortDir));
+        OnPropertyChanged(nameof(SortDirectionArrow));
+        OnPropertyChanged(nameof(SortByIdButtonLabel));
+        OnPropertyChanged(nameof(SortByProjectButtonLabel));
         OnPropertyChanged(nameof(SortByIdLabel));
         OnPropertyChanged(nameof(SortByProjectLabel));
     }
@@ -328,6 +342,12 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SortByIdLabel));
         OnPropertyChanged(nameof(SortByProjectLabel));
         _ = LoadEntriesAsync(SelectedDateItem?.Date);
+    }
+
+    [RelayCommand]
+    private void ResetSections()
+    {
+        ResetSectionsToDefaults(SelectedEntry?.Entry.Type);
     }
 
     [RelayCommand]
@@ -559,5 +579,23 @@ public sealed partial class MainViewModel : ObservableObject
         };
 
         return candidates.FirstOrDefault(File.Exists);
+    }
+
+    private void ResetSectionsToDefaults(EntryType? type)
+    {
+        Sections.ShowLongSummary = true;
+        Sections.ShowProseSummary = true;
+        Sections.ShowTaskList = true;
+        Sections.ShowConversationNote = true;
+        Sections.ShowEmailText = false;
+        Sections.ShowStundenzettelText = false;
+        Sections.ShowAnalogText = false;
+        Sections.ShowTranscript = true;
+
+        Sections.ShowTaskList = type == EntryType.Aufgabe;
+        Sections.ShowConversationNote = type == EntryType.Gesprächsnotiz;
+        Sections.ShowEmailText = type == EntryType.EMail;
+        Sections.ShowStundenzettelText = type == EntryType.Stundenzettel;
+        Sections.ShowAnalogText = type == EntryType.Analog;
     }
 }
