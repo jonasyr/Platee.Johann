@@ -73,6 +73,9 @@ public sealed partial class MainViewModel : ObservableObject
         SelectedDateItem?.DisplayText ?? "Kein Datum gewählt";
 
     public bool CanAddAudio => _processor.CanProcess;
+    public bool HasRunningJobs => ProcessLog.Any(x => x.IsRunning);
+    public string OutputPathDisplay => _outputRoot;
+    public string WhisperVersion => "Whisper whisper-1";
 
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
                          string outputRoot, IEntryProcessor processor,
@@ -216,6 +219,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             ProcessLog.Insert(0, item);
             IsProcessing = ProcessLog.Any(x => x.IsRunning);
+            OnPropertyChanged(nameof(HasRunningJobs));
             if (isRunning) StatusText = message;
             ToastMessage = message;
             IsToastRunning = isRunning;
@@ -243,6 +247,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             item.Complete(resultMessage);
             IsProcessing = ProcessLog.Any(x => x.IsRunning);
+            OnPropertyChanged(nameof(HasRunningJobs));
             StatusText = IsProcessing ? StatusText : "Bereit";
             ToastMessage = resultMessage;
             IsToastRunning = false;
@@ -254,7 +259,12 @@ public sealed partial class MainViewModel : ObservableObject
     private void OpenProcessDetail() => IsProcessLogOpen = !IsProcessLogOpen;
 
     [RelayCommand]
-    private void ClearProcessLog() => ProcessLog.Clear();
+    private void ClearProcessLog()
+    {
+        ProcessLog.Clear();
+        IsProcessing = false;
+        OnPropertyChanged(nameof(HasRunningJobs));
+    }
 
     [RelayCommand]
     private void RemoveCompletedLogs()
@@ -262,6 +272,7 @@ public sealed partial class MainViewModel : ObservableObject
         var completed = ProcessLog.Where(x => !x.IsRunning).ToList();
         foreach (var item in completed)
             ProcessLog.Remove(item);
+        OnPropertyChanged(nameof(HasRunningJobs));
     }
 
     [RelayCommand]
@@ -433,6 +444,24 @@ public sealed partial class MainViewModel : ObservableObject
         _settingsWindow.Show(); // non-modal with single-instance behavior
     }
 
+    [RelayCommand]
+    private void OpenHandbook()
+    {
+        var handbuchPath = FindHandbookPath();
+        if (handbuchPath is not null)
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(handbuchPath) { UseShellExecute = true });
+            return;
+        }
+
+        System.Windows.MessageBox.Show(
+            "Dokumentation nicht gefunden:\nHANDBUCH.html",
+            "Hilfe",
+            System.Windows.MessageBoxButton.OK,
+            System.Windows.MessageBoxImage.Information);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -477,5 +506,17 @@ public sealed partial class MainViewModel : ObservableObject
             ct.ThrowIfCancellationRequested();
             dateItem.PendingCount = await PendingCountCalculator.GetPendingCountForDateAsync(_repository, dateItem.Date, ct);
         }
+    }
+
+    private static string? FindHandbookPath()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "HANDBUCH.html"),
+            Path.Combine(Environment.CurrentDirectory, "HANDBUCH.html"),
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "HANDBUCH.html")),
+        };
+
+        return candidates.FirstOrDefault(File.Exists);
     }
 }

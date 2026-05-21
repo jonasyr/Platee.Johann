@@ -12,7 +12,35 @@
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
+        <SolidColorBrush x:Key="AccentBrush" Color="#E63123"/>
+        <SolidColorBrush x:Key="AccentDarkBrush" Color="#C0392B"/>
+        <SolidColorBrush x:Key="AccentDeepBrush" Color="#C92D21"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#FDF1F0"/>
+        <SolidColorBrush x:Key="BgBrush" Color="#F0F0F0"/>
+        <SolidColorBrush x:Key="BgPaneBrush" Color="#F9F9F9"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#E0E0E0"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#333333"/>
+        <SolidColorBrush x:Key="TextFaintBrush" Color="#999999"/>
+        <SolidColorBrush x:Key="BorderMidBrush" Color="#CCCCCC"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#27AE60"/>
+        <FontFamily x:Key="MonoFamily">Consolas</FontFamily>
         <!-- Type badge colors -->
+        <DataTemplate x:Key="DoneHeaderPendingTemplate">
+            <TextBlock Text="✓ Als erledigt markieren"
+                       TextWrapping="NoWrap"
+                       TextTrimming="None"/>
+        </DataTemplate>
+        <DataTemplate x:Key="DoneHeaderCompletedTemplate">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="✓"
+                           Foreground="{StaticResource SuccessBrush}"
+                           FontWeight="SemiBold"
+                           Margin="0,0,6,0"/>
+                <TextBlock Text="Erledigt — rückgängig"
+                           TextWrapping="NoWrap"
+                           TextTrimming="None"/>
+            </StackPanel>
+        </DataTemplate>
         <Style x:Key="TypeBadgeStyle" TargetType="Border">
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="Padding" Value="6,2"/>
@@ -40,6 +68,75 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+        <Style x:Key="ExportClusterButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Margin" Value="0"/>
+        </Style>
+        <Style x:Key="ReprocessActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource AccentDarkBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="DoneHeaderButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="200"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="ContentTemplate" Value="{StaticResource DoneHeaderPendingTemplate}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Detail.DisplayIsDone}" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BgBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource BorderMidBrush}"/>
+                    <Setter Property="ContentTemplate" Value="{StaticResource DoneHeaderCompletedTemplate}"/>
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Detail.DisplayIsDone}" Value="False"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="{StaticResource AccentDarkBrush}"/>
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Detail.DisplayIsDone}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="#EAEAEA"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="StatusBarZoomButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="#555"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BgPaneBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource BorderMidBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="SortToggleStyle" TargetType="ToggleButton">
             <Setter Property="Padding" Value="8,3"/>
             <Setter Property="Margin" Value="0,0,2,0"/>
@@ -51,15 +148,21 @@
         <conv:MarkdownFlowDocumentConverter x:Key="MdToDoc"/>
         <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis"/>
     </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Key="F1" Command="{Binding OpenHandbookCommand}"/>
+        <KeyBinding Key="F2" Command="{Binding OpenProcessDetailCommand}"/>
+        <KeyBinding Key="OemComma" Modifiers="Ctrl" Command="{Binding OpenSettingsCommand}"/>
+    </Window.InputBindings>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="36"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="22"/>
         </Grid.RowDefinitions>
 
         <!-- Loading overlay -->
-        <Grid Grid.RowSpan="2" Panel.ZIndex="10"
+        <Grid Grid.RowSpan="3" Panel.ZIndex="10"
               Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
             <Rectangle Fill="#80FFFFFF"/>
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -88,18 +191,31 @@
                                      Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVis}}"/>
                         <Button x:Name="StatusTextButton"
                                 Command="{Binding OpenProcessDetailCommand}"
-                                ToolTip="{Binding StatusText}"
+                                ToolTip="Status-Log öffnen (F2)"
+                                AutomationProperties.Name="Status-Log"
                                 FontSize="14"
                                 Background="Transparent" BorderThickness="0" Margin="0,0,8,0"
                                 Cursor="Hand" Padding="4,0">
-                            <TextBlock Text="🔔" FontSize="13"/>
+                            <Grid Width="18" Height="18">
+                                <TextBlock Text="🔔" FontSize="13"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <Ellipse Width="7" Height="7"
+                                         Fill="{StaticResource AccentBrush}"
+                                         Stroke="{StaticResource BgBrush}"
+                                         StrokeThickness="1.5"
+                                         HorizontalAlignment="Right"
+                                         VerticalAlignment="Top"
+                                         Margin="0,2,2,0"
+                                         Visibility="{Binding HasRunningJobs, Converter={StaticResource BoolToVis}}"/>
+                            </Grid>
                         </Button>
                         <Button Content="⚙ Einstellungen" Command="{Binding OpenSettingsCommand}"
-                                ToolTip="Einstellungen öffnen"
+                                ToolTip="Einstellungen öffnen (Strg+,)"
                                 Background="Transparent" BorderThickness="0"
                                 FontSize="12" Padding="6,2" Cursor="Hand"/>
-                        <Button Content="?" Click="HelpButton_Click"
-                                ToolTip="Dokumentation öffnen"
+                        <Button Content="?" Command="{Binding OpenHandbookCommand}"
+                                ToolTip="Handbuch öffnen (F1)"
+                                AutomationProperties.Name="Handbuch"
                                 Background="Transparent" BorderThickness="0"
                                 FontSize="12" Padding="6,2" Cursor="Hand" Margin="4,0,0,0"/>
                     </StackPanel>
@@ -313,19 +429,12 @@
                 <!-- Action toolbar -->
                 <Border DockPanel.Dock="Bottom" Padding="8,6" BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0">
-                    <DockPanel>
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
-                            <Button Content="−" Command="{Binding Detail.ZoomOutCommand}"
-                                    ToolTip="Verkleinern" Width="22" Height="22" Padding="0" FontSize="14" Cursor="Hand"/>
-                            <TextBlock Text="{Binding Detail.ZoomText}" VerticalAlignment="Center"
-                                       Margin="4,0" FontSize="11" MinWidth="40" TextAlignment="Center"/>
-                            <Button Content="+" Command="{Binding Detail.ZoomInCommand}"
-                                    ToolTip="Vergrößern" Width="22" Height="22" Padding="0" FontSize="14" Cursor="Hand"/>
-                        </StackPanel>
+                    <StackPanel Orientation="Horizontal">
                         <StackPanel Orientation="Horizontal">
                             <Button Content="HTML"
                                     Command="{Binding Detail.GenerateHtmlCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
+                                    Style="{StaticResource ExportClusterButtonStyle}"
+                                    BorderThickness="1,1,0,1"
                                     ToolTip="HTML-Datei erstellen und öffnen">
                                 <Button.ContextMenu>
                                     <ContextMenu>
@@ -337,7 +446,8 @@
                             </Button>
                             <Button Content="PDF"
                                     Command="{Binding Detail.GeneratePdfCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
+                                    Style="{StaticResource ExportClusterButtonStyle}"
+                                    BorderThickness="1,1,0,1"
                                     ToolTip="PDF-Datei erstellen und öffnen">
                                 <Button.ContextMenu>
                                     <ContextMenu>
@@ -349,7 +459,8 @@
                             </Button>
                             <Button Content="E-Mail"
                                     Command="{Binding Detail.CopyEmailCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
+                                    Style="{StaticResource ExportClusterButtonStyle}"
+                                    BorderThickness="1,1,0,1"
                                     ToolTip="E-Mail-Text in Zwischenablage kopieren">
                                 <Button.ContextMenu>
                                     <ContextMenu>
@@ -361,51 +472,53 @@
                             </Button>
                             <Button Content="Kopieren"
                                     Command="{Binding Detail.CopyCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
+                                    Style="{StaticResource ExportClusterButtonStyle}"
+                                    BorderThickness="1"
                                     ToolTip="Alle sichtbaren Sektionen in die Zwischenablage kopieren"/>
-                            <Button Content="↻ Neu generieren"
-                                    Command="{Binding Detail.ReprocessCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    ToolTip="GPT-Zusammenfassungen neu generieren">
-                                <Button.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="Ausführliche Zusammenfassung neu generieren"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="Ausführliche Zusammenfassung"/>
-                                        <MenuItem Header="Zusammenfassung neu generieren"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="Zusammenfassung"/>
-                                        <MenuItem Header="Aufgaben neu generieren"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="Aufgaben"/>
-                                        <MenuItem Header="Gesprächsnotiz neu generieren"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="Gesprächsnotiz"/>
-                                        <MenuItem Header="E-Mail neu generieren"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="E-Mail"/>
-                                        <MenuItem Header="Stundenzettel neu generieren"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="Stundenzettel"/>
-                                        <MenuItem Header="Analog neu generieren"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="Analog"/>
-                                        <MenuItem Header="Transkript neu generieren"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                                  CommandParameter="Transkript"/>
-                                    </ContextMenu>
-                                </Button.ContextMenu>
-                            </Button>
                         </StackPanel>
-                    </DockPanel>
+                        <Border Width="12"/>
+                        <Button Content="↻ Neu generieren"
+                                Command="{Binding Detail.ReprocessCommand}"
+                                Style="{StaticResource ReprocessActionButtonStyle}"
+                                ToolTip="GPT-Zusammenfassungen neu generieren">
+                            <Button.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Ausführliche Zusammenfassung neu generieren"
+                                              Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="Ausführliche Zusammenfassung"/>
+                                    <MenuItem Header="Zusammenfassung neu generieren"
+                                              Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="Zusammenfassung"/>
+                                    <MenuItem Header="Aufgaben neu generieren"
+                                              Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="Aufgaben"/>
+                                    <MenuItem Header="Gesprächsnotiz neu generieren"
+                                              Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="Gesprächsnotiz"/>
+                                    <MenuItem Header="E-Mail neu generieren"
+                                              Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="E-Mail"/>
+                                    <MenuItem Header="Stundenzettel neu generieren"
+                                              Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="Stundenzettel"/>
+                                    <MenuItem Header="Analog neu generieren"
+                                              Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="Analog"/>
+                                    <MenuItem Header="Transkript neu generieren"
+                                              Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
+                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                              CommandParameter="Transkript"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                    </StackPanel>
                 </Border>
 
                 <!-- Detail content — empty state -->
@@ -424,35 +537,38 @@
                                             ScaleY="{Binding Detail.DetailZoom}"/>
                         </StackPanel.LayoutTransform>
 
-                        <!-- Header: badge + project + title -->
-                        <DockPanel Margin="0,0,0,4">
-                            <Border Style="{StaticResource TypeBadgeStyle}" DockPanel.Dock="Left"
-                                    Margin="0,0,8,0">
-                                <TextBlock Text="{Binding Detail.DisplayTypeBadge}"
-                                           Foreground="White" FontSize="11" FontWeight="SemiBold"/>
-                            </Border>
-                            <TextBlock Text="{Binding Detail.DisplayProject}"
-                                       FontSize="13" Foreground="#666" VerticalAlignment="Center"/>
-                        </DockPanel>
-                        <TextBlock Text="{Binding Detail.DisplayTitle}"
-                                   FontSize="20" FontWeight="Bold" TextWrapping="Wrap"
-                                   Margin="0,0,0,2"/>
-                        <TextBlock FontSize="12" Foreground="#888" Margin="0,0,0,12">
-                            <Run Text="{Binding Detail.DisplayDate, Mode=OneWay}"/>
-                            <Run Text=" · "/>
-                            <Run Text="{Binding Detail.DisplayDuration, Mode=OneWay}"/>
-                        </TextBlock>
+                        <!-- Header: metadata left, done action right -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                                <DockPanel Margin="0,0,0,4">
+                                    <Border Style="{StaticResource TypeBadgeStyle}" DockPanel.Dock="Left"
+                                            Margin="0,0,8,0">
+                                        <TextBlock Text="{Binding Detail.DisplayTypeBadge}"
+                                                   Foreground="White" FontSize="11" FontWeight="SemiBold"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding Detail.DisplayProject}"
+                                               FontSize="13" Foreground="#666" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <TextBlock Text="{Binding Detail.DisplayTitle}"
+                                           FontSize="20" FontWeight="Bold" TextWrapping="Wrap"
+                                           Margin="0,0,0,2"/>
+                                <TextBlock FontSize="12" Foreground="#888">
+                                    <Run Text="{Binding Detail.DisplayDate, Mode=OneWay}"/>
+                                    <Run Text=" · "/>
+                                    <Run Text="{Binding Detail.DisplayDuration, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Command="{Binding Detail.ToggleDoneCommand}"
+                                    Style="{StaticResource DoneHeaderButtonStyle}"
+                                    VerticalAlignment="Top"/>
+                        </Grid>
 
                         <Separator Margin="0,0,0,8"/>
-
-                        <!-- Done status -->
-                        <DockPanel Margin="0,0,0,12">
-                            <Button DockPanel.Dock="Right"
-                                    Content="{Binding Detail.IsDoneButtonText}"
-                                    Command="{Binding Detail.ToggleDoneCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    FontSize="12"/>
-                        </DockPanel>
 
                         <!-- Abstract — always shown when present, subtle highlight -->
                         <StackPanel Visibility="{Binding Detail.Entry.Abstract, Converter={StaticResource NullToVis}}"
@@ -583,6 +699,37 @@
                 </ScrollViewer>
             </DockPanel>
         </Grid>
+
+        <Border Grid.Row="2"
+                Height="22"
+                Background="{StaticResource BgBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="10,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                    <TextBlock Text=" · " FontSize="11" Foreground="{StaticResource TextFaintBrush}" Margin="10,0" VerticalAlignment="Center"/>
+                    <TextBlock FontSize="11" Foreground="#666" VerticalAlignment="Center">
+                        <Run Text="Ausgabe in "/>
+                        <Run Text="{Binding OutputPathDisplay, Mode=OneWay}" FontFamily="{StaticResource MonoFamily}"/>
+                    </TextBlock>
+                    <TextBlock Text=" · " FontSize="11" Foreground="{StaticResource TextFaintBrush}" Margin="10,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding WhisperVersion, Mode=OneWay}" FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
+                    <Button Content="−" Command="{Binding Detail.ZoomOutCommand}"
+                            ToolTip="Verkleinern" Style="{StaticResource StatusBarZoomButtonStyle}"/>
+                    <TextBlock Text="{Binding Detail.ZoomText}" MinWidth="38" TextAlignment="Center"
+                               FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                    <Button Content="+" Command="{Binding Detail.ZoomInCommand}"
+                            ToolTip="Vergrößern" Style="{StaticResource StatusBarZoomButtonStyle}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
 
     </Grid>
 </Window>

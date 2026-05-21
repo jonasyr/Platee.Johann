@@ -1,4 +1,3 @@
-using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -92,14 +91,5 @@ public partial class MainWindow : Window
             sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta / 3.0);
             e.Handled = true;
         }
-    }
-
-    private void HelpButton_Click(object sender, RoutedEventArgs e)
-    {
-        const string handbuchPath = @"X:\PRO_Programmierung\Peano.APP\APP17_Johann\Platee.Johann\HANDBUCH.html";
-        if (File.Exists(handbuchPath))
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(handbuchPath) { UseShellExecute = true });
-        else
-            MessageBox.Show($"Dokumentation nicht gefunden:\n{handbuchPath}", "Hilfe", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 }
