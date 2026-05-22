@@ -242,7 +242,6 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         var updated = this.Entry with { IsDone = !this.Entry.IsDone };
         await this.repository.SaveAsync(updated);
         this.Entry = updated;
-        this.addLog?.Invoke(this.Entry.IsDone ? "✓ Als erledigt markiert." : "Erledigt-Markierung aufgehoben.", false);
         this.EntryStatusChanged?.Invoke(updated);
     }
 
