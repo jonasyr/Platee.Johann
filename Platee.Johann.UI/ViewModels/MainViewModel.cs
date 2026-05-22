@@ -2,7 +2,6 @@ namespace Platee.Johann.UI.ViewModels;
 
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -57,14 +56,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool isProcessLogOpen;
 
-    // Toast notification
-    [ObservableProperty]
-    private string toastMessage = string.Empty;
-    [ObservableProperty]
-    private bool isToastRunning;
-    [ObservableProperty]
-    private bool isToastVisible;
-    private DispatcherTimer? toastTimer;
+    public ToastsViewModel Toasts { get; } = new();
+    private readonly Dictionary<string, ToastItem> runningToasts = [];
 
     public ObservableCollection<ProcessLogItem> ProcessLog { get; } = [];
 
@@ -230,7 +223,6 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         this.IsLoading = true;
-        var logItem = this.AddProcessLog("Einträge laden…", isRunning: true);
         try
         {
             var entries = await this.repository.GetEntriesForDateAsync(date.Value);
@@ -249,12 +241,10 @@ public sealed partial class MainViewModel : ObservableObject
             }
 
             await this.RecalculatePendingCountsAsync();
-            this.CompleteProcessLog(logItem, $"{this.Entries.Count} Einträge geladen");
         }
         catch (Exception ex)
         {
             this.ErrorMessage = $"Fehler beim Laden: {ex.Message}";
-            this.CompleteProcessLog(logItem, $"Fehler: {ex.Message}");
         }
         finally
         {
@@ -284,25 +274,23 @@ public sealed partial class MainViewModel : ObservableObject
             if (isRunning)
             {
                 this.StatusText = message;
+                var toast = this.Toasts.ShowRunning(message);
+                this.runningToasts[item.Key] = toast;
             }
-
-            this.ToastMessage = message;
-            this.IsToastRunning = isRunning;
-            this.IsToastVisible = true;
-            this.StartToastDismissTimer();
+            else
+            {
+                var tone = ToastToneHelper.DeriveFromAdd(message);
+                this.Toasts.Show(message, tone);
+            }
         });
         return item;
     }
 
-    /// <summary>Updates the toast text in-place (e.g. for progress stage changes) without adding a new log entry.</summary>
     public void UpdateToastProgress(string message)
     {
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
             this.StatusText = message;
-            this.ToastMessage = message;
-            this.IsToastVisible = true;
-            this.StartToastDismissTimer();
         });
     }
 
@@ -314,9 +302,17 @@ public sealed partial class MainViewModel : ObservableObject
             this.IsProcessing = this.ProcessLog.Any(x => x.IsRunning);
             this.OnPropertyChanged(nameof(this.HasRunningJobs));
             this.StatusText = this.IsProcessing ? this.StatusText : "Bereit";
-            this.ToastMessage = resultMessage;
-            this.IsToastRunning = false;
-            this.StartToastDismissTimer();
+
+            var tone = ToastToneHelper.DeriveFromCompletion(resultMessage);
+            if (this.runningToasts.TryGetValue(item.Key, out var toast))
+            {
+                this.Toasts.Complete(toast, resultMessage, tone);
+                this.runningToasts.Remove(item.Key);
+            }
+            else
+            {
+                this.Toasts.Show(resultMessage, tone);
+            }
         });
     }
 
@@ -341,23 +337,6 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         this.OnPropertyChanged(nameof(this.HasRunningJobs));
-    }
-
-    [RelayCommand]
-    private void DismissToast()
-    {
-        this.toastTimer?.Stop();
-        this.IsToastVisible = false;
-    }
-
-    private void StartToastDismissTimer()
-    {
-        this.toastTimer?.Stop();
-        this.toastTimer = new DispatcherTimer(DispatcherPriority.Normal, Dispatcher.CurrentDispatcher)
-        { Interval = TimeSpan.FromSeconds(3) };
-        this.toastTimer.Tick += (_, _) => { this.IsToastVisible = false;
-            this.toastTimer.Stop(); };
-        this.toastTimer.Start();
     }
 
     // ── Commands ──────────────────────────────────────────────────────────────

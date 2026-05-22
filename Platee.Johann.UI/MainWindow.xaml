@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Platee.Johann.UI.ViewModels"
         xmlns:conv="clr-namespace:Platee.Johann.UI.Converters"
+        xmlns:views="clr-namespace:Platee.Johann.UI.Views"
         mc:Ignorable="d"
         Title="{Binding AppVersion, RelativeSource={RelativeSource Self}, StringFormat='Platé.Johann {0}'}"
         Height="700" Width="1200"
@@ -677,28 +678,17 @@
             <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
                           Background="#E0E0E0"/>
 
-            <!-- Toast notification overlay — top-right of main content area -->
-            <Border Grid.Column="4" Panel.ZIndex="8"
-                    HorizontalAlignment="Right" VerticalAlignment="Top"
-                    Margin="0,8,16,0" MaxWidth="320"
-                    Background="White" BorderBrush="#CCCCCC" BorderThickness="1"
-                    CornerRadius="6" Padding="12,8"
-                    Cursor="Hand"
-                    Visibility="{Binding IsToastVisible, Converter={StaticResource BoolToVis}}">
-                <Border.Effect>
-                    <DropShadowEffect ShadowDepth="2" BlurRadius="10" Opacity="0.2"/>
-                </Border.Effect>
-                <Border.InputBindings>
-                    <MouseBinding MouseAction="LeftClick" Command="{Binding DismissToastCommand}"/>
-                </Border.InputBindings>
-                <DockPanel>
-                    <ProgressBar DockPanel.Dock="Right" IsIndeterminate="True" Width="40" Height="4"
-                                 Foreground="#E63123" VerticalAlignment="Center" Margin="8,0,0,0"
-                                 Visibility="{Binding IsToastRunning, Converter={StaticResource BoolToVis}}"/>
-                    <TextBlock Text="{Binding ToastMessage}" FontSize="12" TextWrapping="Wrap"
-                               VerticalAlignment="Center" Foreground="#333"/>
-                </DockPanel>
-            </Border>
+            <!-- Toast tray — stacked top-right over the right pane -->
+            <ItemsControl Grid.Column="4" Panel.ZIndex="8"
+                          ItemsSource="{Binding Toasts.Toasts}"
+                          HorizontalAlignment="Right" VerticalAlignment="Top"
+                          Margin="0,8,16,0" MaxWidth="340">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:ToastItem}">
+                        <views:ToastView/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <!-- === RIGHT: Detail view === -->
             <DockPanel Grid.Column="4" Background="White">
