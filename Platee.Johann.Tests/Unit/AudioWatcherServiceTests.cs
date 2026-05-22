@@ -1,3 +1,5 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
@@ -6,28 +8,28 @@ using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.ValueObjects;
 
-namespace Platee.Johann.Tests.Unit;
-
 public sealed class AudioWatcherServiceTests : IDisposable
 {
-    private readonly string _tempDir;
+    private readonly string tempDir;
 
     public AudioWatcherServiceTests()
     {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"JohannWatcherTests_{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
+        this.tempDir = Path.Combine(Path.GetTempPath(), $"JohannWatcherTests_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(this.tempDir);
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, recursive: true);
+        if (Directory.Exists(this.tempDir))
+        {
+            Directory.Delete(this.tempDir, recursive: true);
+        }
     }
 
     [Fact]
     public void Start_WhenInputPathIsAFile_RaisesEntryProcessingFailedAndDoesNotThrow()
     {
-        var filePath = Path.Combine(_tempDir, "not-a-directory.txt");
+        var filePath = Path.Combine(this.tempDir, "not-a-directory.txt");
         File.WriteAllText(filePath, "x");
 
         var settings = new SettingsHolder(AppSettings.Default with

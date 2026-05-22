@@ -1,7 +1,7 @@
+namespace Platee.Johann.Domain.Parsing;
+
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.ValueObjects;
-
-namespace Platee.Johann.Domain.Parsing;
 
 /// <summary>
 /// Parses the first words of a transcript to extract Type, ProjectName, and optional Title.
@@ -19,11 +19,15 @@ public sealed class HeaderParser
     public ParsedHeader Parse(string transcript)
     {
         if (string.IsNullOrWhiteSpace(transcript))
+        {
             return new ParsedHeader(EntryType.Projekt, LegacyProjectResolver.Fallback, null, transcript);
+        }
 
         var words = transcript.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0)
+        {
             return new ParsedHeader(EntryType.Projekt, LegacyProjectResolver.Fallback, null, transcript);
+        }
 
         // --- Step 1: Detect type from first word ---
         var detectedType = TypeExtractor.TryExtract(words[0]);
@@ -40,6 +44,7 @@ public sealed class HeaderParser
         else
         {
             project = LegacyProjectResolver.Resolve(transcript);
+
             // cursor stays at 0 — the whole transcript is remainder
         }
 

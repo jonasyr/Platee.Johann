@@ -1,3 +1,5 @@
+namespace Platee.Johann.Infrastructure.Renderers;
+
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
@@ -8,14 +10,12 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
-namespace Platee.Johann.Infrastructure.Renderers;
-
 public sealed class PdfRenderer : IEntryRenderer
 {
     public string RendererName => "PDF";
 
-    private readonly SettingsHolder _settingsHolder;
-    private static readonly byte[] _logoBytes = LoadLogoBytes();
+    private readonly SettingsHolder settingsHolder;
+    private static readonly byte[] logoBytes = LoadLogoBytes();
 
     static PdfRenderer()
     {
@@ -24,7 +24,7 @@ public sealed class PdfRenderer : IEntryRenderer
 
     public PdfRenderer(SettingsHolder settingsHolder)
     {
-        _settingsHolder = settingsHolder;
+        this.settingsHolder = settingsHolder;
     }
 
     private static byte[] LoadLogoBytes()
@@ -32,7 +32,11 @@ public sealed class PdfRenderer : IEntryRenderer
         var asm = typeof(PdfRenderer).Assembly;
         using var stream = asm.GetManifestResourceStream(
             "Platee.Johann.Infrastructure.Assets.Peano_Logo.png");
-        if (stream is null) return [];
+        if (stream is null)
+        {
+            return [];
+        }
+
         using var ms = new MemoryStream();
         stream.CopyTo(ms);
         return ms.ToArray();
@@ -41,7 +45,7 @@ public sealed class PdfRenderer : IEntryRenderer
     public Task<RenderResult> RenderAsync(Entry entry, RenderOptions options,
                                           CancellationToken ct = default)
     {
-        var s = _settingsHolder.Current;
+        var s = this.settingsHolder.Current;
         var filename = FilenameBuilder.Build(entry) + ".pdf";
         var outputDir = options.OutputDirectory
             ?? Path.Combine(Path.GetTempPath(), "JohannPdf");
@@ -119,13 +123,19 @@ public sealed class PdfRenderer : IEntryRenderer
 
                 row.AutoItem().AlignRight().Column(meta =>
                 {
-                    if (_logoBytes.Length > 0)
-                        meta.Item().AlignRight().Height(28).Image(_logoBytes);
+                    if (logoBytes.Length > 0)
+                    {
+                        meta.Item().AlignRight().Height(28).Image(logoBytes);
+                    }
+
                     meta.Item().Text(entry.CreatedAt.ToString("dd.MM.yyyy"))
                         .FontColor("#888").FontSize(9);
                     if (entry.DurationSeconds > 0)
+                    {
                         meta.Item().Text(FormatDuration(entry.DurationSeconds))
                             .FontColor("#888").FontSize(9);
+                    }
+
                     meta.Item().Text($"#{entry.SequenceNumber:D3}")
                         .FontColor("#888").FontSize(9);
                 });
@@ -142,7 +152,9 @@ public sealed class PdfRenderer : IEntryRenderer
             col.Spacing(10);
 
             if (!string.IsNullOrWhiteSpace(entry.Abstract))
+            {
                 col.Item().Element(c => Section(c, "Kurzfassung", entry.Abstract!, "#FFF5F4", "#FFDBD8"));
+            }
 
             if (sections.TaskList && !string.IsNullOrWhiteSpace(entry.TaskList))
             {
@@ -210,13 +222,19 @@ public sealed class PdfRenderer : IEntryRenderer
             }
 
             if (sections.LongSummary && !string.IsNullOrWhiteSpace(entry.LongSummary))
+            {
                 col.Item().Element(c => Section(c, "Zusammenfassung", entry.LongSummary!, "#F5F5F5", "#E0E0E0"));
+            }
 
             if (sections.ProseSummary && !string.IsNullOrWhiteSpace(entry.ProseSummary))
+            {
                 col.Item().Element(c => Section(c, "Ausführliche Zusammenfassung", entry.ProseSummary!, "#F0F8FF", "#B8D4F0"));
+            }
 
             if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.Transcript))
+            {
                 col.Item().Element(c => Section(c, "Transkript", entry.Transcript!, "#FAFAFA", "#E8E8E8"));
+            }
         });
     }
 
@@ -240,13 +258,20 @@ public sealed class PdfRenderer : IEntryRenderer
     /// </summary>
     private static void RenderMarkdown(ColumnDescriptor col, string text)
     {
-        if (string.IsNullOrWhiteSpace(text)) return;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
 
         var pendingBullets = new List<string>();
 
         void FlushBullets()
         {
-            if (pendingBullets.Count == 0) return;
+            if (pendingBullets.Count == 0)
+            {
+                return;
+            }
+
             foreach (var bullet in pendingBullets)
             {
                 var captured = bullet;
@@ -258,6 +283,7 @@ public sealed class PdfRenderer : IEntryRenderer
                        .Text(captured).FontSize(10);
                 });
             }
+
             pendingBullets.Clear();
         }
 

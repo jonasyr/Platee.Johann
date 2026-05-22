@@ -1,7 +1,7 @@
+namespace Platee.Johann.Application.Services;
+
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Domain.Entities;
-
-namespace Platee.Johann.Application.Services;
 
 public static class PendingCountCalculator
 {

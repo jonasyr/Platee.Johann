@@ -1,22 +1,22 @@
+namespace Platee.Johann.UI;
+
 using System.IO;
+using System.Text;
 using System.Windows;
 using Platee.Johann.Application.Diagnostics;
 using Platee.Johann.Application.Processing;
-using Velopack;
-using Velopack.Sources;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Infrastructure.Json;
 using Platee.Johann.Infrastructure.Llm;
 using Platee.Johann.Infrastructure.Renderers;
 using Platee.Johann.UI.ViewModels;
-using System.Text;
-
-namespace Platee.Johann.UI;
+using Velopack;
+using Velopack.Sources;
 
 public partial class App : System.Windows.Application
 {
-    private AudioWatcherService? _audioWatcher;
+    private AudioWatcherService? audioWatcher;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -25,7 +25,7 @@ public partial class App : System.Windows.Application
             typeof(App).Assembly.GetName().Version?.ToString());
         crashLogger.EnsureLogDirectory();
 
-        DispatcherUnhandledException += (_, ex) =>
+        this.DispatcherUnhandledException += (_, ex) =>
         {
             crashLogger.WriteCrashLog("DISPATCHER", ex.Exception);
             ex.Handled = false;
@@ -64,7 +64,9 @@ public partial class App : System.Windows.Application
         var outputRoot = effectiveSettings.Ausgabeverzeichnis;
 
         if (promptMigration.DidMigrate)
+        {
             Task.Run(() => settingsRepo.SaveAsync(persistedSettings)).GetAwaiter().GetResult();
+        }
 
         if (promptMigration.DidMigrate && promptMigration.BackupPath is not null)
         {
@@ -120,7 +122,7 @@ public partial class App : System.Windows.Application
             transcriber, summaryGenerator, new HeaderParser(), repository,
             outputRoot, overviewService, runtimeSettingsHolder, renderers);
 
-        _audioWatcher = new AudioWatcherService(processor, runtimeSettingsHolder);
+        this.audioWatcher = new AudioWatcherService(processor, runtimeSettingsHolder);
 
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
@@ -130,7 +132,7 @@ public partial class App : System.Windows.Application
         // Track per-file log items for the watcher
         var watcherLogs = new System.Collections.Concurrent.ConcurrentDictionary<string, ProcessLogItem>();
 
-        _audioWatcher.EntryProcessingProgress += (filePath, progress) =>
+        this.audioWatcher.EntryProcessingProgress += (filePath, progress) =>
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 var fileName = Path.GetFileName(filePath);
@@ -147,25 +149,31 @@ public partial class App : System.Windows.Application
                 }
             });
 
-        _audioWatcher.EntryProcessed += (filePath, entry) =>
+        this.audioWatcher.EntryProcessed += (filePath, entry) =>
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 viewModel.NotifyEntryProcessed(entry);
                 if (watcherLogs.TryRemove(filePath, out var logItem))
+                {
                     viewModel.CompleteProcessLog(logItem, $"✓ {entry.Title}");
+                }
             });
 
-        _audioWatcher.EntryProcessingFailed += (filePath, ex) =>
+        this.audioWatcher.EntryProcessingFailed += (filePath, ex) =>
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 var fileName = Path.GetFileName(filePath);
                 if (watcherLogs.TryRemove(filePath, out var logItem))
+                {
                     viewModel.CompleteProcessLog(logItem, $"Fehler: {ex.Message}");
+                }
                 else
+                {
                     viewModel.AddProcessLog($"{fileName}: Fehler – {ex.Message}", isRunning: false);
+                }
             });
 
-        _audioWatcher.Start();
+        this.audioWatcher.Start();
 
         var mainWindow = new MainWindow(viewModel);
         mainWindow.Show();
@@ -179,10 +187,17 @@ public partial class App : System.Windows.Application
         {
             // Updates werden vom Netzwerkpfad geprüft, in den das Build-Script die Releases kopiert.
             const string releasePath = @"Z:\12_Tools\Peano\Johann";
-            if (!Directory.Exists(releasePath)) return;
+            if (!Directory.Exists(releasePath))
+            {
+                return;
+            }
+
             var mgr = new UpdateManager(new SimpleFileSource(new DirectoryInfo(releasePath)));
             var newVersion = await mgr.CheckForUpdatesAsync();
-            if (newVersion == null) return;
+            if (newVersion == null)
+            {
+                return;
+            }
 
             var result = MessageBox.Show(
                 $"Version {newVersion.TargetFullRelease.Version} ist verfügbar.\nJetzt herunterladen und neu starten?",
@@ -190,7 +205,10 @@ public partial class App : System.Windows.Application
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Information);
 
-            if (result != MessageBoxResult.Yes) return;
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
 
             await mgr.DownloadUpdatesAsync(newVersion);
             mgr.ApplyUpdatesAndRestart(newVersion);
@@ -206,7 +224,10 @@ public partial class App : System.Windows.Application
         const string sourceEnv = @"X:\PRO_Programmierung\Peano.APP\APP17_Johann\Platee.Johann\.env";
 
         var targetEnv = Path.Combine(johannDir, ".env");
-        if (File.Exists(targetEnv)) return;
+        if (File.Exists(targetEnv))
+        {
+            return;
+        }
 
         var result = MessageBox.Show(
             "Die .env-Datei wurde nicht gefunden.\n\n" +
@@ -216,7 +237,10 @@ public partial class App : System.Windows.Application
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
 
-        if (result != MessageBoxResult.Yes) return;
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
 
         if (!File.Exists(sourceEnv))
         {
@@ -296,6 +320,6 @@ public partial class App : System.Windows.Application
     protected override void OnExit(ExitEventArgs e)
     {
         base.OnExit(e);
-        _audioWatcher?.Dispose();
+        this.audioWatcher?.Dispose();
     }
 }

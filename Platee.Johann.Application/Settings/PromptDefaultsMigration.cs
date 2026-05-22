@@ -1,7 +1,7 @@
+namespace Platee.Johann.Application.Settings;
+
 using System.IO;
 using Platee.Johann.Application.Processing;
-
-namespace Platee.Johann.Application.Settings;
 
 public static class PromptDefaultsMigration
 {
@@ -10,7 +10,9 @@ public static class PromptDefaultsMigration
     public static PromptDefaultsMigrationResult ApplyIfNeeded(AppSettings settings, string settingsFilePath)
     {
         if (settings.PromptDefaultsRevision >= CurrentRevision)
+        {
             return new(settings, null, false);
+        }
 
         string? backupPath = null;
         if (File.Exists(settingsFilePath))

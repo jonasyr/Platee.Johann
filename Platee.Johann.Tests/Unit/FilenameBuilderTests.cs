@@ -1,10 +1,10 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.Services;
 using Platee.Johann.Domain.ValueObjects;
-
-namespace Platee.Johann.Tests.Unit;
 
 public sealed class FilenameBuilderTests
 {
@@ -46,7 +46,8 @@ public sealed class FilenameBuilderTests
         {
             var entry = MakeEntry(type, "Test", "Titel");
             var name = FilenameBuilder.Build(entry);
-            name.Should().NotContain("_Gesprächsnotiz_",
+            name.Should().NotContain(
+                "_Gesprächsnotiz_",
                 because: $"type {type} should not include Gesprächsnotiz segment");
         }
     }

@@ -1,8 +1,8 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.UI;
-
-namespace Platee.Johann.Tests.Unit;
 
 public sealed class StartupPathResolverTests
 {
@@ -88,9 +88,9 @@ public sealed class StartupPathResolverTests
     {
         var settings = AppSettings.Default with
         {
-            Quellverzeichnis = "",
-            Archivverzeichnis = "",
-            Ausgabeverzeichnis = "",
+            Quellverzeichnis = string.Empty,
+            Archivverzeichnis = string.Empty,
+            Ausgabeverzeichnis = string.Empty,
         };
 
         var result = StartupPathResolver.Resolve(

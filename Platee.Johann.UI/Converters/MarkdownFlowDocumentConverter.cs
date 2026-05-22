@@ -1,11 +1,11 @@
+namespace Platee.Johann.UI.Converters;
+
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Media;
-
-namespace Platee.Johann.UI.Converters;
 
 /// <summary>
 /// Converts a Markdown string to a WPF FlowDocument for display in a
@@ -16,6 +16,7 @@ namespace Platee.Johann.UI.Converters;
 [ValueConversion(typeof(string), typeof(FlowDocument))]
 public sealed class MarkdownFlowDocumentConverter : IValueConverter
 {
+    private static readonly Brush NeutralHeadingBrush = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         => BuildDocument(value as string);
 
@@ -23,9 +24,8 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
         => throw new NotSupportedException();
 
     // ---------------------------------------------------------------
-
     private static readonly Regex NumberedItemRx = new(@"^\d+\.\s+", RegexOptions.Compiled);
-    private static readonly Regex InlineRx        = new(@"(\*\*[^*]+\*\*|\*[^*]+\*)", RegexOptions.Compiled);
+    private static readonly Regex InlineRx = new(@"(\*\*[^*]+\*\*|\*[^*]+\*)", RegexOptions.Compiled);
 
     private static FlowDocument BuildDocument(string? markdown)
     {
@@ -40,13 +40,19 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
         };
 
         if (string.IsNullOrWhiteSpace(markdown))
+        {
             return doc;
+        }
 
         var bulletBuffer = new List<string>();
 
         void FlushBullets()
         {
-            if (bulletBuffer.Count == 0) return;
+            if (bulletBuffer.Count == 0)
+            {
+                return;
+            }
+
             var list = new List
             {
                 MarkerStyle = TextMarkerStyle.Disc,
@@ -56,16 +62,21 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
             foreach (var item in bulletBuffer)
             {
                 var para = new Paragraph { Margin = new Thickness(0), Padding = new Thickness(0) };
-                foreach (var inline in ParseInlines(item)) para.Inlines.Add(inline);
+                foreach (var inline in ParseInlines(item))
+                {
+                    para.Inlines.Add(inline);
+                }
+
                 list.ListItems.Add(new ListItem(para));
             }
+
             doc.Blocks.Add(list);
             bulletBuffer.Clear();
         }
 
         foreach (var rawLine in markdown.Split('\n'))
         {
-            var line    = rawLine.TrimEnd();
+            var line = rawLine.TrimEnd();
             var trimmed = line.TrimStart();   // used for prefix detection
 
             if (trimmed.StartsWith("### ", StringComparison.Ordinal))
@@ -74,25 +85,37 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
                 var para = new Paragraph
                 {
                     FontWeight = FontWeights.SemiBold,
-                    FontSize   = 13,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33)),
-                    Margin     = new Thickness(0, 8, 0, 2),
+                    FontSize = 13.5,
+                    Foreground = NeutralHeadingBrush,
+                    Margin = new Thickness(0, 12, 0, 4),
                 };
-                foreach (var inline in ParseInlines(trimmed[4..])) para.Inlines.Add(inline);
+                foreach (var inline in ParseInlines(trimmed[4..]))
+                {
+                    para.Inlines.Add(inline);
+                }
+
                 doc.Blocks.Add(para);
             }
             else if (trimmed.StartsWith("## ", StringComparison.Ordinal))
             {
                 FlushBullets();
                 var para = new Paragraph { FontWeight = FontWeights.SemiBold, FontSize = 15, Margin = new Thickness(0, 10, 0, 2) };
-                foreach (var inline in ParseInlines(trimmed[3..])) para.Inlines.Add(inline);
+                foreach (var inline in ParseInlines(trimmed[3..]))
+                {
+                    para.Inlines.Add(inline);
+                }
+
                 doc.Blocks.Add(para);
             }
             else if (trimmed.StartsWith("# ", StringComparison.Ordinal))
             {
                 FlushBullets();
                 var para = new Paragraph { FontWeight = FontWeights.Bold, FontSize = 17, Margin = new Thickness(0, 12, 0, 4) };
-                foreach (var inline in ParseInlines(trimmed[2..])) para.Inlines.Add(inline);
+                foreach (var inline in ParseInlines(trimmed[2..]))
+                {
+                    para.Inlines.Add(inline);
+                }
+
                 doc.Blocks.Add(para);
             }
             else if (trimmed.StartsWith("- ", StringComparison.Ordinal) ||
@@ -114,8 +137,12 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
             else
             {
                 FlushBullets();
-                var para = new Paragraph { Margin = new Thickness(0, 0, 0, 2) };
-                foreach (var inline in ParseInlines(trimmed)) para.Inlines.Add(inline);
+                var para = CreateBodyParagraph(trimmed);
+                foreach (var inline in ParseInlines(trimmed))
+                {
+                    para.Inlines.Add(inline);
+                }
+
                 doc.Blocks.Add(para);
             }
         }
@@ -129,19 +156,63 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
     /// </summary>
     private static IEnumerable<Inline> ParseInlines(string text)
     {
-        if (string.IsNullOrEmpty(text)) yield break;
+        if (string.IsNullOrEmpty(text))
+        {
+            yield break;
+        }
 
         var parts = InlineRx.Split(text);
         foreach (var part in parts)
         {
-            if (string.IsNullOrEmpty(part)) continue;
+            if (string.IsNullOrEmpty(part))
+            {
+                continue;
+            }
 
             if (part.StartsWith("**") && part.EndsWith("**") && part.Length > 4)
+            {
                 yield return new Bold(new Run(part[2..^2]));
+            }
             else if (part.StartsWith('*') && part.EndsWith('*') && part.Length > 2)
+            {
                 yield return new Italic(new Run(part[1..^1]));
+            }
             else
+            {
                 yield return new Run(part);
+            }
         }
+    }
+
+    private static Paragraph CreateBodyParagraph(string text)
+    {
+        if (LooksLikeInlineHeading(text))
+        {
+            return new Paragraph
+            {
+                Margin = new Thickness(0, 12, 0, 4),
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 13.5,
+                Foreground = NeutralHeadingBrush,
+            };
+        }
+
+        return new Paragraph { Margin = new Thickness(0, 0, 0, 2) };
+    }
+
+    private static bool LooksLikeInlineHeading(string text)
+    {
+        if (!(text.StartsWith("**", StringComparison.Ordinal) &&
+              text.EndsWith("**", StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        var inner = text[2..^2].Trim();
+        return inner.Length > 0 &&
+               !inner.Contains("**", StringComparison.Ordinal) &&
+               !inner.Contains('*') &&
+               !inner.Contains('.') &&
+               !inner.Contains(':');
     }
 }

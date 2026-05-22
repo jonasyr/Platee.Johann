@@ -1,21 +1,45 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-
 namespace Platee.Johann.UI.ViewModels;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 
 public sealed partial class DateItemViewModel : ObservableObject
 {
+    private static readonly string[] MonthsDe =
+    [
+        "JANUAR", "FEBRUAR", "MÄRZ", "APRIL", "MAI", "JUNI",
+        "JULI", "AUGUST", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DEZEMBER"
+    ];
+
     public DateOnly Date { get; }
 
+
+    public string Key => this.Date.ToString("yyyy-MM-dd");
+
+
+    public string DisplayText => this.Date.ToString("dd.MM.");
+
+
+    public string MonthYearKey => $"{MonthsDe[this.Date.Month - 1]} {this.Date.Year}";
+
     [ObservableProperty]
-    private int _pendingCount;
+    private int pendingCount;
 
-    public string DisplayText => PendingCount > 0
-        ? $"{Date:dd.MM.yy} ({PendingCount})"
-        : Date.ToString("dd.MM.yy");
+    [ObservableProperty]
+    private int totalCount;
 
-    public DateItemViewModel(DateOnly date) => Date = date;
+    public bool AllDone => this.PendingCount == 0;
 
-    partial void OnPendingCountChanged(int value) => OnPropertyChanged(nameof(DisplayText));
+    public DateItemViewModel(DateOnly date) => this.Date = date;
 
-    public override string ToString() => DisplayText;
+    public void UpdateCounts(int total, int pending)
+    {
+        this.TotalCount = total;
+        this.PendingCount = pending;
+    }
+
+    partial void OnPendingCountChanged(int value) => OnPropertyChanged(nameof(AllDone));
+
+
+    partial void OnTotalCountChanged(int value) => OnPropertyChanged(nameof(AllDone));
+    public override string ToString() => this.DisplayText;
 }

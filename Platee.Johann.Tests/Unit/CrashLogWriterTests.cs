@@ -1,8 +1,8 @@
+namespace Platee.Johann.Tests.Unit;
+
 using System.Collections.Generic;
 using FluentAssertions;
 using Platee.Johann.Application.Diagnostics;
-
-namespace Platee.Johann.Tests.Unit;
 
 public sealed class CrashLogWriterTests
 {
@@ -89,18 +89,20 @@ public sealed class CrashLogWriterTests
 
         public bool FailFirstAppendOnly { get; init; }
 
-        private int _appendCalls;
+        private int appendCalls;
 
-        public void CreateDirectory(string path) => CreatedDirectories.Add(path);
+        public void CreateDirectory(string path) => this.CreatedDirectories.Add(path);
 
         public void AppendAllText(string path, string contents)
         {
-            _appendCalls++;
+            this.appendCalls++;
 
-            if (ThrowOnAppend || (FailFirstAppendOnly && _appendCalls == 1))
+            if (this.ThrowOnAppend || (this.FailFirstAppendOnly && this.appendCalls == 1))
+            {
                 throw new IOException("simulated append error");
+            }
 
-            Appends.Add((path, contents));
+            this.Appends.Add((path, contents));
         }
     }
 }

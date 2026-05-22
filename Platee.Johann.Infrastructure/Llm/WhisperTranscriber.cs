@@ -1,7 +1,7 @@
-using Platee.Johann.Application.Interfaces;
-using OpenAI.Audio;
-
 namespace Platee.Johann.Infrastructure.Llm;
+
+using OpenAI.Audio;
+using Platee.Johann.Application.Interfaces;
 
 /// <summary>
 /// OpenAI Whisper transcription provider.
@@ -11,13 +11,13 @@ namespace Platee.Johann.Infrastructure.Llm;
 public sealed class WhisperTranscriber : IAudioTranscriber
 {
     private const string Model = "whisper-1";
-    private readonly AudioClient _client;
+    private readonly AudioClient client;
 
     public bool IsAvailable => true;
 
     public WhisperTranscriber(string apiKey)
     {
-        _client = new AudioClient(Model, apiKey);
+        this.client = new AudioClient(Model, apiKey);
     }
 
     public async Task<TranscriptionResult> TranscribeAsync(
@@ -30,7 +30,7 @@ public sealed class WhisperTranscriber : IAudioTranscriber
         };
 
         await using var stream = File.OpenRead(audioFilePath);
-        var response = await _client.TranscribeAudioAsync(
+        var response = await this.client.TranscribeAudioAsync(
             stream, Path.GetFileName(audioFilePath), options, ct);
 
         var transcript = response.Value.Text ?? string.Empty;

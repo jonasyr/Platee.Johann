@@ -1,6 +1,6 @@
-using Platee.Johann.Application.Interfaces;
-
 namespace Platee.Johann.Infrastructure.Llm;
+
+using Platee.Johann.Application.Interfaces;
 
 /// <summary>
 /// Stub transcriber — always unavailable (no API key configured).

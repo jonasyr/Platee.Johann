@@ -1,22 +1,27 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-
 namespace Platee.Johann.UI.ViewModels;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 
 public partial class ProcessLogItem(string message, DateTime timestamp, bool isRunning)
     : ObservableObject
 {
     public string Key { get; } = Guid.NewGuid().ToString();
-    [ObservableProperty] private string _message = message;
+
+    [ObservableProperty]
+    private string message = message;
+
     public DateTime Timestamp { get; } = timestamp;
 
-    [ObservableProperty] private bool _isRunning = isRunning;
-    [ObservableProperty] private string _resultMessage = string.Empty;
+    [ObservableProperty]
+    private bool isRunning = isRunning;
+    [ObservableProperty]
+    private string resultMessage = string.Empty;
 
-    public string DisplayTime => Timestamp.ToString("HH:mm:ss");
+    public string DisplayTime => this.Timestamp.ToString("HH:mm:ss");
 
     public void Complete(string result)
     {
-        IsRunning = false;
-        ResultMessage = result;
+        this.IsRunning = false;
+        this.ResultMessage = result;
     }
 }

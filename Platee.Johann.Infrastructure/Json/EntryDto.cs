@@ -1,7 +1,7 @@
+namespace Platee.Johann.Infrastructure.Json;
+
 using System.Text.Json;
 using System.Text.Json.Serialization;
-
-namespace Platee.Johann.Infrastructure.Json;
 
 /// <summary>
 /// JSON Data Transfer Object for persisting/loading Entry records.
@@ -72,7 +72,7 @@ public sealed class EntryDto
     [JsonPropertyName("isDone")]
     public bool IsDone { get; set; }
 
-    /// <summary>Extension bag for future fields without breaking schema changes.</summary>
+    /// <summary>Gets or sets extension bag for future fields without breaking schema changes.</summary>
     [JsonPropertyName("extensions")]
     public JsonElement? Extensions { get; set; }
 }

@@ -1,3 +1,5 @@
+namespace Platee.Johann.Tests.Unit;
+
 using System.Text;
 using FluentAssertions;
 using Platee.Johann.Application.Interfaces;
@@ -6,22 +8,22 @@ using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.ValueObjects;
 using Platee.Johann.Infrastructure.Renderers;
 
-namespace Platee.Johann.Tests.Unit;
-
 public sealed class HtmlRenderingSecurityTests : IDisposable
 {
-    private readonly string _tempDir;
+    private readonly string tempDir;
 
     public HtmlRenderingSecurityTests()
     {
-        _tempDir = Path.Combine(Path.GetTempPath(), $"JohannHtmlTests_{Guid.NewGuid():N}");
-        Directory.CreateDirectory(_tempDir);
+        this.tempDir = Path.Combine(Path.GetTempPath(), $"JohannHtmlTests_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(this.tempDir);
     }
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempDir))
-            Directory.Delete(_tempDir, recursive: true);
+        if (Directory.Exists(this.tempDir))
+        {
+            Directory.Delete(this.tempDir, recursive: true);
+        }
     }
 
     [Fact]
@@ -39,7 +41,7 @@ public sealed class HtmlRenderingSecurityTests : IDisposable
 
         var result = await sut.RenderAsync(
             entry,
-            new RenderOptions(_tempDir, IncludeTranscript: true),
+            new RenderOptions(this.tempDir, IncludeTranscript: true),
             CancellationToken.None);
 
         var html = Encoding.UTF8.GetString(result.Data);
@@ -62,12 +64,12 @@ public sealed class HtmlRenderingSecurityTests : IDisposable
         };
 
         var repository = new FakeEntryRepository(entry);
-        var sut = new HtmlOverviewService(repository, _tempDir);
+        var sut = new HtmlOverviewService(repository, this.tempDir);
         var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
 
         await sut.RegenerateAsync(date, CancellationToken.None);
 
-        var path = Path.Combine(_tempDir, date.ToString("yyyy-MM-dd"), "_ItemÜbersicht.html");
+        var path = Path.Combine(this.tempDir, date.ToString("yyyy-MM-dd"), "_ItemÜbersicht.html");
         var html = await File.ReadAllTextAsync(path, Encoding.UTF8);
 
         html.Should().Contain("Plan &#39;A&#39; &lt;Review&gt;");
@@ -90,21 +92,21 @@ public sealed class HtmlRenderingSecurityTests : IDisposable
 
     private sealed class FakeEntryRepository : IEntryRepository
     {
-        private readonly IReadOnlyList<Entry> _entries;
+        private readonly IReadOnlyList<Entry> entries;
 
         public FakeEntryRepository(params Entry[] entries)
         {
-            _entries = entries;
+            this.entries = entries;
         }
 
         public Task<IReadOnlyList<DateOnly>> GetAvailableDatesAsync(CancellationToken ct = default)
             => Task.FromResult<IReadOnlyList<DateOnly>>([]);
 
         public Task<IReadOnlyList<Entry>> GetEntriesForDateAsync(DateOnly date, CancellationToken ct = default)
-            => Task.FromResult(_entries.Where(e => DateOnly.FromDateTime(e.CreatedAt.DateTime) == date).ToList() as IReadOnlyList<Entry>);
+            => Task.FromResult(this.entries.Where(e => DateOnly.FromDateTime(e.CreatedAt.DateTime) == date).ToList() as IReadOnlyList<Entry>);
 
         public Task<Entry?> GetByJobIdAsync(string jobId, CancellationToken ct = default)
-            => Task.FromResult(_entries.FirstOrDefault(e => e.JobId == jobId));
+            => Task.FromResult(this.entries.FirstOrDefault(e => e.JobId == jobId));
 
         public Task SaveAsync(Entry entry, CancellationToken ct = default)
             => Task.CompletedTask;

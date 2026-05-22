@@ -1,3 +1,5 @@
+namespace Platee.Johann.Application.Processing;
+
 using System;
 using System.IO;
 using System.Threading;
@@ -5,17 +7,15 @@ using System.Threading.Tasks;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Settings;
 
-namespace Platee.Johann.Application.Processing;
-
 /// <summary>
 /// Monitors a target directory for new MP3 files and automatically processes them.
 /// </summary>
 public sealed class AudioWatcherService : IDisposable
 {
-    private readonly IEntryProcessor _processor;
-    private readonly SettingsHolder _settings;
-    private FileSystemWatcher? _watcher;
-    private readonly SemaphoreSlim _processLock = new(1, 1);
+    private readonly IEntryProcessor processor;
+    private readonly SettingsHolder settings;
+    private FileSystemWatcher? watcher;
+    private readonly SemaphoreSlim processLock = new(1, 1);
 
     /// <summary>
     /// Raised on a background thread after an audio file is successfully processed.
@@ -23,41 +23,45 @@ public sealed class AudioWatcherService : IDisposable
     /// Subscribers must marshal to the UI thread themselves.
     /// </summary>
     public event Action<string, Platee.Johann.Domain.Entities.Entry>? EntryProcessed;
+
     public event Action<string, ProcessingProgress>? EntryProcessingProgress;
+
     public event Action<string, Exception>? EntryProcessingFailed;
 
     public AudioWatcherService(IEntryProcessor processor, SettingsHolder settings)
     {
-        _processor = processor;
-        _settings = settings;
+        this.processor = processor;
+        this.settings = settings;
     }
 
     public void Start()
     {
-        var inputPath = _settings.Current.Quellverzeichnis;
+        var inputPath = this.settings.Current.Quellverzeichnis;
         if (string.IsNullOrWhiteSpace(inputPath))
+        {
             return;
+        }
 
         try
         {
             Directory.CreateDirectory(inputPath);
 
             // Process existing files first
-            ProcessExistingFiles(inputPath);
+            this.ProcessExistingFiles(inputPath);
 
-            _watcher = new FileSystemWatcher(inputPath, "*.mp3")
+            this.watcher = new FileSystemWatcher(inputPath, "*.mp3")
             {
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime,
-                EnableRaisingEvents = true
+                EnableRaisingEvents = true,
             };
 
-            _watcher.Created += OnFileCreated;
+            this.watcher.Created += this.OnFileCreated;
         }
         catch (Exception ex)
         {
-            _watcher?.Dispose();
-            _watcher = null;
-            EntryProcessingFailed?.Invoke(inputPath, ex);
+            this.watcher?.Dispose();
+            this.watcher = null;
+            this.EntryProcessingFailed?.Invoke(inputPath, ex);
         }
     }
 
@@ -71,12 +75,12 @@ public sealed class AudioWatcherService : IDisposable
                 var files = Directory.GetFiles(inputPath, "*.mp3");
                 foreach (var file in files)
                 {
-                    await TryProcessFileAsync(file);
+                    await this.TryProcessFileAsync(file);
                 }
             }
             catch (Exception ex)
             {
-                EntryProcessingFailed?.Invoke(inputPath, ex);
+                this.EntryProcessingFailed?.Invoke(inputPath, ex);
             }
         });
     }
@@ -89,55 +93,66 @@ public sealed class AudioWatcherService : IDisposable
             try
             {
                 await Task.Delay(1000);
-                await TryProcessFileAsync(e.FullPath);
+                await this.TryProcessFileAsync(e.FullPath);
             }
             catch (Exception ex)
             {
-                EntryProcessingFailed?.Invoke(e.FullPath, ex);
+                this.EntryProcessingFailed?.Invoke(e.FullPath, ex);
             }
         });
     }
 
     private async Task TryProcessFileAsync(string filePath)
     {
-        if (!File.Exists(filePath)) return;
+        if (!File.Exists(filePath))
+        {
+            return;
+        }
 
-        await _processLock.WaitAsync();
+        await this.processLock.WaitAsync();
         try
         {
-            if (!File.Exists(filePath)) return; // may have been processed while waiting
+            if (!File.Exists(filePath))
+            {
+                return; // may have been processed while waiting
+            }
 
-            if (!_processor.CanProcess)
+            if (!this.processor.CanProcess)
+            {
                 throw new InvalidOperationException(
                     "Kein API-Schlüssel konfiguriert. .env-Datei in Dokumente\\Johann ablegen.");
+            }
 
             using (var stream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
                 stream.Close();
+            }
 
             var date = DateOnly.FromDateTime(DateTime.Now);
             var progress = new Progress<ProcessingProgress>(p =>
-                EntryProcessingProgress?.Invoke(filePath, p));
-            var entry = await _processor.ProcessAudioAsync(filePath, date, progress, CancellationToken.None);
-            EntryProcessed?.Invoke(filePath, entry);
+                this.EntryProcessingProgress?.Invoke(filePath, p));
+            var entry = await this.processor.ProcessAudioAsync(filePath, date, progress, CancellationToken.None);
+            this.EntryProcessed?.Invoke(filePath, entry);
         }
         catch (Exception ex)
         {
-            EntryProcessingFailed?.Invoke(filePath, ex);
+            this.EntryProcessingFailed?.Invoke(filePath, ex);
         }
         finally
         {
-            _processLock.Release();
+            this.processLock.Release();
         }
     }
 
     public void Dispose()
     {
-        if (_watcher != null)
+        if (this.watcher != null)
         {
-            _watcher.Created -= OnFileCreated;
-            _watcher.Dispose();
-            _watcher = null;
+            this.watcher.Created -= this.OnFileCreated;
+            this.watcher.Dispose();
+            this.watcher = null;
         }
-        _processLock.Dispose();
+
+        this.processLock.Dispose();
     }
 }

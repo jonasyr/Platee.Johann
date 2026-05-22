@@ -1,3 +1,5 @@
+namespace Platee.Johann.Application.Processing;
+
 using System.IO;
 using System.Text;
 using Platee.Johann.Application.Interfaces;
@@ -7,24 +9,22 @@ using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Domain.Services;
 using Platee.Johann.Domain.ValueObjects;
 
-namespace Platee.Johann.Application.Processing;
-
 /// <summary>
 /// Orchestrates the full pipeline: transcribe → parse → summarize → save → archive.
 /// Mirrors process_single_job / process_text_job from Python main.py.
 /// </summary>
 public sealed class EntryProcessingService : IEntryProcessor
 {
-    private readonly IAudioTranscriber _transcriber;
-    private readonly SummaryGenerator _summaryGenerator;
-    private readonly HeaderParser _parser;
-    private readonly IEntryRepository _repository;
-    private readonly string _outputRoot;
-    private readonly IHtmlOverviewService? _overviewService;
-    private readonly SettingsHolder _settings;
-    private readonly IEnumerable<IEntryRenderer> _renderers;
+    private readonly IAudioTranscriber transcriber;
+    private readonly SummaryGenerator summaryGenerator;
+    private readonly HeaderParser parser;
+    private readonly IEntryRepository repository;
+    private readonly string outputRoot;
+    private readonly IHtmlOverviewService? overviewService;
+    private readonly SettingsHolder settings;
+    private readonly IEnumerable<IEntryRenderer> renderers;
 
-    public bool CanProcess => _transcriber.IsAvailable;
+    public bool CanProcess => this.transcriber.IsAvailable;
 
     public EntryProcessingService(
         IAudioTranscriber transcriber,
@@ -36,14 +36,14 @@ public sealed class EntryProcessingService : IEntryProcessor
         SettingsHolder? settings = null,
         IEnumerable<IEntryRenderer>? renderers = null)
     {
-        _transcriber = transcriber;
-        _summaryGenerator = summaryGenerator;
-        _parser = parser;
-        _repository = repository;
-        _outputRoot = outputRoot;
-        _overviewService = overviewService;
-        _settings = settings ?? new SettingsHolder(Settings.AppSettings.Default);
-        _renderers = renderers ?? Array.Empty<IEntryRenderer>();
+        this.transcriber = transcriber;
+        this.summaryGenerator = summaryGenerator;
+        this.parser = parser;
+        this.repository = repository;
+        this.outputRoot = outputRoot;
+        this.overviewService = overviewService;
+        this.settings = settings ?? new SettingsHolder(AppSettings.Default);
+        this.renderers = renderers ?? Array.Empty<IEntryRenderer>();
     }
 
     /// <summary>
@@ -59,27 +59,28 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 1 – Transcription
         progress?.Report(new("Audio wird transkribiert…", 1, total));
-        var transcription = await _transcriber.TranscribeAsync(audioFilePath, ct);
+        var transcription = await this.transcriber.TranscribeAsync(audioFilePath, ct);
 
         // Step 2 – Header parsing + sequence number
         progress?.Report(new("Metadaten werden analysiert…", 2, total));
-        var header = _parser.Parse(transcription.Transcript);
+        var header = this.parser.Parse(transcription.Transcript);
 
-        int seq = await _repository.GetNextSequenceNumberAsync(date, ct);
+        int seq = await this.repository.GetNextSequenceNumberAsync(date, ct);
 
         // Use RemainderText (transcript with type/project tokens stripped) so the
         // title doesn't start with "Aufgabe Johann …" but with the actual content.
         var title = header.ExplicitTitle;
 
-        if (string.IsNullOrWhiteSpace(title) && _summaryGenerator.IsAvailable)
+        if (string.IsNullOrWhiteSpace(title) && this.summaryGenerator.IsAvailable)
         {
             progress?.Report(new("Titel wird generiert…", 2, total));
-            title = await _summaryGenerator.GenerateTitleAsync(header.RemainderText, ct);
+            title = await this.summaryGenerator.GenerateTitleAsync(header.RemainderText, ct);
         }
 
         if (string.IsNullOrWhiteSpace(title))
         {
-            title = string.Join(" ",
+            title = string.Join(
+                " ",
                 header.RemainderText
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries)
                     .Take(5)
@@ -115,7 +116,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         // Step 3 – Summaries (parallel for speed)
         progress?.Report(new("KI erstellt alle Abschnitte…", 3, total));
         var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
-            await GenerateSummariesAsync(transcription.Transcript, ct);
+            await this.GenerateSummariesAsync(transcription.Transcript, ct);
 
         var finalEntry = baseEntry with
         {
@@ -139,13 +140,13 @@ public sealed class EntryProcessingService : IEntryProcessor
         progress?.Report(new("HTML und PDF werden erstellt…", 4, total));
 
         var pdfCreated = false;
-        var dateFolder = Path.Combine(_outputRoot, date.ToString("yyyy-MM-dd"));
+        var dateFolder = Path.Combine(this.outputRoot, date.ToString("yyyy-MM-dd"));
         var rawFolder = Path.Combine(dateFolder, "_raw");
 
         Directory.CreateDirectory(dateFolder);
         Directory.CreateDirectory(rawFolder);
 
-        foreach (var renderer in _renderers)
+        foreach (var renderer in this.renderers)
         {
             try
             {
@@ -172,11 +173,11 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 5 – Persist JSON + archive raw files + regenerate overview
         progress?.Report(new("Eintrag wird gespeichert…", 5, total));
-        await _repository.SaveAsync(finalEntry, ct);
-        await ArchiveRawFilesAsync(audioFilePath, finalEntry, ct);
+        await this.repository.SaveAsync(finalEntry, ct);
+        await this.ArchiveRawFilesAsync(audioFilePath, finalEntry, ct);
 
         // Move MP3 to configured archive
-        var archiveDir = _settings.Current.Archivverzeichnis;
+        var archiveDir = this.settings.Current.Archivverzeichnis;
         if (!string.IsNullOrWhiteSpace(archiveDir))
         {
             try
@@ -188,10 +189,11 @@ public sealed class EntryProcessingService : IEntryProcessor
                 {
                     newPath = Path.Combine(archiveDir, Path.GetFileNameWithoutExtension(destName) + "_" + Guid.NewGuid().ToString("N")[..6] + Path.GetExtension(destName));
                 }
+
                 File.Move(audioFilePath, newPath);
 
                 finalEntry = finalEntry with { Status = finalEntry.Status with { Archived = true } };
-                await _repository.SaveAsync(finalEntry, ct);
+                await this.repository.SaveAsync(finalEntry, ct);
             }
             catch
             {
@@ -199,8 +201,10 @@ public sealed class EntryProcessingService : IEntryProcessor
             }
         }
 
-        if (_overviewService is not null)
-            await _overviewService.RegenerateAsync(date, ct);
+        if (this.overviewService is not null)
+        {
+            await this.overviewService.RegenerateAsync(date, ct);
+        }
 
         return finalEntry;
     }
@@ -214,15 +218,17 @@ public sealed class EntryProcessingService : IEntryProcessor
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(entry.Transcript))
+        {
             throw new InvalidOperationException(
                 "Kein Transkript vorhanden – kann nicht neu verarbeiten.");
+        }
 
         const int total = 2;
 
         // Step 1 – Summaries
         progress?.Report(new("Alle Abschnitte werden neu generiert…", 1, total));
         var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
-            await GenerateSummariesAsync(entry.Transcript, ct);
+            await this.GenerateSummariesAsync(entry.Transcript, ct);
 
         var updatedEntry = entry with
         {
@@ -239,12 +245,12 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 2 – Persist + regenerate overview
         progress?.Report(new("Aktualisierung wird gespeichert…", 2, total));
-        await _repository.SaveAsync(updatedEntry, ct);
+        await this.repository.SaveAsync(updatedEntry, ct);
 
-        if (_overviewService is not null)
+        if (this.overviewService is not null)
         {
             var date = DateOnly.FromDateTime(updatedEntry.CreatedAt.DateTime);
-            await _overviewService.RegenerateAsync(date, ct);
+            await this.overviewService.RegenerateAsync(date, ct);
         }
 
         return updatedEntry;
@@ -254,7 +260,9 @@ public sealed class EntryProcessingService : IEntryProcessor
         IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(entry.Transcript))
+        {
             throw new InvalidOperationException("Kein Transkript vorhanden.");
+        }
 
         progress?.Report(new($"'{sectionName}' wird neu generiert…", 1, 1));
 
@@ -262,37 +270,37 @@ public sealed class EntryProcessingService : IEntryProcessor
         {
             "Zusammenfassung" => entry with
             {
-                LongSummary = await _summaryGenerator.GenerateLongSummaryAsync(entry.Transcript, ct)
+                LongSummary = await this.summaryGenerator.GenerateLongSummaryAsync(entry.Transcript, ct),
             },
             "Ausführliche Zusammenfassung" => entry with
             {
-                ProseSummary = await _summaryGenerator.GenerateProseSummaryAsync(entry.Transcript, ct)
+                ProseSummary = await this.summaryGenerator.GenerateProseSummaryAsync(entry.Transcript, ct),
             },
             "Aufgaben" => entry with
             {
-                TaskList = await _summaryGenerator.GenerateAufgabeAsync(entry.Transcript, ct)
+                TaskList = await this.summaryGenerator.GenerateAufgabeAsync(entry.Transcript, ct),
             },
             "Gesprächsnotiz" => entry with
             {
-                ConversationNote = await _summaryGenerator.GenerateGespraechsnotizAsync(entry.Transcript, ct)
+                ConversationNote = await this.summaryGenerator.GenerateGespraechsnotizAsync(entry.Transcript, ct),
             },
             "E-Mail" => entry with
             {
-                EmailText = await _summaryGenerator.GenerateEmailTextAsync(
-                    entry.ProseSummary ?? entry.LongSummary ?? entry.Transcript, ct)
+                EmailText = await this.summaryGenerator.GenerateEmailTextAsync(
+                    entry.ProseSummary ?? entry.LongSummary ?? entry.Transcript, ct),
             },
             "Stundenzettel" => entry with
             {
-                StundenzettelText = await _summaryGenerator.GenerateStundenzettelAsync(entry.Transcript, ct)
+                StundenzettelText = await this.summaryGenerator.GenerateStundenzettelAsync(entry.Transcript, ct),
             },
             "Analog" => entry with
             {
-                AnalogText = await _summaryGenerator.GenerateAnalogAsync(entry.Transcript, ct)
+                AnalogText = await this.summaryGenerator.GenerateAnalogAsync(entry.Transcript, ct),
             },
-            _ => throw new ArgumentException($"Unbekannte Sektion: {sectionName}")
+            _ => throw new ArgumentException($"Unbekannte Sektion: {sectionName}"),
         };
 
-        await _repository.SaveAsync(updated, ct);
+        await this.repository.SaveAsync(updated, ct);
         return updated;
     }
 
@@ -310,22 +318,23 @@ public sealed class EntryProcessingService : IEntryProcessor
             ?? entry.Abstract
             ?? string.Empty;
 
-        if (_summaryGenerator.IsAvailable && !string.IsNullOrWhiteSpace(source))
-            return await _summaryGenerator.GenerateEmailTextAsync(source, ct);
+        if (this.summaryGenerator.IsAvailable && !string.IsNullOrWhiteSpace(source))
+        {
+            return await this.summaryGenerator.GenerateEmailTextAsync(source, ct);
+        }
 
         // Fallback: compose from available content without GPT
         return BuildFallbackEmailText(entry);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
-
     private async Task<(string Abstract, string LongSummary, string ProseSummary, string? TaskList, string? ConversationNote, string? StundenzettelText, string? AnalogText, string? EmailText)>
         GenerateSummariesAsync(string transcript, CancellationToken ct)
     {
         // Step 1: run the three core summaries in parallel
-        var abstractTask = _summaryGenerator.GenerateAbstractAsync(transcript, ct);
-        var longTask = _summaryGenerator.GenerateLongSummaryAsync(transcript, ct);
-        var proseTask = _summaryGenerator.GenerateProseSummaryAsync(transcript, ct);
+        var abstractTask = this.summaryGenerator.GenerateAbstractAsync(transcript, ct);
+        var longTask = this.summaryGenerator.GenerateLongSummaryAsync(transcript, ct);
+        var proseTask = this.summaryGenerator.GenerateProseSummaryAsync(transcript, ct);
 
         await Task.WhenAll(abstractTask, longTask, proseTask);
 
@@ -334,11 +343,11 @@ public sealed class EntryProcessingService : IEntryProcessor
         var proseSummary = proseTask.Result;
 
         // Step 2: run type-specific summaries in parallel (EmailText depends on proseSummary)
-        var taskListTask = _summaryGenerator.GenerateAufgabeAsync(transcript, ct);
-        var conversationNoteTask = _summaryGenerator.GenerateGespraechsnotizAsync(transcript, ct);
-        var stundenzettelTask = _summaryGenerator.GenerateStundenzettelAsync(transcript, ct);
-        var analogTask = _summaryGenerator.GenerateAnalogAsync(transcript, ct);
-        var emailTask = _summaryGenerator.GenerateEmailTextAsync(proseSummary, ct);
+        var taskListTask = this.summaryGenerator.GenerateAufgabeAsync(transcript, ct);
+        var conversationNoteTask = this.summaryGenerator.GenerateGespraechsnotizAsync(transcript, ct);
+        var stundenzettelTask = this.summaryGenerator.GenerateStundenzettelAsync(transcript, ct);
+        var analogTask = this.summaryGenerator.GenerateAnalogAsync(transcript, ct);
+        var emailTask = this.summaryGenerator.GenerateEmailTextAsync(proseSummary, ct);
 
         await Task.WhenAll(
             (Task)taskListTask,
@@ -360,12 +369,15 @@ public sealed class EntryProcessingService : IEntryProcessor
     /// </summary>
     private async Task ArchiveRawFilesAsync(string sourceAudioPath, Entry entry, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(_outputRoot)) return;
+        if (string.IsNullOrEmpty(this.outputRoot))
+        {
+            return;
+        }
 
         try
         {
             var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
-            var rawDir = Path.Combine(_outputRoot, date.ToString("yyyy-MM-dd"), "_raw");
+            var rawDir = Path.Combine(this.outputRoot, date.ToString("yyyy-MM-dd"), "_raw");
             Directory.CreateDirectory(rawDir);
 
             var baseName = FilenameBuilder.Build(entry);
@@ -373,7 +385,9 @@ public sealed class EntryProcessingService : IEntryProcessor
             var audioExt = Path.GetExtension(sourceAudioPath);
             var audioDest = Path.Combine(rawDir, baseName + audioExt);
             if (!File.Exists(audioDest))
+            {
                 File.Copy(sourceAudioPath, audioDest);
+            }
 
             if (!string.IsNullOrEmpty(entry.Transcript))
             {
@@ -395,9 +409,13 @@ public sealed class EntryProcessingService : IEntryProcessor
         sb.AppendLine();
 
         if (!string.IsNullOrWhiteSpace(entry.ProseSummary))
+        {
             sb.AppendLine(entry.ProseSummary);
+        }
         else if (!string.IsNullOrWhiteSpace(entry.Abstract))
+        {
             sb.AppendLine(entry.Abstract);
+        }
 
         sb.AppendLine();
         sb.AppendLine($"[{entry.CreatedAt:dd.MM.yyyy} · {entry.ProjectName}]");

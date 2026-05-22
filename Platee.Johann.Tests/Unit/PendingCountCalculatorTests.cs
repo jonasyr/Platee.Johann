@@ -1,11 +1,11 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Services;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.ValueObjects;
-
-namespace Platee.Johann.Tests.Unit;
 
 public sealed class PendingCountCalculatorTests
 {
@@ -14,7 +14,8 @@ public sealed class PendingCountCalculatorTests
     {
         var date = new DateOnly(2026, 3, 31);
         var repo = new FakeEntryRepository();
-        repo.SetEntries(date,
+        repo.SetEntries(
+            date,
         [
             MakeEntry("one", date, isDone: false),
             MakeEntry("two", date, isDone: true),
@@ -24,7 +25,8 @@ public sealed class PendingCountCalculatorTests
         var pendingBefore = await PendingCountCalculator.GetPendingCountForDateAsync(repo, date);
         pendingBefore.Should().Be(2);
 
-        repo.SetEntries(date,
+        repo.SetEntries(
+            date,
         [
             MakeEntry("one", date, isDone: true),
             MakeEntry("two", date, isDone: true),
@@ -50,20 +52,20 @@ public sealed class PendingCountCalculatorTests
 
     private sealed class FakeEntryRepository : IEntryRepository
     {
-        private readonly Dictionary<DateOnly, IReadOnlyList<Entry>> _entries = [];
+        private readonly Dictionary<DateOnly, IReadOnlyList<Entry>> entries = [];
 
-        public void SetEntries(DateOnly date, IReadOnlyList<Entry> entries) => _entries[date] = entries;
+        public void SetEntries(DateOnly date, IReadOnlyList<Entry> entries) => this.entries[date] = entries;
 
         public Task<IReadOnlyList<DateOnly>> GetAvailableDatesAsync(CancellationToken ct = default)
-            => Task.FromResult<IReadOnlyList<DateOnly>>(_entries.Keys.ToList());
+            => Task.FromResult<IReadOnlyList<DateOnly>>(this.entries.Keys.ToList());
 
         public Task<IReadOnlyList<Entry>> GetEntriesForDateAsync(DateOnly date, CancellationToken ct = default)
-            => Task.FromResult(_entries.TryGetValue(date, out var entries)
-                ? entries
+            => Task.FromResult(this.entries.TryGetValue(date, out var dateEntries)
+                ? dateEntries
                 : (IReadOnlyList<Entry>)[]);
 
         public Task<Entry?> GetByJobIdAsync(string jobId, CancellationToken ct = default)
-            => Task.FromResult<Entry?>(_entries.Values.SelectMany(x => x).FirstOrDefault(x => x.JobId == jobId));
+            => Task.FromResult<Entry?>(this.entries.Values.SelectMany(x => x).FirstOrDefault(x => x.JobId == jobId));
 
         public Task SaveAsync(Entry entry, CancellationToken ct = default) => Task.CompletedTask;
 

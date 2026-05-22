@@ -1,8 +1,8 @@
+namespace Platee.Johann.UI.Converters;
+
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-
-namespace Platee.Johann.UI.Converters;
 
 /// <summary>
 /// Returns Collapsed when value is true, Visible when false.

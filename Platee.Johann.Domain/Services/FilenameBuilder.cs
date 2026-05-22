@@ -1,12 +1,12 @@
+namespace Platee.Johann.Domain.Services;
+
 using System.Text.RegularExpressions;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 
-namespace Platee.Johann.Domain.Services;
-
 /// <summary>
 /// Builds filenames according to the rule:
-///   YYMMDD_NNN_[Gesprächsnotiz]_Projektname_ErsteFünfWorteDesTitels
+///   YYMMDD_NNN_[Gesprächsnotiz]_Projektname_ErsteFünfWorteDesTitels.
 /// </summary>
 public static class FilenameBuilder
 {

@@ -5,11 +5,11 @@ namespace Platee.Johann.Application.Processing;
 /// Default: all standard sections visible; type-specific sections off by default.
 /// </summary>
 public sealed record SectionVisibility(
-    bool LongSummary       = true,
-    bool ProseSummary      = true,
-    bool TaskList          = true,
-    bool ConversationNote  = true,
-    bool EmailText         = false,
+    bool LongSummary = true,
+    bool ProseSummary = true,
+    bool TaskList = true,
+    bool ConversationNote = true,
+    bool EmailText = false,
     bool StundenzettelText = false,
-    bool AnalogText        = false,
-    bool Transcript        = true);
+    bool AnalogText = false,
+    bool Transcript = true);

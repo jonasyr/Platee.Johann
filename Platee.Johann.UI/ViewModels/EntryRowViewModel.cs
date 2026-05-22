@@ -1,28 +1,36 @@
+namespace Platee.Johann.UI.ViewModels;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
-
-namespace Platee.Johann.UI.ViewModels;
+using Platee.Johann.UI.Helpers;
 
 public sealed partial class EntryRowViewModel : ObservableObject
 {
     public Entry Entry { get; }
 
-    public string JobId => Entry.JobId;
-    public int SequenceNumber => Entry.SequenceNumber;
-    public EntryType Type => Entry.Type;
-    public string ProjectName => Entry.ProjectName;
-    public string Title => Entry.Title;
-    public string TypeBadge => Entry.Type.ToString();
+    public string JobId => this.Entry.JobId;
 
-    public bool IsDone => Entry.IsDone;
+    public int SequenceNumber => this.Entry.SequenceNumber;
 
-    public string DisplayName => Entry.IsDone
-        ? $"✓ {Entry.SequenceNumber:D3} {Entry.ProjectName} {Entry.Title}"
-        : $"{Entry.SequenceNumber:D3} {Entry.ProjectName} {Entry.Title}";
+    public EntryType Type => this.Entry.Type;
+
+    public string ProjectName => this.Entry.ProjectName;
+
+    public string Title => this.Entry.Title;
+
+    public string TypeBadge => this.Entry.Type.ToString();
+
+    public string FormattedDuration => DurationFormatter.Format(this.Entry.DurationSeconds);
+
+    public bool IsDone => this.Entry.IsDone;
+
+    public string DisplayName => this.Entry.IsDone
+        ? $"✓ {this.Entry.SequenceNumber:D3} {this.Entry.ProjectName} {this.Entry.Title}"
+        : $"{this.Entry.SequenceNumber:D3} {this.Entry.ProjectName} {this.Entry.Title}";
 
     public EntryRowViewModel(Entry entry)
     {
-        Entry = entry;
+        this.Entry = entry;
     }
 }

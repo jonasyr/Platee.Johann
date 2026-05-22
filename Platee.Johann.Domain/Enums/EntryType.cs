@@ -7,5 +7,5 @@ public enum EntryType
     Gesprächsnotiz = 2,
     Aufgabe = 3,
     Stundenzettel = 4,
-    Analog = 5
+    Analog = 5,
 }

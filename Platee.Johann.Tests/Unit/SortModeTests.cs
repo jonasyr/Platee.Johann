@@ -1,9 +1,9 @@
+namespace Platee.Johann.Tests.Unit;
+
 using FluentAssertions;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.ValueObjects;
-
-namespace Platee.Johann.Tests.Unit;
 
 /// <summary>
 /// Tests for the ApplySort logic extracted from MainViewModel.
@@ -13,7 +13,11 @@ namespace Platee.Johann.Tests.Unit;
 public sealed class SortModeTests
 {
     // Local mirror of Platee.Johann.UI.ViewModels.SortMode (same ordinal values).
-    private enum SortMode { ById = 0, ByProjectThenId = 1 }
+    private enum SortMode
+    {
+        ById = 0,
+        ByProjectThenId = 1
+    }
 
     private static IEnumerable<Entry> ApplySort(IEnumerable<Entry> entries, SortMode mode) => mode switch
     {
@@ -22,7 +26,6 @@ public sealed class SortModeTests
     };
 
     // ── ById ──────────────────────────────────────────────────────────────────
-
     [Fact]
     public void SortById_orders_by_sequenceNumber()
     {
@@ -42,7 +45,6 @@ public sealed class SortModeTests
     }
 
     // ── ByProjectThenId ───────────────────────────────────────────────────────
-
     [Fact]
     public void SortByProjectThenId_orders_by_projectName_then_sequenceNumber()
     {
@@ -63,7 +65,6 @@ public sealed class SortModeTests
     }
 
     // ── Stability / edge cases ────────────────────────────────────────────────
-
     [Fact]
     public void SortById_stable_for_equal_sequence_numbers()
     {
@@ -98,7 +99,6 @@ public sealed class SortModeTests
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
-
     private static Entry MakeEntry(string jobId, int seq, string project) => new()
     {
         JobId = jobId,
