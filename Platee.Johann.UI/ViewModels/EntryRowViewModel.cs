@@ -3,6 +3,7 @@ namespace Platee.Johann.UI.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
+using Platee.Johann.UI.Helpers;
 
 public sealed partial class EntryRowViewModel : ObservableObject
 {
@@ -19,6 +20,8 @@ public sealed partial class EntryRowViewModel : ObservableObject
     public string Title => this.Entry.Title;
 
     public string TypeBadge => this.Entry.Type.ToString();
+
+    public string FormattedDuration => DurationFormatter.Format(this.Entry.DurationSeconds);
 
     public bool IsDone => this.Entry.IsDone;
 

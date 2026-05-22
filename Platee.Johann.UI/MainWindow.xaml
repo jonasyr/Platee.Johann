@@ -663,7 +663,11 @@
                                         <Run Text="{Binding Title, Mode=OneWay}"/>
                                     </TextBlock>
                                 </DockPanel>
-                                <TextBlock Text="{Binding TypeBadge}" FontSize="10" Foreground="#888"/>
+                                <TextBlock FontSize="10" Foreground="#888">
+                                    <Run Text="{Binding TypeBadge, Mode=OneWay}"/>
+                                    <Run Text=" · "/>
+                                    <Run Text="{Binding FormattedDuration, Mode=OneWay}"/>
+                                </TextBlock>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
