@@ -25,6 +25,7 @@
         <SolidColorBrush x:Key="TextQuietBrush" Color="#666666"/>
         <SolidColorBrush x:Key="TextFaintBrush" Color="#999999"/>
         <SolidColorBrush x:Key="BorderMidBrush" Color="#CCCCCC"/>
+        <SolidColorBrush x:Key="AccentLineBrush" Color="#E7B1AC"/>
         <SolidColorBrush x:Key="SuccessBrush" Color="#27AE60"/>
         <SolidColorBrush x:Key="WarningBrush" Color="#B76E00"/>
         <SolidColorBrush x:Key="WarningBgBrush" Color="#FFF8EC"/>
@@ -56,8 +57,14 @@
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#E63123"/>
-            <Setter Property="Margin" Value="0,18,0,7"/>
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+        </Style>
+        <Style x:Key="SectionHeaderBorderStyle" TargetType="Border">
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentLineBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Padding" Value="0,0,24,4"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
         <Style x:Key="ContentTextStyle" TargetType="TextBox">
             <Setter Property="IsReadOnly" Value="True"/>
@@ -857,8 +864,10 @@
 
                         <!-- Abstract — always shown when present, subtle highlight -->
                         <StackPanel Visibility="{Binding Detail.Entry.Abstract, Converter={StaticResource NullToVis}}"
-                                    Margin="0,0,0,16">
-                            <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
+                                    Margin="0,14,0,22">
+                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
+                            </Border>
                             <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="0,0,0,2"
                                     CornerRadius="2" Padding="12,10">
                                 <TextBox Text="{Binding Detail.DisplayAbstract, Mode=OneWay}"
@@ -868,8 +877,10 @@
 
                         <!-- Long Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowLongSummarySection, Converter={StaticResource BoolToVis}}"
-                                    Margin="0,0,0,16">
-                            <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
+                                    Margin="0,14,0,22">
+                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
+                            </Border>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayLongSummary, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -884,8 +895,10 @@
 
                         <!-- Prose Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowProseSummarySection, Converter={StaticResource BoolToVis}}"
-                                    Margin="0,0,0,16">
-                            <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
+                                    Margin="0,14,0,22">
+                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
+                            </Border>
                             <TextBox Text="{Binding Detail.DisplayProseSummary, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"
                                      TextWrapping="Wrap"/>
@@ -893,8 +906,10 @@
 
                         <!-- Task list -->
                         <StackPanel Visibility="{Binding Detail.ShowTaskListSection, Converter={StaticResource BoolToVis}}"
-                                    Margin="0,0,0,16">
-                            <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
+                                    Margin="0,14,0,22">
+                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
+                            </Border>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayTaskList, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -909,8 +924,10 @@
 
                         <!-- Conversation note -->
                         <StackPanel Visibility="{Binding Detail.ShowConversationNoteSection, Converter={StaticResource BoolToVis}}"
-                                    Margin="0,0,0,16">
-                            <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
+                                    Margin="0,14,0,22">
+                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
+                            </Border>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayConversationNote, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -925,8 +942,10 @@
 
                         <!-- Stundenzettel -->
                         <StackPanel Visibility="{Binding Detail.ShowStundenzettelSection, Converter={StaticResource BoolToVis}}"
-                                    Margin="0,0,0,16">
-                            <TextBlock Text="Stundenzettel" Style="{StaticResource SectionHeaderStyle}"/>
+                                    Margin="0,14,0,22">
+                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                <TextBlock Text="Stundenzettel" Style="{StaticResource SectionHeaderStyle}"/>
+                            </Border>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayStundenzettelText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -941,8 +960,10 @@
 
                         <!-- Analog -->
                         <StackPanel Visibility="{Binding Detail.ShowAnalogSection, Converter={StaticResource BoolToVis}}"
-                                    Margin="0,0,0,16">
-                            <TextBlock Text="Analog" Style="{StaticResource SectionHeaderStyle}"/>
+                                    Margin="0,14,0,22">
+                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                <TextBlock Text="Analog" Style="{StaticResource SectionHeaderStyle}"/>
+                            </Border>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayAnalogText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -957,8 +978,10 @@
 
                         <!-- E-Mail Text -->
                         <StackPanel Visibility="{Binding Detail.ShowEmailSection, Converter={StaticResource BoolToVis}}"
-                                    Margin="0,0,0,16">
-                            <TextBlock Text="E-Mail" Style="{StaticResource SectionHeaderStyle}"/>
+                                    Margin="0,14,0,22">
+                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                <TextBlock Text="E-Mail" Style="{StaticResource SectionHeaderStyle}"/>
+                            </Border>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayEmailText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -973,8 +996,10 @@
 
                         <!-- Transcript -->
                         <StackPanel Visibility="{Binding Detail.ShowTranscriptSection, Converter={StaticResource BoolToVis}}"
-                                    Margin="0,0,0,16">
-                            <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
+                                    Margin="0,14,0,22">
+                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
+                            </Border>
                             <TextBox Text="{Binding Detail.DisplayTranscript, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"
                                      TextWrapping="Wrap" Foreground="#555"/>

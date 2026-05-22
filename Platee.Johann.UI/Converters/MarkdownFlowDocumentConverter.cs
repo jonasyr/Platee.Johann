@@ -16,6 +16,7 @@ using System.Windows.Media;
 [ValueConversion(typeof(string), typeof(FlowDocument))]
 public sealed class MarkdownFlowDocumentConverter : IValueConverter
 {
+    private static readonly Brush NeutralHeadingBrush = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         => BuildDocument(value as string);
 
@@ -84,9 +85,9 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
                 var para = new Paragraph
                 {
                     FontWeight = FontWeights.SemiBold,
-                    FontSize = 13,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33)),
-                    Margin = new Thickness(0, 8, 0, 2),
+                    FontSize = 13.5,
+                    Foreground = NeutralHeadingBrush,
+                    Margin = new Thickness(0, 12, 0, 4),
                 };
                 foreach (var inline in ParseInlines(trimmed[4..]))
                 {
@@ -136,7 +137,7 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
             else
             {
                 FlushBullets();
-                var para = new Paragraph { Margin = new Thickness(0, 0, 0, 2) };
+                var para = CreateBodyParagraph(trimmed);
                 foreach (var inline in ParseInlines(trimmed))
                 {
                     para.Inlines.Add(inline);
@@ -181,5 +182,37 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
                 yield return new Run(part);
             }
         }
+    }
+
+    private static Paragraph CreateBodyParagraph(string text)
+    {
+        if (LooksLikeInlineHeading(text))
+        {
+            return new Paragraph
+            {
+                Margin = new Thickness(0, 12, 0, 4),
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 13.5,
+                Foreground = NeutralHeadingBrush,
+            };
+        }
+
+        return new Paragraph { Margin = new Thickness(0, 0, 0, 2) };
+    }
+
+    private static bool LooksLikeInlineHeading(string text)
+    {
+        if (!(text.StartsWith("**", StringComparison.Ordinal) &&
+              text.EndsWith("**", StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        var inner = text[2..^2].Trim();
+        return inner.Length > 0 &&
+               !inner.Contains("**", StringComparison.Ordinal) &&
+               !inner.Contains('*') &&
+               !inner.Contains('.') &&
+               !inner.Contains(':');
     }
 }
