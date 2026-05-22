@@ -63,8 +63,11 @@ Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Dom
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
 Platee.Johann.UI/              # WPF presentation layer (depends on all)
+  Helpers/                     # DurationFormatter — pure static formatting helpers
   ViewModels/                  # MainViewModel, SettingsViewModel, NewEntryViewModel, …
-  Views/                       # NewEntryView.xaml, SettingsView.xaml
+                               #   Toast stack: ToastTone, ToastToneHelper, ToastItem,
+                               #                ToastQueue, ToastsViewModel
+  Views/                       # NewEntryView.xaml, SettingsView.xaml, ToastView.xaml
   Converters/                  # WPF value converters
   Program.cs                   # Entry point + Velopack init + crash logging
 
@@ -113,6 +116,10 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **WPF MVVM**: `CommunityToolkit.Mvvm 8.4` — ViewModels use `[ObservableProperty]` / `[RelayCommand]` source generators. Single-instance enforcement on `SettingsViewModel`.
 
+**Toast notification tray**: `ToastQueue` (pure, injectable timer factory) + `ToastsViewModel` (WPF `DispatcherTimer` wrapper) replace the former single-toast overlay in `MainViewModel`. `MainViewModel.Toasts` exposes `ObservableCollection<ToastItem>` bound to an `ItemsControl` in `MainWindow.xaml`. Tones: `Ok` (green) / `Warn` (orange) / `Error` (red) derived by `ToastToneHelper`. Auto-dismiss after 5.2 s; hover pauses the timer. Error toasts expose a "Details im Status-Log" link wired to `OpenProcessDetailCommand`.
+
+**Shared formatting helpers**: `DurationFormatter.Format(double seconds)` in `UI/Helpers/` is used by both `EntryDetailViewModel` (display duration) and `EntryRowViewModel.FormattedDuration` (entry-list subtitle). Format: `m:ss` for < 1 h, `h:mm:ss` for ≥ 1 h.
+
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: git-insights -->
@@ -123,6 +130,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **HTML hardening** (`acfd293`): `HtmlRenderer` sanitises user content to prevent XSS in the embedded WebView.
 - **Prompt migration** (`fb22129`): one-time migration system ensures default prompts update for existing installs without overwriting user customisations.
 - **CrashLogWriter** (`835a9f5`): structured crash logs with version, timestamp, and full stack trace.
+- **Sprint 3 UX findings 11 & 12** (plan: `2026-05-22`): entry-list subtitle enriched with `TypeBadge · duration` via shared `DurationFormatter`; single-toast overlay in `MainViewModel` replaced with a queue-based multi-toast tray (`ToastQueue` / `ToastsViewModel` / `ToastView`).
 
 <!-- END AUTO-MANAGED -->
 
