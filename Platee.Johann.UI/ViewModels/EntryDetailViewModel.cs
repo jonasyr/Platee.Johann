@@ -5,6 +5,7 @@ using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Platee.Johann.Application.Processing;
+using Platee.Johann.UI.Helpers;
 using Platee.Johann.Domain.Entities;
 
 public sealed partial class EntryDetailViewModel : ObservableObject
@@ -52,7 +53,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     public string DisplayProject => this.Entry?.ProjectName ?? string.Empty;
 
-    public string DisplayDuration => this.Entry is null ? string.Empty : FormatDuration(this.Entry.DurationSeconds);
+    public string DisplayDuration => this.Entry is null ? string.Empty : DurationFormatter.Format(this.Entry.DurationSeconds);
 
     public string DisplayDate => this.Entry?.CreatedAt.ToString("dd.MM.yyyy") ?? string.Empty;
 
@@ -632,11 +633,4 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         return null;
     }
 
-    private static string FormatDuration(double seconds)
-    {
-        var ts = TimeSpan.FromSeconds(seconds);
-        return ts.TotalHours >= 1
-            ? ts.ToString(@"h\:mm\:ss")
-            : ts.ToString(@"m\:ss");
-    }
 }
