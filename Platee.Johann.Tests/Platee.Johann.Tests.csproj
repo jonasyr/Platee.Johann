@@ -34,6 +34,10 @@
     <Compile Include="..\Platee.Johann.UI\StartupPathResolver.cs" Link="StartupPathResolver.cs" />
     <Compile Include="..\Platee.Johann.UI\Helpers\DurationFormatter.cs" Link="Helpers/DurationFormatter.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\EntryRowViewModel.cs" Link="ViewModels/EntryRowViewModel.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\ToastTone.cs" Link="ViewModels/ToastTone.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\ToastToneHelper.cs" Link="ViewModels/ToastToneHelper.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\ToastItem.cs" Link="ViewModels/ToastItem.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\ToastQueue.cs" Link="ViewModels/ToastQueue.cs" />
   </ItemGroup>
 
 </Project>
