@@ -85,6 +85,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     public bool IsAudio => this.Entry?.SourceType == "audio";
 
+    public bool CanUseDetailActions => Finding04State.CanUseDetailActions(this.HasEntry, this.processor?.CanProcess == true);
+
+    public string DetailActionsDisabledReason =>
+        Finding04State.GetDetailActionDisabledReason(this.HasEntry, this.processor?.CanProcess == true);
+
     public bool CanReprocess => this.Entry is not null && this.processor?.CanProcess == true;
 
     /// <summary>Raised after an entry's IsDone status is toggled so the list can refresh.</summary>
@@ -131,6 +136,8 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         OnPropertyChanged(nameof(HasEntry));
         OnPropertyChanged(nameof(HasNoEntry));
         OnPropertyChanged(nameof(IsAudio));
+        OnPropertyChanged(nameof(CanUseDetailActions));
+        OnPropertyChanged(nameof(DetailActionsDisabledReason));
         OnPropertyChanged(nameof(CanReprocess));
         RefreshSectionVisibility();
         GeneratePdfCommand.NotifyCanExecuteChanged();

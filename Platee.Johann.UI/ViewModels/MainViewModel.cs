@@ -101,6 +101,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     public bool CanAddAudio => this.processor.CanProcess;
 
+    public bool IsApiKeyMissing => !this.processor.CanProcess;
+
+    public bool HasInputPathIssue => Finding04State.FindMissingInputPathIssue(this.startupPathIssues) is not null;
+
+    public string MissingInputPathDisplay =>
+        Finding04State.FindMissingInputPathIssue(this.startupPathIssues)?.ConfiguredPath ?? string.Empty;
+
     public bool HasRunningJobs => this.ProcessLog.Any(x => x.IsRunning);
 
     public string OutputPathDisplay => this.outputRoot;
