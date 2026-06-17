@@ -407,7 +407,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.GlobalPromptStatus = EvaluateGlobalPromptStatus(value);
     }
 
-    private const string AdminPasswordHash = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3";
+    private const string AdminPasswordHash = "1be344bf22d9aafb6cd0cc1223b315bb2ae4b4cc7d0788ed5bddf9dcecb02c17";
 
     private const string SectionGeneral = "general";
     private const string SectionPaths = "paths";
