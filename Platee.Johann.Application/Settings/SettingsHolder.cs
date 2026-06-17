@@ -8,5 +8,11 @@ public sealed class SettingsHolder
 {
     public AppSettings Current { get; set; }
 
-    public SettingsHolder(AppSettings initial) => this.Current = initial;
+    public PromptSettings Prompts { get; set; }
+
+    public SettingsHolder(AppSettings initial, PromptSettings? prompts = null)
+    {
+        this.Current = initial;
+        this.Prompts = prompts ?? PromptSettings.Default;
+    }
 }
