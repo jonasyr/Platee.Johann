@@ -1,22 +1,19 @@
-# Neuigkeiten
+# Was ist neu?
 
 ## Version 1.2.0
 
-### Getrennte Prompt-Verwaltung
-- Prompts werden jetzt zentral über die Team-Datei auf dem Netzlaufwerk geladen
-- Lokale Prompt-Änderungen gelten nur temporär bis zum nächsten App-Neustart
-- Neuer **Admin-Modus** in den Einstellungen für globale Prompt-Änderungen (passwortgeschützt)
+**Prompts werden jetzt zentral verwaltet**
 
-### Verbesserungen
-- Neuer Bereich "Team-Prompts" in den Einstellungen zeigt den Pfad zur globalen Prompt-Datei
-- Status-Anzeige ob die globale Prompt-Datei erreichbar ist
-- Altdaten-Bereinigung: lokale `prompts.json` wird automatisch entfernt
+Alle Mitarbeiter nutzen ab sofort die gleichen Prompt-Vorlagen. Diese werden beim Start automatisch vom Netzlaufwerk geladen. Sie müssen nichts weiter tun.
+
+Wenn Sie einen Prompt testweise anpassen möchten, können Sie das weiterhin in den Einstellungen tun. Die Änderung gilt dann nur bis zum nächsten App-Neustart.
+
+**Neuer Admin-Modus**
+
+In den Einstellungen gibt es unten links einen "Admin"-Button. Damit können berechtigte Personen die Prompt-Vorlagen dauerhaft für alle Mitarbeiter ändern.
 
 ---
 
 ## Version 1.1.0
 
-- Erstveröffentlichung mit KI-gestützter Diktat-Verarbeitung
-- Automatische Transkription via OpenAI Whisper
-- Fünf Eintragstypen: Aufgabe, E-Mail, Gesprächsnotiz, Stundenzettel, Analog
-- PDF- und HTML-Export
+Erstveröffentlichung von Platé.Johann mit automatischer Diktat-Verarbeitung.
