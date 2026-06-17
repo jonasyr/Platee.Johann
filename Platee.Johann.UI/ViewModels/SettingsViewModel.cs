@@ -315,6 +315,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         return "⚠ Globale Prompt-Datei nicht erreichbar – lokale Prompts werden verwendet";
     }
 
+    partial void OnGlobalPromptFilePathChanged(string? value)
+    {
+        this.GlobalPromptStatus = EvaluateGlobalPromptStatus(value);
+    }
+
     private const string SectionGeneral = "general";
     private const string SectionPaths = "paths";
     private const string SectionTeam = "team";
