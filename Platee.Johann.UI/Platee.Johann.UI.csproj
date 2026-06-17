@@ -26,6 +26,13 @@
     <Resource Include="..\Johann.ico" Link="Johann.ico" />
   </ItemGroup>
 
+  <Target Name="CopyDocsToAssets" BeforeTargets="BeforeBuild">
+    <Copy SourceFiles="..\HANDBUCH.html" DestinationFiles="Assets\HANDBUCH.html"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="..\RELEASE_NOTES.md" DestinationFiles="Assets\RELEASE_NOTES.md"
+          SkipUnchangedFiles="true" />
+  </Target>
+
   <ItemGroup>
     <EmbeddedResource Include="Assets\RELEASE_NOTES.md" />
     <EmbeddedResource Include="Assets\HANDBUCH.html" />

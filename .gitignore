@@ -23,3 +23,7 @@ publish
 .claude/auto-memory/dirty-files*
 
 docs/superpowers
+
+# Auto-copied from root by MSBuild
+Platee.Johann.UI/Assets/HANDBUCH.html
+Platee.Johann.UI/Assets/RELEASE_NOTES.md
