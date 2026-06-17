@@ -53,12 +53,16 @@ Platee.Johann.Domain/          # Core entities, no external deps
   ValueObjects/                # ParsedHeader, ProcessingStatus
 
 Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
-  Interfaces/                  # IEntryRepository, ILlmProvider, IAudioTranscriber, …
+  Interfaces/                  # IEntryRepository, ILlmProvider, IAudioTranscriber,
+                               #   IPromptSettingsRepository
   Processing/                  # EntryProcessingService, SummaryGenerator, AudioWatcherService
-  Settings/                    # AppSettings (immutable record), SettingsHolder, migration
+  Services/                    # PromptSettingsLoader (local/global fallback)
+  Settings/                    # AppSettings, PromptSettings, SettingsHolder,
+                               #   PromptDefaultsMigration, SettingsSplitMigration
 
 Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Domain)
-  Json/                        # JsonRepository (file-backed), JsonSettingsRepository, migration
+  Json/                        # JsonRepository (file-backed), JsonSettingsRepository,
+                               #   JsonPromptSettingsRepository, migration
   Llm/                         # OpenAiLlmProvider, WhisperTranscriber, NoOp stubs
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
@@ -104,13 +108,17 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 <!-- AUTO-MANAGED: patterns -->
 ## Detected Patterns
 
-**Repository pattern**: `IEntryRepository` / `ISettingsRepository` interfaces in Application; `JsonRepository` / `JsonSettingsRepository` in Infrastructure. Business logic never touches file I/O directly.
+**Repository pattern**: `IEntryRepository` / `ISettingsRepository` / `IPromptSettingsRepository` interfaces in Application; `JsonRepository` / `JsonSettingsRepository` / `JsonPromptSettingsRepository` in Infrastructure. Business logic never touches file I/O directly.
 
 **No-Op stubs**: `NoOpLlmProvider` and `NoOpAudioTranscriber` in Infrastructure allow the app to run without an API key configured.
 
 **Schema versioning**: `Entry.SchemaVersion` (currently 2) + `JsonMigrator` handle forward migration of persisted JSON files.
 
-**Settings migration**: `PromptDefaultsMigration` uses a revision integer to apply one-time migrations to user settings without overwriting manual customisations.
+**Settings split**: `AppSettings` holds user preferences (name, company, directories); `PromptSettings` holds all LLM prompt templates. Persisted separately as `settings.json` and `prompts.json`. `SettingsHolder` wraps both for live propagation to `SummaryGenerator`.
+
+**Settings migration**: `PromptDefaultsMigration` uses a revision integer to apply one-time prompt migrations without overwriting user customisations. `SettingsSplitMigration` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`.
+
+**Team-shared prompts**: `AppSettings.GlobalPromptFilePath` points to a shared `prompts.json`. `PromptSettingsLoader.LoadWithFallbackAsync` tries global first, falls back to local on failure. `JsonPromptSettingsRepository.FromFilePath` factory creates a repo for arbitrary file paths.
 
 **CrashLogWriter**: Unhandled-exception handler writes to `%LOCALAPPDATA%\Platee\Johann\crash-*.log`.
 
@@ -136,6 +144,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **CrashLogWriter** (`835a9f5`): structured crash logs with version, timestamp, and full stack trace.
 - **Sprint 3 UX findings 11 & 12** (`409beec` / `39c9b28`): entry-list subtitle enriched with `TypeBadge · duration` via shared `DurationFormatter`; single-toast overlay in `MainViewModel` replaced with a queue-based multi-toast tray (`ToastQueue` / `ToastsViewModel` / `ToastView`).
 - **SonarCloud CI** (`a9c1316` / `da8ecc7` / `323ec03`): `.github/workflows/build.yml` runs SonarCloud analysis on push-to-main and PRs (windows-latest, JDK 17 zulu). Config is inline via scanner flags: project key `jonasyr_Platee.Johann`, org `gitray-org`, OpenCover coverage at `**/TestResults/**/coverage.opencover.xml`. `sonar-project.properties` was removed (`323ec03`) — all config now lives in the workflow.
+- **Settings split**: Prompt configuration extracted from monolithic `AppSettings` into dedicated `PromptSettings` record with separate persistence (`prompts.json`). `SettingsSplitMigration` handles one-time data migration. `PromptSettingsLoader` adds local/global fallback to enable team-shared prompts via `GlobalPromptFilePath`.
 
 <!-- END AUTO-MANAGED -->
 
