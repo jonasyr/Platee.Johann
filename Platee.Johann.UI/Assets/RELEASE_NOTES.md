@@ -12,6 +12,10 @@
 
 - In den Einstellungen gibt es unten links einen passwortgeschützten "Admin"-Button. Damit können berechtigte Personen die Prompt-Vorlagen, sowie ihren Speicherort dauerhaft für alle Mitarbeiter ändern.
 
+**Dokumentation aktualisiert**
+
+- Das Handbuch ("?" Button oben rechts) wurde auf den aktuellen Stand gebracht.
+
 ---
 
 ## Version 1.1.0

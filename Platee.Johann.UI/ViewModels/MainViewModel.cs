@@ -533,7 +533,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenHandbook()
     {
-        var handbuchPath = FindHandbookPath();
+        var handbuchPath = ExtractHandbook();
         if (handbuchPath is not null)
         {
             System.Diagnostics.Process.Start(
@@ -542,7 +542,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         System.Windows.MessageBox.Show(
-            "Dokumentation nicht gefunden:\nHANDBUCH.html",
+            "Dokumentation nicht gefunden.",
             "Hilfe",
             System.Windows.MessageBoxButton.OK,
             System.Windows.MessageBoxImage.Information);
@@ -634,16 +634,27 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private static string? FindHandbookPath()
+    private static string? ExtractHandbook()
     {
-        var candidates = new[]
-        {
-            Path.Combine(AppContext.BaseDirectory, "HANDBUCH.html"),
-            Path.Combine(Environment.CurrentDirectory, "HANDBUCH.html"),
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "HANDBUCH.html")),
-        };
+        const string resourceName = "Platee.Johann.UI.Assets.HANDBUCH.html";
+        var tempPath = Path.Combine(Path.GetTempPath(), "Platee.Johann.HANDBUCH.html");
 
-        return candidates.FirstOrDefault(File.Exists);
+        try
+        {
+            using var stream = typeof(MainViewModel).Assembly.GetManifestResourceStream(resourceName);
+            if (stream is null)
+            {
+                return null;
+            }
+
+            using var file = File.Create(tempPath);
+            stream.CopyTo(file);
+            return tempPath;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private void ResetSectionsToDefaults(EntryType? type)
