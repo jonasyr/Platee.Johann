@@ -120,6 +120,10 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **Shared formatting helpers**: `DurationFormatter.Format(double seconds)` in `UI/Helpers/` is used by both `EntryDetailViewModel` (display duration) and `EntryRowViewModel.FormattedDuration` (entry-list subtitle). Format: `m:ss` for < 1 h, `h:mm:ss` for ≥ 1 h.
 
+**Finding04State**: Static helper in `UI/ViewModels/Finding04State.cs` centralises the logic for `CanUseDetailActions` / `DetailActionsDisabledReason`. Both `EntryDetailViewModel` and `MainViewModel` delegate to it; tested in `Finding04StateTests.cs`.
+
+**Detail zoom**: `EntryDetailViewModel.DetailZoom` (double, 1.0 default, range 0.5–2.0, step 0.1) drives a `ScaleTransform` on the detail `StackPanel` in `MainWindow.xaml`. `ZoomIn` / `ZoomOut` relay commands exposed; `ZoomText` shows the current percentage. Zoom controls sit in the status bar.
+
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: git-insights -->
@@ -130,7 +134,8 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **HTML hardening** (`acfd293`): `HtmlRenderer` sanitises user content to prevent XSS in the embedded WebView.
 - **Prompt migration** (`fb22129`): one-time migration system ensures default prompts update for existing installs without overwriting user customisations.
 - **CrashLogWriter** (`835a9f5`): structured crash logs with version, timestamp, and full stack trace.
-- **Sprint 3 UX findings 11 & 12** (plan: `2026-05-22`): entry-list subtitle enriched with `TypeBadge · duration` via shared `DurationFormatter`; single-toast overlay in `MainViewModel` replaced with a queue-based multi-toast tray (`ToastQueue` / `ToastsViewModel` / `ToastView`).
+- **Sprint 3 UX findings 11 & 12** (`409beec` / `39c9b28`): entry-list subtitle enriched with `TypeBadge · duration` via shared `DurationFormatter`; single-toast overlay in `MainViewModel` replaced with a queue-based multi-toast tray (`ToastQueue` / `ToastsViewModel` / `ToastView`).
+- **SonarCloud CI** (`a9c1316` / `da8ecc7` / `323ec03`): `.github/workflows/build.yml` runs SonarCloud analysis on push-to-main and PRs (windows-latest, JDK 17 zulu). Config is inline via scanner flags: project key `jonasyr_Platee.Johann`, org `gitray-org`, OpenCover coverage at `**/TestResults/**/coverage.opencover.xml`. `sonar-project.properties` was removed (`323ec03`) — all config now lives in the workflow.
 
 <!-- END AUTO-MANAGED -->
 
