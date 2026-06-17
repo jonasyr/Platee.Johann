@@ -7,13 +7,13 @@ using Platee.Johann.Application.Settings;
 public sealed class PromptDefaultsMigrationTests : IDisposable
 {
     private readonly string tempDir;
-    private readonly string settingsFilePath;
+    private readonly string promptsFilePath;
 
     public PromptDefaultsMigrationTests()
     {
         this.tempDir = Path.Combine(Path.GetTempPath(), $"JohannPromptMigrationTests_{Guid.NewGuid():N}");
         Directory.CreateDirectory(this.tempDir);
-        this.settingsFilePath = Path.Combine(this.tempDir, "settings.json");
+        this.promptsFilePath = Path.Combine(this.tempDir, "prompts.json");
     }
 
     public void Dispose()
@@ -27,9 +27,9 @@ public sealed class PromptDefaultsMigrationTests : IDisposable
     [Fact]
     public void ApplyIfNeeded_WhenRevisionIsCurrent_DoesNothing()
     {
-        var settings = AppSettings.Default;
+        var settings = PromptSettings.Default;
 
-        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, this.settingsFilePath);
+        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, this.promptsFilePath);
 
         result.DidMigrate.Should().BeFalse();
         result.BackupPath.Should().BeNull();
@@ -39,16 +39,11 @@ public sealed class PromptDefaultsMigrationTests : IDisposable
     [Fact]
     public void ApplyIfNeeded_WhenOldRevisionAndFileExists_BacksUpAndOverwritesOnlyPrompts()
     {
-        File.WriteAllText(this.settingsFilePath, """{"name":"Alt","systemMessage":"custom"}""");
+        File.WriteAllText(this.promptsFilePath, """{"systemMessage":"custom"}""");
 
-        var settings = AppSettings.Default with
+        var settings = PromptSettings.Default with
         {
             PromptDefaultsRevision = 0,
-            Name = "Eigener Name",
-            Firma = "Eigene Firma",
-            Quellverzeichnis = @"D:\Input",
-            Archivverzeichnis = @"D:\Archiv",
-            Ausgabeverzeichnis = @"D:\Output",
             SystemMessage = "CUSTOM SYSTEM",
             AbstractPrompt = "CUSTOM ABSTRACT",
             StructuredPrompt = "CUSTOM STRUCTURED",
@@ -60,7 +55,7 @@ public sealed class PromptDefaultsMigrationTests : IDisposable
             AnalogPrompt = "CUSTOM ANALOG",
         };
 
-        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, this.settingsFilePath);
+        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, this.promptsFilePath);
 
         result.DidMigrate.Should().BeTrue();
         result.BackupPath.Should().NotBeNull();
@@ -68,11 +63,6 @@ public sealed class PromptDefaultsMigrationTests : IDisposable
         File.ReadAllText(result.BackupPath!).Should().Contain("\"systemMessage\":\"custom\"");
 
         result.Settings.PromptDefaultsRevision.Should().Be(PromptDefaultsMigration.CurrentRevision);
-        result.Settings.Name.Should().Be("Eigener Name");
-        result.Settings.Firma.Should().Be("Eigene Firma");
-        result.Settings.Quellverzeichnis.Should().Be(@"D:\Input");
-        result.Settings.Archivverzeichnis.Should().Be(@"D:\Archiv");
-        result.Settings.Ausgabeverzeichnis.Should().Be(@"D:\Output");
         result.Settings.SystemMessage.Should().Be(SummaryPrompts.SystemMessage);
         result.Settings.AbstractPrompt.Should().Be(SummaryPrompts.Abstract);
         result.Settings.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
@@ -87,13 +77,13 @@ public sealed class PromptDefaultsMigrationTests : IDisposable
     [Fact]
     public void ApplyIfNeeded_WhenOldRevisionAndNoFileExists_MigratesWithoutBackup()
     {
-        var settings = AppSettings.Default with
+        var settings = PromptSettings.Default with
         {
             PromptDefaultsRevision = 0,
             SystemMessage = "CUSTOM SYSTEM",
         };
 
-        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, this.settingsFilePath);
+        var result = PromptDefaultsMigration.ApplyIfNeeded(settings, this.promptsFilePath);
 
         result.DidMigrate.Should().BeTrue();
         result.BackupPath.Should().BeNull();

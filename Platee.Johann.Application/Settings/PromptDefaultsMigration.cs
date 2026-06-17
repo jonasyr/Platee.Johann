@@ -7,7 +7,7 @@ public static class PromptDefaultsMigration
 {
     public const int CurrentRevision = 20260513;
 
-    public static PromptDefaultsMigrationResult ApplyIfNeeded(AppSettings settings, string settingsFilePath)
+    public static PromptDefaultsMigrationResult ApplyIfNeeded(PromptSettings settings, string promptsFilePath)
     {
         if (settings.PromptDefaultsRevision >= CurrentRevision)
         {
@@ -15,10 +15,10 @@ public static class PromptDefaultsMigration
         }
 
         string? backupPath = null;
-        if (File.Exists(settingsFilePath))
+        if (File.Exists(promptsFilePath))
         {
-            backupPath = BuildBackupPath(settingsFilePath);
-            File.Copy(settingsFilePath, backupPath, overwrite: false);
+            backupPath = BuildBackupPath(promptsFilePath);
+            File.Copy(promptsFilePath, backupPath, overwrite: false);
         }
 
         var migrated = settings with
@@ -38,15 +38,15 @@ public static class PromptDefaultsMigration
         return new(migrated, backupPath, true);
     }
 
-    private static string BuildBackupPath(string settingsFilePath)
+    private static string BuildBackupPath(string promptsFilePath)
     {
-        var directory = Path.GetDirectoryName(settingsFilePath) ?? string.Empty;
+        var directory = Path.GetDirectoryName(promptsFilePath) ?? string.Empty;
         var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmssfff");
-        return Path.Combine(directory, $"settings.prompts-backup-{timestamp}.json.bak");
+        return Path.Combine(directory, $"prompts.backup-{timestamp}.json.bak");
     }
 }
 
 public sealed record PromptDefaultsMigrationResult(
-    AppSettings Settings,
+    PromptSettings Settings,
     string? BackupPath,
     bool DidMigrate);

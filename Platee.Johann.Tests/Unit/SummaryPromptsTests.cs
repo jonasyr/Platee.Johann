@@ -122,22 +122,22 @@ public sealed class SummaryPromptsTests
         SummaryPrompts.Prose.Should().NotContain("Fließtext-Zusammenfassung");
     }
 
-    // ── AppSettings.Default uses SummaryPrompts ───────────────────────────────
+    // ── PromptSettings.Default uses SummaryPrompts ───────────────────────────
     [Fact]
-    public void AppSettings_Default_StructuredPrompt_MatchesSummaryPrompts()
+    public void PromptSettings_Default_StructuredPrompt_MatchesSummaryPrompts()
     {
-        AppSettings.Default.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
+        PromptSettings.Default.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
     }
 
     [Fact]
-    public void AppSettings_Default_EmailPrompt_MatchesSummaryPrompts()
+    public void PromptSettings_Default_EmailPrompt_MatchesSummaryPrompts()
     {
-        AppSettings.Default.EmailPrompt.Should().Be(SummaryPrompts.Email);
+        PromptSettings.Default.EmailPrompt.Should().Be(SummaryPrompts.Email);
     }
 
     [Fact]
-    public void AppSettings_Default_AufgabePrompt_MatchesSummaryPrompts()
+    public void PromptSettings_Default_AufgabePrompt_MatchesSummaryPrompts()
     {
-        AppSettings.Default.AufgabePrompt.Should().Be(SummaryPrompts.Aufgabe);
+        PromptSettings.Default.AufgabePrompt.Should().Be(SummaryPrompts.Aufgabe);
     }
 }

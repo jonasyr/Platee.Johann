@@ -35,13 +35,13 @@ public sealed class SummaryGenerator : ISummaryGenerator
             return string.Empty;
         }
 
-        var s = this.settings.Current;
+        var p = this.settings.Prompts;
         var (abstractLimit, _) = WordLimitCalculator.Calculate(transcript);
-        var userContent = s.AbstractPrompt
+        var userContent = p.AbstractPrompt
             .Replace("{word_limit}", abstractLimit.ToString())
             .Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string> GenerateLongSummaryAsync(string transcript, CancellationToken ct = default)
@@ -51,13 +51,13 @@ public sealed class SummaryGenerator : ISummaryGenerator
             return string.Empty;
         }
 
-        var s = this.settings.Current;
+        var p = this.settings.Prompts;
         var (_, structuredLimit) = WordLimitCalculator.Calculate(transcript);
-        var userContent = s.StructuredPrompt
+        var userContent = p.StructuredPrompt
             .Replace("{word_limit}", structuredLimit.ToString())
             .Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string> GenerateProseSummaryAsync(string transcript, CancellationToken ct = default)
@@ -67,11 +67,11 @@ public sealed class SummaryGenerator : ISummaryGenerator
             return string.Empty;
         }
 
-        var s = this.settings.Current;
-        var userContent = s.ProsePrompt
+        var p = this.settings.Prompts;
+        var userContent = p.ProsePrompt
             .Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string> GenerateEmailTextAsync(string proseSummary, CancellationToken ct = default)
@@ -81,11 +81,11 @@ public sealed class SummaryGenerator : ISummaryGenerator
             return string.Empty;
         }
 
-        var s = this.settings.Current;
-        var userContent = s.EmailPrompt
+        var p = this.settings.Prompts;
+        var userContent = p.EmailPrompt
             .Replace("{prose_summary}", proseSummary);
 
-        return await this.llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(4000), ct);
+        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(4000), ct);
     }
 
     public async Task<string> GenerateTitleAsync(string transcript, CancellationToken ct = default)
@@ -95,10 +95,10 @@ public sealed class SummaryGenerator : ISummaryGenerator
             return string.Empty;
         }
 
-        var s = this.settings.Current;
+        var p = this.settings.Prompts;
         var userContent = "Bitte formuliere einen sehr kurzen, prägnanten Titel (maximal 3-7 Worte) für den folgenden Text. Antworte NUR mit dem Titel, ohne Anführungszeichen oder Erklärungen:\n\n" + transcript;
 
-        return await this.llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(), ct);
+        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(), ct);
     }
 
     public async Task<string?> GenerateAufgabeAsync(string transcript, CancellationToken ct = default)
@@ -108,10 +108,10 @@ public sealed class SummaryGenerator : ISummaryGenerator
             return null;
         }
 
-        var s = this.settings.Current;
-        var userContent = s.AufgabePrompt.Replace("{transcript}", transcript);
+        var p = this.settings.Prompts;
+        var userContent = p.AufgabePrompt.Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string?> GenerateGespraechsnotizAsync(string transcript, CancellationToken ct = default)
@@ -121,10 +121,10 @@ public sealed class SummaryGenerator : ISummaryGenerator
             return null;
         }
 
-        var s = this.settings.Current;
-        var userContent = s.GespraechsnotizPrompt.Replace("{transcript}", transcript);
+        var p = this.settings.Prompts;
+        var userContent = p.GespraechsnotizPrompt.Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string?> GenerateStundenzettelAsync(string transcript, CancellationToken ct = default)
@@ -134,10 +134,10 @@ public sealed class SummaryGenerator : ISummaryGenerator
             return null;
         }
 
-        var s = this.settings.Current;
-        var userContent = s.StundenzettelPrompt.Replace("{transcript}", transcript);
+        var p = this.settings.Prompts;
+        var userContent = p.StundenzettelPrompt.Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string?> GenerateAnalogAsync(string transcript, CancellationToken ct = default)
@@ -147,9 +147,9 @@ public sealed class SummaryGenerator : ISummaryGenerator
             return null;
         }
 
-        var s = this.settings.Current;
-        var userContent = s.AnalogPrompt.Replace("{transcript}", transcript);
+        var p = this.settings.Prompts;
+        var userContent = p.AnalogPrompt.Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(s.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
     }
 }
