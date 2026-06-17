@@ -207,9 +207,11 @@
 
   <div class="nav-group">Konfiguration</div>
   <a href="#einstellungen">Einstellungen</a>
+  <a href="#team-prompts">Team-Prompts &amp; Admin</a>
   <a href="#ablage">Dateiablage</a>
 
   <div class="nav-group">Tipps &amp; Hilfe</div>
+  <a href="#neuigkeiten">Neuigkeiten</a>
   <a href="#bestpractice">Best Practices</a>
   <a href="#probleme">Problembehandlung</a>
 </nav>
@@ -508,31 +510,49 @@
       </table>
     </div>
 
-    <h3>Prompts anpassen</h3>
-    <p>Jeder KI-Abschnitt hat einen eigenen Tab. <strong>Zurücksetzen</strong> stellt die Originalversion wieder her.</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Tab</th><th>Steuert</th></tr></thead>
-        <tbody>
-          <tr><td>System-Nachricht</td><td>Grundverhalten und Tonalität des KI-Assistenten</td></tr>
-          <tr><td>Kurzfassung</td><td>2–4 Kernpunkte des Diktats</td></tr>
-          <tr><td>Zusammenfassung</td><td>Strukturierte Gliederung in Markdown</td></tr>
-          <tr><td>Ausführlich</td><td>Fließtext-Zusammenfassung</td></tr>
-          <tr><td>E-Mail</td><td>E-Mail-Text-Generierung</td></tr>
-          <tr><td>Aufgaben / Gesprächsnotiz / Stundenzettel / Analog</td><td>Typ-spezifische Ausgabe</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <h3>Prompts</h3>
+    <p>Prompt-Vorlagen werden beim Start automatisch vom Netzlaufwerk geladen (<code>Z:\12_Tools\Peano\Johann\prompts.json</code>). Alle Mitarbeiter nutzen dieselben Vorlagen.</p>
+    <p>Sie können Prompts in den Einstellungen <strong>testweise anpassen</strong>. Änderungen gelten nur bis zum nächsten App-Neustart und nur für Sie persönlich.</p>
 
     <div class="tip">
-      <span class="icon">💡</span>
-      <p>Bestehende Einträge bleiben unverändert. Nach einer Prompt-Anpassung einfach <strong>↻ Neu generieren</strong> (oder Rechtsklick für einzelne Abschnitte) klicken.</p>
+      <span class="icon">ℹ️</span>
+      <p>Bestehende Einträge bleiben unverändert. Nach einer Prompt-Anpassung einfach <strong>↻ Neu generieren</strong> klicken.</p>
     </div>
   </section>
 
-  <!-- 9 Ablage -->
+  <!-- 9 Team-Prompts & Admin -->
+  <section class="section" id="team-prompts">
+    <div class="section-title"><div class="num">9</div><h2>Team-Prompts &amp; Admin-Modus</h2></div>
+
+    <p>Alle Prompt-Vorlagen werden zentral über eine gemeinsame Datei auf dem Netzlaufwerk verwaltet. So nutzen alle Mitarbeiter automatisch die gleichen Vorlagen.</p>
+
+    <h3>Wie es funktioniert</h3>
+    <ol class="steps">
+      <li><p>Beim Start lädt Johann die Prompts von <code>Z:\12_Tools\Peano\Johann\prompts.json</code>.</p></li>
+      <li><p>Ist das Netzlaufwerk nicht erreichbar, werden die eingebauten Standard-Prompts verwendet.</p></li>
+      <li><p>Testweise Änderungen in den Einstellungen gelten nur bis zum nächsten Neustart.</p></li>
+    </ol>
+
+    <h3>Admin-Modus</h3>
+    <p>In den Einstellungen gibt es unten links einen <strong>„Admin"</strong>-Button. Damit können berechtigte Personen die Prompt-Vorlagen <strong>dauerhaft für alle Mitarbeiter</strong> ändern.</p>
+
+    <ol class="steps">
+      <li><p>In den Einstellungen auf <strong>Admin</strong> klicken.</p></li>
+      <li><p>Passwort eingeben.</p></li>
+      <li><p>Der Admin-Modus wird aktiviert – ein roter Banner zeigt: „ADMIN-MODUS AKTIV".</p></li>
+      <li><p>Prompts bearbeiten und <strong>Speichern</strong> klicken – Änderungen werden auf das Netzlaufwerk geschrieben.</p></li>
+      <li><p>Erneut auf <strong>Admin aktiv</strong> klicken, um den Admin-Modus zu beenden.</p></li>
+    </ol>
+
+    <div class="tip" style="border-color:#fdd;background:#fff5f5;">
+      <span class="icon">⚠️</span>
+      <p><strong>Achtung:</strong> Im Admin-Modus gespeicherte Prompt-Änderungen gelten nach dem nächsten App-Neustart für <em>alle</em> Mitarbeiter.</p>
+    </div>
+  </section>
+
+  <!-- 10 Ablage -->
   <section class="section" id="ablage">
-    <div class="section-title"><div class="num">9</div><h2>Dateiablage</h2></div>
+    <div class="section-title"><div class="num">10</div><h2>Dateiablage</h2></div>
 
     <p>Alle Daten liegen lokal – kein Server, keine Datenbank. Dateien lassen sich kopieren, archivieren oder via OneDrive synchronisieren.</p>
 
@@ -563,9 +583,21 @@
     </div>
   </section>
 
-  <!-- 10 Best Practices -->
+  <!-- 11 Neuigkeiten -->
+  <section class="section" id="neuigkeiten">
+    <div class="section-title"><div class="num">11</div><h2>Neuigkeiten</h2></div>
+
+    <p>Nach einem Update zeigt Johann beim ersten Start ein <strong>Neuigkeiten-Fenster</strong> mit den wichtigsten Änderungen der neuen Version. Das Fenster erscheint einmalig pro Version und kann über den Schließen-Button geschlossen werden.</p>
+
+    <div class="tip">
+      <span class="icon">ℹ️</span>
+      <p>Das Fenster wird nur einmal pro Version angezeigt. Sie verpassen also nichts, wenn Sie es direkt schließen.</p>
+    </div>
+  </section>
+
+  <!-- 12 Best Practices -->
   <section class="section" id="bestpractice">
-    <div class="section-title"><div class="num">10</div><h2>Best Practices</h2></div>
+    <div class="section-title"><div class="num">12</div><h2>Best Practices</h2></div>
 
     <div class="card card-accent" style="margin-bottom:12px;">
       <strong>Diktat-Einstieg klar sprechen</strong>
@@ -589,9 +621,9 @@
     </div>
   </section>
 
-  <!-- 11 Probleme -->
+  <!-- 13 Probleme -->
   <section class="section" id="probleme">
-    <div class="section-title"><div class="num">11</div><h2>Problembehandlung</h2></div>
+    <div class="section-title"><div class="num">13</div><h2>Problembehandlung</h2></div>
 
     <div class="table-wrap">
       <table>
@@ -615,7 +647,7 @@
           </tr>
           <tr>
             <td>Absturz der Anwendung</td>
-            <td><code>Johann_crash.txt</code> auf dem Desktop enthält Zeitstempel und vollständigen Fehlertext.</td>
+            <td>Crash-Logs unter <code>%LOCALAPPDATA%\Platee\Johann\logs\crash-*.log</code> enthalten Zeitstempel und vollständigen Fehlertext.</td>
           </tr>
         </tbody>
       </table>
@@ -631,7 +663,7 @@
 </div>
 
 <footer>
-  Platé.Johann &nbsp;·&nbsp; Windows 10/11 &nbsp;·&nbsp; Keine Installation erforderlich &nbsp;·&nbsp; Daten bleiben lokal
+  Platé.Johann v1.2.0 &nbsp;·&nbsp; Windows 10/11 &nbsp;·&nbsp; Daten bleiben lokal
 </footer>
 
 <script>

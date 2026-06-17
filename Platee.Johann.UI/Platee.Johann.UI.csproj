@@ -18,7 +18,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>..\Johann.ico</ApplicationIcon>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <StartupObject>Platee.Johann.UI.Program</StartupObject>
   </PropertyGroup>
 

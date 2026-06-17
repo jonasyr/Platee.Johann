@@ -155,11 +155,24 @@ Das **⚙ Einstellungen**-Symbol öffnet den Einstellungs-Dialog.
 - **Ausgabe:** `Dokumente\Johann\output` – alle erzeugten Dateien
 - **Archiv:** Unterordner von Eingang – verarbeitete MP3s werden hierhin verschoben
 
-### Prompts anpassen
+### Team-Prompts
 
-Jeder KI-Abschnitt hat einen eigenen Tab (Kurzfassung, Zusammenfassung, Ausführlich, E-Mail, Aufgaben, Gesprächsnotiz, Stundenzettel, Analog). **Zurücksetzen** stellt die Originalversion wieder her. Bereits vorhandene Einträge können per **↻ Neu generieren** aktualisiert werden.
+Prompts werden zentral vom Netzlaufwerk geladen (`Z:\12_Tools\Peano\Johann\prompts.json`). Lokale Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart – beim Start werden immer die aktuellen Team-Prompts vom Netzlaufwerk übernommen.
 
-Einstellungen werden in `Dokumente\Johann\settings.json` gespeichert.
+Der Bereich **Team-Prompts** in den Einstellungen zeigt den Pfad zur globalen Prompt-Datei.
+
+**Admin-Modus:** Unten links in den Einstellungen gibt es einen **Admin**-Button (passwortgeschützt). Berechtigte Personen können darüber die Prompt-Vorlagen dauerhaft für alle Mitarbeiter ändern.
+
+Bereits vorhandene Einträge können per **↻ Neu generieren** mit den aktuellen Prompts aktualisiert werden.
+
+- Persönliche Einstellungen (Name, Firma, Verzeichnisse) werden in `Dokumente\Johann\settings.json` gespeichert.
+- Prompt-Vorlagen werden zentral von `Z:\12_Tools\Peano\Johann\prompts.json` geladen.
+
+---
+
+## Neuigkeiten nach Updates
+
+Nach jedem Update erscheint beim ersten Start ein Fenster mit den Neuerungen der Version. Es wird nur einmal pro Version angezeigt.
 
 ---
 
@@ -203,8 +216,9 @@ Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren
 | MP3 im Eingangsordner wird nicht erkannt | Dateiformat prüfen (`.mp3`), Eingangsordner in Einstellungen kontrollieren |
 | Eintrag hat falschen Typ | Diktat-Einstieg anpassen, dann **↻ Neu generieren** |
 | KI-Abschnitte leer | API-Schlüssel und Internetverbindung prüfen, Status-Log prüfen |
-| Absturz | `Johann_crash.txt` auf dem Desktop enthält den vollständigen Fehlertext |
+| Absturz | Crash-Logs unter `%LOCALAPPDATA%\Platee\Johann\logs\crash-*.log` mit Zeitstempel und Fehlertext |
+| Prompts nicht aktuell | App neu starten – Prompts werden beim Start vom Netzlaufwerk geladen |
 
 ---
 
-*Platé.Johann · Windows 10/11 · Keine Installation · Daten bleiben lokal*
+*Platé.Johann v1.2.0 · Windows 10/11 · Daten bleiben lokal*
