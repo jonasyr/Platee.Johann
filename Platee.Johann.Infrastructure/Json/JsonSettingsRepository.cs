@@ -2,7 +2,6 @@ namespace Platee.Johann.Infrastructure.Json;
 
 using System.Text.Json;
 using Platee.Johann.Application.Interfaces;
-using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
 
 /// <summary>
@@ -60,52 +59,30 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         var defaultSettings = AppSettings.Default;
         return new()
         {
-            PromptDefaultsRevision = dto.PromptDefaultsRevision ?? 0,
             Name = dto.Name ?? defaultSettings.Name,
             Firma = dto.Firma ?? defaultSettings.Firma,
             Quellverzeichnis = dto.Quellverzeichnis ?? defaultSettings.Quellverzeichnis,
             Archivverzeichnis = dto.Archivverzeichnis ?? defaultSettings.Archivverzeichnis,
             Ausgabeverzeichnis = dto.Ausgabeverzeichnis ?? defaultSettings.Ausgabeverzeichnis,
-
-            SystemMessage = dto.SystemMessage ?? defaultSettings.SystemMessage,
-            AbstractPrompt = dto.AbstractPrompt ?? defaultSettings.AbstractPrompt,
-            StructuredPrompt = dto.StructuredPrompt ?? defaultSettings.StructuredPrompt,
-            ProsePrompt = dto.ProsePrompt ?? defaultSettings.ProsePrompt,
-
-            EmailPrompt = dto.EmailPrompt ?? defaultSettings.EmailPrompt,
-            AufgabePrompt = dto.AufgabePrompt ?? defaultSettings.AufgabePrompt,
-            GespraechsnotizPrompt = dto.GespraechsnotizPrompt ?? defaultSettings.GespraechsnotizPrompt,
-            StundenzettelPrompt = dto.StundenzettelPrompt ?? defaultSettings.StundenzettelPrompt,
-            AnalogPrompt = dto.AnalogPrompt ?? defaultSettings.AnalogPrompt,
+            GlobalPromptFilePath = dto.GlobalPromptFilePath ?? defaultSettings.GlobalPromptFilePath,
+            LastSeenReleaseNotesVersion = dto.LastSeenReleaseNotesVersion,
         };
     }
 
     private static SettingsDto MapToDto(AppSettings s) => new()
     {
-        PromptDefaultsRevision = s.PromptDefaultsRevision,
         Name = s.Name,
         Firma = s.Firma,
         Quellverzeichnis = s.Quellverzeichnis,
         Archivverzeichnis = s.Archivverzeichnis,
         Ausgabeverzeichnis = s.Ausgabeverzeichnis,
-
-        SystemMessage = s.SystemMessage,
-        AbstractPrompt = s.AbstractPrompt,
-        StructuredPrompt = s.StructuredPrompt,
-        ProsePrompt = s.ProsePrompt,
-
-        EmailPrompt = s.EmailPrompt,
-        AufgabePrompt = s.AufgabePrompt,
-        GespraechsnotizPrompt = s.GespraechsnotizPrompt,
-        StundenzettelPrompt = s.StundenzettelPrompt,
-        AnalogPrompt = s.AnalogPrompt,
+        GlobalPromptFilePath = s.GlobalPromptFilePath,
+        LastSeenReleaseNotesVersion = s.LastSeenReleaseNotesVersion,
     };
 
     // Separate DTO to decouple JSON shape from the domain record
     private sealed class SettingsDto
     {
-        public int? PromptDefaultsRevision { get; set; }
-
         public string? Name { get; set; }
 
         public string? Firma { get; set; }
@@ -116,22 +93,8 @@ public sealed class JsonSettingsRepository : ISettingsRepository
 
         public string? Ausgabeverzeichnis { get; set; }
 
-        public string? SystemMessage { get; set; }
+        public string? GlobalPromptFilePath { get; set; }
 
-        public string? AbstractPrompt { get; set; }
-
-        public string? StructuredPrompt { get; set; }
-
-        public string? ProsePrompt { get; set; }
-
-        public string? EmailPrompt { get; set; }
-
-        public string? AufgabePrompt { get; set; }
-
-        public string? GespraechsnotizPrompt { get; set; }
-
-        public string? StundenzettelPrompt { get; set; }
-
-        public string? AnalogPrompt { get; set; }
+        public string? LastSeenReleaseNotesVersion { get; set; }
     }
 }

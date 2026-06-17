@@ -4,13 +4,17 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using Platee.Johann.Application.Diagnostics;
+using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
+using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Infrastructure.Json;
 using Platee.Johann.Infrastructure.Llm;
 using Platee.Johann.Infrastructure.Renderers;
+using Platee.Johann.UI.Helpers;
 using Platee.Johann.UI.ViewModels;
+using Platee.Johann.UI.Views;
 using Velopack;
 using Velopack.Sources;
 
@@ -50,8 +54,21 @@ public partial class App : System.Windows.Application
         // Load settings synchronously at startup using Task.Run to avoid UI thread deadlocks
         var persistedSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
 
-        var promptMigration = PromptDefaultsMigration.ApplyIfNeeded(persistedSettings, settingsFilePath);
-        persistedSettings = promptMigration.Settings;
+        // Clean up legacy local prompt files (one-time, idempotent)
+        SettingsSplitMigration.CleanupLegacyFiles(settingsDir);
+
+        // ── Prompt settings ───────────────────────────────────────────────────
+        // Global prompt file is the single source of truth.
+        // Falls back to built-in defaults if unreachable.
+        var effectivePrompts = PromptSettings.Default;
+        if (!string.IsNullOrWhiteSpace(persistedSettings.GlobalPromptFilePath))
+        {
+            var globalPromptRepo = JsonPromptSettingsRepository.FromFilePath(persistedSettings.GlobalPromptFilePath);
+            if (globalPromptRepo.IsReachable)
+            {
+                effectivePrompts = Task.Run(() => globalPromptRepo.LoadAsync()).GetAwaiter().GetResult();
+            }
+        }
 
         var pathResolution = StartupPathResolver.Resolve(
             persistedSettings,
@@ -63,20 +80,6 @@ public partial class App : System.Windows.Application
         var effectiveSettings = pathResolution.EffectiveSettings;
         var outputRoot = effectiveSettings.Ausgabeverzeichnis;
 
-        if (promptMigration.DidMigrate)
-        {
-            Task.Run(() => settingsRepo.SaveAsync(persistedSettings)).GetAwaiter().GetResult();
-        }
-
-        if (promptMigration.DidMigrate && promptMigration.BackupPath is not null)
-        {
-            MessageBox.Show(
-                "Ihre individuellen Prompts wurden mit den neuen Defaults überschrieben.\n\n" +
-                $"Die ursprünglichen Einstellungen wurden gesichert unter:\n{promptMigration.BackupPath}",
-                "Platé.Johann – Prompts aktualisiert",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
 
         if (pathResolution.Issues.Count > 0)
         {
@@ -87,8 +90,8 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Warning);
         }
 
-        var persistedSettingsHolder = new SettingsHolder(persistedSettings);
-        var runtimeSettingsHolder = new SettingsHolder(effectiveSettings);
+        var persistedSettingsHolder = new SettingsHolder(persistedSettings, effectivePrompts);
+        var runtimeSettingsHolder = new SettingsHolder(effectiveSettings, effectivePrompts);
 
         // ── .env-Prüfung ──────────────────────────────────────────────────────
         EnsureEnvFile(settingsDir);
@@ -177,6 +180,24 @@ public partial class App : System.Windows.Application
 
         var mainWindow = new MainWindow(viewModel);
         mainWindow.Show();
+
+        // ── Release Notes ─────────────────────────────────────────────────────
+        var currentVersion = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        if (ReleaseNotesHelper.ShouldShow(persistedSettings.LastSeenReleaseNotesVersion, currentVersion))
+        {
+            var markdown = ReleaseNotesHelper.LoadMarkdown(typeof(App).Assembly);
+            if (!string.IsNullOrWhiteSpace(markdown))
+            {
+                var html = ReleaseNotesHelper.RenderToHtml(markdown);
+                var notesWindow = new ReleaseNotesWindow(html) { Owner = mainWindow };
+                notesWindow.ShowDialog();
+            }
+
+            var updatedSettings = persistedSettings with { LastSeenReleaseNotesVersion = currentVersion };
+            persistedSettingsHolder.Current = updatedSettings;
+            runtimeSettingsHolder.Current = updatedSettings;
+            Task.Run(() => settingsRepo.SaveAsync(updatedSettings)).GetAwaiter().GetResult();
+        }
 
         _ = CheckForUpdatesAsync();
     }

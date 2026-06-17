@@ -53,21 +53,28 @@ Platee.Johann.Domain/          # Core entities, no external deps
   ValueObjects/                # ParsedHeader, ProcessingStatus
 
 Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
-  Interfaces/                  # IEntryRepository, ILlmProvider, IAudioTranscriber, …
+  Interfaces/                  # IEntryRepository, ILlmProvider, IAudioTranscriber,
+                               #   IPromptSettingsRepository
   Processing/                  # EntryProcessingService, SummaryGenerator, AudioWatcherService
-  Settings/                    # AppSettings (immutable record), SettingsHolder, migration
+  Services/                    # PromptSettingsLoader (local/global fallback)
+  Settings/                    # AppSettings, PromptSettings, SettingsHolder,
+                               #   PromptDefaultsMigration, SettingsSplitMigration
 
 Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Domain)
-  Json/                        # JsonRepository (file-backed), JsonSettingsRepository, migration
+  Json/                        # JsonRepository (file-backed), JsonSettingsRepository,
+                               #   JsonPromptSettingsRepository, migration
   Llm/                         # OpenAiLlmProvider, WhisperTranscriber, NoOp stubs
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
 Platee.Johann.UI/              # WPF presentation layer (depends on all)
-  Helpers/                     # DurationFormatter — pure static formatting helpers
+  Assets/                      # RELEASE_NOTES.md (embedded resource)
+  Helpers/                     # DurationFormatter, ReleaseNotesHelper — pure static helpers
   ViewModels/                  # MainViewModel, SettingsViewModel, NewEntryViewModel, …
                                #   Toast stack: ToastTone, ToastToneHelper, ToastItem,
                                #                ToastQueue, ToastsViewModel
-  Views/                       # NewEntryView.xaml, SettingsView.xaml, ToastView.xaml
+  Views/                       # AdminPasswordDialog.xaml, NewEntryView.xaml,
+                               #   ReleaseNotesWindow.xaml, SettingsView.xaml,
+                               #   ToastView.xaml
   Converters/                  # WPF value converters
   Program.cs                   # Entry point + Velopack init + crash logging
 
@@ -104,13 +111,17 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 <!-- AUTO-MANAGED: patterns -->
 ## Detected Patterns
 
-**Repository pattern**: `IEntryRepository` / `ISettingsRepository` interfaces in Application; `JsonRepository` / `JsonSettingsRepository` in Infrastructure. Business logic never touches file I/O directly.
+**Repository pattern**: `IEntryRepository` / `ISettingsRepository` / `IPromptSettingsRepository` interfaces in Application; `JsonRepository` / `JsonSettingsRepository` / `JsonPromptSettingsRepository` in Infrastructure. Business logic never touches file I/O directly.
 
 **No-Op stubs**: `NoOpLlmProvider` and `NoOpAudioTranscriber` in Infrastructure allow the app to run without an API key configured.
 
 **Schema versioning**: `Entry.SchemaVersion` (currently 2) + `JsonMigrator` handle forward migration of persisted JSON files.
 
-**Settings migration**: `PromptDefaultsMigration` uses a revision integer to apply one-time migrations to user settings without overwriting manual customisations.
+**Settings split**: `AppSettings` holds user preferences (name, company, directories); `PromptSettings` holds all LLM prompt templates. Persisted separately as `settings.json` and `prompts.json`. `SettingsHolder` wraps both for live propagation to `SummaryGenerator`.
+
+**Settings migration**: `PromptDefaultsMigration` uses a revision integer to apply one-time prompt migrations without overwriting user customisations. `SettingsSplitMigration.MigrateIfNeeded` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local `prompts.json` and strip any remaining prompt keys from `settings.json` (best-effort, silent on failure).
+
+**Team-shared prompts**: `AppSettings.GlobalPromptFilePath` points to a shared `prompts.json`. `PromptSettingsLoader.LoadWithFallbackAsync` tries global first, falls back to local on failure. `JsonPromptSettingsRepository.FromFilePath` factory creates a repo for arbitrary file paths.
 
 **CrashLogWriter**: Unhandled-exception handler writes to `%LOCALAPPDATA%\Platee\Johann\crash-*.log`.
 
@@ -124,6 +135,12 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **Detail zoom**: `EntryDetailViewModel.DetailZoom` (double, 1.0 default, range 0.5–2.0, step 0.1) drives a `ScaleTransform` on the detail `StackPanel` in `MainWindow.xaml`. `ZoomIn` / `ZoomOut` relay commands exposed; `ZoomText` shows the current percentage. Zoom controls sit in the status bar.
 
+**Admin mode for prompt editing**: `SettingsViewModel` exposes `IsAdminMode`, `IsPromptReadOnly`, `AdminButtonLabel`, `ActivateAdmin(password)`, `DeactivateAdmin()`. Password gate controls access to global shared prompt editing; normal mode makes prompts read-only. `AdminPasswordDialog` (`Views/AdminPasswordDialog.xaml`) is a simple WPF dialog for password entry. Visual indicators: red "ADMIN-MODUS AKTIV" banner in `SettingsView`, `AdminAwareWarning` style changes color in admin mode.
+
+**Settings view section navigation**: `SettingsView.xaml` uses a `CollectionViewSource` with `PropertyGroupDescription` for grouped left-sidebar section navigation. Sections are bound to `SettingsViewModel.Sections`; selected section toggles content panel visibility via `Is<Section>Selected` properties.
+
+**Release notes window**: `ReleaseNotesHelper` in `UI/Helpers/` loads `RELEASE_NOTES.md` (embedded resource) and renders it via `MarkdownHelper.ToHtml()` into a styled HTML document displayed in `ReleaseNotesWindow` (WPF `WebBrowser`). `ShouldShow(lastSeenVersion, currentVersion)` gates display to once per version update.
+
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: git-insights -->
@@ -136,6 +153,9 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **CrashLogWriter** (`835a9f5`): structured crash logs with version, timestamp, and full stack trace.
 - **Sprint 3 UX findings 11 & 12** (`409beec` / `39c9b28`): entry-list subtitle enriched with `TypeBadge · duration` via shared `DurationFormatter`; single-toast overlay in `MainViewModel` replaced with a queue-based multi-toast tray (`ToastQueue` / `ToastsViewModel` / `ToastView`).
 - **SonarCloud CI** (`a9c1316` / `da8ecc7` / `323ec03`): `.github/workflows/build.yml` runs SonarCloud analysis on push-to-main and PRs (windows-latest, JDK 17 zulu). Config is inline via scanner flags: project key `jonasyr_Platee.Johann`, org `gitray-org`, OpenCover coverage at `**/TestResults/**/coverage.opencover.xml`. `sonar-project.properties` was removed (`323ec03`) — all config now lives in the workflow.
+- **Settings split**: Prompt configuration extracted from monolithic `AppSettings` into dedicated `PromptSettings` record with separate persistence (`prompts.json`). `SettingsSplitMigration` handles one-time data migration. `PromptSettingsLoader` adds local/global fallback to enable team-shared prompts via `GlobalPromptFilePath`.
+- **Admin mode** (`e6e1486` / `0d32274` / `56e34e6` / `e0fba8c`): password-gated admin mode for editing global shared prompts in `SettingsView`. `AdminPasswordDialog` added for password entry. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local prompt files. `AdminAwareWarning` XAML style extracted to reduce duplication.
+- **Release notes window** (`3968a67`): `ReleaseNotesWindow` with embedded `RELEASE_NOTES.md` rendered via `MarkdownHelper`; version-gated display via `ReleaseNotesHelper.ShouldShow()`.
 
 <!-- END AUTO-MANAGED -->
 

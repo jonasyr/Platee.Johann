@@ -1,0 +1,19 @@
+<Window x:Class="Platee.Johann.UI.Views.ReleaseNotesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Platé.Johann – Neuigkeiten"
+        Height="520" Width="600"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        ResizeMode="CanResizeWithGrip">
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="16,8,16,16" LastChildFill="False">
+            <Button DockPanel.Dock="Right"
+                    Content="Schließen" IsDefault="True" IsCancel="True"
+                    Padding="16,6" FontSize="13"
+                    Background="#E63123" Foreground="White" BorderThickness="0"
+                    Click="Close_Click"/>
+        </DockPanel>
+        <WebBrowser x:Name="Browser" Margin="0"/>
+    </DockPanel>
+</Window>

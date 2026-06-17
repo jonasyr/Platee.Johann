@@ -5,6 +5,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Services;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
@@ -17,7 +18,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IEntryProcessor processor;
     private readonly string outputRoot;
     private readonly ISettingsRepository settingsRepo;
-    private readonly SettingsHolder persistedSettingsHolder;
+        private readonly SettingsHolder persistedSettingsHolder;
     private readonly SettingsHolder runtimeSettingsHolder;
     private readonly IReadOnlyList<StartupPathIssue> startupPathIssues;
     private readonly List<DateItemViewModel> allDates = [];
@@ -109,7 +110,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
                          string outputRoot, IEntryProcessor processor,
-                         ISettingsRepository settingsRepo, SettingsHolder persistedSettingsHolder,
+                         ISettingsRepository settingsRepo,
+                         SettingsHolder persistedSettingsHolder,
                          SettingsHolder runtimeSettingsHolder, IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
         this.repository = repository;
@@ -506,11 +508,25 @@ public sealed partial class MainViewModel : ObservableObject
             this.persistedSettingsHolder,
             this.runtimeSettingsHolder,
             this.startupPathIssues);
+        this.settingsViewModel.ShowAdminPasswordDialog ??= () =>
+        {
+            var dialog = new AdminPasswordDialog
+            {
+                Owner = System.Windows.Application.Current.Windows
+                    .OfType<SettingsView>()
+                    .FirstOrDefault(),
+            };
+            return dialog.ShowDialog() == true ? dialog.EnteredPassword : null;
+        };
         this.settingsWindow = new SettingsView(this.settingsViewModel)
         {
             Owner = System.Windows.Application.Current.MainWindow,
         };
-        this.settingsWindow.Closed += (_, _) => this.settingsWindow = null;
+        this.settingsWindow.Closed += (_, _) =>
+        {
+            this.settingsWindow = null;
+            System.Windows.Application.Current.MainWindow?.Activate();
+        };
         this.settingsWindow.Show(); // non-modal with single-instance behavior
     }
 

@@ -2,16 +2,13 @@ namespace Platee.Johann.Application.Settings;
 
 using System;
 using System.IO;
-using Platee.Johann.Application.Processing;
 
 /// <summary>
-/// User-configurable application settings.
-/// All prompt defaults mirror the original Python config.py constants.
+/// User-configurable application settings (personal preferences and paths).
+/// Prompt-related settings have moved to <see cref="PromptSettings"/>.
 /// </summary>
 public sealed record AppSettings
 {
-    public int PromptDefaultsRevision { get; init; } = PromptDefaultsMigration.CurrentRevision;
-
     // User info
     public string Name { get; init; } = "Max Mustermann";
 
@@ -24,26 +21,12 @@ public sealed record AppSettings
 
     public string Ausgabeverzeichnis { get; init; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann", "output");
 
-    // General Prompts
-    public string SystemMessage { get; init; } = SummaryPrompts.SystemMessage;
+    // Team / shared prompt file
+    public string? GlobalPromptFilePath { get; init; } = @"Z:\12_Tools\Peano\Johann\prompts.json";
 
-    public string AbstractPrompt { get; init; } = SummaryPrompts.Abstract;
+    // Release notes
+    public string? LastSeenReleaseNotesVersion { get; init; }
 
-    public string StructuredPrompt { get; init; } = SummaryPrompts.Structured;
-
-    public string ProsePrompt { get; init; } = SummaryPrompts.Prose;
-
-    // Type Prompts
-    public string EmailPrompt { get; init; } = SummaryPrompts.Email;
-
-    public string AufgabePrompt { get; init; } = SummaryPrompts.Aufgabe;
-
-    public string GespraechsnotizPrompt { get; init; } = SummaryPrompts.Gespraechsnotiz;
-
-    public string StundenzettelPrompt { get; init; } = SummaryPrompts.Stundenzettel;
-
-    public string AnalogPrompt { get; init; } = SummaryPrompts.Analog;
-
-    /// <summary>Gets a fresh instance with all default prompt values.</summary>
+    /// <summary>Gets a fresh instance with all default values.</summary>
     public static AppSettings Default => new();
 }

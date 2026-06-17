@@ -27,6 +27,23 @@
             <Setter Property="Margin"     Value="0,0,0,4"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
         </Style>
+        <Style x:Key="PromptWarningStyle" TargetType="TextBlock">
+            <Setter Property="FontSize"     Value="11"/>
+            <Setter Property="Foreground"   Value="#C67C00"/>
+            <Setter Property="Background"   Value="#FFF8E1"/>
+            <Setter Property="Padding"      Value="8,6"/>
+            <Setter Property="Margin"       Value="0,0,0,8"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style x:Key="AdminAwareWarning" TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
+            <Setter Property="Text" Value="{Binding PromptWarningText}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
+                    <Setter Property="Background" Value="#FFEBEE"/>
+                    <Setter Property="Foreground" Value="#C62828"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="PromptBox" TargetType="TextBox">
             <Setter Property="FontFamily"              Value="Consolas, Courier New"/>
             <Setter Property="FontSize"                Value="12"/>
@@ -90,11 +107,20 @@
 
     <Grid Margin="16">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0">
+        <!-- Admin-mode banner -->
+        <Border Grid.Row="0" Background="#E63123" Padding="8,4" Margin="0,0,0,8"
+                Visibility="{Binding IsAdminMode, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock Text="ADMIN-MODUS AKTIV — Änderungen an Prompts gelten für ALLE Mitarbeiter"
+                       Foreground="White" FontWeight="Bold" FontSize="12"
+                       HorizontalAlignment="Center"/>
+        </Border>
+
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="240"/>
                 <ColumnDefinition Width="12"/>
@@ -200,15 +226,40 @@
                         </StackPanel>
                     </ScrollViewer>
 
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Margin="12,10,12,8"
+                                  Visibility="{Binding IsTeamSelected, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource HintStyle}"
+                                       Text="Pfad zur gemeinsamen Prompt-Datei auf dem Netzlaufwerk. Standard: Z:\12_Tools\Peano\Johann\prompts.json. Wenn erreichbar, werden diese Prompts anstelle der lokalen verwendet."/>
+
+                            <TextBlock Style="{StaticResource LabelStyle}" Text="Globale Prompt-Datei"/>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BrowseButton}"
+                                        Content="Durchsuchen&#x2026;"
+                                        Command="{Binding BrowseGlobalPromptFileCommand}"
+                                        IsEnabled="{Binding IsAdminMode}"/>
+                                <TextBox Style="{StaticResource FieldBox}"
+                                         Text="{Binding GlobalPromptFilePath, UpdateSourceTrigger=PropertyChanged}"/>
+                            </DockPanel>
+
+                            <TextBlock Style="{StaticResource HintStyle}" Margin="0,8,0,0"
+                                       Text="{Binding GlobalPromptStatus}"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
                     <Grid Margin="12,10,12,8"
                           Visibility="{Binding IsSystemMessageSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Globale Rolle/Persönlichkeit für alle GPT-Aufrufe (system message)."/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding SystemMessage, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -216,11 +267,13 @@
                           Visibility="{Binding IsAbstractSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Kurzfassung. Platzhalter: {word_limit}, {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding AbstractPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -228,11 +281,13 @@
                           Visibility="{Binding IsStructuredSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die strukturierte Zusammenfassung. Platzhalter: {word_limit}, {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding StructuredPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -240,11 +295,13 @@
                           Visibility="{Binding IsProseSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Fließtext-Zusammenfassung. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding ProsePrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -252,11 +309,13 @@
                           Visibility="{Binding IsEmailSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die E-Mail-Generierung. Platzhalter: {prose_summary}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding EmailPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -264,11 +323,13 @@
                           Visibility="{Binding IsAufgabeSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Aufgaben-Einträge. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding AufgabePrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -276,11 +337,13 @@
                           Visibility="{Binding IsGespraechsnotizSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Gesprächsnotiz-Einträge. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding GespraechsnotizPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -288,11 +351,13 @@
                           Visibility="{Binding IsStundenzettelSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Stundenzettel-Einträge. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding StundenzettelPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -300,11 +365,13 @@
                           Visibility="{Binding IsAnalogSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für analoge Einträge. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding AnalogPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
                 </Grid>
@@ -312,7 +379,25 @@
         </Grid>
 
         <!-- Bottom bar: status + action buttons -->
-        <DockPanel Grid.Row="1" Margin="0,12,0,0" LastChildFill="False">
+        <DockPanel Grid.Row="2" Margin="0,12,0,0" LastChildFill="False">
+            <Button DockPanel.Dock="Left"
+                    Content="{Binding AdminButtonLabel}"
+                    Command="{Binding ToggleAdminCommand}"
+                    Padding="12,6" FontSize="13" MinWidth="100"
+                    Margin="0,0,12,0">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
+                                <Setter Property="Background" Value="#E63123"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
             <TextBlock DockPanel.Dock="Left"
                        Text="{Binding StatusMessage}"
                        Foreground="#27AE60" FontSize="12"

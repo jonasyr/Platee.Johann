@@ -1,7 +1,6 @@
 namespace Platee.Johann.Tests.Unit;
 
 using FluentAssertions;
-using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Infrastructure.Json;
 
@@ -31,15 +30,13 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
     {
         var settings = await this.sut.LoadAsync();
 
-        settings.PromptDefaultsRevision.Should().Be(PromptDefaultsMigration.CurrentRevision);
-        settings.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
-        settings.EmailPrompt.Should().Be(SummaryPrompts.Email);
-        settings.AufgabePrompt.Should().Be(SummaryPrompts.Aufgabe);
+        settings.Name.Should().Be(AppSettings.Default.Name);
+        settings.Firma.Should().Be(AppSettings.Default.Firma);
     }
 
     // ── Round-trip ────────────────────────────────────────────────────────────
     [Fact]
-    public async Task SaveAndLoad_RoundTrip_PreservesAllPrompts()
+    public async Task SaveAndLoad_RoundTrip_PreservesUserSettings()
     {
         var original = AppSettings.Default with
         {
@@ -51,10 +48,7 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         var loaded = await this.sut.LoadAsync();
 
         loaded.Name.Should().Be("Test User");
-        loaded.PromptDefaultsRevision.Should().Be(PromptDefaultsMigration.CurrentRevision);
-        loaded.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
-        loaded.EmailPrompt.Should().Be(SummaryPrompts.Email);
-        loaded.AufgabePrompt.Should().Be(SummaryPrompts.Aufgabe);
+        loaded.Firma.Should().Be("Test GmbH");
     }
 
     // ── Foreign paths are preserved by repository (fallback is App's job) ────
@@ -85,14 +79,12 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
 
         var settings = await this.sut.LoadAsync();
 
-        settings.PromptDefaultsRevision.Should().Be(PromptDefaultsMigration.CurrentRevision);
-        settings.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
         settings.Name.Should().Be(AppSettings.Default.Name);
     }
 
     // ── Partial file → missing fields fall back to defaults ──────────────────
     [Fact]
-    public async Task LoadAsync_WhenFileHasOnlyName_FillsPromptsFromDefaults()
+    public async Task LoadAsync_WhenFileHasOnlyName_FillsFromDefaults()
     {
         var settingsPath = Path.Combine(this.tempDir, "settings.json");
         await File.WriteAllTextAsync(settingsPath, """{"name": "Partial User"}""");
@@ -100,22 +92,28 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         var settings = await this.sut.LoadAsync();
 
         settings.Name.Should().Be("Partial User");
-        settings.PromptDefaultsRevision.Should().Be(0);
-        settings.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
-        settings.EmailPrompt.Should().Be(SummaryPrompts.Email);
+        settings.Firma.Should().Be(AppSettings.Default.Firma);
     }
 
+    // ── GlobalPromptFilePath round-trip ──────────────────────────────────────
     [Fact]
-    public async Task SaveAndLoad_RoundTrip_PreservesPromptDefaultsRevision()
+    public async Task SaveAndLoad_RoundTrip_PreservesGlobalPromptFilePath()
     {
-        var original = AppSettings.Default with
-        {
-            PromptDefaultsRevision = 123,
-        };
-
-        await this.sut.SaveAsync(original);
+        var settings = AppSettings.Default with { GlobalPromptFilePath = @"Z:\prompts.json" };
+        await this.sut.SaveAsync(settings);
         var loaded = await this.sut.LoadAsync();
 
-        loaded.PromptDefaultsRevision.Should().Be(123);
+        loaded.GlobalPromptFilePath.Should().Be(@"Z:\prompts.json");
+    }
+
+    // ── LastSeenReleaseNotesVersion round-trip ───────────────────────────────
+    [Fact]
+    public async Task SaveAndLoad_RoundTrip_PreservesLastSeenReleaseNotesVersion()
+    {
+        var settings = AppSettings.Default with { LastSeenReleaseNotesVersion = "1.1.0" };
+        await this.sut.SaveAsync(settings);
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.LastSeenReleaseNotesVersion.Should().Be("1.1.0");
     }
 }
