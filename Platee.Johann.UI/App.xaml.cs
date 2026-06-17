@@ -53,8 +53,12 @@ public partial class App : System.Windows.Application
         var persistedSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
 
         // ── Prompt settings ───────────────────────────────────────────────────
-        IPromptSettingsRepository localPromptRepo = new JsonPromptSettingsRepository(settingsDir);
         var promptsFilePath = Path.Combine(settingsDir, "prompts.json");
+
+        // One-time migration: extract prompts from legacy settings.json to prompts.json
+        SettingsSplitMigration.MigrateIfNeeded(settingsFilePath, promptsFilePath);
+
+        IPromptSettingsRepository localPromptRepo = new JsonPromptSettingsRepository(settingsDir);
 
         var localPrompts = Task.Run(() => localPromptRepo.LoadAsync()).GetAwaiter().GetResult();
 
