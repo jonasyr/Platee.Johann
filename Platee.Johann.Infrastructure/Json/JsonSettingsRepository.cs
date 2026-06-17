@@ -64,7 +64,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
             Quellverzeichnis = dto.Quellverzeichnis ?? defaultSettings.Quellverzeichnis,
             Archivverzeichnis = dto.Archivverzeichnis ?? defaultSettings.Archivverzeichnis,
             Ausgabeverzeichnis = dto.Ausgabeverzeichnis ?? defaultSettings.Ausgabeverzeichnis,
-            GlobalPromptFilePath = dto.GlobalPromptFilePath,
+            GlobalPromptFilePath = dto.GlobalPromptFilePath ?? defaultSettings.GlobalPromptFilePath,
         };
     }
 
