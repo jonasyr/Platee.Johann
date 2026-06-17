@@ -4,13 +4,13 @@
 
 **Prompts werden jetzt zentral verwaltet**
 
-Alle Mitarbeiter nutzen ab sofort die gleichen Prompt-Vorlagen. Diese werden beim Start automatisch vom Netzlaufwerk geladen. Sie müssen nichts weiter tun.
+Alle Mitarbeiter nutzen ab sofort die gleichen Prompt-Vorlagen. Diese werden beim Start automatisch von Z: geladen. Sie müssen nichts weiter tun.
 
-Wenn Sie einen Prompt testweise anpassen möchten, können Sie das weiterhin in den Einstellungen tun. Die Änderung gilt dann nur bis zum nächsten App-Neustart.
+Wenn Sie einen Prompt testweise anpassen möchten, können Sie das weiterhin in den Einstellungen tun. Die Änderung gilt dann nur für Sie persönnlich und bis zum nächsten App-Neustart.
 
 **Neuer Admin-Modus**
 
-In den Einstellungen gibt es unten links einen "Admin"-Button. Damit können berechtigte Personen die Prompt-Vorlagen dauerhaft für alle Mitarbeiter ändern.
+In den Einstellungen gibt es unten links einen "Admin"-Button. Damit können berechtigte Personen die Prompt-Vorlagen, sowie ihren Speicherort dauerhaft für alle Mitarbeiter ändern.
 
 ---
 
