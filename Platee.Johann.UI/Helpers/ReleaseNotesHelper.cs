@@ -58,22 +58,13 @@ public static class ReleaseNotesHelper
                 p { margin: 4px 0 8px 0; color: #444; }
                 hr { display: none; }
                 ul {
-                    list-style: none;
-                    margin: 6px 0 14px 0;
+                    margin: 6px 0 14px 22px;
                     padding: 0;
                 }
                 li {
                     margin-bottom: 8px;
-                    padding-left: 18px;
-                    position: relative;
-                    color: #444;
-                }
-                li::before {
-                    content: '';
-                    position: absolute; left: 0; top: 9px;
-                    width: 6px; height: 6px;
-                    background: #E63123;
-                    border-radius: 50%;
+                    color: #E63123;
+                    list-style-type: disc;
                 }
                 li p {
                     margin: 0;
