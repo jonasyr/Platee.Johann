@@ -50,32 +50,34 @@ public static class ReleaseNotesHelper
                 h2 {
                     font-size: 15px; font-weight: 700; color: #fff;
                     background: #E63123;
-                    padding: 7px 14px; margin: 0 -16px 14px -16px;
+                    padding: 7px 14px; margin: 18px 0 14px 0;
                     border-radius: 4px;
                 }
-                h3, strong { font-size: 14px; font-weight: 600; color: #222; }
-                p { margin: 5px 0 10px 0; color: #444; }
-                /* Version sections as cards */
-                hr { display: none; }
-                h2 ~ h2 { margin-top: 0; }
-                /* Wrap each version block visually */
-                body > h2 { margin-top: 18px; }
                 body > h2:first-of-type { margin-top: 0; }
-                /* Card-like sections via h2 siblings */
-                body > p, body > ul, body > h3, body > strong {
-                    padding: 0 14px;
-                }
+                h3, strong { font-size: 14px; font-weight: 600; color: #222; }
+                p { margin: 4px 0 8px 0; color: #444; }
+                hr { display: none; }
                 ul {
-                    list-style: none; padding-left: 14px;
-                    margin: 6px 0 12px 0;
+                    list-style: none;
+                    margin: 6px 0 14px 0;
+                    padding: 0;
                 }
                 li {
-                    margin-bottom: 5px; padding-left: 14px;
+                    margin-bottom: 8px;
+                    padding-left: 18px;
                     position: relative;
+                    color: #444;
                 }
                 li::before {
-                    content: '\2022'; color: #E63123; font-weight: 700;
-                    position: absolute; left: 0;
+                    content: '';
+                    position: absolute; left: 0; top: 9px;
+                    width: 6px; height: 6px;
+                    background: #E63123;
+                    border-radius: 50%;
+                }
+                li p {
+                    margin: 0;
+                    display: inline;
                 }
                 code {
                     background: #eee; padding: 1px 5px;
