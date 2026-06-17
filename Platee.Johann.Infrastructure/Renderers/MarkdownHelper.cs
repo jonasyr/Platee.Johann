@@ -5,7 +5,7 @@ using Markdig;
 /// <summary>
 /// Converts Markdown to HTML using a Markdig pipeline with raw HTML disabled.
 /// </summary>
-internal static class MarkdownHelper
+public static class MarkdownHelper
 {
     private static readonly MarkdownPipeline Pipeline =
         new MarkdownPipelineBuilder()
