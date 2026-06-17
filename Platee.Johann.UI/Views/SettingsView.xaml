@@ -35,6 +35,15 @@
             <Setter Property="Margin"       Value="0,0,0,8"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
+        <Style x:Key="AdminAwareWarning" TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
+            <Setter Property="Text" Value="{Binding PromptWarningText}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
+                    <Setter Property="Background" Value="#FFEBEE"/>
+                    <Setter Property="Foreground" Value="#C62828"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="PromptBox" TargetType="TextBox">
             <Setter Property="FontFamily"              Value="Consolas, Courier New"/>
             <Setter Property="FontSize"                Value="12"/>
@@ -248,18 +257,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding PromptWarningText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                            <Setter Property="Foreground" Value="#C62828"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Globale Rolle/Persönlichkeit für alle GPT-Aufrufe (system message)."/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
@@ -274,18 +272,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding PromptWarningText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                            <Setter Property="Foreground" Value="#C62828"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Kurzfassung. Platzhalter: {word_limit}, {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
@@ -300,18 +287,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding PromptWarningText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                            <Setter Property="Foreground" Value="#C62828"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die strukturierte Zusammenfassung. Platzhalter: {word_limit}, {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
@@ -326,18 +302,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding PromptWarningText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                            <Setter Property="Foreground" Value="#C62828"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Fließtext-Zusammenfassung. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
@@ -352,18 +317,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding PromptWarningText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                            <Setter Property="Foreground" Value="#C62828"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die E-Mail-Generierung. Platzhalter: {prose_summary}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
@@ -378,18 +332,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding PromptWarningText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                            <Setter Property="Foreground" Value="#C62828"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Aufgaben-Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
@@ -404,18 +347,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding PromptWarningText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                            <Setter Property="Foreground" Value="#C62828"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Gesprächsnotiz-Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
@@ -430,18 +362,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding PromptWarningText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                            <Setter Property="Foreground" Value="#C62828"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Stundenzettel-Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
@@ -456,18 +377,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding PromptWarningText}">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource PromptWarningStyle}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsAdminMode}" Value="True">
-                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                            <Setter Property="Foreground" Value="#C62828"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <TextBlock Grid.Row="0" Style="{StaticResource AdminAwareWarning}"/>
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für analoge Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
