@@ -67,7 +67,7 @@ Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Dom
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
 Platee.Johann.UI/              # WPF presentation layer (depends on all)
-  Assets/                      # RELEASE_NOTES.md (embedded resource)
+  Assets/                      # RELEASE_NOTES.md, HANDBUCH.html (embedded resources)
   Helpers/                     # DurationFormatter, ReleaseNotesHelper — pure static helpers
   ViewModels/                  # MainViewModel, SettingsViewModel, NewEntryViewModel, …
                                #   Toast stack: ToastTone, ToastToneHelper, ToastItem,
@@ -141,6 +141,8 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **Release notes window**: `ReleaseNotesHelper` in `UI/Helpers/` loads `RELEASE_NOTES.md` (embedded resource) and renders it via `MarkdownHelper.ToHtml()` into a styled HTML document displayed in `ReleaseNotesWindow` (WPF `WebBrowser`). `ShouldShow(lastSeenVersion, currentVersion)` gates display to once per version update.
 
+**Embedded user handbook**: `HANDBUCH.html` is an embedded resource in `UI/Assets/`. `MainViewModel.ExtractHandbook()` extracts it to a temp file (`Platee.Johann.HANDBUCH.html`) for display in the default browser.
+
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: git-insights -->
@@ -156,6 +158,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **Settings split**: Prompt configuration extracted from monolithic `AppSettings` into dedicated `PromptSettings` record with separate persistence (`prompts.json`). `SettingsSplitMigration` handles one-time data migration. `PromptSettingsLoader` adds local/global fallback to enable team-shared prompts via `GlobalPromptFilePath`.
 - **Admin mode** (`e6e1486` / `0d32274` / `56e34e6` / `e0fba8c`): password-gated admin mode for editing global shared prompts in `SettingsView`. `AdminPasswordDialog` added for password entry. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local prompt files. `AdminAwareWarning` XAML style extracted to reduce duplication.
 - **Release notes window** (`3968a67`): `ReleaseNotesWindow` with embedded `RELEASE_NOTES.md` rendered via `MarkdownHelper`; version-gated display via `ReleaseNotesHelper.ShouldShow()`.
+- **Embedded handbook** (`639a0e2`): `HANDBUCH.html` added as embedded resource; `MainViewModel.ExtractHandbook()` extracts to temp file for browser display.
 
 <!-- END AUTO-MANAGED -->
 
