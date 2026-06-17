@@ -79,4 +79,44 @@ public class SettingsSplitMigrationTests : IDisposable
         settingsContent.Should().NotContain("systemMessage");
         settingsContent.Should().Contain("Test User");
     }
+
+    [Fact]
+    public void CleanupLegacyFiles_RemovesLocalPromptsJson()
+    {
+        var promptsPath = Path.Combine(this.tempDir, "prompts.json");
+        File.WriteAllText(promptsPath, "{}");
+
+        SettingsSplitMigration.CleanupLegacyFiles(this.tempDir);
+
+        File.Exists(promptsPath).Should().BeFalse();
+    }
+
+    [Fact]
+    public void CleanupLegacyFiles_StripsPromptKeysFromSettingsJson()
+    {
+        var settingsPath = Path.Combine(this.tempDir, "settings.json");
+        File.WriteAllText(settingsPath, """
+        {
+            "name": "Test",
+            "systemMessage": "old-prompt",
+            "abstractPrompt": "old-abstract"
+        }
+        """);
+
+        SettingsSplitMigration.CleanupLegacyFiles(this.tempDir);
+
+        var content = File.ReadAllText(settingsPath);
+        content.Should().Contain("Test");
+        content.Should().NotContain("systemMessage");
+        content.Should().NotContain("abstractPrompt");
+    }
+
+    [Fact]
+    public void CleanupLegacyFiles_WhenNoLegacyFiles_DoesNothing()
+    {
+        // Directory exists but no prompts.json or prompt keys in settings.json
+        SettingsSplitMigration.CleanupLegacyFiles(this.tempDir);
+
+        // Should not throw
+    }
 }

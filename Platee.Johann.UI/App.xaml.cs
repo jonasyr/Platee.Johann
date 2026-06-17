@@ -52,6 +52,9 @@ public partial class App : System.Windows.Application
         // Load settings synchronously at startup using Task.Run to avoid UI thread deadlocks
         var persistedSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
 
+        // Clean up legacy local prompt files (one-time, idempotent)
+        SettingsSplitMigration.CleanupLegacyFiles(settingsDir);
+
         // ── Prompt settings ───────────────────────────────────────────────────
         // Global prompt file is the single source of truth.
         // Falls back to built-in defaults if unreachable.

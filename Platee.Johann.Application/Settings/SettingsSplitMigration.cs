@@ -27,6 +27,51 @@ public static class SettingsSplitMigration
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
+    public static void CleanupLegacyFiles(string settingsDirectory)
+    {
+        try
+        {
+            // Remove local prompts.json if it exists
+            var promptsPath = Path.Combine(settingsDirectory, "prompts.json");
+            if (File.Exists(promptsPath))
+            {
+                File.Delete(promptsPath);
+            }
+
+            // Strip any remaining prompt keys from settings.json
+            var settingsPath = Path.Combine(settingsDirectory, "settings.json");
+            if (!File.Exists(settingsPath))
+            {
+                return;
+            }
+
+            var json = File.ReadAllText(settingsPath);
+            var root = JsonNode.Parse(json);
+            if (root is not JsonObject settingsObj)
+            {
+                return;
+            }
+
+            var hadPromptFields = false;
+            foreach (var key in PromptKeys)
+            {
+                if (settingsObj.Remove(key))
+                {
+                    hadPromptFields = true;
+                }
+            }
+
+            if (hadPromptFields)
+            {
+                File.WriteAllText(settingsPath, settingsObj.ToJsonString(WriteOptions));
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup — don't break startup
+        }
+    }
+
     public static SettingsSplitMigrationResult MigrateIfNeeded(string settingsFilePath, string promptsFilePath)
     {
         if (File.Exists(promptsFilePath))
