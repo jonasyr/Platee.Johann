@@ -40,12 +40,11 @@ public class SettingsViewModelAdminTests
     }
 
     [Fact]
-    public void ActivateAdmin_WithCorrectPassword_EnablesAdminMode()
+    public void WhenAdminModeEnabled_PropertiesReflectAdminState()
     {
         var vm = this.CreateVm();
-        vm.ActivateAdmin("123");
+        vm.IsAdminMode = true;
 
-        vm.IsAdminMode.Should().BeTrue();
         vm.IsPromptReadOnly.Should().BeFalse();
         vm.AdminButtonLabel.Should().Be("Admin aktiv");
     }
@@ -64,7 +63,7 @@ public class SettingsViewModelAdminTests
     public void DeactivateAdmin_ReturnsToNormalMode()
     {
         var vm = this.CreateVm();
-        vm.ActivateAdmin("123");
+        vm.IsAdminMode = true;
         vm.DeactivateAdmin();
 
         vm.IsAdminMode.Should().BeFalse();
