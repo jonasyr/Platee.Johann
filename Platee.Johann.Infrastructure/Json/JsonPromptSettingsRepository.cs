@@ -22,14 +22,24 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
     };
 
     public JsonPromptSettingsRepository(string settingsDirectory, bool createDirectory = true)
+        : this(Path.Combine(settingsDirectory, "prompts.json"), settingsDirectory, createDirectory)
     {
-        this.directory = settingsDirectory;
+    }
+
+    private JsonPromptSettingsRepository(string filePath, string directory, bool createDirectory)
+    {
+        this.filePath = filePath;
+        this.directory = directory;
         if (createDirectory)
         {
-            Directory.CreateDirectory(settingsDirectory);
+            Directory.CreateDirectory(directory);
         }
+    }
 
-        this.filePath = Path.Combine(settingsDirectory, "prompts.json");
+    public static JsonPromptSettingsRepository FromFilePath(string fullFilePath)
+    {
+        var dir = Path.GetDirectoryName(fullFilePath) ?? string.Empty;
+        return new JsonPromptSettingsRepository(fullFilePath, dir, createDirectory: false);
     }
 
     public bool IsReachable
@@ -38,7 +48,7 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
         {
             try
             {
-                return Directory.Exists(this.directory);
+                return File.Exists(this.filePath);
             }
             catch
             {

@@ -74,8 +74,7 @@ public partial class App : System.Windows.Application
         IPromptSettingsRepository? globalPromptRepo = null;
         if (!string.IsNullOrWhiteSpace(persistedSettings.GlobalPromptFilePath))
         {
-            var globalDir = Path.GetDirectoryName(persistedSettings.GlobalPromptFilePath) ?? string.Empty;
-            globalPromptRepo = new JsonPromptSettingsRepository(globalDir, createDirectory: false);
+            globalPromptRepo = JsonPromptSettingsRepository.FromFilePath(persistedSettings.GlobalPromptFilePath);
         }
 
         var promptLoadResult = Task.Run(() =>

@@ -65,17 +65,28 @@ public class JsonPromptSettingsRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void IsReachable_WhenDirectoryExists_ReturnsTrue()
+    public async Task IsReachable_WhenFileExists_ReturnsTrue()
     {
+        await this.sut.SaveAsync(PromptSettings.Default);
         this.sut.IsReachable.Should().BeTrue();
     }
 
     [Fact]
-    public void IsReachable_WhenDirectoryDoesNotExist_ReturnsFalse()
+    public void IsReachable_WhenFileDoesNotExist_ReturnsFalse()
     {
-        var missingDir = Path.Combine(Path.GetTempPath(), "johann-missing-" + Guid.NewGuid().ToString("N"));
-        var repo = new JsonPromptSettingsRepository(missingDir, createDirectory: false);
+        this.sut.IsReachable.Should().BeFalse();
+    }
 
-        repo.IsReachable.Should().BeFalse();
+    [Fact]
+    public async Task FromFilePath_LoadsFromSpecifiedFile()
+    {
+        var customFile = Path.Combine(this.tempDir, "custom-prompts.json");
+        var repo = JsonPromptSettingsRepository.FromFilePath(customFile);
+        var custom = PromptSettings.Default with { SystemMessage = "from-custom-file" };
+        await repo.SaveAsync(custom);
+
+        var loaded = await repo.LoadAsync();
+        loaded.SystemMessage.Should().Be("from-custom-file");
+        repo.IsReachable.Should().BeTrue();
     }
 }
