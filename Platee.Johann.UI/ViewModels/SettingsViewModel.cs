@@ -138,7 +138,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public void ActivateAdmin(string password)
     {
-        if (password == "123")
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(password));
+        var hex = Convert.ToHexStringLower(hash);
+
+        if (hex == AdminPasswordHash)
         {
             this.IsAdminMode = true;
         }
@@ -403,6 +406,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         this.GlobalPromptStatus = EvaluateGlobalPromptStatus(value);
     }
+
+    private const string AdminPasswordHash = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3";
 
     private const string SectionGeneral = "general";
     private const string SectionPaths = "paths";
