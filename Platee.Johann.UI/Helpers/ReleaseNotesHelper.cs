@@ -38,46 +38,41 @@ public static class ReleaseNotesHelper
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body {
-                    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
-                    font-size: 14px; color: #2c2c2c; line-height: 1.7;
-                    margin: 32px 36px; -webkit-font-smoothing: antialiased;
+                    font-family: 'Segoe UI', sans-serif;
+                    font-size: 14px; color: #333; line-height: 1.65;
+                    margin: 28px 32px;
                 }
                 h1 {
-                    color: #E63123; font-size: 24px; font-weight: 600;
-                    margin-bottom: 20px; letter-spacing: -0.3px;
+                    color: #E63123; font-size: 22px; font-weight: 600;
+                    margin-bottom: 16px;
                 }
                 h2 {
-                    color: #1a1a1a; font-size: 16px; font-weight: 600;
-                    margin-top: 28px; margin-bottom: 16px;
-                    padding-bottom: 8px; border-bottom: 2px solid #E63123;
-                    letter-spacing: -0.2px;
+                    font-size: 15px; font-weight: 600; color: #1a1a1a;
+                    margin-top: 20px; margin-bottom: 10px;
+                    padding-bottom: 5px;
+                    border-bottom: 1px solid #E63123;
                 }
-                h3, strong {
-                    color: #333; font-size: 14px; font-weight: 600;
-                }
-                p {
-                    margin: 8px 0 12px 0; color: #444;
-                }
+                h3, strong { font-size: 14px; font-weight: 600; color: #222; }
+                p { margin: 4px 0 10px 0; }
                 ul {
-                    padding-left: 0; margin: 8px 0 16px 0;
-                    list-style: none;
+                    list-style: none; padding-left: 0;
+                    margin: 6px 0 12px 0;
                 }
                 li {
-                    margin-bottom: 8px; padding-left: 20px;
-                    position: relative; color: #444;
+                    margin-bottom: 6px; padding-left: 16px;
+                    position: relative;
                 }
                 li::before {
-                    content: '\2013'; color: #E63123; font-weight: 700;
-                    position: absolute; left: 0;
+                    content: '\2022'; color: #E63123; font-weight: 700;
+                    position: absolute; left: 0; font-size: 13px;
                 }
                 hr {
-                    border: none; border-top: 1px solid #e8e8e8;
-                    margin: 28px 0;
+                    border: none; border-top: 1px solid #e0e0e0;
+                    margin: 18px 0;
                 }
                 code {
-                    background: #f5f5f5; padding: 2px 6px;
+                    background: #f5f5f5; padding: 1px 5px;
                     border-radius: 3px; font-size: 13px;
-                    font-family: 'Cascadia Code', 'Consolas', monospace;
                 }
             </style>
             </head>
