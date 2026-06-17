@@ -206,7 +206,7 @@
                                   Visibility="{Binding IsTeamSelected, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource HintStyle}"
-                                       Text="Optionaler Pfad zu einer gemeinsamen Prompt-Datei (z.B. auf einem Netzlaufwerk). Wenn erreichbar, werden diese Prompts anstelle der lokalen verwendet."/>
+                                       Text="Pfad zur gemeinsamen Prompt-Datei auf dem Netzlaufwerk. Standard: Z:\12_Tools\Peano\Johann\prompts.json. Wenn erreichbar, werden diese Prompts anstelle der lokalen verwendet."/>
 
                             <TextBlock Style="{StaticResource LabelStyle}" Text="Globale Prompt-Datei"/>
                             <DockPanel>

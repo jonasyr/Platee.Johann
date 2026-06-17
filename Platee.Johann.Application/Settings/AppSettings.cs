@@ -22,7 +22,7 @@ public sealed record AppSettings
     public string Ausgabeverzeichnis { get; init; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann", "output");
 
     // Team / shared prompt file
-    public string? GlobalPromptFilePath { get; init; }
+    public string? GlobalPromptFilePath { get; init; } = @"Z:\12_Tools\Peano\Johann\prompts.json";
 
     /// <summary>Gets a fresh instance with all default values.</summary>
     public static AppSettings Default => new();
