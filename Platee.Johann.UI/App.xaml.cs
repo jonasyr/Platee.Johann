@@ -53,35 +53,17 @@ public partial class App : System.Windows.Application
         var persistedSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
 
         // ── Prompt settings ───────────────────────────────────────────────────
-        var promptsFilePath = Path.Combine(settingsDir, "prompts.json");
-
-        // One-time migration: extract prompts from legacy settings.json to prompts.json
-        SettingsSplitMigration.MigrateIfNeeded(settingsFilePath, promptsFilePath);
-
-        IPromptSettingsRepository localPromptRepo = new JsonPromptSettingsRepository(settingsDir);
-
-        var localPrompts = Task.Run(() => localPromptRepo.LoadAsync()).GetAwaiter().GetResult();
-
-        var promptMigration = PromptDefaultsMigration.ApplyIfNeeded(localPrompts, promptsFilePath);
-        localPrompts = promptMigration.Settings;
-
-        if (promptMigration.DidMigrate)
-        {
-            Task.Run(() => localPromptRepo.SaveAsync(localPrompts)).GetAwaiter().GetResult();
-        }
-
-        // Load global prompts if configured
-        IPromptSettingsRepository? globalPromptRepo = null;
+        // Global prompt file is the single source of truth.
+        // Falls back to built-in defaults if unreachable.
+        var effectivePrompts = PromptSettings.Default;
         if (!string.IsNullOrWhiteSpace(persistedSettings.GlobalPromptFilePath))
         {
-            globalPromptRepo = JsonPromptSettingsRepository.FromFilePath(persistedSettings.GlobalPromptFilePath);
+            var globalPromptRepo = JsonPromptSettingsRepository.FromFilePath(persistedSettings.GlobalPromptFilePath);
+            if (globalPromptRepo.IsReachable)
+            {
+                effectivePrompts = Task.Run(() => globalPromptRepo.LoadAsync()).GetAwaiter().GetResult();
+            }
         }
-
-        var promptLoadResult = Task.Run(() =>
-            PromptSettingsLoader.LoadWithFallbackAsync(localPromptRepo, globalPromptRepo))
-            .GetAwaiter().GetResult();
-
-        var effectivePrompts = promptLoadResult.Settings;
 
         var pathResolution = StartupPathResolver.Resolve(
             persistedSettings,
@@ -93,15 +75,6 @@ public partial class App : System.Windows.Application
         var effectiveSettings = pathResolution.EffectiveSettings;
         var outputRoot = effectiveSettings.Ausgabeverzeichnis;
 
-        if (promptMigration.DidMigrate && promptMigration.BackupPath is not null)
-        {
-            MessageBox.Show(
-                "Ihre individuellen Prompts wurden mit den neuen Defaults überschrieben.\n\n" +
-                $"Die ursprünglichen Einstellungen wurden gesichert unter:\n{promptMigration.BackupPath}",
-                "Platé.Johann – Prompts aktualisiert",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
 
         if (pathResolution.Issues.Count > 0)
         {
@@ -112,7 +85,7 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Warning);
         }
 
-        var persistedSettingsHolder = new SettingsHolder(persistedSettings, localPrompts);
+        var persistedSettingsHolder = new SettingsHolder(persistedSettings, effectivePrompts);
         var runtimeSettingsHolder = new SettingsHolder(effectiveSettings, effectivePrompts);
 
         // ── .env-Prüfung ──────────────────────────────────────────────────────
@@ -151,7 +124,7 @@ public partial class App : System.Windows.Application
 
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
-                                           settingsRepo, localPromptRepo, persistedSettingsHolder,
+                                           settingsRepo, persistedSettingsHolder,
                                            runtimeSettingsHolder, pathResolution.Issues);
 
         // Track per-file log items for the watcher

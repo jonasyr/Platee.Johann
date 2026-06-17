@@ -18,8 +18,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IEntryProcessor processor;
     private readonly string outputRoot;
     private readonly ISettingsRepository settingsRepo;
-    private readonly IPromptSettingsRepository localPromptRepo;
-    private readonly SettingsHolder persistedSettingsHolder;
+        private readonly SettingsHolder persistedSettingsHolder;
     private readonly SettingsHolder runtimeSettingsHolder;
     private readonly IReadOnlyList<StartupPathIssue> startupPathIssues;
     private readonly List<DateItemViewModel> allDates = [];
@@ -111,7 +110,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
                          string outputRoot, IEntryProcessor processor,
-                         ISettingsRepository settingsRepo, IPromptSettingsRepository localPromptRepo,
+                         ISettingsRepository settingsRepo,
                          SettingsHolder persistedSettingsHolder,
                          SettingsHolder runtimeSettingsHolder, IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
@@ -120,7 +119,6 @@ public sealed partial class MainViewModel : ObservableObject
         this.outputRoot = outputRoot;
         this.processor = processor;
         this.settingsRepo = settingsRepo;
-        this.localPromptRepo = localPromptRepo;
         this.persistedSettingsHolder = persistedSettingsHolder;
         this.runtimeSettingsHolder = runtimeSettingsHolder;
         this.startupPathIssues = startupPathIssues ?? [];
@@ -507,7 +505,6 @@ public sealed partial class MainViewModel : ObservableObject
 
         this.settingsViewModel ??= new SettingsViewModel(
             this.settingsRepo,
-            this.localPromptRepo,
             this.persistedSettingsHolder,
             this.runtimeSettingsHolder,
             this.startupPathIssues);

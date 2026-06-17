@@ -13,7 +13,6 @@ using Platee.Johann.Application.Settings;
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsRepository repository;
-    private readonly IPromptSettingsRepository localPromptRepo;
     private readonly SettingsHolder persistedHolder;
     private readonly SettingsHolder runtimeHolder;
 
@@ -96,13 +95,11 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public SettingsViewModel(
         ISettingsRepository repository,
-        IPromptSettingsRepository localPromptRepo,
         SettingsHolder persistedHolder,
         SettingsHolder? runtimeHolder = null,
         IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
         this.repository = repository;
-        this.localPromptRepo = localPromptRepo;
         this.persistedHolder = persistedHolder;
         this.runtimeHolder = runtimeHolder ?? persistedHolder;
         this.Sections = BuildSections();
@@ -128,7 +125,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             GlobalPromptFilePath = string.IsNullOrWhiteSpace(this.GlobalPromptFilePath) ? null : this.GlobalPromptFilePath.Trim(),
         };
 
-        var updatedPrompts = this.persistedHolder.Prompts with
+        var updatedPrompts = this.runtimeHolder.Prompts with
         {
             SystemMessage = this.SystemMessage.Trim(),
             AbstractPrompt = this.AbstractPrompt.Trim(),
@@ -141,14 +138,25 @@ public sealed partial class SettingsViewModel : ObservableObject
             AnalogPrompt = this.AnalogPrompt.Trim(),
         };
 
+        // Persist only personal settings — prompts are never saved locally
         await this.repository.SaveAsync(updatedSettings);
-        await this.localPromptRepo.SaveAsync(updatedPrompts);
 
         this.persistedHolder.Current = updatedSettings;
-        this.persistedHolder.Prompts = updatedPrompts;
         this.runtimeHolder.Current = updatedSettings;
+
+        // Prompts: apply to runtime only (session-scoped, lost on restart)
+        var promptsChanged = updatedPrompts != this.persistedHolder.Prompts;
         this.runtimeHolder.Prompts = updatedPrompts;
-        this.StatusMessage = "✓ Einstellungen gespeichert.";
+
+        if (promptsChanged)
+        {
+            this.StatusMessage = "✓ Einstellungen gespeichert. Prompt-Änderungen gelten nur bis zum nächsten Neustart.";
+        }
+        else
+        {
+            this.StatusMessage = "✓ Einstellungen gespeichert.";
+        }
+
         this.PathStatusMessage = string.Empty;
         this.OnPropertyChanged(nameof(this.HasPathStatusMessage));
     }
@@ -164,7 +172,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.Ausgabeverzeichnis = d.Ausgabeverzeichnis;
         this.GlobalPromptFilePath = d.GlobalPromptFilePath;
 
-        var p = PromptSettings.Default;
+        // Reload prompts from what was loaded at startup (global file or defaults)
+        var p = this.persistedHolder.Prompts;
         this.SystemMessage = p.SystemMessage;
         this.AbstractPrompt = p.AbstractPrompt;
         this.StructuredPrompt = p.StructuredPrompt;
@@ -174,7 +183,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.GespraechsnotizPrompt = p.GespraechsnotizPrompt;
         this.StundenzettelPrompt = p.StundenzettelPrompt;
         this.AnalogPrompt = p.AnalogPrompt;
-        this.StatusMessage = "Standard-Werte wiederhergestellt – noch nicht gespeichert.";
+        this.StatusMessage = "Werte zurückgesetzt – noch nicht gespeichert.";
     }
 
     [RelayCommand]

@@ -27,6 +27,14 @@
             <Setter Property="Margin"     Value="0,0,0,4"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
         </Style>
+        <Style x:Key="PromptWarningStyle" TargetType="TextBlock">
+            <Setter Property="FontSize"     Value="11"/>
+            <Setter Property="Foreground"   Value="#C67C00"/>
+            <Setter Property="Background"   Value="#FFF8E1"/>
+            <Setter Property="Padding"      Value="8,6"/>
+            <Setter Property="Margin"       Value="0,0,0,8"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
         <Style x:Key="PromptBox" TargetType="TextBox">
             <Setter Property="FontFamily"              Value="Consolas, Courier New"/>
             <Setter Property="FontSize"                Value="12"/>
@@ -226,11 +234,14 @@
                           Visibility="{Binding IsSystemMessageSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource PromptWarningStyle}"
+                                   Text="Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen."/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Globale Rolle/Persönlichkeit für alle GPT-Aufrufe (system message)."/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding SystemMessage, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -238,11 +249,14 @@
                           Visibility="{Binding IsAbstractSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource PromptWarningStyle}"
+                                   Text="Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen."/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Kurzfassung. Platzhalter: {word_limit}, {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding AbstractPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -250,11 +264,14 @@
                           Visibility="{Binding IsStructuredSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource PromptWarningStyle}"
+                                   Text="Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen."/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die strukturierte Zusammenfassung. Platzhalter: {word_limit}, {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding StructuredPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -262,11 +279,14 @@
                           Visibility="{Binding IsProseSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource PromptWarningStyle}"
+                                   Text="Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen."/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Fließtext-Zusammenfassung. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding ProsePrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -274,11 +294,14 @@
                           Visibility="{Binding IsEmailSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource PromptWarningStyle}"
+                                   Text="Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen."/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die E-Mail-Generierung. Platzhalter: {prose_summary}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding EmailPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -286,11 +309,14 @@
                           Visibility="{Binding IsAufgabeSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource PromptWarningStyle}"
+                                   Text="Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen."/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Aufgaben-Einträge. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding AufgabePrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -298,11 +324,14 @@
                           Visibility="{Binding IsGespraechsnotizSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource PromptWarningStyle}"
+                                   Text="Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen."/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Gesprächsnotiz-Einträge. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding GespraechsnotizPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -310,11 +339,14 @@
                           Visibility="{Binding IsStundenzettelSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource PromptWarningStyle}"
+                                   Text="Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen."/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Stundenzettel-Einträge. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding StundenzettelPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -322,11 +354,14 @@
                           Visibility="{Binding IsAnalogSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Style="{StaticResource HintStyle}"
+                        <TextBlock Grid.Row="0" Style="{StaticResource PromptWarningStyle}"
+                                   Text="Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen."/>
+                        <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für analoge Einträge. Platzhalter: {transcript}"/>
-                        <TextBox Grid.Row="1" Style="{StaticResource PromptBox}"
+                        <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
                                  Text="{Binding AnalogPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
                 </Grid>
