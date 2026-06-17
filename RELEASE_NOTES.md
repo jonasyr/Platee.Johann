@@ -1,6 +1,6 @@
 # Was ist neu?
 
-## Version 1.2.0
+## Version 1.2.1
 
 **Prompts werden jetzt zentral verwaltet**
 

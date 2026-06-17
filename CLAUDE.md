@@ -67,7 +67,8 @@ Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Dom
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
 Platee.Johann.UI/              # WPF presentation layer (depends on all)
-  Assets/                      # RELEASE_NOTES.md, HANDBUCH.html (embedded resources)
+  Assets/                      # RELEASE_NOTES.md, HANDBUCH.html (embedded resources,
+                               #   auto-copied from repo root via CopyDocsToAssets MSBuild target)
   Helpers/                     # DurationFormatter, ReleaseNotesHelper — pure static helpers
   ViewModels/                  # MainViewModel, SettingsViewModel, NewEntryViewModel, …
                                #   Toast stack: ToastTone, ToastToneHelper, ToastItem,
@@ -159,6 +160,8 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **Admin mode** (`e6e1486` / `0d32274` / `56e34e6` / `e0fba8c`): password-gated admin mode for editing global shared prompts in `SettingsView`. `AdminPasswordDialog` added for password entry. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local prompt files. `AdminAwareWarning` XAML style extracted to reduce duplication.
 - **Release notes window** (`3968a67`): `ReleaseNotesWindow` with embedded `RELEASE_NOTES.md` rendered via `MarkdownHelper`; version-gated display via `ReleaseNotesHelper.ShouldShow()`.
 - **Embedded handbook** (`639a0e2`): `HANDBUCH.html` added as embedded resource; `MainViewModel.ExtractHandbook()` extracts to temp file for browser display.
+- **Auto-copy docs to Assets** (`98dd750`): MSBuild `CopyDocsToAssets` target copies `HANDBUCH.html` and `RELEASE_NOTES.md` from repo root into `Assets/` before build, keeping embedded resources in sync with source docs.
+- **Velopack 1.2.0** (`9d54c72`): upgraded installer SDK from pre-release 0.0.1298 to stable 1.2.0.
 
 <!-- END AUTO-MANAGED -->
 
