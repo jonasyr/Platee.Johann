@@ -4,7 +4,9 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using Platee.Johann.Application.Diagnostics;
+using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
+using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Infrastructure.Json;
@@ -50,8 +52,33 @@ public partial class App : System.Windows.Application
         // Load settings synchronously at startup using Task.Run to avoid UI thread deadlocks
         var persistedSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
 
-        var promptMigration = PromptDefaultsMigration.ApplyIfNeeded(persistedSettings, settingsFilePath);
-        persistedSettings = promptMigration.Settings;
+        // ── Prompt settings ───────────────────────────────────────────────────
+        IPromptSettingsRepository localPromptRepo = new JsonPromptSettingsRepository(settingsDir);
+        var promptsFilePath = Path.Combine(settingsDir, "prompts.json");
+
+        var localPrompts = Task.Run(() => localPromptRepo.LoadAsync()).GetAwaiter().GetResult();
+
+        var promptMigration = PromptDefaultsMigration.ApplyIfNeeded(localPrompts, promptsFilePath);
+        localPrompts = promptMigration.Settings;
+
+        if (promptMigration.DidMigrate)
+        {
+            Task.Run(() => localPromptRepo.SaveAsync(localPrompts)).GetAwaiter().GetResult();
+        }
+
+        // Load global prompts if configured
+        IPromptSettingsRepository? globalPromptRepo = null;
+        if (!string.IsNullOrWhiteSpace(persistedSettings.GlobalPromptFilePath))
+        {
+            var globalDir = Path.GetDirectoryName(persistedSettings.GlobalPromptFilePath) ?? string.Empty;
+            globalPromptRepo = new JsonPromptSettingsRepository(globalDir, createDirectory: false);
+        }
+
+        var promptLoadResult = Task.Run(() =>
+            PromptSettingsLoader.LoadWithFallbackAsync(localPromptRepo, globalPromptRepo))
+            .GetAwaiter().GetResult();
+
+        var effectivePrompts = promptLoadResult.Settings;
 
         var pathResolution = StartupPathResolver.Resolve(
             persistedSettings,
@@ -62,11 +89,6 @@ public partial class App : System.Windows.Application
 
         var effectiveSettings = pathResolution.EffectiveSettings;
         var outputRoot = effectiveSettings.Ausgabeverzeichnis;
-
-        if (promptMigration.DidMigrate)
-        {
-            Task.Run(() => settingsRepo.SaveAsync(persistedSettings)).GetAwaiter().GetResult();
-        }
 
         if (promptMigration.DidMigrate && promptMigration.BackupPath is not null)
         {
@@ -87,8 +109,8 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Warning);
         }
 
-        var persistedSettingsHolder = new SettingsHolder(persistedSettings);
-        var runtimeSettingsHolder = new SettingsHolder(effectiveSettings);
+        var persistedSettingsHolder = new SettingsHolder(persistedSettings, localPrompts);
+        var runtimeSettingsHolder = new SettingsHolder(effectiveSettings, effectivePrompts);
 
         // ── .env-Prüfung ──────────────────────────────────────────────────────
         EnsureEnvFile(settingsDir);
@@ -126,7 +148,7 @@ public partial class App : System.Windows.Application
 
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
-                                           settingsRepo, persistedSettingsHolder,
+                                           settingsRepo, localPromptRepo, persistedSettingsHolder,
                                            runtimeSettingsHolder, pathResolution.Issues);
 
         // Track per-file log items for the watcher

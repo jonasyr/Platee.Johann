@@ -5,6 +5,7 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Services;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
@@ -17,6 +18,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IEntryProcessor processor;
     private readonly string outputRoot;
     private readonly ISettingsRepository settingsRepo;
+    private readonly IPromptSettingsRepository localPromptRepo;
     private readonly SettingsHolder persistedSettingsHolder;
     private readonly SettingsHolder runtimeSettingsHolder;
     private readonly IReadOnlyList<StartupPathIssue> startupPathIssues;
@@ -109,7 +111,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
                          string outputRoot, IEntryProcessor processor,
-                         ISettingsRepository settingsRepo, SettingsHolder persistedSettingsHolder,
+                         ISettingsRepository settingsRepo, IPromptSettingsRepository localPromptRepo,
+                         SettingsHolder persistedSettingsHolder,
                          SettingsHolder runtimeSettingsHolder, IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
         this.repository = repository;
@@ -117,6 +120,7 @@ public sealed partial class MainViewModel : ObservableObject
         this.outputRoot = outputRoot;
         this.processor = processor;
         this.settingsRepo = settingsRepo;
+        this.localPromptRepo = localPromptRepo;
         this.persistedSettingsHolder = persistedSettingsHolder;
         this.runtimeSettingsHolder = runtimeSettingsHolder;
         this.startupPathIssues = startupPathIssues ?? [];
@@ -503,6 +507,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         this.settingsViewModel ??= new SettingsViewModel(
             this.settingsRepo,
+            this.localPromptRepo,
             this.persistedSettingsHolder,
             this.runtimeSettingsHolder,
             this.startupPathIssues);

@@ -6,12 +6,14 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
+using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
 
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsRepository repository;
+    private readonly IPromptSettingsRepository localPromptRepo;
     private readonly SettingsHolder persistedHolder;
     private readonly SettingsHolder runtimeHolder;
 
@@ -28,6 +30,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string archivverzeichnis = string.Empty;
     [ObservableProperty]
     private string ausgabeverzeichnis = string.Empty;
+
+    // ── Team / global prompt ──────────────────────────────────────────────────
+    [ObservableProperty]
+    private string? globalPromptFilePath;
+    [ObservableProperty]
+    private string globalPromptStatus = string.Empty;
 
     // ── General prompts ───────────────────────────────────────────────────────
     [ObservableProperty]
@@ -64,6 +72,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool IsPathsSelected => this.IsSelected(SectionPaths);
 
+    public bool IsTeamSelected => this.IsSelected(SectionTeam);
+
     public bool IsSystemMessageSelected => this.IsSelected(SectionSystemMessage);
 
     public bool IsAbstractSelected => this.IsSelected(SectionAbstract);
@@ -86,11 +96,13 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public SettingsViewModel(
         ISettingsRepository repository,
+        IPromptSettingsRepository localPromptRepo,
         SettingsHolder persistedHolder,
         SettingsHolder? runtimeHolder = null,
         IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
         this.repository = repository;
+        this.localPromptRepo = localPromptRepo;
         this.persistedHolder = persistedHolder;
         this.runtimeHolder = runtimeHolder ?? persistedHolder;
         this.Sections = BuildSections();
@@ -106,14 +118,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
-        // Preserve all fields — only override what this UI actually exposes.
-        var updated = this.persistedHolder.Current with
+        var updatedSettings = this.persistedHolder.Current with
         {
             Name = this.Name.Trim(),
             Firma = this.Firma.Trim(),
             Quellverzeichnis = this.Quellverzeichnis.Trim(),
             Archivverzeichnis = this.Archivverzeichnis.Trim(),
             Ausgabeverzeichnis = this.Ausgabeverzeichnis.Trim(),
+            GlobalPromptFilePath = string.IsNullOrWhiteSpace(this.GlobalPromptFilePath) ? null : this.GlobalPromptFilePath.Trim(),
+        };
+
+        var updatedPrompts = this.persistedHolder.Prompts with
+        {
             SystemMessage = this.SystemMessage.Trim(),
             AbstractPrompt = this.AbstractPrompt.Trim(),
             StructuredPrompt = this.StructuredPrompt.Trim(),
@@ -125,9 +141,13 @@ public sealed partial class SettingsViewModel : ObservableObject
             AnalogPrompt = this.AnalogPrompt.Trim(),
         };
 
-        await this.repository.SaveAsync(updated);
-        this.persistedHolder.Current = updated;
-        this.runtimeHolder.Current = updated;
+        await this.repository.SaveAsync(updatedSettings);
+        await this.localPromptRepo.SaveAsync(updatedPrompts);
+
+        this.persistedHolder.Current = updatedSettings;
+        this.persistedHolder.Prompts = updatedPrompts;
+        this.runtimeHolder.Current = updatedSettings;
+        this.runtimeHolder.Prompts = updatedPrompts;
         this.StatusMessage = "✓ Einstellungen gespeichert.";
         this.PathStatusMessage = string.Empty;
         this.OnPropertyChanged(nameof(this.HasPathStatusMessage));
@@ -142,15 +162,18 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.Quellverzeichnis = d.Quellverzeichnis;
         this.Archivverzeichnis = d.Archivverzeichnis;
         this.Ausgabeverzeichnis = d.Ausgabeverzeichnis;
-        this.SystemMessage = SummaryPrompts.SystemMessage;
-        this.AbstractPrompt = SummaryPrompts.Abstract;
-        this.StructuredPrompt = SummaryPrompts.Structured;
-        this.ProsePrompt = SummaryPrompts.Prose;
-        this.EmailPrompt = SummaryPrompts.Email;
-        this.AufgabePrompt = SummaryPrompts.Aufgabe;
-        this.GespraechsnotizPrompt = SummaryPrompts.Gespraechsnotiz;
-        this.StundenzettelPrompt = SummaryPrompts.Stundenzettel;
-        this.AnalogPrompt = SummaryPrompts.Analog;
+        this.GlobalPromptFilePath = d.GlobalPromptFilePath;
+
+        var p = PromptSettings.Default;
+        this.SystemMessage = p.SystemMessage;
+        this.AbstractPrompt = p.AbstractPrompt;
+        this.StructuredPrompt = p.StructuredPrompt;
+        this.ProsePrompt = p.ProsePrompt;
+        this.EmailPrompt = p.EmailPrompt;
+        this.AufgabePrompt = p.AufgabePrompt;
+        this.GespraechsnotizPrompt = p.GespraechsnotizPrompt;
+        this.StundenzettelPrompt = p.StundenzettelPrompt;
+        this.AnalogPrompt = p.AnalogPrompt;
         this.StatusMessage = "Standard-Werte wiederhergestellt – noch nicht gespeichert.";
     }
 
@@ -193,15 +216,18 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.Quellverzeichnis = s.Quellverzeichnis;
         this.Archivverzeichnis = s.Archivverzeichnis;
         this.Ausgabeverzeichnis = s.Ausgabeverzeichnis;
-        this.SystemMessage = s.SystemMessage;
-        this.AbstractPrompt = s.AbstractPrompt;
-        this.StructuredPrompt = s.StructuredPrompt;
-        this.ProsePrompt = s.ProsePrompt;
-        this.EmailPrompt = s.EmailPrompt;
-        this.AufgabePrompt = s.AufgabePrompt;
-        this.GespraechsnotizPrompt = s.GespraechsnotizPrompt;
-        this.StundenzettelPrompt = s.StundenzettelPrompt;
-        this.AnalogPrompt = s.AnalogPrompt;
+        this.GlobalPromptFilePath = s.GlobalPromptFilePath;
+
+        var p = this.persistedHolder.Prompts;
+        this.SystemMessage = p.SystemMessage;
+        this.AbstractPrompt = p.AbstractPrompt;
+        this.StructuredPrompt = p.StructuredPrompt;
+        this.ProsePrompt = p.ProsePrompt;
+        this.EmailPrompt = p.EmailPrompt;
+        this.AufgabePrompt = p.AufgabePrompt;
+        this.GespraechsnotizPrompt = p.GespraechsnotizPrompt;
+        this.StundenzettelPrompt = p.StundenzettelPrompt;
+        this.AnalogPrompt = p.AnalogPrompt;
     }
 
     private static string? PickFolder(string initialDir)
@@ -219,6 +245,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(HasPathStatusMessage));
         OnPropertyChanged(nameof(IsGeneralSelected));
         OnPropertyChanged(nameof(IsPathsSelected));
+        OnPropertyChanged(nameof(IsTeamSelected));
         OnPropertyChanged(nameof(IsSystemMessageSelected));
         OnPropertyChanged(nameof(IsAbstractSelected));
         OnPropertyChanged(nameof(IsStructuredSelected));
@@ -239,11 +266,28 @@ public sealed partial class SettingsViewModel : ObservableObject
         return $"Hinweis: Die hier angezeigten Pfade sind die gespeicherten Werte. Beim letzten Start wurden für diese Sitzung Ersatzpfade verwendet ({labels}). Bitte bei Bedarf korrigieren und speichern.";
     }
 
+    [RelayCommand]
+    private void BrowseGlobalPromptFile()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Globale Prompt-Datei auswählen",
+            Filter = "JSON-Dateien (*.json)|*.json|Alle Dateien (*.*)|*.*",
+            FileName = "prompts.json",
+        };
+
+        if (dialog.ShowDialog() == true)
+        {
+            this.GlobalPromptFilePath = dialog.FileName;
+        }
+    }
+
     private static IReadOnlyList<SettingsSectionItem> BuildSections() =>
         new List<SettingsSectionItem>
         {
             new(SectionGeneral, "Allgemein", "GRUNDDATEN"),
             new(SectionPaths, "Verzeichnisse", "GRUNDDATEN"),
+            new(SectionTeam, "Team-Prompts", "GRUNDDATEN"),
             new(SectionSystemMessage, "System-Nachricht", "GLOBALE PROMPTS"),
             new(SectionAbstract, "Kurzfassung", "GLOBALE PROMPTS"),
             new(SectionStructured, "Zusammenfassung", "GLOBALE PROMPTS"),
@@ -257,6 +301,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private const string SectionGeneral = "general";
     private const string SectionPaths = "paths";
+    private const string SectionTeam = "team";
     private const string SectionSystemMessage = "system-message";
     private const string SectionAbstract = "abstract";
     private const string SectionStructured = "structured";

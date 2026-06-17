@@ -200,6 +200,28 @@
                         </StackPanel>
                     </ScrollViewer>
 
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Margin="12,10,12,8"
+                                  Visibility="{Binding IsTeamSelected, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource HintStyle}"
+                                       Text="Optionaler Pfad zu einer gemeinsamen Prompt-Datei (z.B. auf einem Netzlaufwerk). Wenn erreichbar, werden diese Prompts anstelle der lokalen verwendet."/>
+
+                            <TextBlock Style="{StaticResource LabelStyle}" Text="Globale Prompt-Datei"/>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource BrowseButton}"
+                                        Content="Durchsuchen&#x2026;"
+                                        Command="{Binding BrowseGlobalPromptFileCommand}"/>
+                                <TextBox Style="{StaticResource FieldBox}"
+                                         Text="{Binding GlobalPromptFilePath, UpdateSourceTrigger=PropertyChanged}"/>
+                            </DockPanel>
+
+                            <TextBlock Style="{StaticResource HintStyle}" Margin="0,8,0,0"
+                                       Text="{Binding GlobalPromptStatus}"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
                     <Grid Margin="12,10,12,8"
                           Visibility="{Binding IsSystemMessageSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>
