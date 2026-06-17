@@ -72,6 +72,15 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string adminButtonLabel = "Admin";
 
+    [ObservableProperty]
+    private string promptWarningText = DefaultPromptWarning;
+
+    private const string DefaultPromptWarning =
+        "Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen.";
+
+    private const string AdminPromptWarning =
+        "ACHTUNG: Sie bearbeiten die globalen Team-Prompts. Änderungen betreffen ALLE Mitarbeiter nach deren nächstem App-Neustart!";
+
     public IReadOnlyList<SettingsSectionItem> Sections { get; }
 
     public bool IsGeneralSelected => this.IsSelected(SectionGeneral);
@@ -101,6 +110,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool HasPathStatusMessage => !string.IsNullOrWhiteSpace(this.PathStatusMessage);
 
     public bool IsPromptReadOnly => !this.IsAdminMode;
+
+    /// <summary>
+    /// Delegate that shows the admin password dialog and returns the entered password,
+    /// or null if the dialog was cancelled. Set by the UI layer; null-safe in tests.
+    /// </summary>
+    public Func<string?>? ShowAdminPasswordDialog { get; set; }
 
     public SettingsViewModel(
         ISettingsRepository repository,
@@ -134,9 +149,26 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.IsAdminMode = false;
     }
 
+    [RelayCommand]
+    private void ToggleAdmin()
+    {
+        if (this.IsAdminMode)
+        {
+            this.DeactivateAdmin();
+            return;
+        }
+
+        var password = this.ShowAdminPasswordDialog?.Invoke();
+        if (password is not null)
+        {
+            this.ActivateAdmin(password);
+        }
+    }
+
     partial void OnIsAdminModeChanged(bool value)
     {
         this.AdminButtonLabel = value ? "Admin aktiv" : "Admin";
+        this.PromptWarningText = value ? AdminPromptWarning : DefaultPromptWarning;
         this.OnPropertyChanged(nameof(this.IsPromptReadOnly));
     }
 

@@ -508,6 +508,16 @@ public sealed partial class MainViewModel : ObservableObject
             this.persistedSettingsHolder,
             this.runtimeSettingsHolder,
             this.startupPathIssues);
+        this.settingsViewModel.ShowAdminPasswordDialog ??= () =>
+        {
+            var dialog = new AdminPasswordDialog
+            {
+                Owner = System.Windows.Application.Current.Windows
+                    .OfType<SettingsView>()
+                    .FirstOrDefault(),
+            };
+            return dialog.ShowDialog() == true ? dialog.EnteredPassword : null;
+        };
         this.settingsWindow = new SettingsView(this.settingsViewModel)
         {
             Owner = System.Windows.Application.Current.MainWindow,
