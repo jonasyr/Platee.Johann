@@ -241,8 +241,7 @@
                                         Command="{Binding BrowseGlobalPromptFileCommand}"
                                         IsEnabled="{Binding IsAdminMode}"/>
                                 <TextBox Style="{StaticResource FieldBox}"
-                                         Text="{Binding GlobalPromptFilePath, UpdateSourceTrigger=PropertyChanged}"
-                                         IsReadOnly="{Binding IsPromptReadOnly}"/>
+                                         Text="{Binding GlobalPromptFilePath, UpdateSourceTrigger=PropertyChanged}"/>
                             </DockPanel>
 
                             <TextBlock Style="{StaticResource HintStyle}" Margin="0,8,0,0"
@@ -261,7 +260,6 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Globale Rolle/Persönlichkeit für alle GPT-Aufrufe (system message)."/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
-                                 IsReadOnly="{Binding IsPromptReadOnly}"
                                  Text="{Binding SystemMessage, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -276,7 +274,6 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Kurzfassung. Platzhalter: {word_limit}, {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
-                                 IsReadOnly="{Binding IsPromptReadOnly}"
                                  Text="{Binding AbstractPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -291,7 +288,6 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die strukturierte Zusammenfassung. Platzhalter: {word_limit}, {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
-                                 IsReadOnly="{Binding IsPromptReadOnly}"
                                  Text="{Binding StructuredPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -306,7 +302,6 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Fließtext-Zusammenfassung. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
-                                 IsReadOnly="{Binding IsPromptReadOnly}"
                                  Text="{Binding ProsePrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -321,7 +316,6 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die E-Mail-Generierung. Platzhalter: {prose_summary}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
-                                 IsReadOnly="{Binding IsPromptReadOnly}"
                                  Text="{Binding EmailPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -336,7 +330,6 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Aufgaben-Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
-                                 IsReadOnly="{Binding IsPromptReadOnly}"
                                  Text="{Binding AufgabePrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -351,7 +344,6 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Gesprächsnotiz-Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
-                                 IsReadOnly="{Binding IsPromptReadOnly}"
                                  Text="{Binding GespraechsnotizPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -366,7 +358,6 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Stundenzettel-Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
-                                 IsReadOnly="{Binding IsPromptReadOnly}"
                                  Text="{Binding StundenzettelPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -381,7 +372,6 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für analoge Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
-                                 IsReadOnly="{Binding IsPromptReadOnly}"
                                  Text="{Binding AnalogPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
                 </Grid>
