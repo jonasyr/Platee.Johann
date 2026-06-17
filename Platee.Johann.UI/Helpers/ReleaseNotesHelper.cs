@@ -36,16 +36,49 @@ public static class ReleaseNotesHelper
             <head>
             <meta charset="utf-8"/>
             <style>
-                body { font-family: 'Segoe UI', sans-serif; font-size: 14px; color: #333;
-                       margin: 24px; line-height: 1.6; }
-                h1 { color: #E63123; font-size: 22px; margin-bottom: 4px; }
-                h2 { color: #444; font-size: 17px; border-bottom: 1px solid #ddd;
-                      padding-bottom: 4px; margin-top: 24px; }
-                h3 { color: #555; font-size: 14px; margin-top: 16px; }
-                ul { padding-left: 20px; }
-                li { margin-bottom: 4px; }
-                hr { border: none; border-top: 1px solid #eee; margin: 20px 0; }
-                code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: 13px; }
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+                    font-size: 14px; color: #2c2c2c; line-height: 1.7;
+                    margin: 32px 36px; -webkit-font-smoothing: antialiased;
+                }
+                h1 {
+                    color: #E63123; font-size: 24px; font-weight: 600;
+                    margin-bottom: 20px; letter-spacing: -0.3px;
+                }
+                h2 {
+                    color: #1a1a1a; font-size: 16px; font-weight: 600;
+                    margin-top: 28px; margin-bottom: 16px;
+                    padding-bottom: 8px; border-bottom: 2px solid #E63123;
+                    letter-spacing: -0.2px;
+                }
+                h3, strong {
+                    color: #333; font-size: 14px; font-weight: 600;
+                }
+                p {
+                    margin: 8px 0 12px 0; color: #444;
+                }
+                ul {
+                    padding-left: 0; margin: 8px 0 16px 0;
+                    list-style: none;
+                }
+                li {
+                    margin-bottom: 8px; padding-left: 20px;
+                    position: relative; color: #444;
+                }
+                li::before {
+                    content: '\2013'; color: #E63123; font-weight: 700;
+                    position: absolute; left: 0;
+                }
+                hr {
+                    border: none; border-top: 1px solid #e8e8e8;
+                    margin: 28px 0;
+                }
+                code {
+                    background: #f5f5f5; padding: 2px 6px;
+                    border-radius: 3px; font-size: 13px;
+                    font-family: 'Cascadia Code', 'Consolas', monospace;
+                }
             </style>
             </head>
             <body>{{body}}</body>
