@@ -136,7 +136,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.SelectedSection = this.Sections[0];
     }
 
-    public void ActivateAdmin(string password)
+    public bool ActivateAdmin(string password)
     {
         var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(password));
         var hex = Convert.ToHexStringLower(hash);
@@ -144,7 +144,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (hex == AdminPasswordHash)
         {
             this.IsAdminMode = true;
+            return true;
         }
+
+        return false;
     }
 
     public void DeactivateAdmin()
@@ -162,9 +165,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
 
         var password = this.ShowAdminPasswordDialog?.Invoke();
-        if (password is not null)
+        if (password is not null && !this.ActivateAdmin(password))
         {
-            this.ActivateAdmin(password);
+            this.StatusMessage = "Falsches Passwort.";
         }
     }
 

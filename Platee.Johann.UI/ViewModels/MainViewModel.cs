@@ -522,7 +522,11 @@ public sealed partial class MainViewModel : ObservableObject
         {
             Owner = System.Windows.Application.Current.MainWindow,
         };
-        this.settingsWindow.Closed += (_, _) => this.settingsWindow = null;
+        this.settingsWindow.Closed += (_, _) =>
+        {
+            this.settingsWindow = null;
+            System.Windows.Application.Current.MainWindow?.Activate();
+        };
         this.settingsWindow.Show(); // non-modal with single-instance behavior
     }
 
