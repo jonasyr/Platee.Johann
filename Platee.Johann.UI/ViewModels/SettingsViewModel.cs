@@ -217,6 +217,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.Archivverzeichnis = s.Archivverzeichnis;
         this.Ausgabeverzeichnis = s.Ausgabeverzeichnis;
         this.GlobalPromptFilePath = s.GlobalPromptFilePath;
+        this.GlobalPromptStatus = EvaluateGlobalPromptStatus(s.GlobalPromptFilePath);
 
         var p = this.persistedHolder.Prompts;
         this.SystemMessage = p.SystemMessage;
@@ -298,6 +299,21 @@ public sealed partial class SettingsViewModel : ObservableObject
             new(SectionStundenzettel, "Stundenzettel", "TYP-SPEZIFISCHE PROMPTS"),
             new(SectionAnalog, "Analog", "TYP-SPEZIFISCHE PROMPTS"),
         };
+
+    private static string EvaluateGlobalPromptStatus(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return string.Empty;
+        }
+
+        if (File.Exists(path))
+        {
+            return "✓ Globale Prompt-Datei erreichbar";
+        }
+
+        return "⚠ Globale Prompt-Datei nicht erreichbar – lokale Prompts werden verwendet";
+    }
 
     private const string SectionGeneral = "general";
     private const string SectionPaths = "paths";

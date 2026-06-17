@@ -32,4 +32,33 @@ public class PromptSettingsTests
         modified.SystemMessage.Should().Be("custom");
         original.SystemMessage.Should().Be(SummaryPrompts.SystemMessage);
     }
+
+    [Fact]
+    public void SettingsHolder_SeparatesSettingsAndPrompts()
+    {
+        var settings = AppSettings.Default with { Name = "Test" };
+        var prompts = PromptSettings.Default with { SystemMessage = "custom" };
+        var holder = new SettingsHolder(settings, prompts);
+
+        holder.Current.Name.Should().Be("Test");
+        holder.Prompts.SystemMessage.Should().Be("custom");
+
+        // AppSettings should not contain prompt properties
+        typeof(AppSettings).GetProperty("SystemMessage").Should().BeNull(
+            because: "AppSettings no longer contains prompt properties");
+        typeof(AppSettings).GetProperty("AbstractPrompt").Should().BeNull(
+            because: "AppSettings no longer contains prompt properties");
+    }
+
+    [Fact]
+    public void SettingsHolder_DefaultPrompts_WhenNotProvided()
+    {
+        var holder = new SettingsHolder(AppSettings.Default);
+
+        holder.Prompts.SystemMessage.Should().Be(SummaryPrompts.SystemMessage);
+        holder.Prompts.AbstractPrompt.Should().Be(SummaryPrompts.Abstract);
+        holder.Prompts.StructuredPrompt.Should().Be(SummaryPrompts.Structured);
+        holder.Prompts.ProsePrompt.Should().Be(SummaryPrompts.Prose);
+        holder.Prompts.EmailPrompt.Should().Be(SummaryPrompts.Email);
+    }
 }
