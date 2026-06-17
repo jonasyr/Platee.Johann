@@ -9,6 +9,7 @@ using Microsoft.Win32;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
+using Platee.Johann.Infrastructure.Json;
 
 public sealed partial class SettingsViewModel : ObservableObject
 {
@@ -65,6 +66,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private SettingsSectionItem? selectedSection;
 
+    [ObservableProperty]
+    private bool isAdminMode;
+
+    [ObservableProperty]
+    private string adminButtonLabel = "Admin";
+
     public IReadOnlyList<SettingsSectionItem> Sections { get; }
 
     public bool IsGeneralSelected => this.IsSelected(SectionGeneral);
@@ -93,6 +100,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool HasPathStatusMessage => !string.IsNullOrWhiteSpace(this.PathStatusMessage);
 
+    public bool IsPromptReadOnly => !this.IsAdminMode;
+
     public SettingsViewModel(
         ISettingsRepository repository,
         SettingsHolder persistedHolder,
@@ -110,6 +119,25 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
 
         this.SelectedSection = this.Sections[0];
+    }
+
+    public void ActivateAdmin(string password)
+    {
+        if (password == "123")
+        {
+            this.IsAdminMode = true;
+        }
+    }
+
+    public void DeactivateAdmin()
+    {
+        this.IsAdminMode = false;
+    }
+
+    partial void OnIsAdminModeChanged(bool value)
+    {
+        this.AdminButtonLabel = value ? "Admin aktiv" : "Admin";
+        this.OnPropertyChanged(nameof(this.IsPromptReadOnly));
     }
 
     [RelayCommand]
@@ -144,12 +172,27 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.persistedHolder.Current = updatedSettings;
         this.runtimeHolder.Current = updatedSettings;
 
-        // Prompts: apply to runtime only (session-scoped, lost on restart)
+        // Prompts
         var promptsChanged = updatedPrompts != this.persistedHolder.Prompts;
-        this.runtimeHolder.Prompts = updatedPrompts;
 
-        if (promptsChanged)
+        if (this.IsAdminMode && promptsChanged)
         {
+            // Admin mode: persist prompts to the global team file
+            var globalPath = this.persistedHolder.Current.GlobalPromptFilePath
+                             ?? updatedSettings.GlobalPromptFilePath;
+            if (!string.IsNullOrWhiteSpace(globalPath))
+            {
+                var globalRepo = JsonPromptSettingsRepository.FromFilePath(globalPath);
+                await globalRepo.SaveAsync(updatedPrompts);
+                this.persistedHolder.Prompts = updatedPrompts;
+                this.runtimeHolder.Prompts = updatedPrompts;
+                this.StatusMessage = "✓ Globale Prompts für alle Mitarbeiter gespeichert.";
+            }
+        }
+        else if (promptsChanged)
+        {
+            // Normal mode: session-only
+            this.runtimeHolder.Prompts = updatedPrompts;
             this.StatusMessage = "✓ Einstellungen gespeichert. Prompt-Änderungen gelten nur bis zum nächsten Neustart.";
         }
         else

@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -19,6 +20,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="System.IO" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,6 +40,7 @@
     <Compile Include="..\Platee.Johann.UI\ViewModels\ToastToneHelper.cs" Link="ViewModels/ToastToneHelper.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\ToastItem.cs" Link="ViewModels/ToastItem.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\ToastQueue.cs" Link="ViewModels/ToastQueue.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\SettingsViewModel.cs" Link="ViewModels/SettingsViewModel.cs" />
   </ItemGroup>
 
 </Project>
