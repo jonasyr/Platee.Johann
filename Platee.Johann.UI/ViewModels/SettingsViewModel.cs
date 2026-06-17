@@ -167,7 +167,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         var password = this.ShowAdminPasswordDialog?.Invoke();
         if (password is not null && !this.ActivateAdmin(password))
         {
-            this.StatusMessage = "Falsches Passwort.";
+            System.Windows.MessageBox.Show(
+                "Falsches Passwort.",
+                "Admin-Zugang",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
         }
     }
 
