@@ -12,7 +12,9 @@ using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Infrastructure.Json;
 using Platee.Johann.Infrastructure.Llm;
 using Platee.Johann.Infrastructure.Renderers;
+using Platee.Johann.UI.Helpers;
 using Platee.Johann.UI.ViewModels;
+using Platee.Johann.UI.Views;
 using Velopack;
 using Velopack.Sources;
 
@@ -178,6 +180,24 @@ public partial class App : System.Windows.Application
 
         var mainWindow = new MainWindow(viewModel);
         mainWindow.Show();
+
+        // ── Release Notes ─────────────────────────────────────────────────────
+        var currentVersion = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        if (ReleaseNotesHelper.ShouldShow(persistedSettings.LastSeenReleaseNotesVersion, currentVersion))
+        {
+            var markdown = ReleaseNotesHelper.LoadMarkdown(typeof(App).Assembly);
+            if (!string.IsNullOrWhiteSpace(markdown))
+            {
+                var html = ReleaseNotesHelper.RenderToHtml(markdown);
+                var notesWindow = new ReleaseNotesWindow(html) { Owner = mainWindow };
+                notesWindow.ShowDialog();
+            }
+
+            var updatedSettings = persistedSettings with { LastSeenReleaseNotesVersion = currentVersion };
+            persistedSettingsHolder.Current = updatedSettings;
+            runtimeSettingsHolder.Current = updatedSettings;
+            Task.Run(() => settingsRepo.SaveAsync(updatedSettings)).GetAwaiter().GetResult();
+        }
 
         _ = CheckForUpdatesAsync();
     }
