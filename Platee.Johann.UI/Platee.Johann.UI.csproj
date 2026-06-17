@@ -26,4 +26,8 @@
     <Resource Include="..\Johann.ico" Link="Johann.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\RELEASE_NOTES.md" />
+  </ItemGroup>
+
 </Project>

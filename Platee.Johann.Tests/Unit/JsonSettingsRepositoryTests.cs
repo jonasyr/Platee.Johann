@@ -105,4 +105,15 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
 
         loaded.GlobalPromptFilePath.Should().Be(@"Z:\prompts.json");
     }
+
+    // ── LastSeenReleaseNotesVersion round-trip ───────────────────────────────
+    [Fact]
+    public async Task SaveAndLoad_RoundTrip_PreservesLastSeenReleaseNotesVersion()
+    {
+        var settings = AppSettings.Default with { LastSeenReleaseNotesVersion = "1.1.0" };
+        await this.sut.SaveAsync(settings);
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.LastSeenReleaseNotesVersion.Should().Be("1.1.0");
+    }
 }

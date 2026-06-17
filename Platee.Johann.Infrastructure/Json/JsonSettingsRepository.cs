@@ -65,6 +65,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
             Archivverzeichnis = dto.Archivverzeichnis ?? defaultSettings.Archivverzeichnis,
             Ausgabeverzeichnis = dto.Ausgabeverzeichnis ?? defaultSettings.Ausgabeverzeichnis,
             GlobalPromptFilePath = dto.GlobalPromptFilePath ?? defaultSettings.GlobalPromptFilePath,
+            LastSeenReleaseNotesVersion = dto.LastSeenReleaseNotesVersion,
         };
     }
 
@@ -76,6 +77,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         Archivverzeichnis = s.Archivverzeichnis,
         Ausgabeverzeichnis = s.Ausgabeverzeichnis,
         GlobalPromptFilePath = s.GlobalPromptFilePath,
+        LastSeenReleaseNotesVersion = s.LastSeenReleaseNotesVersion,
     };
 
     // Separate DTO to decouple JSON shape from the domain record
@@ -92,5 +94,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         public string? Ausgabeverzeichnis { get; set; }
 
         public string? GlobalPromptFilePath { get; set; }
+
+        public string? LastSeenReleaseNotesVersion { get; set; }
     }
 }

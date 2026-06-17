@@ -24,6 +24,9 @@ public sealed record AppSettings
     // Team / shared prompt file
     public string? GlobalPromptFilePath { get; init; } = @"Z:\12_Tools\Peano\Johann\prompts.json";
 
+    // Release notes
+    public string? LastSeenReleaseNotesVersion { get; init; }
+
     /// <summary>Gets a fresh instance with all default values.</summary>
     public static AppSettings Default => new();
 }
