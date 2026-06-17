@@ -30,6 +30,16 @@ public static class ReleaseNotesHelper
     public static string RenderToHtml(string markdown)
     {
         var body = MarkdownHelper.ToHtml(markdown);
+
+        // Wrap <li> content in a span so the bullet (from list-style) stays red
+        // while the text is dark. The IE/Trident engine in WPF WebBrowser
+        // does not support ::before pseudo-elements.
+        body = System.Text.RegularExpressions.Regex.Replace(
+            body,
+            @"<li>(.*?)</li>",
+            """<li><span style="color:#444">$1</span></li>""",
+            System.Text.RegularExpressions.RegexOptions.Singleline);
+
         return $$"""
             <!DOCTYPE html>
             <html>
@@ -66,10 +76,7 @@ public static class ReleaseNotesHelper
                     color: #E63123;
                     list-style-type: disc;
                 }
-                li p {
-                    margin: 0;
-                    display: inline;
-                }
+                li p { margin: 0; }
                 code {
                     background: #eee; padding: 1px 5px;
                     border-radius: 3px; font-size: 13px;
