@@ -2,6 +2,7 @@ namespace Platee.Johann.Application.Settings;
 
 using System;
 using System.IO;
+using Platee.Johann.Domain.ValueObjects;
 
 /// <summary>
 /// User-configurable application settings (personal preferences and paths).
@@ -26,6 +27,9 @@ public sealed record AppSettings
 
     // Release notes
     public string? LastSeenReleaseNotesVersion { get; init; }
+
+    // Correction list for Whisper transcription fixes
+    public IReadOnlyList<CorrectionEntry> Korrekturliste { get; init; } = [];
 
     /// <summary>Gets a fresh instance with all default values.</summary>
     public static AppSettings Default => new();
