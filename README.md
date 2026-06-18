@@ -155,6 +155,10 @@ Das **⚙ Einstellungen**-Symbol öffnet den Einstellungs-Dialog.
 - **Ausgabe:** `Dokumente\Johann\output` – alle erzeugten Dateien
 - **Archiv:** Unterordner von Eingang – verarbeitete MP3s werden hierhin verschoben
 
+### Korrekturliste
+
+In den Einstellungen unter **Korrekturliste** können häufig falsch erkannte Wörter als Korrekturpaare hinterlegt werden (z. B. „Piano" → „Peano"). Die Korrekturen werden automatisch bei der KI-Zusammenfassung berücksichtigt. Vier Standardkorrekturen sind bereits voreingestellt.
+
 ### Team-Prompts
 
 Prompts werden zentral vom Netzlaufwerk geladen (`Z:\12_Tools\Peano\Johann\prompts.json`). Lokale Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart – beim Start werden immer die aktuellen Team-Prompts vom Netzlaufwerk übernommen.
@@ -218,7 +222,8 @@ Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren
 | KI-Abschnitte leer | API-Schlüssel und Internetverbindung prüfen, Status-Log prüfen |
 | Absturz | Crash-Logs unter `%LOCALAPPDATA%\Platee\Johann\logs\crash-*.log` mit Zeitstempel und Fehlertext |
 | Prompts nicht aktuell | App neu starten – Prompts werden beim Start vom Netzlaufwerk geladen |
+| Korrekturen nicht aktiv | Einstellungen → Korrekturliste prüfen, Speichern klicken |
 
 ---
 
-*Platé.Johann v1.2.0 · Windows 10/11 · Daten bleiben lokal*
+*Platé.Johann v1.2.1 · Windows 10/11 · Daten bleiben lokal*

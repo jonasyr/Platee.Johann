@@ -1,5 +1,14 @@
 # Was ist neu?
 
+## Version 1.3.0
+
+**Korrekturliste für Whisper-Fehler**
+
+- Neue Korrekturliste in den Einstellungen: Häufig falsch erkannte Wörter können als Korrekturpaare hinterlegt werden (z. B. Piano → Peano). Die Korrekturen werden automatisch bei der KI-Zusammenfassung berücksichtigt.
+- Vier Standardkorrekturen sind bereits voreingestellt und können beliebig ergänzt oder entfernt werden.
+
+---
+
 ## Version 1.2.1
 
 **Prompts werden jetzt zentral verwaltet**
