@@ -11,7 +11,6 @@ using Platee.Johann.Application.Settings;
 public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
 {
     private readonly string filePath;
-    private readonly string directory;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -29,7 +28,7 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
     private JsonPromptSettingsRepository(string filePath, string directory, bool createDirectory)
     {
         this.filePath = filePath;
-        this.directory = directory;
+
         if (createDirectory)
         {
             Directory.CreateDirectory(directory);

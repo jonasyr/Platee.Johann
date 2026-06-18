@@ -114,9 +114,9 @@ public class SettingsSplitMigrationTests : IDisposable
     [Fact]
     public void CleanupLegacyFiles_WhenNoLegacyFiles_DoesNothing()
     {
-        // Directory exists but no prompts.json or prompt keys in settings.json
         SettingsSplitMigration.CleanupLegacyFiles(this.tempDir);
 
-        // Should not throw
+        var promptsPath = Path.Combine(this.tempDir, "prompts.json");
+        File.Exists(promptsPath).Should().BeFalse();
     }
 }

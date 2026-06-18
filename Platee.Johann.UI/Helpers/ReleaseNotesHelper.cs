@@ -38,7 +38,8 @@ public static class ReleaseNotesHelper
             body,
             @"<li>(.*?)</li>",
             """<li><span style="color:#444">$1</span></li>""",
-            System.Text.RegularExpressions.RegexOptions.Singleline);
+            System.Text.RegularExpressions.RegexOptions.Singleline,
+            TimeSpan.FromSeconds(5));
 
         return $$"""
             <!DOCTYPE html>
