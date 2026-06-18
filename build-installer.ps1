@@ -78,6 +78,32 @@ if ($GithubToken) {
         --outputDir $ReleasesDir
 
     if ($LASTEXITCODE -ne 0) { throw "GitHub-Upload fehlgeschlagen." }
+
+    # Release Notes aus RELEASE_NOTES.md extrahieren und als Body setzen
+    $notesFile = Join-Path $RepoRoot "RELEASE_NOTES.md"
+    if (Test-Path $notesFile) {
+        $lines = Get-Content $notesFile -Encoding UTF8
+        $body = @()
+        $capturing = $false
+        foreach ($line in $lines) {
+            if ($line -match "^## Version\s+$([regex]::Escape($Version))") {
+                $capturing = $true
+                continue
+            }
+            if ($capturing -and $line -match "^## Version\s+") {
+                break
+            }
+            if ($capturing) {
+                $body += $line
+            }
+        }
+        $bodyText = ($body -join "`n").Trim()
+        if ($bodyText) {
+            Write-Host "      Release Notes fuer v$Version gefunden, setze als GitHub Release Body..." -ForegroundColor DarkGray
+            gh release edit "v$Version" --repo "jonasyr/Platee.Johann" --notes $bodyText --draft=false 2>$null
+        }
+    }
+
     Write-Host "Upload abgeschlossen!" -ForegroundColor Green
 } else {
     Write-Host "[3/3] Kein GitHub-Token - Upload uebersprungen." -ForegroundColor DarkYellow
