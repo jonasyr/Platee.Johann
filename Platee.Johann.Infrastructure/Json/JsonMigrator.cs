@@ -30,7 +30,7 @@ public static class JsonMigrator
             ApplyV1Fixes(dto, element);
         }
 
-        dto.SchemaVersion = 2;
+        dto.SchemaVersion = 3;
         return dto;
     }
 

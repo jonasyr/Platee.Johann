@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 public sealed class EntryDto
 {
     [JsonPropertyName("schemaVersion")]
-    public int SchemaVersion { get; set; } = 2;
+    public int SchemaVersion { get; set; } = 3;
 
     [JsonPropertyName("jobId")]
     public string JobId { get; set; } = string.Empty;
@@ -44,6 +44,9 @@ public sealed class EntryDto
 
     [JsonPropertyName("transcript")]
     public string? Transcript { get; set; }
+
+    [JsonPropertyName("editedTranscript")]
+    public string? EditedTranscript { get; set; }
 
     [JsonPropertyName("abstract")]
     public string? Abstract { get; set; }
