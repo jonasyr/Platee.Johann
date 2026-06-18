@@ -141,7 +141,7 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
 
     // ── Missing Korrekturliste → empty list ─────────────────────────────────
     [Fact]
-    public async Task Load_WithoutKorrekturliste_ReturnsEmptyList()
+    public async Task Load_WithoutKorrekturliste_ReturnsDefaults()
     {
         var settingsPath = Path.Combine(this.tempDir, "settings.json");
         await File.WriteAllTextAsync(settingsPath, """{"name":"Test"}""");
@@ -149,6 +149,8 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         var loaded = await this.sut.LoadAsync();
 
         loaded.Korrekturliste.Should().NotBeNull();
-        loaded.Korrekturliste.Should().BeEmpty();
+        loaded.Korrekturliste.Should().HaveCount(2);
+        loaded.Korrekturliste[0].Wrong.Should().Be("Piano");
+        loaded.Korrekturliste[1].Wrong.Should().Be("Nele");
     }
 }

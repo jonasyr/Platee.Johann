@@ -67,15 +67,16 @@ public sealed class JsonSettingsRepository : ISettingsRepository
             Ausgabeverzeichnis = dto.Ausgabeverzeichnis ?? defaultSettings.Ausgabeverzeichnis,
             GlobalPromptFilePath = dto.GlobalPromptFilePath ?? defaultSettings.GlobalPromptFilePath,
             LastSeenReleaseNotesVersion = dto.LastSeenReleaseNotesVersion,
-            Korrekturliste = dto.Korrekturliste?
-                .Where(c => !string.IsNullOrWhiteSpace(c.Wrong))
-                .Select(c => new CorrectionEntry
-                {
-                    Wrong = c.Wrong!.Trim(),
-                    Correct = c.Correct?.Trim() ?? string.Empty,
-                })
-                .ToList()
-                ?? [],
+            Korrekturliste = dto.Korrekturliste is { Count: > 0 }
+                ? dto.Korrekturliste
+                    .Where(c => !string.IsNullOrWhiteSpace(c.Wrong))
+                    .Select(c => new CorrectionEntry
+                    {
+                        Wrong = c.Wrong!.Trim(),
+                        Correct = c.Correct?.Trim() ?? string.Empty,
+                    })
+                    .ToList()
+                : defaultSettings.Korrekturliste,
         };
     }
 
