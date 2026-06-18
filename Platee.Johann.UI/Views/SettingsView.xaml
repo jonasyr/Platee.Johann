@@ -257,42 +257,50 @@
                             <TextBlock Style="{StaticResource HintStyle}"
                                        Text="Korrekturliste für häufige Whisper-Fehler. Falsch erkannte Wörter werden bei der KI-Zusammenfassung automatisch korrigiert."/>
 
-                            <DataGrid ItemsSource="{Binding Korrekturen}"
-                                      AutoGenerateColumns="False"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      CanUserSortColumns="False"
-                                      HeadersVisibility="Column"
-                                      GridLinesVisibility="Horizontal"
-                                      HorizontalGridLinesBrush="#E0E0E0"
-                                      BorderBrush="#CCC"
-                                      BorderThickness="1"
-                                      Margin="0,0,0,8"
-                                      MinHeight="120"
-                                      MaxHeight="300"
-                                      FontSize="13">
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Falsch (Whisper)" Binding="{Binding Wrong, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                                    <DataGridTextColumn Header="Richtig" Binding="{Binding Correct, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
-                                    <DataGridTemplateColumn Width="Auto">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <Button Content="&#x2715;" FontSize="11" Padding="6,2"
-                                                        Command="{Binding DataContext.RemoveCorrectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                        CommandParameter="{Binding}"
-                                                        Background="Transparent" BorderThickness="0"
-                                                        Foreground="#999" Cursor="Hand"
-                                                        ToolTip="Eintrag entfernen"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-                                </DataGrid.Columns>
-                            </DataGrid>
+                            <!-- Column headers -->
+                            <Grid Margin="0,4,0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="30"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Style="{StaticResource LabelStyle}" Text="Falsch (Whisper)" Margin="0"/>
+                                <TextBlock Grid.Column="2" Style="{StaticResource LabelStyle}" Text="Richtig" Margin="0"/>
+                            </Grid>
+
+                            <!-- Correction rows -->
+                            <ItemsControl ItemsSource="{Binding Korrekturen}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="12"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0" Style="{StaticResource FieldBox}" Margin="0"
+                                                     Text="{Binding Wrong, UpdateSourceTrigger=PropertyChanged}"/>
+                                            <TextBox Grid.Column="2" Style="{StaticResource FieldBox}" Margin="0"
+                                                     Text="{Binding Correct, UpdateSourceTrigger=PropertyChanged}"
+                                                     KeyDown="CorrectionCorrectField_KeyDown"/>
+                                            <Button Grid.Column="3" Content="✕" FontSize="11" Padding="4,2"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                    Command="{Binding DataContext.RemoveCorrectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="Transparent" BorderThickness="0"
+                                                    Foreground="#999" Cursor="Hand" IsTabStop="False"
+                                                    ToolTip="Eintrag entfernen"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
 
                             <Button Content="+ Korrektur hinzufügen"
                                     Command="{Binding AddCorrectionCommand}"
                                     HorizontalAlignment="Left"
-                                    Padding="12,6"
+                                    Padding="12,6" Margin="0,4,0,0"
                                     FontSize="12"/>
                         </StackPanel>
                     </ScrollViewer>

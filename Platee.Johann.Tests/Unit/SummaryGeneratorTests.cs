@@ -4,6 +4,7 @@ using FluentAssertions;
 using NSubstitute;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
+using Platee.Johann.Application.Settings;
 
 public sealed class SummaryGeneratorTests
 {
@@ -66,7 +67,9 @@ public sealed class SummaryGeneratorTests
         llm.GenerateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<LlmOptions>())
            .Returns(expectedAbstract);
 
-        var sut = new SummaryGenerator(llm);
+        var settings = AppSettings.Default with { Korrekturliste = [] };
+        var holder = new SettingsHolder(settings);
+        var sut = new SummaryGenerator(llm, holder);
         var shortTranscript = BuildTranscript(100); // <300 → limit=20
 
         var result = await sut.GenerateAbstractAsync(shortTranscript);

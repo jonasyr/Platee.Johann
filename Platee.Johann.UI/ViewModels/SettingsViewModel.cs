@@ -280,6 +280,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.StundenzettelPrompt = p.StundenzettelPrompt;
         this.AnalogPrompt = p.AnalogPrompt;
         this.Korrekturen.Clear();
+        foreach (var c in d.Korrekturliste)
+        {
+            this.Korrekturen.Add(new CorrectionEntryViewModel { Wrong = c.Wrong, Correct = c.Correct });
+        }
+
         this.StatusMessage = "Werte zurückgesetzt – noch nicht gespeichert.";
     }
 

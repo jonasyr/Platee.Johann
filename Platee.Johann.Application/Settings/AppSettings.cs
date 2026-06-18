@@ -29,7 +29,11 @@ public sealed record AppSettings
     public string? LastSeenReleaseNotesVersion { get; init; }
 
     // Correction list for Whisper transcription fixes
-    public IReadOnlyList<CorrectionEntry> Korrekturliste { get; init; } = [];
+    public IReadOnlyList<CorrectionEntry> Korrekturliste { get; init; } =
+    [
+        new() { Wrong = "Piano", Correct = "Peano" },
+        new() { Wrong = "Nele", Correct = "Neele" },
+    ];
 
     /// <summary>Gets a fresh instance with all default values.</summary>
     public static AppSettings Default => new();

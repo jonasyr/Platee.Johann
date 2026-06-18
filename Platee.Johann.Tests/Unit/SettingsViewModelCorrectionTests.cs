@@ -40,7 +40,7 @@ public sealed class SettingsViewModelCorrectionTests
     [Fact]
     public void AddCorrection_AddsEmptyRow()
     {
-        var sut = CreateSut();
+        var sut = CreateSut(AppSettings.Default with { Korrekturliste = [] });
         sut.Korrekturen.Should().BeEmpty();
 
         sut.AddCorrectionCommand.Execute(null);
@@ -73,7 +73,8 @@ public sealed class SettingsViewModelCorrectionTests
         var repo = Substitute.For<ISettingsRepository>();
         AppSettings? saved = null;
         repo.SaveAsync(Arg.Do<AppSettings>(s => saved = s)).Returns(Task.CompletedTask);
-        var holder = new SettingsHolder(AppSettings.Default);
+        var settings = AppSettings.Default with { Korrekturliste = [] };
+        var holder = new SettingsHolder(settings);
         var sut = new SettingsViewModel(repo, holder);
 
         sut.AddCorrectionCommand.Execute(null);
@@ -116,18 +117,22 @@ public sealed class SettingsViewModelCorrectionTests
     }
 
     [Fact]
-    public void Reset_ClearsKorrekturen()
+    public void Reset_RestoresDefaultKorrekturen()
     {
         var corrections = new List<CorrectionEntry>
         {
             new() { Wrong = "Piano", Correct = "Peano" },
+            new() { Wrong = "Nele", Correct = "Neele" },
+            new() { Wrong = "Extra", Correct = "Etwas" },
         };
         var sut = CreateSut(AppSettings.Default with { Korrekturliste = corrections });
-        sut.Korrekturen.Should().HaveCount(1);
+        sut.Korrekturen.Should().HaveCount(3);
 
         sut.ResetCommand.Execute(null);
 
-        sut.Korrekturen.Should().BeEmpty();
+        sut.Korrekturen.Should().HaveCount(2);
+        sut.Korrekturen[0].Wrong.Should().Be("Piano");
+        sut.Korrekturen[1].Wrong.Should().Be("Nele");
     }
 
     [Fact]

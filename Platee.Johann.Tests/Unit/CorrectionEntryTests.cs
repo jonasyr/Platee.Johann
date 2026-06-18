@@ -36,11 +36,15 @@ public sealed class CorrectionEntryTests
     }
 
     [Fact]
-    public void AppSettings_Default_HasEmptyKorrekturliste()
+    public void AppSettings_Default_HasPrebuiltKorrekturliste()
     {
         var settings = Platee.Johann.Application.Settings.AppSettings.Default;
 
         settings.Korrekturliste.Should().NotBeNull();
-        settings.Korrekturliste.Should().BeEmpty();
+        settings.Korrekturliste.Should().HaveCount(2);
+        settings.Korrekturliste[0].Wrong.Should().Be("Piano");
+        settings.Korrekturliste[0].Correct.Should().Be("Peano");
+        settings.Korrekturliste[1].Wrong.Should().Be("Nele");
+        settings.Korrekturliste[1].Correct.Should().Be("Neele");
     }
 }
