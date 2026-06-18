@@ -41,10 +41,14 @@ public sealed class CorrectionEntryTests
         var settings = Platee.Johann.Application.Settings.AppSettings.Default;
 
         settings.Korrekturliste.Should().NotBeNull();
-        settings.Korrekturliste.Should().HaveCount(2);
+        settings.Korrekturliste.Should().HaveCount(4);
         settings.Korrekturliste[0].Wrong.Should().Be("Piano");
         settings.Korrekturliste[0].Correct.Should().Be("Peano");
         settings.Korrekturliste[1].Wrong.Should().Be("Nele");
         settings.Korrekturliste[1].Correct.Should().Be("Neele");
+        settings.Korrekturliste[2].Wrong.Should().Be("JATJPT");
+        settings.Korrekturliste[2].Correct.Should().Be("ChatGPT");
+        settings.Korrekturliste[3].Wrong.Should().Be("JGPT");
+        settings.Korrekturliste[3].Correct.Should().Be("ChatGPT");
     }
 }

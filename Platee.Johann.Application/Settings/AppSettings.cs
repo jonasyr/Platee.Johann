@@ -33,6 +33,8 @@ public sealed record AppSettings
     [
         new() { Wrong = "Piano", Correct = "Peano" },
         new() { Wrong = "Nele", Correct = "Neele" },
+        new() { Wrong = "JATJPT", Correct = "ChatGPT" },
+        new() { Wrong = "JGPT", Correct = "ChatGPT" },
     ];
 
     /// <summary>Gets a fresh instance with all default values.</summary>

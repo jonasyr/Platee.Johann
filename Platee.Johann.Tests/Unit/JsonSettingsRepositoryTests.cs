@@ -149,8 +149,10 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         var loaded = await this.sut.LoadAsync();
 
         loaded.Korrekturliste.Should().NotBeNull();
-        loaded.Korrekturliste.Should().HaveCount(2);
+        loaded.Korrekturliste.Should().HaveCount(4);
         loaded.Korrekturliste[0].Wrong.Should().Be("Piano");
         loaded.Korrekturliste[1].Wrong.Should().Be("Nele");
+        loaded.Korrekturliste[2].Wrong.Should().Be("JATJPT");
+        loaded.Korrekturliste[3].Wrong.Should().Be("JGPT");
     }
 }
