@@ -2,6 +2,7 @@ namespace Platee.Johann.Tests.Unit;
 
 using FluentAssertions;
 using Platee.Johann.Application.Settings;
+using Platee.Johann.Domain.ValueObjects;
 using Platee.Johann.Infrastructure.Json;
 
 public sealed class JsonSettingsRepositoryTests : IDisposable
@@ -115,5 +116,43 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         var loaded = await this.sut.LoadAsync();
 
         loaded.LastSeenReleaseNotesVersion.Should().Be("1.1.0");
+    }
+
+    // ── Korrekturliste round-trip ────────────────────────────────────────────
+    [Fact]
+    public async Task SaveAndLoad_RoundTrips_Korrekturliste()
+    {
+        var corrections = new List<CorrectionEntry>
+        {
+            new() { Wrong = "Piano", Correct = "Peano" },
+            new() { Wrong = "Nele", Correct = "Neele" },
+        };
+        var settings = AppSettings.Default with { Korrekturliste = corrections };
+
+        await this.sut.SaveAsync(settings);
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.Korrekturliste.Should().HaveCount(2);
+        loaded.Korrekturliste[0].Wrong.Should().Be("Piano");
+        loaded.Korrekturliste[0].Correct.Should().Be("Peano");
+        loaded.Korrekturliste[1].Wrong.Should().Be("Nele");
+        loaded.Korrekturliste[1].Correct.Should().Be("Neele");
+    }
+
+    // ── Missing Korrekturliste → empty list ─────────────────────────────────
+    [Fact]
+    public async Task Load_WithoutKorrekturliste_ReturnsDefaults()
+    {
+        var settingsPath = Path.Combine(this.tempDir, "settings.json");
+        await File.WriteAllTextAsync(settingsPath, """{"name":"Test"}""");
+
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.Korrekturliste.Should().NotBeNull();
+        loaded.Korrekturliste.Should().HaveCount(4);
+        loaded.Korrekturliste[0].Wrong.Should().Be("Piano");
+        loaded.Korrekturliste[1].Wrong.Should().Be("Nele");
+        loaded.Korrekturliste[2].Wrong.Should().Be("JATJPT");
+        loaded.Korrekturliste[3].Wrong.Should().Be("JGPT");
     }
 }

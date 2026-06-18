@@ -50,7 +50,7 @@ Platee.Johann.Domain/          # Core entities, no external deps
   Entities/Entry.cs            # Immutable sealed record — central domain model
   Enums/EntryType.cs
   Parsing/                     # Header, title, type extraction from filenames
-  ValueObjects/                # ParsedHeader, ProcessingStatus
+  ValueObjects/                # ParsedHeader, ProcessingStatus, CorrectionEntry
 
 Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
   Interfaces/                  # IEntryRepository, ILlmProvider, IAudioTranscriber,
@@ -70,7 +70,8 @@ Platee.Johann.UI/              # WPF presentation layer (depends on all)
   Assets/                      # RELEASE_NOTES.md, HANDBUCH.html (embedded resources,
                                #   auto-copied from repo root via CopyDocsToAssets MSBuild target)
   Helpers/                     # DurationFormatter, ReleaseNotesHelper — pure static helpers
-  ViewModels/                  # MainViewModel, SettingsViewModel, NewEntryViewModel, …
+  ViewModels/                  # MainViewModel, SettingsViewModel, NewEntryViewModel,
+                               #   CorrectionEntryViewModel, …
                                #   Toast stack: ToastTone, ToastToneHelper, ToastItem,
                                #                ToastQueue, ToastsViewModel
   Views/                       # AdminPasswordDialog.xaml, NewEntryView.xaml,
@@ -121,6 +122,8 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 **Settings split**: `AppSettings` holds user preferences (name, company, directories); `PromptSettings` holds all LLM prompt templates. Persisted separately as `settings.json` and `prompts.json`. `SettingsHolder` wraps both for live propagation to `SummaryGenerator`.
 
 **Settings migration**: `PromptDefaultsMigration` uses a revision integer to apply one-time prompt migrations without overwriting user customisations. `SettingsSplitMigration.MigrateIfNeeded` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local `prompts.json` and strip any remaining prompt keys from `settings.json` (best-effort, silent on failure).
+
+**Korrekturliste (correction list)**: `AppSettings.Korrekturliste` (`IReadOnlyList<CorrectionEntry>`) stores user-defined Whisper transcription corrections (wrong→correct pairs). Persisted in `settings.json` via `JsonSettingsRepository`. `SummaryGenerator.BuildSystemPrompt()` appends them to the LLM system message so GPT silently corrects known transcription errors before summarising. UI: `CorrectionEntryViewModel` wraps each entry for WPF binding; `SettingsViewModel.Korrekturen` (`ObservableCollection`) with `AddCorrection` / `RemoveCorrection` commands; "Korrekturliste" section in `SettingsView` under GRUNDDATEN.
 
 **Team-shared prompts**: `AppSettings.GlobalPromptFilePath` points to a shared `prompts.json`. `PromptSettingsLoader.LoadWithFallbackAsync` tries global first, falls back to local on failure. `JsonPromptSettingsRepository.FromFilePath` factory creates a repo for arbitrary file paths.
 

@@ -3,6 +3,7 @@ namespace Platee.Johann.Infrastructure.Json;
 using System.Text.Json;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Settings;
+using Platee.Johann.Domain.ValueObjects;
 
 /// <summary>
 /// Persists <see cref="AppSettings"/> as JSON to Documents\Johann\settings.json.
@@ -66,6 +67,16 @@ public sealed class JsonSettingsRepository : ISettingsRepository
             Ausgabeverzeichnis = dto.Ausgabeverzeichnis ?? defaultSettings.Ausgabeverzeichnis,
             GlobalPromptFilePath = dto.GlobalPromptFilePath ?? defaultSettings.GlobalPromptFilePath,
             LastSeenReleaseNotesVersion = dto.LastSeenReleaseNotesVersion,
+            Korrekturliste = dto.Korrekturliste is { Count: > 0 }
+                ? dto.Korrekturliste
+                    .Where(c => !string.IsNullOrWhiteSpace(c.Wrong))
+                    .Select(c => new CorrectionEntry
+                    {
+                        Wrong = c.Wrong!.Trim(),
+                        Correct = c.Correct?.Trim() ?? string.Empty,
+                    })
+                    .ToList()
+                : defaultSettings.Korrekturliste,
         };
     }
 
@@ -78,6 +89,9 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         Ausgabeverzeichnis = s.Ausgabeverzeichnis,
         GlobalPromptFilePath = s.GlobalPromptFilePath,
         LastSeenReleaseNotesVersion = s.LastSeenReleaseNotesVersion,
+        Korrekturliste = s.Korrekturliste
+            .Select(c => new CorrectionEntryDto { Wrong = c.Wrong, Correct = c.Correct })
+            .ToList(),
     };
 
     // Separate DTO to decouple JSON shape from the domain record
@@ -96,5 +110,14 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         public string? GlobalPromptFilePath { get; set; }
 
         public string? LastSeenReleaseNotesVersion { get; set; }
+
+        public List<CorrectionEntryDto>? Korrekturliste { get; set; }
+    }
+
+    private sealed class CorrectionEntryDto
+    {
+        public string? Wrong { get; set; }
+
+        public string? Correct { get; set; }
     }
 }

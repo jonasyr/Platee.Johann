@@ -40,6 +40,7 @@
     <Compile Include="..\Platee.Johann.UI\ViewModels\ToastToneHelper.cs" Link="ViewModels/ToastToneHelper.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\ToastItem.cs" Link="ViewModels/ToastItem.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\ToastQueue.cs" Link="ViewModels/ToastQueue.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\CorrectionEntryViewModel.cs" Link="ViewModels/CorrectionEntryViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\SettingsViewModel.cs" Link="ViewModels/SettingsViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\Helpers\ReleaseNotesHelper.cs" Link="Helpers/ReleaseNotesHelper.cs" />
   </ItemGroup>

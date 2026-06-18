@@ -2,6 +2,7 @@ namespace Platee.Johann.Application.Processing;
 
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Settings;
+using Platee.Johann.Domain.ValueObjects;
 
 /// <summary>
 /// Generates GPT-based summaries for a transcript.
@@ -28,6 +29,24 @@ public sealed class SummaryGenerator : ISummaryGenerator
         this.settings = settings;
     }
 
+    private string BuildSystemPrompt()
+    {
+        var p = this.settings.Prompts;
+        var corrections = this.settings.Current.Korrekturliste;
+
+        if (corrections.Count == 0)
+        {
+            return p.SystemMessage;
+        }
+
+        var pairs = string.Join(", ", corrections.Select(c => $"{c.Wrong}→{c.Correct}"));
+        return p.SystemMessage
+            + "\n\n---\n\n### KORREKTURLISTE ###\n\n"
+            + "Die folgenden Wörter werden von der Spracherkennung regelmäßig falsch transkribiert. "
+            + "Korrigiere sie stillschweigend im gesamten Text, bevor du die Zusammenfassung erstellst:\n"
+            + pairs;
+    }
+
     public async Task<string> GenerateAbstractAsync(string transcript, CancellationToken ct = default)
     {
         if (!this.llm.IsAvailable || string.IsNullOrWhiteSpace(transcript))
@@ -41,7 +60,7 @@ public sealed class SummaryGenerator : ISummaryGenerator
             .Replace("{word_limit}", abstractLimit.ToString())
             .Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string> GenerateLongSummaryAsync(string transcript, CancellationToken ct = default)
@@ -57,7 +76,7 @@ public sealed class SummaryGenerator : ISummaryGenerator
             .Replace("{word_limit}", structuredLimit.ToString())
             .Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string> GenerateProseSummaryAsync(string transcript, CancellationToken ct = default)
@@ -71,7 +90,7 @@ public sealed class SummaryGenerator : ISummaryGenerator
         var userContent = p.ProsePrompt
             .Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string> GenerateEmailTextAsync(string proseSummary, CancellationToken ct = default)
@@ -85,7 +104,7 @@ public sealed class SummaryGenerator : ISummaryGenerator
         var userContent = p.EmailPrompt
             .Replace("{prose_summary}", proseSummary);
 
-        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(4000), ct);
+        return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(4000), ct);
     }
 
     public async Task<string> GenerateTitleAsync(string transcript, CancellationToken ct = default)
@@ -98,7 +117,7 @@ public sealed class SummaryGenerator : ISummaryGenerator
         var p = this.settings.Prompts;
         var userContent = "Bitte formuliere einen sehr kurzen, prägnanten Titel (maximal 3-7 Worte) für den folgenden Text. Antworte NUR mit dem Titel, ohne Anführungszeichen oder Erklärungen:\n\n" + transcript;
 
-        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(), ct);
+        return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(), ct);
     }
 
     public async Task<string?> GenerateAufgabeAsync(string transcript, CancellationToken ct = default)
@@ -111,7 +130,7 @@ public sealed class SummaryGenerator : ISummaryGenerator
         var p = this.settings.Prompts;
         var userContent = p.AufgabePrompt.Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string?> GenerateGespraechsnotizAsync(string transcript, CancellationToken ct = default)
@@ -124,7 +143,7 @@ public sealed class SummaryGenerator : ISummaryGenerator
         var p = this.settings.Prompts;
         var userContent = p.GespraechsnotizPrompt.Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string?> GenerateStundenzettelAsync(string transcript, CancellationToken ct = default)
@@ -137,7 +156,7 @@ public sealed class SummaryGenerator : ISummaryGenerator
         var p = this.settings.Prompts;
         var userContent = p.StundenzettelPrompt.Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(20000), ct);
     }
 
     public async Task<string?> GenerateAnalogAsync(string transcript, CancellationToken ct = default)
@@ -150,6 +169,6 @@ public sealed class SummaryGenerator : ISummaryGenerator
         var p = this.settings.Prompts;
         var userContent = p.AnalogPrompt.Replace("{transcript}", transcript);
 
-        return await this.llm.GenerateAsync(p.SystemMessage, userContent, new LlmOptions(20000), ct);
+        return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(20000), ct);
     }
 }

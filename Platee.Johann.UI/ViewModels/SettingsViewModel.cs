@@ -2,6 +2,7 @@ namespace Platee.Johann.UI.ViewModels;
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,6 +10,7 @@ using Microsoft.Win32;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
+using Platee.Johann.Domain.ValueObjects;
 using Platee.Johann.Infrastructure.Json;
 
 public sealed partial class SettingsViewModel : ObservableObject
@@ -59,6 +61,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string analogPrompt = string.Empty;
 
+    // ── Correction list ──────────────────────────────────────────────────────
+    public ObservableCollection<CorrectionEntryViewModel> Korrekturen { get; } = [];
+
     [ObservableProperty]
     private string statusMessage = string.Empty;
     [ObservableProperty]
@@ -106,6 +111,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool IsStundenzettelSelected => this.IsSelected(SectionStundenzettel);
 
     public bool IsAnalogSelected => this.IsSelected(SectionAnalog);
+
+    public bool IsKorrekturlisteSelected => this.IsSelected(SectionKorrekturliste);
 
     public bool HasPathStatusMessage => !string.IsNullOrWhiteSpace(this.PathStatusMessage);
 
@@ -193,6 +200,10 @@ public sealed partial class SettingsViewModel : ObservableObject
             Archivverzeichnis = this.Archivverzeichnis.Trim(),
             Ausgabeverzeichnis = this.Ausgabeverzeichnis.Trim(),
             GlobalPromptFilePath = string.IsNullOrWhiteSpace(this.GlobalPromptFilePath) ? null : this.GlobalPromptFilePath.Trim(),
+            Korrekturliste = this.Korrekturen
+                .Where(c => !string.IsNullOrWhiteSpace(c.Wrong))
+                .Select(c => new CorrectionEntry { Wrong = c.Wrong.Trim(), Correct = c.Correct.Trim() })
+                .ToList(),
         };
 
         var updatedPrompts = this.runtimeHolder.Prompts with
@@ -268,6 +279,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.GespraechsnotizPrompt = p.GespraechsnotizPrompt;
         this.StundenzettelPrompt = p.StundenzettelPrompt;
         this.AnalogPrompt = p.AnalogPrompt;
+        this.Korrekturen.Clear();
+        foreach (var c in d.Korrekturliste)
+        {
+            this.Korrekturen.Add(new CorrectionEntryViewModel { Wrong = c.Wrong, Correct = c.Correct });
+        }
+
         this.StatusMessage = "Werte zurückgesetzt – noch nicht gespeichert.";
     }
 
@@ -301,6 +318,21 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    private void AddCorrection()
+    {
+        this.Korrekturen.Add(new CorrectionEntryViewModel());
+    }
+
+    [RelayCommand]
+    private void RemoveCorrection(CorrectionEntryViewModel? entry)
+    {
+        if (entry is not null)
+        {
+            this.Korrekturen.Remove(entry);
+        }
+    }
+
     // ── Private ───────────────────────────────────────────────────────────────
     private void LoadFromHolder()
     {
@@ -323,6 +355,12 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.GespraechsnotizPrompt = p.GespraechsnotizPrompt;
         this.StundenzettelPrompt = p.StundenzettelPrompt;
         this.AnalogPrompt = p.AnalogPrompt;
+
+        this.Korrekturen.Clear();
+        foreach (var c in s.Korrekturliste)
+        {
+            this.Korrekturen.Add(new CorrectionEntryViewModel { Wrong = c.Wrong, Correct = c.Correct });
+        }
     }
 
     private static string? PickFolder(string initialDir)
@@ -350,6 +388,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsGespraechsnotizSelected));
         OnPropertyChanged(nameof(IsStundenzettelSelected));
         OnPropertyChanged(nameof(IsAnalogSelected));
+        OnPropertyChanged(nameof(IsKorrekturlisteSelected));
     }
 
     private bool IsSelected(string sectionKey) =>
@@ -383,6 +422,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             new(SectionGeneral, "Allgemein", "GRUNDDATEN"),
             new(SectionPaths, "Verzeichnisse", "GRUNDDATEN"),
             new(SectionTeam, "Team-Prompts", "GRUNDDATEN"),
+            new(SectionKorrekturliste, "Korrekturliste", "GRUNDDATEN"),
             new(SectionSystemMessage, "System-Nachricht", "GLOBALE PROMPTS"),
             new(SectionAbstract, "Kurzfassung", "GLOBALE PROMPTS"),
             new(SectionStructured, "Zusammenfassung", "GLOBALE PROMPTS"),
@@ -428,6 +468,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private const string SectionGespraechsnotiz = "gespraechsnotiz";
     private const string SectionStundenzettel = "stundenzettel";
     private const string SectionAnalog = "analog";
+    private const string SectionKorrekturliste = "korrekturliste";
 }
 
 public sealed record SettingsSectionItem(string Key, string Label, string Group);
