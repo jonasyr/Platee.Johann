@@ -65,6 +65,9 @@ public sealed class AudioWatcherServiceTests : IDisposable
         public Task<Entry> ReprocessSectionAsync(Entry entry, string sectionName, IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
             => Task.FromResult(entry);
 
+        public Task<Entry> RegenerateFromTranscriptAsync(Entry entry, string editedTranscript, IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
+            => Task.FromResult(entry);
+
         private static Entry MakeEntry() => new()
         {
             JobId = "test_001",
