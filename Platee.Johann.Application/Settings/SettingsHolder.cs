@@ -15,4 +15,10 @@ public sealed class SettingsHolder
         this.Current = initial;
         this.Prompts = prompts ?? PromptSettings.Default;
     }
+
+    /// <summary>
+    /// Returns a new SettingsHolder with the current references captured.
+    /// The returned instance is isolated from later changes to this holder.
+    /// </summary>
+    public SettingsHolder Snapshot() => new(this.Current, this.Prompts);
 }
