@@ -243,8 +243,16 @@ public sealed class JsonRepository : IEntryRepository
                     var newJobId = $"{date:yyMMdd}_{entry.SequenceNumber:D3}_{Guid.NewGuid().ToString("N")[..8]}";
                     var migrated = entry with { JobId = newJobId };
 
-                    // SaveAsync overwrites via FileMode.Create — no delete needed
                     await SaveAsync(migrated, ct);
+
+                    // Remove old file if SaveAsync wrote to a different path
+                    var newPath = Path.Combine(
+                        this.GetRawDir(date),
+                        FilenameBuilder.Build(migrated) + "_status.json");
+                    if (!string.Equals(Path.GetFullPath(file), Path.GetFullPath(newPath), StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Delete(file);
+                    }
                 }
                 catch (OperationCanceledException)
                 {
