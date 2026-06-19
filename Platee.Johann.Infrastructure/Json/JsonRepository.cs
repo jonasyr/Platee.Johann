@@ -231,19 +231,29 @@ public sealed class JsonRepository : IEntryRepository
             foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
             {
                 ct.ThrowIfCancellationRequested();
-                var entry = await LoadFileAsync(file, ct);
-                if (entry is null || TryParseDateFromJobId(entry.JobId, out _))
+                try
                 {
-                    continue;
+                    var entry = await LoadFileAsync(file, ct);
+                    if (entry is null || TryParseDateFromJobId(entry.JobId, out _))
+                    {
+                        continue;
+                    }
+
+                    var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+                    var newJobId = $"{date:yyMMdd}_{entry.SequenceNumber:D3}_{Guid.NewGuid().ToString("N")[..8]}";
+                    var migrated = entry with { JobId = newJobId };
+
+                    // SaveAsync overwrites via FileMode.Create — no delete needed
+                    await SaveAsync(migrated, ct);
                 }
-
-                var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
-                var newJobId = $"{date:yyMMdd}_{entry.SequenceNumber:D3}_{Guid.NewGuid().ToString("N")[..8]}";
-                var migrated = entry with { JobId = newJobId };
-
-                // Delete old file, save with new JobId
-                File.Delete(file);
-                await SaveAsync(migrated, ct);
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    // Skip files that fail to load or save — continue with remaining entries
+                }
             }
         }
     }
