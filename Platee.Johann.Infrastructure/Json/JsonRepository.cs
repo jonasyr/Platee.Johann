@@ -83,22 +83,61 @@ public sealed class JsonRepository : IEntryRepository
             return null;
         }
 
+        // Fast path: parse date prefix from JobId (format: YYMMDD_NNN_XXXXXXXX)
+        if (TryParseDateFromJobId(jobId, out var date))
+        {
+            var rawDir = this.GetRawDir(date);
+            var result = await this.ScanDirectoryForJobIdAsync(rawDir, jobId, ct);
+            if (result is not null)
+            {
+                return result;
+            }
+        }
+
+        // Fallback: full scan for non-standard JobIds or if fast path missed
         foreach (var dir in Directory.EnumerateDirectories(this.outputRoot))
         {
             var rawDir = Path.Combine(dir, "_raw");
-            if (!Directory.Exists(rawDir))
+            var result = await this.ScanDirectoryForJobIdAsync(rawDir, jobId, ct);
+            if (result is not null)
             {
-                continue;
+                return result;
             }
+        }
 
-            foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
+        return null;
+    }
+
+    private static bool TryParseDateFromJobId(string jobId, out DateOnly date)
+    {
+        date = default;
+        if (jobId.Length < 7 || jobId[6] != '_')
+        {
+            return false;
+        }
+
+        return DateOnly.TryParseExact(
+            jobId.AsSpan(0, 6), "yyMMdd",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None,
+            out date);
+    }
+
+    private async Task<Entry?> ScanDirectoryForJobIdAsync(
+        string rawDir, string jobId, CancellationToken ct)
+    {
+        if (!Directory.Exists(rawDir))
+        {
+            return null;
+        }
+
+        foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
+        {
+            ct.ThrowIfCancellationRequested();
+            var entry = await LoadFileAsync(file, ct);
+            if (entry?.JobId == jobId)
             {
-                ct.ThrowIfCancellationRequested();
-                var entry = await LoadFileAsync(file, ct);
-                if (entry?.JobId == jobId)
-                {
-                    return entry;
-                }
+                return entry;
             }
         }
 
@@ -171,6 +210,59 @@ public sealed class JsonRepository : IEntryRepository
         finally
         {
             this.seqLock.Release();
+        }
+    }
+
+    public async Task MigrateJobIdsAsync(CancellationToken ct = default)
+    {
+        if (!Directory.Exists(this.outputRoot))
+        {
+            return;
+        }
+
+        foreach (var dir in Directory.EnumerateDirectories(this.outputRoot))
+        {
+            var rawDir = Path.Combine(dir, "_raw");
+            if (!Directory.Exists(rawDir))
+            {
+                continue;
+            }
+
+            foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
+            {
+                ct.ThrowIfCancellationRequested();
+                try
+                {
+                    var entry = await LoadFileAsync(file, ct);
+                    if (entry is null || TryParseDateFromJobId(entry.JobId, out _))
+                    {
+                        continue;
+                    }
+
+                    var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+                    var newJobId = $"{date:yyMMdd}_{entry.SequenceNumber:D3}_{Guid.NewGuid().ToString("N")[..8]}";
+                    var migrated = entry with { JobId = newJobId };
+
+                    await SaveAsync(migrated, ct);
+
+                    // Remove old file if SaveAsync wrote to a different path
+                    var newPath = Path.Combine(
+                        this.GetRawDir(date),
+                        FilenameBuilder.Build(migrated) + "_status.json");
+                    if (!string.Equals(Path.GetFullPath(file), Path.GetFullPath(newPath), StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Delete(file);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    // Skip files that fail to load or save — continue with remaining entries
+                }
+            }
         }
     }
 

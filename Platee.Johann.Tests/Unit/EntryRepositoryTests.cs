@@ -108,6 +108,180 @@ public sealed class EntryRepositoryTests : IDisposable
         result!.JobId.Should().Be("find_me");
     }
 
+    [Fact]
+    public async Task GetByJobIdAsync_uses_date_prefix_for_fast_lookup()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var jobId = "260317_001_abcd1234";
+        var entry = MakeEntry(jobId: jobId, seq: 1, date: date);
+
+        await this.sut.SaveAsync(entry);
+        var result = await this.sut.GetByJobIdAsync(jobId);
+
+        result.Should().NotBeNull();
+        result!.JobId.Should().Be(jobId);
+    }
+
+    [Fact]
+    public async Task GetByJobIdAsync_falls_back_to_full_scan_for_nonstandard_jobid()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var entry = MakeEntry(jobId: "custom_id", seq: 1, date: date);
+
+        await this.sut.SaveAsync(entry);
+        var result = await this.sut.GetByJobIdAsync("custom_id");
+
+        result.Should().NotBeNull();
+        result!.JobId.Should().Be("custom_id");
+    }
+
+    // ── MigrateJobIdsAsync ─────────────────────────────────────────────────────
+    [Fact]
+    public async Task MigrateJobIdsAsync_rewrites_nonstandard_jobids()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var entry = MakeEntry(jobId: "old_legacy_id", seq: 5, date: date);
+
+        await this.sut.SaveAsync(entry);
+        await this.sut.MigrateJobIdsAsync();
+
+        var entries = await this.sut.GetEntriesForDateAsync(date);
+        var migrated = entries.Should().ContainSingle().Subject;
+        migrated.JobId.Should().MatchRegex(@"^\d{6}_\d{3}_[a-f0-9]{8}$");
+        migrated.SequenceNumber.Should().Be(5);
+        migrated.Title.Should().Be("Test Entry");
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_leaves_standard_jobids_unchanged()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var entry = MakeEntry(jobId: "260317_005_abcd1234", seq: 5, date: date);
+
+        await this.sut.SaveAsync(entry);
+        await this.sut.MigrateJobIdsAsync();
+
+        var result = await this.sut.GetByJobIdAsync("260317_005_abcd1234");
+        result.Should().NotBeNull();
+        result!.JobId.Should().Be("260317_005_abcd1234");
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_does_not_create_duplicate_files()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var entry = MakeEntry(jobId: "legacy_no_date", seq: 3, date: date);
+
+        await this.sut.SaveAsync(entry);
+        await this.sut.MigrateJobIdsAsync();
+        await this.sut.MigrateJobIdsAsync(); // run twice — must be idempotent
+
+        var entries = await this.sut.GetEntriesForDateAsync(date);
+        entries.Should().ContainSingle("migration must not produce duplicate files");
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_preserves_all_entry_data()
+    {
+        var date = new DateOnly(2026, 4, 15);
+        var entry = MakeEntry(jobId: "old_format", seq: 2, date: date) with
+        {
+            Title = "Wichtiges Meeting",
+            ProjectName = "Iris",
+            Transcript = "Hallo, das ist ein Test-Transkript.",
+            Abstract = "Zusammenfassung des Meetings",
+        };
+
+        await this.sut.SaveAsync(entry);
+        await this.sut.MigrateJobIdsAsync();
+
+        var entries = await this.sut.GetEntriesForDateAsync(date);
+        var migrated = entries.Should().ContainSingle().Subject;
+        migrated.JobId.Should().MatchRegex(@"^\d{6}_\d{3}_[a-f0-9]{8}$");
+        migrated.Title.Should().Be("Wichtiges Meeting");
+        migrated.ProjectName.Should().Be("Iris");
+        migrated.Transcript.Should().Be("Hallo, das ist ein Test-Transkript.");
+        migrated.Abstract.Should().Be("Zusammenfassung des Meetings");
+        migrated.SequenceNumber.Should().Be(2);
+        migrated.CreatedAt.Should().Be(entry.CreatedAt);
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_generates_correct_date_prefix()
+    {
+        var date = new DateOnly(2026, 4, 15);
+        var entry = MakeEntry(jobId: "no_date_prefix", seq: 7, date: date);
+
+        await this.sut.SaveAsync(entry);
+        await this.sut.MigrateJobIdsAsync();
+
+        var entries = await this.sut.GetEntriesForDateAsync(date);
+        var migrated = entries.Should().ContainSingle().Subject;
+        migrated.JobId.Should().StartWith("260415_007_",
+            "date prefix should match entry's CreatedAt and sequence number");
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_migrated_entry_is_found_by_fast_path()
+    {
+        var date = new DateOnly(2026, 5, 20);
+        var entry = MakeEntry(jobId: "unmigrated_legacy", seq: 1, date: date);
+
+        await this.sut.SaveAsync(entry);
+        await this.sut.MigrateJobIdsAsync();
+
+        // Get the migrated JobId
+        var entries = await this.sut.GetEntriesForDateAsync(date);
+        var migrated = entries.Should().ContainSingle().Subject;
+
+        // Look it up by the new JobId — exercises the fast path
+        var found = await this.sut.GetByJobIdAsync(migrated.JobId);
+        found.Should().NotBeNull();
+        found!.JobId.Should().Be(migrated.JobId);
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_handles_multiple_legacy_entries_on_same_date()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var entry1 = MakeEntry(jobId: "old_one", seq: 1, date: date) with { Title = "First" };
+        var entry2 = MakeEntry(jobId: "old_two", seq: 2, date: date) with { Title = "Second" };
+        var entry3 = MakeEntry(jobId: "260317_003_abcd1234", seq: 3, date: date) with { Title = "Already Standard" };
+
+        await this.sut.SaveAsync(entry1);
+        await this.sut.SaveAsync(entry2);
+        await this.sut.SaveAsync(entry3);
+        await this.sut.MigrateJobIdsAsync();
+
+        var entries = await this.sut.GetEntriesForDateAsync(date);
+        entries.Should().HaveCount(3);
+        entries.Should().OnlyContain(e => System.Text.RegularExpressions.Regex.IsMatch(
+            e.JobId, @"^\d{6}_\d{3}_[a-f0-9]{8}$") || e.JobId == "260317_003_abcd1234");
+        entries.Select(e => e.Title).Should().BeEquivalentTo(["First", "Second", "Already Standard"]);
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_removes_old_file_when_path_differs()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var entry = MakeEntry(jobId: "will_be_migrated", seq: 4, date: date);
+
+        await this.sut.SaveAsync(entry);
+
+        // Count files before migration
+        var rawDir = Path.Combine(this.tempDir, date.ToString("yyyy-MM-dd"), "_raw");
+        var filesBefore = Directory.GetFiles(rawDir, "*_status.json").Length;
+
+        await this.sut.MigrateJobIdsAsync();
+
+        var filesAfter = Directory.GetFiles(rawDir, "*_status.json").Length;
+        filesAfter.Should().Be(filesBefore, "migration should not leave orphaned files");
+
+        // Old JobId should no longer be findable
+        var oldResult = await this.sut.GetByJobIdAsync("will_be_migrated");
+        oldResult.Should().BeNull("old non-standard JobId should not exist after migration");
+    }
+
     // ── Helper ────────────────────────────────────────────────────────────────
     private static Entry MakeEntry(string jobId = "test_001", int seq = 1, DateOnly? date = null) => new()
     {

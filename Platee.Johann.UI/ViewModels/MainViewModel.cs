@@ -153,6 +153,13 @@ public sealed partial class MainViewModel : ObservableObject
             {
                 this.SelectedDateItem = this.AvailableDates[0];
             }
+
+            // RefreshAvailableDatesView suppresses change notifications,
+            // so explicitly load entries for the initially selected date.
+            if (this.SelectedDateItem is not null)
+            {
+                await this.LoadEntriesAsync(this.SelectedDateItem.Date);
+            }
         }
         catch (Exception ex)
         {
