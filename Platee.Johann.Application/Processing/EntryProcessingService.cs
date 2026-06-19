@@ -61,6 +61,9 @@ public sealed class EntryProcessingService : IEntryProcessor
         progress?.Report(new("Audio wird transkribiert…", 1, total));
         var transcription = await this.transcriber.TranscribeAsync(audioFilePath, ct);
 
+        var scopedGenerator = this.summaryGenerator.WithSnapshot();
+        var settingsSnapshot = this.settings.Current;
+
         // Step 2 – Header parsing + sequence number
         progress?.Report(new("Metadaten werden analysiert…", 2, total));
         var header = this.parser.Parse(transcription.Transcript);
@@ -71,10 +74,10 @@ public sealed class EntryProcessingService : IEntryProcessor
         // title doesn't start with "Aufgabe Johann …" but with the actual content.
         var title = header.ExplicitTitle;
 
-        if (string.IsNullOrWhiteSpace(title) && this.summaryGenerator.IsAvailable)
+        if (string.IsNullOrWhiteSpace(title) && scopedGenerator.IsAvailable)
         {
             progress?.Report(new("Titel wird generiert…", 2, total));
-            title = await this.summaryGenerator.GenerateTitleAsync(header.RemainderText, ct);
+            title = await scopedGenerator.GenerateTitleAsync(header.RemainderText, ct);
         }
 
         if (string.IsNullOrWhiteSpace(title))
@@ -116,7 +119,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         // Step 3 – Summaries (parallel for speed)
         progress?.Report(new("KI erstellt alle Abschnitte…", 3, total));
         var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
-            await this.GenerateSummariesAsync(transcription.Transcript, ct);
+            await this.GenerateSummariesAsync(transcription.Transcript, scopedGenerator, ct);
 
         var finalEntry = baseEntry with
         {
@@ -177,7 +180,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         await this.ArchiveRawFilesAsync(audioFilePath, finalEntry, ct);
 
         // Move MP3 to configured archive
-        var archiveDir = this.settings.Current.Archivverzeichnis;
+        var archiveDir = settingsSnapshot.Archivverzeichnis;
         if (!string.IsNullOrWhiteSpace(archiveDir))
         {
             try
@@ -223,12 +226,14 @@ public sealed class EntryProcessingService : IEntryProcessor
                 "Kein Transkript vorhanden – kann nicht neu verarbeiten.");
         }
 
+        var scopedGenerator = this.summaryGenerator.WithSnapshot();
+
         const int total = 2;
 
         // Step 1 – Summaries
         progress?.Report(new("Alle Abschnitte werden neu generiert…", 1, total));
         var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
-            await this.GenerateSummariesAsync(entry.EffectiveTranscript!, ct);
+            await this.GenerateSummariesAsync(entry.EffectiveTranscript!, scopedGenerator, ct);
 
         var updatedEntry = entry with
         {
@@ -264,38 +269,40 @@ public sealed class EntryProcessingService : IEntryProcessor
             throw new InvalidOperationException("Kein Transkript vorhanden.");
         }
 
+        var scopedGenerator = this.summaryGenerator.WithSnapshot();
+
         progress?.Report(new($"'{sectionName}' wird neu generiert…", 1, 1));
 
         var updated = sectionName switch
         {
             "Zusammenfassung" => entry with
             {
-                LongSummary = await this.summaryGenerator.GenerateLongSummaryAsync(entry.EffectiveTranscript!, ct),
+                LongSummary = await scopedGenerator.GenerateLongSummaryAsync(entry.EffectiveTranscript!, ct),
             },
             "Ausführliche Zusammenfassung" => entry with
             {
-                ProseSummary = await this.summaryGenerator.GenerateProseSummaryAsync(entry.EffectiveTranscript!, ct),
+                ProseSummary = await scopedGenerator.GenerateProseSummaryAsync(entry.EffectiveTranscript!, ct),
             },
             "Aufgaben" => entry with
             {
-                TaskList = await this.summaryGenerator.GenerateAufgabeAsync(entry.EffectiveTranscript!, ct),
+                TaskList = await scopedGenerator.GenerateAufgabeAsync(entry.EffectiveTranscript!, ct),
             },
             "Gesprächsnotiz" => entry with
             {
-                ConversationNote = await this.summaryGenerator.GenerateGespraechsnotizAsync(entry.EffectiveTranscript!, ct),
+                ConversationNote = await scopedGenerator.GenerateGespraechsnotizAsync(entry.EffectiveTranscript!, ct),
             },
             "E-Mail" => entry with
             {
-                EmailText = await this.summaryGenerator.GenerateEmailTextAsync(
+                EmailText = await scopedGenerator.GenerateEmailTextAsync(
                     entry.ProseSummary ?? entry.LongSummary ?? entry.EffectiveTranscript!, ct),
             },
             "Stundenzettel" => entry with
             {
-                StundenzettelText = await this.summaryGenerator.GenerateStundenzettelAsync(entry.EffectiveTranscript!, ct),
+                StundenzettelText = await scopedGenerator.GenerateStundenzettelAsync(entry.EffectiveTranscript!, ct),
             },
             "Analog" => entry with
             {
-                AnalogText = await this.summaryGenerator.GenerateAnalogAsync(entry.EffectiveTranscript!, ct),
+                AnalogText = await scopedGenerator.GenerateAnalogAsync(entry.EffectiveTranscript!, ct),
             },
             _ => throw new ArgumentException($"Unbekannte Sektion: {sectionName}"),
         };
@@ -320,12 +327,14 @@ public sealed class EntryProcessingService : IEntryProcessor
                 "Bearbeitetes Transkript darf nicht leer sein.");
         }
 
+        var scopedGenerator = this.summaryGenerator.WithSnapshot();
+
         const int total = 2;
 
         // Step 1 – Re-generate all summaries from the edited transcript
         progress?.Report(new("Alle Abschnitte werden aus bearbeitetem Transkript neu generiert…", 1, total));
         var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
-            await this.GenerateSummariesAsync(editedTranscript, ct);
+            await this.GenerateSummariesAsync(editedTranscript, scopedGenerator, ct);
 
         var updatedEntry = entry with
         {
@@ -362,15 +371,17 @@ public sealed class EntryProcessingService : IEntryProcessor
         Entry entry,
         CancellationToken ct = default)
     {
+        var scopedGenerator = this.summaryGenerator.WithSnapshot();
+
         // Prefer ProseSummary, then LongSummary, then Abstract as GPT input
         var source = entry.ProseSummary
             ?? entry.LongSummary
             ?? entry.Abstract
             ?? string.Empty;
 
-        if (this.summaryGenerator.IsAvailable && !string.IsNullOrWhiteSpace(source))
+        if (scopedGenerator.IsAvailable && !string.IsNullOrWhiteSpace(source))
         {
-            return await this.summaryGenerator.GenerateEmailTextAsync(source, ct);
+            return await scopedGenerator.GenerateEmailTextAsync(source, ct);
         }
 
         // Fallback: compose from available content without GPT
@@ -379,12 +390,12 @@ public sealed class EntryProcessingService : IEntryProcessor
 
     // ── Private helpers ───────────────────────────────────────────────────────
     private async Task<(string Abstract, string LongSummary, string ProseSummary, string? TaskList, string? ConversationNote, string? StundenzettelText, string? AnalogText, string? EmailText)>
-        GenerateSummariesAsync(string transcript, CancellationToken ct)
+        GenerateSummariesAsync(string transcript, SummaryGenerator scopedGenerator, CancellationToken ct)
     {
         // Step 1: run the three core summaries in parallel
-        var abstractTask = this.summaryGenerator.GenerateAbstractAsync(transcript, ct);
-        var longTask = this.summaryGenerator.GenerateLongSummaryAsync(transcript, ct);
-        var proseTask = this.summaryGenerator.GenerateProseSummaryAsync(transcript, ct);
+        var abstractTask = scopedGenerator.GenerateAbstractAsync(transcript, ct);
+        var longTask = scopedGenerator.GenerateLongSummaryAsync(transcript, ct);
+        var proseTask = scopedGenerator.GenerateProseSummaryAsync(transcript, ct);
 
         await Task.WhenAll(abstractTask, longTask, proseTask);
 
@@ -393,11 +404,11 @@ public sealed class EntryProcessingService : IEntryProcessor
         var proseSummary = proseTask.Result;
 
         // Step 2: run type-specific summaries in parallel (EmailText depends on proseSummary)
-        var taskListTask = this.summaryGenerator.GenerateAufgabeAsync(transcript, ct);
-        var conversationNoteTask = this.summaryGenerator.GenerateGespraechsnotizAsync(transcript, ct);
-        var stundenzettelTask = this.summaryGenerator.GenerateStundenzettelAsync(transcript, ct);
-        var analogTask = this.summaryGenerator.GenerateAnalogAsync(transcript, ct);
-        var emailTask = this.summaryGenerator.GenerateEmailTextAsync(proseSummary, ct);
+        var taskListTask = scopedGenerator.GenerateAufgabeAsync(transcript, ct);
+        var conversationNoteTask = scopedGenerator.GenerateGespraechsnotizAsync(transcript, ct);
+        var stundenzettelTask = scopedGenerator.GenerateStundenzettelAsync(transcript, ct);
+        var analogTask = scopedGenerator.GenerateAnalogAsync(transcript, ct);
+        var emailTask = scopedGenerator.GenerateEmailTextAsync(proseSummary, ct);
 
         await Task.WhenAll(
             (Task)taskListTask,

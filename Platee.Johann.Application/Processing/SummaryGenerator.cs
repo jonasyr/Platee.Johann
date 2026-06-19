@@ -29,6 +29,12 @@ public sealed class SummaryGenerator : ISummaryGenerator
         this.settings = settings;
     }
 
+    /// <summary>
+    /// Returns a new SummaryGenerator that uses a frozen snapshot of the current settings.
+    /// Use at the start of each processing run to isolate from mid-flight settings changes.
+    /// </summary>
+    public SummaryGenerator WithSnapshot() => new(this.llm, this.settings.Snapshot());
+
     private string BuildSystemPrompt()
     {
         var p = this.settings.Prompts;
