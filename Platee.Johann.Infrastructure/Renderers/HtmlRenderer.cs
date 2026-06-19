@@ -123,10 +123,10 @@ public sealed class HtmlRenderer : IEntryRenderer
             AppendSection(sb, "Ausführliche Zusammenfassung", entry.ProseSummary!, "section-prose");
         }
 
-        if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.Transcript))
+        if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             sb.AppendLine("<details><summary class=\"transcript-toggle\">Transkript</summary>");
-            AppendSection(sb, null, entry.Transcript!, "section-transcript", isPlainText: true);
+            AppendSection(sb, null, entry.EffectiveTranscript!, "section-transcript", isPlainText: true);
             sb.AppendLine("</details>");
         }
 

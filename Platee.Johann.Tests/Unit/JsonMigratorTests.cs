@@ -30,7 +30,7 @@ public sealed class JsonMigratorTests
         var element = JsonDocument.Parse(json).RootElement;
         var dto = JsonMigrator.Migrate(element);
 
-        dto.SchemaVersion.Should().Be(2);
+        dto.SchemaVersion.Should().Be(3);
         dto.Type.Should().Be("Aufgabe");
         dto.Title.Should().Be("Test Titel");
         dto.TaskList.Should().Be("1. Task A");
@@ -58,7 +58,7 @@ public sealed class JsonMigratorTests
         var dto = JsonMigrator.Migrate(element);
 
         dto.Type.Should().Be("Projekt");
-        dto.SchemaVersion.Should().Be(2);
+        dto.SchemaVersion.Should().Be(3);
     }
 
     [Fact]
@@ -149,6 +149,64 @@ public sealed class JsonMigratorTests
         dto.Status.PdfCreated.Should().BeTrue();
         dto.Status.EmailCreated.Should().BeFalse();
         dto.Type.Should().Be("Projekt");            // no type field → Projekt
-        dto.SchemaVersion.Should().Be(2);
+        dto.SchemaVersion.Should().Be(3);
+    }
+
+    // --- v2-to-v3 migration ---
+    [Fact]
+    public void Migrate_V2WithoutEditedTranscript_DefaultsToNull_SetsVersion3()
+    {
+        var json = """
+            {
+              "schemaVersion": 2,
+              "jobId": "260227_001_Test_abc",
+              "sequenceNumber": 1,
+              "type": "Projekt",
+              "projectName": "Test",
+              "title": "Test Titel",
+              "createdAt": "2026-02-27T14:00:00+01:00",
+              "sourceType": "audio",
+              "durationSeconds": 45.0,
+              "wordCount": 100,
+              "transcript": "Original transcript text",
+              "status": { "transcribed": true, "summarized": true,
+                          "pdfCreated": false, "archived": false, "emailCreated": false }
+            }
+            """;
+        var element = JsonDocument.Parse(json).RootElement;
+        var dto = JsonMigrator.Migrate(element);
+
+        dto.SchemaVersion.Should().Be(3);
+        dto.EditedTranscript.Should().BeNull();
+        dto.Transcript.Should().Be("Original transcript text");
+    }
+
+    [Fact]
+    public void Migrate_V3WithEditedTranscript_PreservesBoth()
+    {
+        var json = """
+            {
+              "schemaVersion": 3,
+              "jobId": "260227_001_Test_abc",
+              "sequenceNumber": 1,
+              "type": "Projekt",
+              "projectName": "Test",
+              "title": "Test Titel",
+              "createdAt": "2026-02-27T14:00:00+01:00",
+              "sourceType": "audio",
+              "durationSeconds": 45.0,
+              "wordCount": 100,
+              "transcript": "Original from Whisper",
+              "editedTranscript": "User corrected version",
+              "status": { "transcribed": true, "summarized": true,
+                          "pdfCreated": false, "archived": false, "emailCreated": false }
+            }
+            """;
+        var element = JsonDocument.Parse(json).RootElement;
+        var dto = JsonMigrator.Migrate(element);
+
+        dto.SchemaVersion.Should().Be(3);
+        dto.Transcript.Should().Be("Original from Whisper");
+        dto.EditedTranscript.Should().Be("User corrected version");
     }
 }

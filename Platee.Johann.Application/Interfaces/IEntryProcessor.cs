@@ -36,4 +36,10 @@ public interface IEntryProcessor
         string sectionName,
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default);
+
+    Task<Entry> RegenerateFromTranscriptAsync(
+        Entry entry,
+        string editedTranscript,
+        IProgress<ProcessingProgress>? progress = null,
+        CancellationToken ct = default);
 }

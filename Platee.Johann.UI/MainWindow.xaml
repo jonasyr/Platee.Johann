@@ -774,10 +774,6 @@
                                               Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                               CommandParameter="Analog"/>
-                                    <MenuItem Header="Transkript neu generieren"
-                                              Command="{Binding PlacementTarget.DataContext.Detail.ReprocessSectionCommand,
-                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="Transkript"/>
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>
@@ -983,12 +979,75 @@
                         <!-- Transcript -->
                         <StackPanel Visibility="{Binding Detail.ShowTranscriptSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
-                                <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            <!-- Header row: label + edit button -->
+                            <DockPanel Margin="0,0,0,8">
+                                <Border DockPanel.Dock="Left"
+                                        BorderThickness="0,0,0,1"
+                                        BorderBrush="{StaticResource AccentLineBrush}"
+                                        HorizontalAlignment="Left"
+                                        Padding="0,0,24,4">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
+                                        <TextBlock Text=" (bearbeitet)"
+                                                   FontSize="11" Foreground="#999" FontStyle="Italic"
+                                                   VerticalAlignment="Bottom" Margin="6,0,0,1"
+                                                   Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Button DockPanel.Dock="Right"
+                                        Content="✏"
+                                        FontSize="13"
+                                        Padding="6,2"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Cursor="Hand"
+                                        ToolTip="Transkript bearbeiten"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Command="{Binding Detail.EditTranscriptCommand}"
+                                        Visibility="{Binding Detail.IsNotEditingTranscript, Converter={StaticResource BoolToVis}}"
+                                        IsEnabled="{Binding Detail.HasEntry}"/>
+                            </DockPanel>
+
+                            <!-- Read-only transcript (shown when NOT editing) -->
                             <TextBox Text="{Binding Detail.DisplayTranscript, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"
-                                     TextWrapping="Wrap" Foreground="#555"/>
+                                     TextWrapping="Wrap" Foreground="#555"
+                                     Visibility="{Binding Detail.IsNotEditingTranscript, Converter={StaticResource BoolToVis}}"/>
+
+                            <!-- Editable transcript (shown when editing) -->
+                            <Border Visibility="{Binding Detail.IsEditingTranscript, Converter={StaticResource BoolToVis}}"
+                                    BorderBrush="{StaticResource AccentLineBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8"
+                                    Background="#FAFAFA">
+                                <TextBox Text="{Binding Detail.EditableTranscriptText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         TextWrapping="Wrap"
+                                         AcceptsReturn="True"
+                                         AcceptsTab="False"
+                                         FontSize="13"
+                                         MinHeight="120"
+                                         MaxHeight="400"
+                                         VerticalScrollBarVisibility="Auto"
+                                         BorderThickness="0"
+                                         Background="Transparent"/>
+                            </Border>
+
+                            <!-- Action buttons (shown when editing) -->
+                            <StackPanel Orientation="Horizontal"
+                                        Margin="0,8,0,0"
+                                        Visibility="{Binding Detail.IsEditingTranscript, Converter={StaticResource BoolToVis}}">
+                                <Button Content="↻ Neu generieren"
+                                        Command="{Binding Detail.RegenerateFromTranscriptCommand}"
+                                        Style="{StaticResource ActionButtonStyle}"
+                                        IsEnabled="{Binding Detail.CanUseDetailActions}"
+                                        ToolTip="Alle KI-Abschnitte aus dem bearbeiteten Transkript neu generieren"/>
+                                <Button Content="Abbrechen"
+                                        Command="{Binding Detail.CancelEditTranscriptCommand}"
+                                        Style="{StaticResource ActionButtonStyle}"
+                                        Margin="8,0,0,0"/>
+                            </StackPanel>
                         </StackPanel>
 
                         </StackPanel>

@@ -217,7 +217,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(entry.Transcript))
+        if (string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             throw new InvalidOperationException(
                 "Kein Transkript vorhanden – kann nicht neu verarbeiten.");
@@ -228,7 +228,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         // Step 1 – Summaries
         progress?.Report(new("Alle Abschnitte werden neu generiert…", 1, total));
         var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
-            await this.GenerateSummariesAsync(entry.Transcript, ct);
+            await this.GenerateSummariesAsync(entry.EffectiveTranscript!, ct);
 
         var updatedEntry = entry with
         {
@@ -259,7 +259,7 @@ public sealed class EntryProcessingService : IEntryProcessor
     public async Task<Entry> ReprocessSectionAsync(Entry entry, string sectionName,
         IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(entry.Transcript))
+        if (string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             throw new InvalidOperationException("Kein Transkript vorhanden.");
         }
@@ -270,38 +270,88 @@ public sealed class EntryProcessingService : IEntryProcessor
         {
             "Zusammenfassung" => entry with
             {
-                LongSummary = await this.summaryGenerator.GenerateLongSummaryAsync(entry.Transcript, ct),
+                LongSummary = await this.summaryGenerator.GenerateLongSummaryAsync(entry.EffectiveTranscript!, ct),
             },
             "Ausführliche Zusammenfassung" => entry with
             {
-                ProseSummary = await this.summaryGenerator.GenerateProseSummaryAsync(entry.Transcript, ct),
+                ProseSummary = await this.summaryGenerator.GenerateProseSummaryAsync(entry.EffectiveTranscript!, ct),
             },
             "Aufgaben" => entry with
             {
-                TaskList = await this.summaryGenerator.GenerateAufgabeAsync(entry.Transcript, ct),
+                TaskList = await this.summaryGenerator.GenerateAufgabeAsync(entry.EffectiveTranscript!, ct),
             },
             "Gesprächsnotiz" => entry with
             {
-                ConversationNote = await this.summaryGenerator.GenerateGespraechsnotizAsync(entry.Transcript, ct),
+                ConversationNote = await this.summaryGenerator.GenerateGespraechsnotizAsync(entry.EffectiveTranscript!, ct),
             },
             "E-Mail" => entry with
             {
                 EmailText = await this.summaryGenerator.GenerateEmailTextAsync(
-                    entry.ProseSummary ?? entry.LongSummary ?? entry.Transcript, ct),
+                    entry.ProseSummary ?? entry.LongSummary ?? entry.EffectiveTranscript!, ct),
             },
             "Stundenzettel" => entry with
             {
-                StundenzettelText = await this.summaryGenerator.GenerateStundenzettelAsync(entry.Transcript, ct),
+                StundenzettelText = await this.summaryGenerator.GenerateStundenzettelAsync(entry.EffectiveTranscript!, ct),
             },
             "Analog" => entry with
             {
-                AnalogText = await this.summaryGenerator.GenerateAnalogAsync(entry.Transcript, ct),
+                AnalogText = await this.summaryGenerator.GenerateAnalogAsync(entry.EffectiveTranscript!, ct),
             },
             _ => throw new ArgumentException($"Unbekannte Sektion: {sectionName}"),
         };
 
         await this.repository.SaveAsync(updated, ct);
         return updated;
+    }
+
+    /// <summary>
+    /// Re-generates all summaries from a user-corrected transcript,
+    /// stores the edited transcript, and persists the updated entry.
+    /// </summary>
+    public async Task<Entry> RegenerateFromTranscriptAsync(
+        Entry entry,
+        string editedTranscript,
+        IProgress<ProcessingProgress>? progress = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(editedTranscript))
+        {
+            throw new InvalidOperationException(
+                "Bearbeitetes Transkript darf nicht leer sein.");
+        }
+
+        const int total = 2;
+
+        // Step 1 – Re-generate all summaries from the edited transcript
+        progress?.Report(new("Alle Abschnitte werden aus bearbeitetem Transkript neu generiert…", 1, total));
+        var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
+            await this.GenerateSummariesAsync(editedTranscript, ct);
+
+        var updatedEntry = entry with
+        {
+            EditedTranscript = editedTranscript,
+            Abstract = string.IsNullOrEmpty(abstractText) ? entry.Abstract : abstractText,
+            LongSummary = string.IsNullOrEmpty(longSummary) ? entry.LongSummary : longSummary,
+            ProseSummary = string.IsNullOrEmpty(proseSummary) ? entry.ProseSummary : proseSummary,
+            TaskList = string.IsNullOrEmpty(taskList) ? entry.TaskList : taskList,
+            ConversationNote = string.IsNullOrEmpty(conversationNote) ? entry.ConversationNote : conversationNote,
+            StundenzettelText = string.IsNullOrEmpty(stundenzettelText) ? entry.StundenzettelText : stundenzettelText,
+            AnalogText = string.IsNullOrEmpty(analogText) ? entry.AnalogText : analogText,
+            EmailText = string.IsNullOrEmpty(emailText) ? entry.EmailText : emailText,
+            Status = entry.Status with { Summarized = true },
+        };
+
+        // Step 2 – Persist + regenerate overview
+        progress?.Report(new("Aktualisierung wird gespeichert…", 2, total));
+        await this.repository.SaveAsync(updatedEntry, ct);
+
+        if (this.overviewService is not null)
+        {
+            var date = DateOnly.FromDateTime(updatedEntry.CreatedAt.DateTime);
+            await this.overviewService.RegenerateAsync(date, ct);
+        }
+
+        return updatedEntry;
     }
 
     /// <summary>
@@ -389,10 +439,11 @@ public sealed class EntryProcessingService : IEntryProcessor
                 File.Copy(sourceAudioPath, audioDest);
             }
 
-            if (!string.IsNullOrEmpty(entry.Transcript))
+            var effectiveTranscript = entry.EffectiveTranscript;
+            if (!string.IsNullOrEmpty(effectiveTranscript))
             {
                 var txtPath = Path.Combine(rawDir, baseName + ".txt");
-                await File.WriteAllTextAsync(txtPath, entry.Transcript, ct);
+                await File.WriteAllTextAsync(txtPath, effectiveTranscript, ct);
             }
         }
         catch

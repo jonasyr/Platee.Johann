@@ -33,6 +33,11 @@ public sealed record Entry
     // --- Content (null = not yet generated) ---
     public string? Transcript { get; init; }
 
+    public string? EditedTranscript { get; init; }
+
+    /// <summary>Returns the user-corrected transcript if available, otherwise the original Whisper transcript.</summary>
+    public string? EffectiveTranscript => EditedTranscript ?? Transcript;
+
     public string? Abstract { get; init; }
 
     public string? LongSummary { get; init; }
@@ -55,5 +60,5 @@ public sealed record Entry
 
     public int WordCount { get; init; }
 
-    public int SchemaVersion { get; init; } = 2;
+    public int SchemaVersion { get; init; } = 3;
 }

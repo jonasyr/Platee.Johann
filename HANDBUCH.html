@@ -208,6 +208,7 @@
   <div class="nav-group">Konfiguration</div>
   <a href="#einstellungen">Einstellungen</a>
   <a href="#korrekturliste">Korrekturliste</a>
+  <a href="#transkript-edit">Transkript bearbeiten</a>
   <a href="#team-prompts">Team-Prompts &amp; Admin</a>
   <a href="#ablage">Dateiablage</a>
 
@@ -540,9 +541,37 @@
     </div>
   </section>
 
-  <!-- 10 Team-Prompts & Admin -->
+  <!-- 10 Transkript bearbeiten -->
+  <section class="section" id="transkript-edit">
+    <div class="section-title"><div class="num">10</div><h2>Transkript bearbeiten</h2></div>
+
+    <p>Das Transkript kann direkt in der Detailansicht korrigiert werden – z.&nbsp;B. um falsch erkannte Namen zu berichtigen, fehlende Satzzeichen zu ergänzen oder versehentlich aufgenommene Passagen zu entfernen.</p>
+
+    <h3>So funktioniert es</h3>
+    <ol class="steps">
+      <li><p>Stift-Symbol (✏) neben „Transkript" klicken → der Text wird editierbar.</p></li>
+      <li><p>Text korrigieren.</p></li>
+      <li><p><strong>Neu generieren</strong> klicken → alle KI-Abschnitte werden aus dem korrigierten Text neu erstellt.</p></li>
+    </ol>
+
+    <div class="tip">
+      <span class="icon">💡</span>
+      <p>Der korrigierte Text wird <strong>sofort</strong> angezeigt, noch bevor die KI-Neugenerierung abgeschlossen ist. Bei API-Fehlern bleibt die Bearbeitung erhalten – einfach erneut „↻ Neu generieren" klicken.</p>
+    </div>
+
+    <h3>Gut zu wissen</h3>
+    <ul>
+      <li>Das <strong>Original-Transkript</strong> von Whisper bleibt intern als Referenz erhalten.</li>
+      <li>Bearbeitete Transkripte sind mit <strong>„(bearbeitet)"</strong> gekennzeichnet.</li>
+      <li><strong>PDF, HTML und Kopieren</strong> verwenden automatisch den korrigierten Text.</li>
+      <li>Mit <strong>Abbrechen</strong> wird die Bearbeitung verworfen.</li>
+      <li>Der bestehende <strong>↻ Neu generieren</strong>-Button (oben) verwendet ebenfalls den korrigierten Text.</li>
+    </ul>
+  </section>
+
+  <!-- 11 Team-Prompts & Admin -->
   <section class="section" id="team-prompts">
-    <div class="section-title"><div class="num">10</div><h2>Team-Prompts &amp; Admin-Modus</h2></div>
+    <div class="section-title"><div class="num">11</div><h2>Team-Prompts &amp; Admin-Modus</h2></div>
 
     <p>Alle Prompt-Vorlagen werden zentral über eine gemeinsame Datei auf dem Netzlaufwerk verwaltet. So nutzen alle Mitarbeiter automatisch die gleichen Vorlagen.</p>
 
@@ -570,9 +599,9 @@
     </div>
   </section>
 
-  <!-- 10 Ablage -->
+  <!-- 12 Ablage -->
   <section class="section" id="ablage">
-    <div class="section-title"><div class="num">11</div><h2>Dateiablage</h2></div>
+    <div class="section-title"><div class="num">12</div><h2>Dateiablage</h2></div>
 
     <p>Alle Daten liegen lokal – kein Server, keine Datenbank. Dateien lassen sich kopieren, archivieren oder via OneDrive synchronisieren.</p>
 
@@ -603,9 +632,9 @@
     </div>
   </section>
 
-  <!-- 11 Neuigkeiten -->
+  <!-- 13 Neuigkeiten -->
   <section class="section" id="neuigkeiten">
-    <div class="section-title"><div class="num">12</div><h2>Neuigkeiten</h2></div>
+    <div class="section-title"><div class="num">13</div><h2>Neuigkeiten</h2></div>
 
     <p>Nach einem Update zeigt Johann beim ersten Start ein <strong>Neuigkeiten-Fenster</strong> mit den wichtigsten Änderungen der neuen Version. Das Fenster erscheint einmalig pro Version und kann über den Schließen-Button geschlossen werden.</p>
 
@@ -615,9 +644,9 @@
     </div>
   </section>
 
-  <!-- 12 Best Practices -->
+  <!-- 14 Best Practices -->
   <section class="section" id="bestpractice">
-    <div class="section-title"><div class="num">13</div><h2>Best Practices</h2></div>
+    <div class="section-title"><div class="num">14</div><h2>Best Practices</h2></div>
 
     <div class="card card-accent" style="margin-bottom:12px;">
       <strong>Diktat-Einstieg klar sprechen</strong>
@@ -641,9 +670,9 @@
     </div>
   </section>
 
-  <!-- 13 Probleme -->
+  <!-- 15 Probleme -->
   <section class="section" id="probleme">
-    <div class="section-title"><div class="num">14</div><h2>Problembehandlung</h2></div>
+    <div class="section-title"><div class="num">15</div><h2>Problembehandlung</h2></div>
 
     <div class="table-wrap">
       <table>
@@ -668,6 +697,10 @@
           <tr>
             <td>Absturz der Anwendung</td>
             <td>Crash-Logs unter <code>%LOCALAPPDATA%\Platee\Johann\logs\crash-*.log</code> enthalten Zeitstempel und vollständigen Fehlertext.</td>
+          </tr>
+          <tr>
+            <td>Transkript-Bearbeitung nach Fehler verloren</td>
+            <td>Der korrigierte Text bleibt bei API-Fehlern erhalten. Einfach erneut <strong>↻ Neu generieren</strong> klicken.</td>
           </tr>
         </tbody>
       </table>

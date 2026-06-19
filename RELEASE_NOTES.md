@@ -2,6 +2,13 @@
 
 ## Version 1.3.0
 
+**Transkript bearbeiten und neu generieren**
+
+- Das Transkript kann jetzt direkt in der Detailansicht bearbeitet werden: Stift-Symbol (✏) neben „Transkript" klicken, Text korrigieren und „Neu generieren" klicken.
+- Alle KI-Abschnitte werden aus dem korrigierten Text neu erstellt. Bei Fehlern bleibt die Bearbeitung erhalten.
+- PDF, HTML und Kopieren verwenden automatisch den korrigierten Text, wenn vorhanden.
+- Bearbeitete Transkripte sind mit „(bearbeitet)" gekennzeichnet.
+
 **Korrekturliste für Whisper-Fehler**
 
 - Neue Korrekturliste in den Einstellungen: Häufig falsch erkannte Wörter können als Korrekturpaare hinterlegt werden (z. B. Piano → Peano). Die Korrekturen werden automatisch bei der KI-Zusammenfassung berücksichtigt.

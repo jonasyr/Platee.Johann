@@ -24,6 +24,13 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     [ObservableProperty]
     private bool isTranscriptExpanded;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotEditingTranscript))]
+    private bool isEditingTranscript;
+
+    [ObservableProperty]
+    private string editableTranscriptText = string.Empty;
+
     // Zoom
     [ObservableProperty]
     private double detailZoom = 1.0;
@@ -37,7 +44,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     public string DisplayProseSummary => this.Entry?.ProseSummary ?? "—";
 
-    public string DisplayTranscript => this.Entry?.Transcript ?? "—";
+    public string DisplayTranscript => this.Entry?.EffectiveTranscript ?? "—";
+
+    public bool IsNotEditingTranscript => !IsEditingTranscript;
+
+    public bool HasTranscriptBeenEdited => Entry?.EditedTranscript is not null;
 
     public string DisplayConversationNote => this.Entry?.ConversationNote ?? "—";
 
@@ -118,6 +129,8 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     partial void OnEntryChanged(Entry? value)
     {
         IsTranscriptExpanded = false;
+        IsEditingTranscript = false;
+        EditableTranscriptText = string.Empty;
         OnPropertyChanged(nameof(DisplayAbstract));
         OnPropertyChanged(nameof(DisplayLongSummary));
         OnPropertyChanged(nameof(DisplayProseSummary));
@@ -140,6 +153,8 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         OnPropertyChanged(nameof(CanUseDetailActions));
         OnPropertyChanged(nameof(DetailActionsDisabledReason));
         OnPropertyChanged(nameof(CanReprocess));
+        OnPropertyChanged(nameof(HasTranscriptBeenEdited));
+        OnPropertyChanged(nameof(IsNotEditingTranscript));
         RefreshSectionVisibility();
         GeneratePdfCommand.NotifyCanExecuteChanged();
         GenerateHtmlCommand.NotifyCanExecuteChanged();
@@ -151,6 +166,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         CopyHtmlCommand.NotifyCanExecuteChanged();
         ToggleDoneCommand.NotifyCanExecuteChanged();
         ReprocessSectionCommand.NotifyCanExecuteChanged();
+        RegenerateFromTranscriptCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand(CanExecute = nameof(HasEntry))]
@@ -352,10 +368,10 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         }
 
         // Transcript — only when checkbox is checked
-        if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.Transcript))
+        if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.EffectiveTranscript))
         {
-            sb.AppendLine("ORIGINALTRANSKRIPT");
-            sb.AppendLine(this.Entry.Transcript);
+            sb.AppendLine(this.Entry.EditedTranscript is not null ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT");
+            sb.AppendLine(this.Entry.EffectiveTranscript!);
             sb.AppendLine();
         }
 
@@ -364,6 +380,80 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
         System.Windows.Clipboard.SetText(sb.ToString());
         this.addLog?.Invoke("✓ Alles kopiert!", false);
+    }
+
+    [RelayCommand]
+    private void EditTranscript()
+    {
+        if (this.Entry is null) return;
+        EditableTranscriptText = this.Entry.EffectiveTranscript ?? string.Empty;
+        IsEditingTranscript = true;
+    }
+
+    [RelayCommand]
+    private void CancelEditTranscript()
+    {
+        IsEditingTranscript = false;
+        EditableTranscriptText = string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task RegenerateFromTranscriptAsync(CancellationToken ct)
+    {
+        if (this.Entry is null || this.processor is null)
+        {
+            return;
+        }
+
+        if (!this.processor.CanProcess)
+        {
+            this.addLog?.Invoke("Kein API-Schlüssel konfiguriert. .env-Datei in Dokumente\\Johann ablegen.", false);
+            return;
+        }
+
+        var editedText = this.EditableTranscriptText.Trim();
+        if (string.IsNullOrWhiteSpace(editedText))
+        {
+            this.addLog?.Invoke("Transkript darf nicht leer sein.", false);
+            return;
+        }
+
+        // Immediately update the entry so the corrected transcript appears in the detail view
+        // before the (potentially slow) GPT regeneration completes.
+        // OnEntryChanged exits edit mode and refreshes DisplayTranscript.
+        this.Entry = this.Entry with { EditedTranscript = editedText };
+        EditableTranscriptText = string.Empty;
+
+        var logItem = this.addLog?.Invoke("Eintrag wird aus bearbeitetem Transkript neu generiert…", true);
+        try
+        {
+            var progress = new Progress<ProcessingProgress>(p =>
+                this.updateStatus?.Invoke(p.Stage));
+
+            var updated = await this.processor.RegenerateFromTranscriptAsync(
+                this.Entry, editedText, progress, ct);
+            this.Entry = updated;
+
+            if (logItem is not null)
+            {
+                this.completeLog?.Invoke(logItem, "Verarbeitung abgeschlossen!");
+            }
+            else
+            {
+                this.addLog?.Invoke("Verarbeitung abgeschlossen!", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            if (logItem is not null)
+            {
+                this.completeLog?.Invoke(logItem, $"Fehler: {ex.Message}");
+            }
+            else
+            {
+                this.addLog?.Invoke($"Fehler: {ex.Message}", false);
+            }
+        }
     }
 
     partial void OnDetailZoomChanged(double value) => OnPropertyChanged(nameof(ZoomText));
