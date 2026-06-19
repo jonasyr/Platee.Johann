@@ -13,4 +13,6 @@ public interface IEntryRepository
     Task SaveAsync(Entry entry, CancellationToken ct = default);
 
     Task<int> GetNextSequenceNumberAsync(DateOnly date, CancellationToken ct = default);
+
+    Task MigrateJobIdsAsync(CancellationToken ct = default);
 }

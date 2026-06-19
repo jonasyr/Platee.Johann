@@ -113,5 +113,7 @@ public sealed class HtmlRenderingSecurityTests : IDisposable
 
         public Task<int> GetNextSequenceNumberAsync(DateOnly date, CancellationToken ct = default)
             => Task.FromResult(1);
+
+        public Task MigrateJobIdsAsync(CancellationToken ct = default) => Task.CompletedTask;
     }
 }

@@ -135,6 +135,37 @@ public sealed class EntryRepositoryTests : IDisposable
         result!.JobId.Should().Be("custom_id");
     }
 
+    // ── MigrateJobIdsAsync ─────────────────────────────────────────────────────
+    [Fact]
+    public async Task MigrateJobIdsAsync_rewrites_nonstandard_jobids()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var entry = MakeEntry(jobId: "old_legacy_id", seq: 5, date: date);
+
+        await this.sut.SaveAsync(entry);
+        await this.sut.MigrateJobIdsAsync();
+
+        var entries = await this.sut.GetEntriesForDateAsync(date);
+        var migrated = entries.Should().ContainSingle().Subject;
+        migrated.JobId.Should().MatchRegex(@"^\d{6}_\d{3}_[a-f0-9]{8}$");
+        migrated.SequenceNumber.Should().Be(5);
+        migrated.Title.Should().Be("Test Entry");
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_leaves_standard_jobids_unchanged()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var entry = MakeEntry(jobId: "260317_005_abcd1234", seq: 5, date: date);
+
+        await this.sut.SaveAsync(entry);
+        await this.sut.MigrateJobIdsAsync();
+
+        var result = await this.sut.GetByJobIdAsync("260317_005_abcd1234");
+        result.Should().NotBeNull();
+        result!.JobId.Should().Be("260317_005_abcd1234");
+    }
+
     // ── Helper ────────────────────────────────────────────────────────────────
     private static Entry MakeEntry(string jobId = "test_001", int seq = 1, DateOnly? date = null) => new()
     {

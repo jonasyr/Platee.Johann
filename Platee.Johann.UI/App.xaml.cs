@@ -97,6 +97,7 @@ public partial class App : System.Windows.Application
 
         // ── Manual DI ─────────────────────────────────────────────────────────
         IEntryRepository repository = new JsonRepository(outputRoot);
+        await repository.MigrateJobIdsAsync();
 
         // HTML overview service — regenerates _ItemÜbersicht.html after every save
         IHtmlOverviewService overviewService = new HtmlOverviewService(repository, outputRoot);

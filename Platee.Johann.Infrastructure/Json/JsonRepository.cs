@@ -213,6 +213,41 @@ public sealed class JsonRepository : IEntryRepository
         }
     }
 
+    public async Task MigrateJobIdsAsync(CancellationToken ct = default)
+    {
+        if (!Directory.Exists(this.outputRoot))
+        {
+            return;
+        }
+
+        foreach (var dir in Directory.EnumerateDirectories(this.outputRoot))
+        {
+            var rawDir = Path.Combine(dir, "_raw");
+            if (!Directory.Exists(rawDir))
+            {
+                continue;
+            }
+
+            foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
+            {
+                ct.ThrowIfCancellationRequested();
+                var entry = await LoadFileAsync(file, ct);
+                if (entry is null || TryParseDateFromJobId(entry.JobId, out _))
+                {
+                    continue;
+                }
+
+                var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+                var newJobId = $"{date:yyMMdd}_{entry.SequenceNumber:D3}_{Guid.NewGuid().ToString("N")[..8]}";
+                var migrated = entry with { JobId = newJobId };
+
+                // Delete old file, save with new JobId
+                File.Delete(file);
+                await SaveAsync(migrated, ct);
+            }
+        }
+    }
+
     private string GetRawDir(DateOnly date) =>
         Path.Combine(this.outputRoot, date.ToString("yyyy-MM-dd"), "_raw");
 }
