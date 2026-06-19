@@ -1,4 +1,4 @@
-namespace Platee.Johann.UI.Helpers;
+namespace Platee.Johann.Domain.Services;
 
 public static class DurationFormatter
 {
@@ -6,7 +6,7 @@ public static class DurationFormatter
     {
         var ts = TimeSpan.FromSeconds(seconds);
         return ts.TotalHours >= 1
-            ? ts.ToString(@"h\:mm\:ss")
-            : ts.ToString(@"m\:ss");
+            ? $"{(int)ts.TotalHours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
+            : $"{ts.Minutes}:{ts.Seconds:D2}";
     }
 }

@@ -1,7 +1,7 @@
 namespace Platee.Johann.Tests.Unit;
 
 using FluentAssertions;
-using Platee.Johann.UI.Helpers;
+using Platee.Johann.Domain.Services;
 
 public sealed class DurationFormatterTests
 {

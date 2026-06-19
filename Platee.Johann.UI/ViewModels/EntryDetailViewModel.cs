@@ -5,7 +5,7 @@ using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Platee.Johann.Application.Processing;
-using Platee.Johann.UI.Helpers;
+using Platee.Johann.Domain.Services;
 using Platee.Johann.Domain.Entities;
 
 public sealed partial class EntryDetailViewModel : ObservableObject

@@ -1,3 +1,5 @@
+using Platee.Johann.Domain.Services;
+
 namespace Platee.Johann.Infrastructure.Renderers;
 
 using System.Net;
@@ -76,7 +78,7 @@ public sealed class HtmlRenderer : IEntryRenderer
         sb.AppendLine($"  <p class=\"meta\">{entry.CreatedAt:dd.MM.yyyy} · #{entry.SequenceNumber:D3}");
         if (entry.DurationSeconds > 0)
         {
-            sb.Append($" · {FormatDuration(entry.DurationSeconds)}");
+            sb.Append($" · {DurationFormatter.Format(entry.DurationSeconds)}");
         }
 
         sb.AppendLine("  </p>");
@@ -158,13 +160,6 @@ public sealed class HtmlRenderer : IEntryRenderer
     private static string HtmlEncode(string s)
         => WebUtility.HtmlEncode(s);
 
-    private static string FormatDuration(double seconds)
-    {
-        var ts = TimeSpan.FromSeconds(seconds);
-        return ts.TotalHours >= 1
-            ? $"{(int)ts.TotalHours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
-            : $"{ts.Minutes}:{ts.Seconds:D2}";
-    }
 
     private static string Css(string typeColor) => $@"
 <style>
