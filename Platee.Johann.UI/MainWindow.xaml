@@ -257,6 +257,7 @@
         <KeyBinding Key="OemComma" Modifiers="Ctrl" Command="{Binding OpenSettingsCommand}"/>
         <!-- Zoom shortcuts -->
         <KeyBinding Key="OemPlus" Modifiers="Ctrl" Command="{Binding Detail.ZoomInCommand}"/>
+        <KeyBinding Key="OemPlus" Modifiers="Ctrl+Shift" Command="{Binding Detail.ZoomInCommand}"/>
         <KeyBinding Key="Add" Modifiers="Ctrl" Command="{Binding Detail.ZoomInCommand}"/>
         <KeyBinding Key="OemMinus" Modifiers="Ctrl" Command="{Binding Detail.ZoomOutCommand}"/>
         <KeyBinding Key="Subtract" Modifiers="Ctrl" Command="{Binding Detail.ZoomOutCommand}"/>
