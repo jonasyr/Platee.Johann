@@ -57,12 +57,14 @@ public sealed class EntryProcessingService : IEntryProcessor
     {
         const int total = 5;
 
+        // Snapshot settings before any async work so mid-flight changes
+        // via the non-modal SettingsView cannot affect this run.
+        var scopedGenerator = this.summaryGenerator.WithSnapshot();
+        var settingsSnapshot = this.settings.Current;
+
         // Step 1 – Transcription
         progress?.Report(new("Audio wird transkribiert…", 1, total));
         var transcription = await this.transcriber.TranscribeAsync(audioFilePath, ct);
-
-        var scopedGenerator = this.summaryGenerator.WithSnapshot();
-        var settingsSnapshot = this.settings.Current;
 
         // Step 2 – Header parsing + sequence number
         progress?.Report(new("Metadaten werden analysiert…", 2, total));
