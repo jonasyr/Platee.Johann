@@ -5,8 +5,7 @@
 **Transkript bearbeiten und neu generieren**
 
 - Das Transkript kann jetzt direkt in der Detailansicht bearbeitet werden: Stift-Symbol (✏) neben „Transkript" klicken, Text korrigieren und „Neu generieren" klicken.
-- Alle KI-Abschnitte werden aus dem korrigierten Text neu erstellt. Das Original-Transkript bleibt als Referenz erhalten.
-- Der korrigierte Text wird sofort angezeigt, noch bevor die Neugenerierung abgeschlossen ist. Bei Fehlern bleibt die Bearbeitung erhalten.
+- Alle KI-Abschnitte werden aus dem korrigierten Text neu erstellt. Bei Fehlern bleibt die Bearbeitung erhalten.
 - PDF, HTML und Kopieren verwenden automatisch den korrigierten Text, wenn vorhanden.
 - Bearbeitete Transkripte sind mit „(bearbeitet)" gekennzeichnet.
 
