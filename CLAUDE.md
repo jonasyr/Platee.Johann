@@ -52,6 +52,7 @@ Platee.Johann.Domain/          # Core entities, no external deps
                                #   EditedTranscript + EffectiveTranscript (edited ?? original)
   Enums/EntryType.cs
   Parsing/                     # Header, title, type extraction from filenames
+  Services/                    # DurationFormatter (shared formatting helper)
   ValueObjects/                # ParsedHeader, ProcessingStatus, CorrectionEntry
 
 Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
@@ -137,11 +138,11 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **Toast notification tray**: `ToastQueue` (pure, injectable timer factory) + `ToastsViewModel` (WPF `DispatcherTimer` wrapper) replace the former single-toast overlay in `MainViewModel`. `MainViewModel.Toasts` exposes `ObservableCollection<ToastItem>` bound to an `ItemsControl` in `MainWindow.xaml`. Tones: `Ok` (green) / `Warn` (orange) / `Error` (red) derived by `ToastToneHelper`. Auto-dismiss after 5.2 s; hover pauses the timer. Error toasts expose a "Details im Status-Log" link wired to `OpenProcessDetailCommand`.
 
-**Shared formatting helpers**: `DurationFormatter.Format(double seconds)` in `UI/Helpers/` is used by both `EntryDetailViewModel` (display duration) and `EntryRowViewModel.FormattedDuration` (entry-list subtitle). Format: `m:ss` for < 1 h, `h:mm:ss` for ≥ 1 h.
+**Shared formatting helpers**: `DurationFormatter.Format(double seconds)` in `Domain/Services/` (centralised from former UI/Helpers duplicate) is used by `EntryDetailViewModel` (display duration), `EntryRowViewModel.FormattedDuration` (entry-list subtitle), and `PdfRenderer` (header meta). Format: `m:ss` for < 1 h, `h:mm:ss` for ≥ 1 h.
 
 **Finding04State**: Static helper in `UI/ViewModels/Finding04State.cs` centralises the logic for `CanUseDetailActions` / `DetailActionsDisabledReason`. Both `EntryDetailViewModel` and `MainViewModel` delegate to it; tested in `Finding04StateTests.cs`.
 
-**Detail zoom**: `EntryDetailViewModel.DetailZoom` (double, 1.0 default, range 0.5–2.0, step 0.1) drives a `ScaleTransform` on the detail `StackPanel` in `MainWindow.xaml`. `ZoomIn` / `ZoomOut` relay commands exposed; `ZoomText` shows the current percentage. Zoom controls sit in the status bar.
+**Detail zoom**: `EntryDetailViewModel.DetailZoom` (double, 1.0 default, range 0.5–2.0, step 0.1) drives a `ScaleTransform` on the detail `StackPanel` in `MainWindow.xaml`. `ZoomIn` / `ZoomOut` / `ZoomReset` relay commands exposed; `ZoomText` shows the current percentage. Zoom controls sit in the status bar. Keyboard shortcuts handled in `MainWindow.xaml.cs`: `Ctrl++` / `Ctrl+-` for zoom in/out, `Ctrl+0` for reset to 100 %, `Ctrl+Scroll` for mouse wheel zoom. Tested in `EntryDetailZoomTests.cs`.
 
 **Admin mode for prompt editing**: `SettingsViewModel` exposes `IsAdminMode`, `IsPromptReadOnly`, `AdminButtonLabel`, `ActivateAdmin(password)`, `DeactivateAdmin()`. Password gate controls access to global shared prompt editing; normal mode makes prompts read-only. `AdminPasswordDialog` (`Views/AdminPasswordDialog.xaml`) is a simple WPF dialog for password entry. Visual indicators: red "ADMIN-MODUS AKTIV" banner in `SettingsView`, `AdminAwareWarning` style changes color in admin mode.
 
@@ -172,7 +173,8 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **Auto-copy docs to Assets** (`98dd750`): MSBuild `CopyDocsToAssets` target copies `HANDBUCH.html` and `RELEASE_NOTES.md` from repo root into `Assets/` before build, keeping embedded resources in sync with source docs.
 - **Editable transcripts / Schema v3** (`0dadb19` .. `c0c5aaf`): `EditedTranscript` field added to `Entry` (schema v3). Inline transcript editing in detail view with regenerate-from-corrected-text flow. `EffectiveTranscript` computed property used across renderers, archive, and reprocessing. Three new test classes: `EditableTranscriptTests`, `EntryDetailTranscriptEditTests`, `RegenerateFromTranscriptTests`.
 - **Velopack 1.2.0** (`9d54c72`): upgraded installer SDK from pre-release 0.0.1298 to stable 1.2.0.
-- **v1.3.0 documentation** (`7a93e0e` / `4d1f57d` / `1ddfbfd`): `README.md`, `HANDBUCH.html`, and `RELEASE_NOTES.md` updated with transcript editing, Korrekturliste, and drag & drop features.
+- **Zoom keyboard shortcuts** (`08a582f`): `Ctrl++` / `Ctrl+-` / `Ctrl+0` / `Ctrl+Scroll` shortcuts added for detail view zoom. `ZoomResetCommand` added to `EntryDetailViewModel`. `EntryDetailZoomTests` added.
+- **v1.3.0 documentation** (`7a93e0e` / `4d1f57d` / `1ddfbfd` / `08a582f`): `README.md`, `HANDBUCH.html`, and `RELEASE_NOTES.md` updated with transcript editing, Korrekturliste, drag & drop, and zoom keyboard shortcut features.
 
 <!-- END AUTO-MANAGED -->
 

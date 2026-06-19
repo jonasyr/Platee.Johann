@@ -14,6 +14,12 @@
 - Neue Korrekturliste in den Einstellungen: Häufig falsch erkannte Wörter können als Korrekturpaare hinterlegt werden (z. B. Piano → Peano). Die Korrekturen werden automatisch bei der KI-Zusammenfassung berücksichtigt.
 - Vier Standardkorrekturen sind bereits voreingestellt und können beliebig ergänzt oder entfernt werden.
 
+**Zoom-Tastenkürzel**
+
+- Die Detailansicht kann jetzt per Tastenkürzel gezoomt werden: `Strg++` / `Strg+-` zum Vergrößern/Verkleinern, `Strg+0` zum Zurücksetzen auf 100 %.
+- `Strg+Mausrad` zoomt ebenfalls in der Detailansicht.
+- Tooltips an den Zoom-Buttons zeigen die Tastenkürzel an.
+
 ---
 
 ## Version 1.2.1

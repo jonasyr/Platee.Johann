@@ -480,6 +480,12 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         this.DetailZoom = Math.Round(this.DetailZoom - 0.1, 1);
     }
 
+    [RelayCommand]
+    private void ZoomReset()
+    {
+        this.DetailZoom = 1.0;
+    }
+
     [RelayCommand(CanExecute = nameof(CanReprocess))]
     private async Task ReprocessSectionAsync(string section, CancellationToken ct)
     {

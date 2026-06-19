@@ -141,6 +141,19 @@ Mit **Abbrechen** wird die Bearbeitung verworfen und der zuletzt gespeicherte Te
 
 Einen Eintrag in der Liste **anklicken und ziehen** erzeugt automatisch die PDF-Datei und startet einen Datei-Drag. Die PDF lässt sich so direkt in Explorer-Fenster, E-Mail-Programme oder andere Anwendungen ziehen.
 
+### Zoom
+
+Die Detailansicht lässt sich stufenlos vergrößern und verkleinern (50 %–200 %, Schrittweite 10 %):
+
+| Aktion | Tastenkürzel |
+|---|---|
+| Vergrößern | `Strg++` oder `Strg+Numpad+` |
+| Verkleinern | `Strg+-` oder `Strg+Numpad-` |
+| Zurücksetzen (100 %) | `Strg+0` oder `Strg+Numpad0` |
+| Stufenlos zoomen | `Strg+Mausrad` |
+
+Alternativ: `−` / `+` Buttons in der Statusleiste unten rechts.
+
 ---
 
 ## Tages-Übersicht

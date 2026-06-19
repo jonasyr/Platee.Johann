@@ -110,6 +110,21 @@ public partial class MainWindow : Window
 
     private void DetailScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
+        if (Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (e.Delta > 0)
+            {
+                this.viewModel.Detail?.ZoomInCommand.Execute(null);
+            }
+            else
+            {
+                this.viewModel.Detail?.ZoomOutCommand.Execute(null);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         if (sender is ScrollViewer sv)
         {
             sv.ScrollToVerticalOffset(sv.VerticalOffset - (e.Delta / 3.0));

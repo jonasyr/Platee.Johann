@@ -255,6 +255,14 @@
         <KeyBinding Key="F1" Command="{Binding OpenHandbookCommand}"/>
         <KeyBinding Key="F2" Command="{Binding OpenProcessDetailCommand}"/>
         <KeyBinding Key="OemComma" Modifiers="Ctrl" Command="{Binding OpenSettingsCommand}"/>
+        <!-- Zoom shortcuts -->
+        <KeyBinding Key="OemPlus" Modifiers="Ctrl" Command="{Binding Detail.ZoomInCommand}"/>
+        <KeyBinding Key="OemPlus" Modifiers="Ctrl+Shift" Command="{Binding Detail.ZoomInCommand}"/>
+        <KeyBinding Key="Add" Modifiers="Ctrl" Command="{Binding Detail.ZoomInCommand}"/>
+        <KeyBinding Key="OemMinus" Modifiers="Ctrl" Command="{Binding Detail.ZoomOutCommand}"/>
+        <KeyBinding Key="Subtract" Modifiers="Ctrl" Command="{Binding Detail.ZoomOutCommand}"/>
+        <KeyBinding Key="D0" Modifiers="Ctrl" Command="{Binding Detail.ZoomResetCommand}"/>
+        <KeyBinding Key="NumPad0" Modifiers="Ctrl" Command="{Binding Detail.ZoomResetCommand}"/>
     </Window.InputBindings>
 
     <Grid>
@@ -1078,11 +1086,12 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
                     <Button Content="−" Command="{Binding Detail.ZoomOutCommand}"
-                            ToolTip="Verkleinern" Style="{StaticResource StatusBarZoomButtonStyle}"/>
+                            ToolTip="Verkleinern (Strg+Minus)" Style="{StaticResource StatusBarZoomButtonStyle}"/>
                     <TextBlock Text="{Binding Detail.ZoomText}" MinWidth="38" TextAlignment="Center"
-                               FontSize="11" Foreground="#666" VerticalAlignment="Center"/>
+                               FontSize="11" Foreground="#666" VerticalAlignment="Center"
+                               ToolTip="Zoom zurücksetzen: Strg+0 · Mausrad: Strg+Scrollen"/>
                     <Button Content="+" Command="{Binding Detail.ZoomInCommand}"
-                            ToolTip="Vergrößern" Style="{StaticResource StatusBarZoomButtonStyle}"/>
+                            ToolTip="Vergrößern (Strg+Plus)" Style="{StaticResource StatusBarZoomButtonStyle}"/>
                 </StackPanel>
             </Grid>
         </Border>
