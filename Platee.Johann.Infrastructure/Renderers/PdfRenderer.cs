@@ -1,3 +1,5 @@
+using Platee.Johann.Domain.Services;
+
 namespace Platee.Johann.Infrastructure.Renderers;
 
 using Platee.Johann.Application.Interfaces;
@@ -132,7 +134,7 @@ public sealed class PdfRenderer : IEntryRenderer
                         .FontColor("#888").FontSize(9);
                     if (entry.DurationSeconds > 0)
                     {
-                        meta.Item().Text(FormatDuration(entry.DurationSeconds))
+                        meta.Item().Text(DurationFormatter.Format(entry.DurationSeconds))
                             .FontColor("#888").FontSize(9);
                     }
 
@@ -327,13 +329,5 @@ public sealed class PdfRenderer : IEntryRenderer
         }
 
         FlushBullets();
-    }
-
-    private static string FormatDuration(double seconds)
-    {
-        var ts = TimeSpan.FromSeconds(seconds);
-        return ts.TotalHours >= 1
-            ? $"{(int)ts.TotalHours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
-            : $"{ts.Minutes}:{ts.Seconds:D2}";
     }
 }

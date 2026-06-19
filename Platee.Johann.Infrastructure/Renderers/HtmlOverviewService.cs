@@ -1,3 +1,5 @@
+using Platee.Johann.Domain.Services;
+
 namespace Platee.Johann.Infrastructure.Renderers;
 
 using System.Net;
@@ -98,7 +100,7 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
         };
 
         var duration = entry.DurationSeconds > 0
-            ? $" · {FormatDuration(entry.DurationSeconds)}"
+            ? $" · {DurationFormatter.Format(entry.DurationSeconds)}"
             : string.Empty;
 
         // Build the first-5-words title for the link
@@ -178,13 +180,6 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
     private static string SanitizeForFilename(string s)
         => System.Text.RegularExpressions.Regex.Replace(s, @"[<>:""/\\|?*\s]+", "_").Trim('_');
 
-    private static string FormatDuration(double seconds)
-    {
-        var ts = TimeSpan.FromSeconds(seconds);
-        return ts.TotalHours >= 1
-            ? $"{(int)ts.TotalHours}:{ts.Minutes:D2}:{ts.Seconds:D2}"
-            : $"{ts.Minutes}:{ts.Seconds:D2}";
-    }
 
     private static string OverviewCss() => @"
 <style>

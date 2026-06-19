@@ -3,7 +3,7 @@ namespace Platee.Johann.UI.ViewModels;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
-using Platee.Johann.UI.Helpers;
+using Platee.Johann.Domain.Services;
 
 public sealed partial class EntryRowViewModel : ObservableObject
 {
