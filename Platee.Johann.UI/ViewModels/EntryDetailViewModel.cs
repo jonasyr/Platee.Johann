@@ -368,10 +368,10 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         }
 
         // Transcript — only when checkbox is checked
-        if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.Transcript))
+        if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.EffectiveTranscript))
         {
-            sb.AppendLine("ORIGINALTRANSKRIPT");
-            sb.AppendLine(this.Entry.Transcript);
+            sb.AppendLine(this.Entry.EditedTranscript is not null ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT");
+            sb.AppendLine(this.Entry.EffectiveTranscript!);
             sb.AppendLine();
         }
 
@@ -418,7 +418,12 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             return;
         }
 
-        IsEditingTranscript = false;
+        // Immediately update the entry so the corrected transcript appears in the detail view
+        // before the (potentially slow) GPT regeneration completes.
+        // OnEntryChanged exits edit mode and refreshes DisplayTranscript.
+        this.Entry = this.Entry with { EditedTranscript = editedText };
+        EditableTranscriptText = string.Empty;
+
         var logItem = this.addLog?.Invoke("Eintrag wird aus bearbeitetem Transkript neu generiert…", true);
         try
         {
@@ -428,7 +433,6 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             var updated = await this.processor.RegenerateFromTranscriptAsync(
                 this.Entry, editedText, progress, ct);
             this.Entry = updated;
-            EditableTranscriptText = string.Empty;
 
             if (logItem is not null)
             {

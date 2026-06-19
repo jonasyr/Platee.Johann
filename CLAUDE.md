@@ -8,6 +8,7 @@
 Key features:
 - Automatic MP3 watch-folder processing (FileSystemWatcher)
 - OpenAI Whisper transcription + GPT summarisation
+- Inline transcript editing with regeneration from corrected text
 - Five entry types: Aufgabe, E-Mail, Gesprächsnotiz, Stundenzettel, Analog
 - WPF three-pane UI: date list → entry list → detail view
 - Velopack-based installer with GitHub Releases auto-update
@@ -48,6 +49,7 @@ Clean Architecture with four projects + one test project:
 ```
 Platee.Johann.Domain/          # Core entities, no external deps
   Entities/Entry.cs            # Immutable sealed record — central domain model
+                               #   EditedTranscript + EffectiveTranscript (edited ?? original)
   Enums/EntryType.cs
   Parsing/                     # Header, title, type extraction from filenames
   ValueObjects/                # ParsedHeader, ProcessingStatus, CorrectionEntry
@@ -117,13 +119,15 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **No-Op stubs**: `NoOpLlmProvider` and `NoOpAudioTranscriber` in Infrastructure allow the app to run without an API key configured.
 
-**Schema versioning**: `Entry.SchemaVersion` (currently 2) + `JsonMigrator` handle forward migration of persisted JSON files.
+**Schema versioning**: `Entry.SchemaVersion` (currently 3) + `JsonMigrator` handle forward migration of persisted JSON files. v2→v3 added `EditedTranscript` field.
 
 **Settings split**: `AppSettings` holds user preferences (name, company, directories); `PromptSettings` holds all LLM prompt templates. Persisted separately as `settings.json` and `prompts.json`. `SettingsHolder` wraps both for live propagation to `SummaryGenerator`.
 
 **Settings migration**: `PromptDefaultsMigration` uses a revision integer to apply one-time prompt migrations without overwriting user customisations. `SettingsSplitMigration.MigrateIfNeeded` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local `prompts.json` and strip any remaining prompt keys from `settings.json` (best-effort, silent on failure).
 
 **Korrekturliste (correction list)**: `AppSettings.Korrekturliste` (`IReadOnlyList<CorrectionEntry>`) stores user-defined Whisper transcription corrections (wrong→correct pairs). Persisted in `settings.json` via `JsonSettingsRepository`. `SummaryGenerator.BuildSystemPrompt()` appends them to the LLM system message so GPT silently corrects known transcription errors before summarising. UI: `CorrectionEntryViewModel` wraps each entry for WPF binding; `SettingsViewModel.Korrekturen` (`ObservableCollection`) with `AddCorrection` / `RemoveCorrection` commands; "Korrekturliste" section in `SettingsView` under GRUNDDATEN.
+
+**Editable transcripts**: `Entry.EditedTranscript` stores user corrections to Whisper output; `EffectiveTranscript` (computed) returns edited text if present, otherwise original. `IEntryProcessor.RegenerateFromTranscriptAsync` stores the edited transcript and re-runs all summary generation using the corrected text. `ReprocessAsync` also uses `EffectiveTranscript`. Renderers (`HtmlRenderer`, `PdfRenderer`) and archive use `EffectiveTranscript`. UI: `EntryDetailViewModel` exposes `EditTranscript` / `CancelEditTranscript` / `RegenerateFromTranscript` commands with `IsEditingTranscript` / `EditableTranscriptText` state; `MainWindow.xaml` shows inline edit controls in the transcript section.
 
 **Team-shared prompts**: `AppSettings.GlobalPromptFilePath` points to a shared `prompts.json`. `PromptSettingsLoader.LoadWithFallbackAsync` tries global first, falls back to local on failure. `JsonPromptSettingsRepository.FromFilePath` factory creates a repo for arbitrary file paths.
 
@@ -164,6 +168,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **Release notes window** (`3968a67`): `ReleaseNotesWindow` with embedded `RELEASE_NOTES.md` rendered via `MarkdownHelper`; version-gated display via `ReleaseNotesHelper.ShouldShow()`.
 - **Embedded handbook** (`639a0e2`): `HANDBUCH.html` added as embedded resource; `MainViewModel.ExtractHandbook()` extracts to temp file for browser display.
 - **Auto-copy docs to Assets** (`98dd750`): MSBuild `CopyDocsToAssets` target copies `HANDBUCH.html` and `RELEASE_NOTES.md` from repo root into `Assets/` before build, keeping embedded resources in sync with source docs.
+- **Editable transcripts / Schema v3** (`0dadb19` .. `c0c5aaf`): `EditedTranscript` field added to `Entry` (schema v3). Inline transcript editing in detail view with regenerate-from-corrected-text flow. `EffectiveTranscript` computed property used across renderers, archive, and reprocessing. Three new test classes: `EditableTranscriptTests`, `EntryDetailTranscriptEditTests`, `RegenerateFromTranscriptTests`.
 - **Velopack 1.2.0** (`9d54c72`): upgraded installer SDK from pre-release 0.0.1298 to stable 1.2.0.
 
 <!-- END AUTO-MANAGED -->

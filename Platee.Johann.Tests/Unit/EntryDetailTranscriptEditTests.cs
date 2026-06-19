@@ -2,6 +2,7 @@ namespace Platee.Johann.Tests.Unit;
 
 using FluentAssertions;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
@@ -120,5 +121,38 @@ public sealed class EntryDetailTranscriptEditTests
         vm.EditTranscriptCommand.Execute(null);
 
         vm.IsNotEditingTranscript.Should().BeFalse();
+    }
+
+    [Fact]
+    public void RegenerateFromTranscript_OnFailure_PreservesEditedTranscript()
+    {
+        var processor = Substitute.For<IEntryProcessor>();
+        processor.CanProcess.Returns(true);
+        processor.RegenerateFromTranscriptAsync(
+                Arg.Any<Entry>(), Arg.Any<string>(),
+                Arg.Any<IProgress<ProcessingProgress>?>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("API error"));
+
+        var vm = CreateVm(processor);
+        vm.Entry = CreateEntry(transcript: "Original");
+
+        vm.EditTranscriptCommand.Execute(null);
+        vm.EditableTranscriptText = "User correction";
+        vm.RegenerateFromTranscriptCommand.Execute(null);
+
+        // After failure, the corrected transcript should still be visible
+        vm.DisplayTranscript.Should().Be("User correction");
+        vm.Entry!.EditedTranscript.Should().Be("User correction");
+    }
+
+    [Fact]
+    public void Copy_UsesEffectiveTranscript_WhenEdited()
+    {
+        var vm = CreateVm();
+        vm.Entry = CreateEntry(transcript: "Whisper output", editedTranscript: "User corrected");
+
+        // We can't easily test clipboard content, but we can verify DisplayTranscript
+        // is what would be copied — the Copy method should use EffectiveTranscript
+        vm.DisplayTranscript.Should().Be("User corrected");
     }
 }
