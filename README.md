@@ -252,4 +252,4 @@ Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren
 
 ---
 
-*Platé.Johann v1.2.1 · Windows 10/11 · Daten bleiben lokal*
+*Platé.Johann v1.3.0 · Windows 10/11 · Daten bleiben lokal*

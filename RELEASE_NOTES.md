@@ -20,6 +20,8 @@
 - `Strg+Mausrad` zoomt ebenfalls in der Detailansicht.
 - Tooltips an den Zoom-Buttons zeigen die Tastenkürzel an.
 
+**Diverse kleine Fehlerbehebungen und Verbesserungen**
+
 ---
 
 ## Version 1.2.1
