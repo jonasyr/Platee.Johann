@@ -56,8 +56,8 @@ Platee.Johann.Domain/          # Core entities, no external deps
   ValueObjects/                # ParsedHeader, ProcessingStatus, CorrectionEntry
 
 Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
-  Interfaces/                  # IEntryRepository, ILlmProvider, IAudioTranscriber,
-                               #   IPromptSettingsRepository
+  Interfaces/                  # IEntryRepository (incl. MigrateJobIdsAsync),
+                               #   ILlmProvider, IAudioTranscriber, IPromptSettingsRepository
   Processing/                  # EntryProcessingService, SummaryGenerator, AudioWatcherService
   Services/                    # PromptSettingsLoader (local/global fallback)
   Settings/                    # AppSettings, PromptSettings, SettingsHolder,
@@ -154,6 +154,10 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **Drag & Drop PDF export**: Dragging an entry from the entry list triggers `EntryDetailViewModel.RenderPdfForDragAsync()` to generate a PDF, then `MainWindow.xaml.cs` executes `DragDrop.DoDragDrop` with the file path. Users can drag entries directly into Explorer, e-mail clients, or other apps.
 
+**JobId format & date-prefix optimization**: JobIds follow the format `YYMMDD_NNN_XXXXXXXX` (e.g. `260617_001_a1b2c3d4`). `GetByJobIdAsync` parses the 6-digit date prefix to target a single date directory instead of scanning all directories (O(day's entries) vs O(total entries)). Falls back to full scan for non-standard JobIds. Private helpers: `TryParseDateFromJobId`, `ScanDirectoryForJobIdAsync`.
+
+**JobId migration**: `IEntryRepository.MigrateJobIdsAsync` (called once at startup in `App.xaml.cs`) rewrites legacy non-standard JobIds to the `YYMMDD_NNN_XXXXXXXX` format so all entries benefit from the date-prefix fast path. Crash-safe: skips individual files that fail to load/save, only rethrows `OperationCanceledException`. Tested in `EntryRepositoryTests`.
+
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: git-insights -->
@@ -175,6 +179,8 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **Velopack 1.2.0** (`9d54c72`): upgraded installer SDK from pre-release 0.0.1298 to stable 1.2.0.
 - **Zoom keyboard shortcuts** (`08a582f`): `Ctrl++` / `Ctrl+-` / `Ctrl+0` / `Ctrl+Scroll` shortcuts added for detail view zoom. `ZoomResetCommand` added to `EntryDetailViewModel`. `EntryDetailZoomTests` added.
 - **v1.3.0 documentation** (`7a93e0e` / `4d1f57d` / `1ddfbfd` / `08a582f`): `README.md`, `HANDBUCH.html`, and `RELEASE_NOTES.md` updated with transcript editing, Korrekturliste, drag & drop, and zoom keyboard shortcut features.
+- **GetByJobIdAsync optimization** (`74dc2bd`): date-prefix parsing reduces lookup from O(total entries) to O(single day). `TryParseDateFromJobId` + `ScanDirectoryForJobIdAsync` helpers extracted; fallback to full scan for non-standard JobIds.
+- **JobId migration** (`0cb97e6` / `c1a2919`): one-time startup migration rewrites legacy JobIds to standard `YYMMDD_NNN_XXXXXXXX` format. Made crash-safe with per-file error handling to prevent a single corrupt file from aborting the entire migration.
 
 <!-- END AUTO-MANAGED -->
 
