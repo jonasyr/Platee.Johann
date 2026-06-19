@@ -42,6 +42,9 @@
     <Compile Include="..\Platee.Johann.UI\ViewModels\ToastQueue.cs" Link="ViewModels/ToastQueue.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\CorrectionEntryViewModel.cs" Link="ViewModels/CorrectionEntryViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\SettingsViewModel.cs" Link="ViewModels/SettingsViewModel.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\EntryDetailViewModel.cs" Link="ViewModels/EntryDetailViewModel.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\SectionVisibilityViewModel.cs" Link="ViewModels/SectionVisibilityViewModel.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\ProcessLogItem.cs" Link="ViewModels/ProcessLogItem.cs" />
     <Compile Include="..\Platee.Johann.UI\Helpers\ReleaseNotesHelper.cs" Link="Helpers/ReleaseNotesHelper.cs" />
   </ItemGroup>
 
