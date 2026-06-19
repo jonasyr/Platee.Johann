@@ -125,6 +125,18 @@ Kein `Titel … Ende`? Dann generiert GPT den Titel automatisch aus dem Inhalt.
 | **↻ Neu generieren** | Alle KI-Abschnitte neu generieren | Einzelne Abschnitte wählen (Ausführlich, Zusammenfassung, Aufgaben, …) |
 | **Als erledigt markieren** | Eintrag abschließen – grünes Häkchen in der Liste | — |
 
+### Transkript bearbeiten
+
+Das Transkript kann direkt in der Detailansicht korrigiert werden:
+
+1. Stift-Symbol (✏) neben „Transkript" klicken → der Text wird editierbar.
+2. Fehler korrigieren (z. B. falsch erkannte Namen, fehlende Satzzeichen, versehentlich aufgenommene Passagen entfernen).
+3. **Neu generieren** klicken → alle KI-Abschnitte werden aus dem korrigierten Text neu erstellt.
+
+Der korrigierte Text wird sofort angezeigt und bleibt auch nach einem Neustart erhalten. Das Original-Transkript von Whisper wird intern als Referenz aufbewahrt. Bearbeitete Transkripte sind mit „(bearbeitet)" gekennzeichnet. PDF, HTML und Kopieren verwenden automatisch den korrigierten Text.
+
+Mit **Abbrechen** wird die Bearbeitung verworfen und der zuletzt gespeicherte Text wiederhergestellt.
+
 ### Drag & Drop
 
 Einen Eintrag in der Liste **anklicken und ziehen** erzeugt automatisch die PDF-Datei und startet einen Datei-Drag. Die PDF lässt sich so direkt in Explorer-Fenster, E-Mail-Programme oder andere Anwendungen ziehen.
@@ -223,6 +235,7 @@ Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren
 | Absturz | Crash-Logs unter `%LOCALAPPDATA%\Platee\Johann\logs\crash-*.log` mit Zeitstempel und Fehlertext |
 | Prompts nicht aktuell | App neu starten – Prompts werden beim Start vom Netzlaufwerk geladen |
 | Korrekturen nicht aktiv | Einstellungen → Korrekturliste prüfen, Speichern klicken |
+| Transkript-Bearbeitung verloren | Bei API-Fehler bleibt der korrigierte Text erhalten → erneut „↻ Neu generieren" klicken |
 
 ---
 
