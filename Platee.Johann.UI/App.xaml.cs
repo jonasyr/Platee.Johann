@@ -194,8 +194,8 @@ public partial class App : System.Windows.Application
             }
 
             var updatedSettings = persistedSettings with { LastSeenReleaseNotesVersion = currentVersion };
-            persistedSettingsHolder.Current = updatedSettings;
-            runtimeSettingsHolder.Current = updatedSettings;
+            persistedSettingsHolder.Update(updatedSettings, persistedSettingsHolder.Prompts);
+            runtimeSettingsHolder.Update(updatedSettings, runtimeSettingsHolder.Prompts);
             await settingsRepo.SaveAsync(updatedSettings);
         }
 

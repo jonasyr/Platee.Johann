@@ -222,8 +222,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         // Persist only personal settings — prompts are never saved locally
         await this.repository.SaveAsync(updatedSettings);
 
-        this.persistedHolder.Current = updatedSettings;
-        this.runtimeHolder.Current = updatedSettings;
+        this.persistedHolder.Update(updatedSettings, this.persistedHolder.Prompts);
+        this.runtimeHolder.Update(updatedSettings, this.runtimeHolder.Prompts);
 
         // Prompts
         var promptsChanged = updatedPrompts != this.persistedHolder.Prompts;
@@ -237,15 +237,15 @@ public sealed partial class SettingsViewModel : ObservableObject
             {
                 var globalRepo = JsonPromptSettingsRepository.FromFilePath(globalPath);
                 await globalRepo.SaveAsync(updatedPrompts);
-                this.persistedHolder.Prompts = updatedPrompts;
-                this.runtimeHolder.Prompts = updatedPrompts;
+                this.persistedHolder.Update(this.persistedHolder.Current, updatedPrompts);
+                this.runtimeHolder.Update(this.runtimeHolder.Current, updatedPrompts);
                 this.StatusMessage = "✓ Globale Prompts für alle Mitarbeiter gespeichert.";
             }
         }
         else if (promptsChanged)
         {
             // Normal mode: session-only
-            this.runtimeHolder.Prompts = updatedPrompts;
+            this.runtimeHolder.Update(this.runtimeHolder.Current, updatedPrompts);
             this.StatusMessage = "✓ Einstellungen gespeichert. Prompt-Änderungen gelten nur bis zum nächsten Neustart.";
         }
         else
