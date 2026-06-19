@@ -149,7 +149,9 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **Release notes window**: `ReleaseNotesHelper` in `UI/Helpers/` loads `RELEASE_NOTES.md` (embedded resource) and renders it via `MarkdownHelper.ToHtml()` into a styled HTML document displayed in `ReleaseNotesWindow` (WPF `WebBrowser`). `ShouldShow(lastSeenVersion, currentVersion)` gates display to once per version update.
 
-**Embedded user handbook**: `HANDBUCH.html` is an embedded resource in `UI/Assets/`. `MainViewModel.ExtractHandbook()` extracts it to a temp file (`Platee.Johann.HANDBUCH.html`) for display in the default browser.
+**Embedded user handbook**: `HANDBUCH.html` is an embedded resource in `UI/Assets/`. `MainViewModel.ExtractHandbook()` extracts it to a temp file (`Platee.Johann.HANDBUCH.html`) for display in the default browser. `README.md` (repo root) is the Markdown version of the same handbook content.
+
+**Drag & Drop PDF export**: Dragging an entry from the entry list triggers `EntryDetailViewModel.RenderPdfForDragAsync()` to generate a PDF, then `MainWindow.xaml.cs` executes `DragDrop.DoDragDrop` with the file path. Users can drag entries directly into Explorer, e-mail clients, or other apps.
 
 <!-- END AUTO-MANAGED -->
 
@@ -170,6 +172,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **Auto-copy docs to Assets** (`98dd750`): MSBuild `CopyDocsToAssets` target copies `HANDBUCH.html` and `RELEASE_NOTES.md` from repo root into `Assets/` before build, keeping embedded resources in sync with source docs.
 - **Editable transcripts / Schema v3** (`0dadb19` .. `c0c5aaf`): `EditedTranscript` field added to `Entry` (schema v3). Inline transcript editing in detail view with regenerate-from-corrected-text flow. `EffectiveTranscript` computed property used across renderers, archive, and reprocessing. Three new test classes: `EditableTranscriptTests`, `EntryDetailTranscriptEditTests`, `RegenerateFromTranscriptTests`.
 - **Velopack 1.2.0** (`9d54c72`): upgraded installer SDK from pre-release 0.0.1298 to stable 1.2.0.
+- **v1.3.0 documentation** (`7a93e0e` / `4d1f57d` / `1ddfbfd`): `README.md`, `HANDBUCH.html`, and `RELEASE_NOTES.md` updated with transcript editing, Korrekturliste, and drag & drop features.
 
 <!-- END AUTO-MANAGED -->
 
