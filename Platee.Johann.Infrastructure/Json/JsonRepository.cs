@@ -83,22 +83,61 @@ public sealed class JsonRepository : IEntryRepository
             return null;
         }
 
+        // Fast path: parse date prefix from JobId (format: YYMMDD_NNN_XXXXXXXX)
+        if (TryParseDateFromJobId(jobId, out var date))
+        {
+            var rawDir = this.GetRawDir(date);
+            var result = await this.ScanDirectoryForJobIdAsync(rawDir, jobId, ct);
+            if (result is not null)
+            {
+                return result;
+            }
+        }
+
+        // Fallback: full scan for non-standard JobIds or if fast path missed
         foreach (var dir in Directory.EnumerateDirectories(this.outputRoot))
         {
             var rawDir = Path.Combine(dir, "_raw");
-            if (!Directory.Exists(rawDir))
+            var result = await this.ScanDirectoryForJobIdAsync(rawDir, jobId, ct);
+            if (result is not null)
             {
-                continue;
+                return result;
             }
+        }
 
-            foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
+        return null;
+    }
+
+    private static bool TryParseDateFromJobId(string jobId, out DateOnly date)
+    {
+        date = default;
+        if (jobId.Length < 7 || jobId[6] != '_')
+        {
+            return false;
+        }
+
+        return DateOnly.TryParseExact(
+            jobId.AsSpan(0, 6), "yyMMdd",
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None,
+            out date);
+    }
+
+    private async Task<Entry?> ScanDirectoryForJobIdAsync(
+        string rawDir, string jobId, CancellationToken ct)
+    {
+        if (!Directory.Exists(rawDir))
+        {
+            return null;
+        }
+
+        foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
+        {
+            ct.ThrowIfCancellationRequested();
+            var entry = await LoadFileAsync(file, ct);
+            if (entry?.JobId == jobId)
             {
-                ct.ThrowIfCancellationRequested();
-                var entry = await LoadFileAsync(file, ct);
-                if (entry?.JobId == jobId)
-                {
-                    return entry;
-                }
+                return entry;
             }
         }
 

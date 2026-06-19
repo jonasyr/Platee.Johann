@@ -108,6 +108,33 @@ public sealed class EntryRepositoryTests : IDisposable
         result!.JobId.Should().Be("find_me");
     }
 
+    [Fact]
+    public async Task GetByJobIdAsync_uses_date_prefix_for_fast_lookup()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var jobId = "260317_001_abcd1234";
+        var entry = MakeEntry(jobId: jobId, seq: 1, date: date);
+
+        await this.sut.SaveAsync(entry);
+        var result = await this.sut.GetByJobIdAsync(jobId);
+
+        result.Should().NotBeNull();
+        result!.JobId.Should().Be(jobId);
+    }
+
+    [Fact]
+    public async Task GetByJobIdAsync_falls_back_to_full_scan_for_nonstandard_jobid()
+    {
+        var date = new DateOnly(2026, 3, 17);
+        var entry = MakeEntry(jobId: "custom_id", seq: 1, date: date);
+
+        await this.sut.SaveAsync(entry);
+        var result = await this.sut.GetByJobIdAsync("custom_id");
+
+        result.Should().NotBeNull();
+        result!.JobId.Should().Be("custom_id");
+    }
+
     // ── Helper ────────────────────────────────────────────────────────────────
     private static Entry MakeEntry(string jobId = "test_001", int seq = 1, DateOnly? date = null) => new()
     {
