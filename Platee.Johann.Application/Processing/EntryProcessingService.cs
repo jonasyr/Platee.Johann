@@ -439,10 +439,11 @@ public sealed class EntryProcessingService : IEntryProcessor
                 File.Copy(sourceAudioPath, audioDest);
             }
 
-            if (!string.IsNullOrEmpty(entry.Transcript))
+            var effectiveTranscript = entry.EffectiveTranscript;
+            if (!string.IsNullOrEmpty(effectiveTranscript))
             {
                 var txtPath = Path.Combine(rawDir, baseName + ".txt");
-                await File.WriteAllTextAsync(txtPath, entry.Transcript, ct);
+                await File.WriteAllTextAsync(txtPath, effectiveTranscript, ct);
             }
         }
         catch
