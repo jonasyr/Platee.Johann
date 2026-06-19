@@ -22,7 +22,7 @@ public partial class App : System.Windows.Application
 {
     private AudioWatcherService? audioWatcher;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         var crashLogger = new CrashLogWriter(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
@@ -51,8 +51,7 @@ public partial class App : System.Windows.Application
         var settingsFilePath = Path.Combine(settingsDir, "settings.json");
         ISettingsRepository settingsRepo = new JsonSettingsRepository(settingsDir);
 
-        // Load settings synchronously at startup using Task.Run to avoid UI thread deadlocks
-        var persistedSettings = Task.Run(() => settingsRepo.LoadAsync()).GetAwaiter().GetResult();
+        var persistedSettings = await settingsRepo.LoadAsync();
 
         // Clean up legacy local prompt files (one-time, idempotent)
         SettingsSplitMigration.CleanupLegacyFiles(settingsDir);
@@ -66,7 +65,7 @@ public partial class App : System.Windows.Application
             var globalPromptRepo = JsonPromptSettingsRepository.FromFilePath(persistedSettings.GlobalPromptFilePath);
             if (globalPromptRepo.IsReachable)
             {
-                effectivePrompts = Task.Run(() => globalPromptRepo.LoadAsync()).GetAwaiter().GetResult();
+                effectivePrompts = await globalPromptRepo.LoadAsync();
             }
         }
 
@@ -196,7 +195,7 @@ public partial class App : System.Windows.Application
             var updatedSettings = persistedSettings with { LastSeenReleaseNotesVersion = currentVersion };
             persistedSettingsHolder.Current = updatedSettings;
             runtimeSettingsHolder.Current = updatedSettings;
-            Task.Run(() => settingsRepo.SaveAsync(updatedSettings)).GetAwaiter().GetResult();
+            await settingsRepo.SaveAsync(updatedSettings);
         }
 
         _ = CheckForUpdatesAsync();
