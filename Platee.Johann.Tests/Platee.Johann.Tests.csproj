@@ -45,6 +45,15 @@
     <Compile Include="..\Platee.Johann.UI\ViewModels\SectionVisibilityViewModel.cs" Link="ViewModels/SectionVisibilityViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\ProcessLogItem.cs" Link="ViewModels/ProcessLogItem.cs" />
     <Compile Include="..\Platee.Johann.UI\Helpers\ReleaseNotesHelper.cs" Link="Helpers/ReleaseNotesHelper.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\MainViewModel.cs" Link="ViewModels/MainViewModel.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\ToastsViewModel.cs" Link="ViewModels/ToastsViewModel.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\SortMode.cs" Link="ViewModels/SortMode.cs" />
+    <Compile Include="..\Platee.Johann.UI\Views\SettingsView.xaml.cs" Link="Views/SettingsView.xaml.cs" />
+    <Page Include="..\Platee.Johann.UI\Views\SettingsView.xaml" Link="Views/SettingsView.xaml" />
+    <Compile Include="..\Platee.Johann.UI\Views\NewEntryView.xaml.cs" Link="Views/NewEntryView.xaml.cs" />
+    <Page Include="..\Platee.Johann.UI\Views\NewEntryView.xaml" Link="Views/NewEntryView.xaml" />
+    <Compile Include="..\Platee.Johann.UI\Views\AdminPasswordDialog.xaml.cs" Link="Views/AdminPasswordDialog.xaml.cs" />
+    <Page Include="..\Platee.Johann.UI\Views\AdminPasswordDialog.xaml" Link="Views/AdminPasswordDialog.xaml" />
   </ItemGroup>
 
 </Project>
