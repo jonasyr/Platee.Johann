@@ -128,9 +128,18 @@ public partial class App : System.Windows.Application
 
         this.audioWatcher = new AudioWatcherService(processor, runtimeSettingsHolder);
 
-        IMicrophoneRecorder microphoneRecorder = apiKey is not null
-            ? new WindowsMicrophoneRecorder()
-            : new NoOpMicrophoneRecorder();
+        IMicrophoneRecorder microphoneRecorder;
+        try
+        {
+            var realRecorder = new WindowsMicrophoneRecorder();
+            microphoneRecorder = realRecorder.IsMicrophoneAvailable
+                ? realRecorder
+                : new NoOpMicrophoneRecorder();
+        }
+        catch
+        {
+            microphoneRecorder = new NoOpMicrophoneRecorder();
+        }
 
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
