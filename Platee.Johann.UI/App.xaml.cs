@@ -132,9 +132,15 @@ public partial class App : System.Windows.Application
         try
         {
             var realRecorder = new WindowsMicrophoneRecorder();
-            microphoneRecorder = realRecorder.IsMicrophoneAvailable
-                ? realRecorder
-                : new NoOpMicrophoneRecorder();
+            if (realRecorder.IsMicrophoneAvailable)
+            {
+                microphoneRecorder = realRecorder;
+            }
+            else
+            {
+                realRecorder.Dispose();
+                microphoneRecorder = new NoOpMicrophoneRecorder();
+            }
         }
         catch
         {
