@@ -635,11 +635,59 @@
 
                 <Border DockPanel.Dock="Bottom" Padding="8" BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0">
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="+ Neues Element" Command="{Binding AddEntryCommand}"
-                                Style="{StaticResource ActionButtonStyle}"
-                                ToolTip="Neuen Eintrag anlegen"/>
-                    </StackPanel>
+                    <Grid>
+                        <!-- Idle state: Neues Element + Diktieren buttons -->
+                        <StackPanel Orientation="Horizontal"
+                                    Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVis}}">
+                            <Button Content="+ Neues Element" Command="{Binding AddEntryCommand}"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    ToolTip="Neuen Eintrag anlegen"/>
+                            <Button Content="🎙 Diktieren" Command="{Binding StartDictationCommand}"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    ToolTip="Mikrofon-Aufnahme starten"/>
+                        </StackPanel>
+
+                        <!-- Recording state: pulsing dot + REC + timer + Stop -->
+                        <DockPanel Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}">
+                            <Button Content="■ Stop" Command="{Binding StopDictationCommand}"
+                                    DockPanel.Dock="Right"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    ToolTip="Aufnahme beenden und transkribieren"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
+                                <Ellipse Width="8" Height="8"
+                                         Fill="{StaticResource AccentBrush}"
+                                         Margin="0,0,6,0">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Style.Triggers>
+                                                <EventTrigger RoutedEvent="Loaded">
+                                                    <BeginStoryboard>
+                                                        <Storyboard RepeatBehavior="Forever">
+                                                            <DoubleAnimation
+                                                                Storyboard.TargetProperty="Opacity"
+                                                                From="1" To="0.15"
+                                                                Duration="0:0:0.8"
+                                                                AutoReverse="True"/>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock Text="REC"
+                                           FontWeight="SemiBold" FontSize="11"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding RecordingDuration}"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextBrush}"
+                                           VerticalAlignment="Center"
+                                           FontFamily="{StaticResource MonoFamily}"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Grid>
                 </Border>
                 <ListBox x:Name="EntryListBox"
                          ItemsSource="{Binding Entries}"
