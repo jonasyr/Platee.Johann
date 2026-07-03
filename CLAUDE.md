@@ -122,7 +122,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **Schema versioning**: `Entry.SchemaVersion` (currently 3) + `JsonMigrator` handle forward migration of persisted JSON files. v2→v3 added `EditedTranscript` field.
 
-**Settings split**: `AppSettings` holds user preferences (name, company, directories); `PromptSettings` holds all LLM prompt templates. Persisted separately as `settings.json` and `prompts.json`. `SettingsHolder` wraps both for live propagation to `SummaryGenerator`.
+**Settings split**: `AppSettings` holds user preferences (name, company, directories); `PromptSettings` holds all LLM prompt templates. Persisted separately as `settings.json` and `prompts.json`. `SettingsHolder` wraps both for live propagation to `SummaryGenerator`. Internally uses a `volatile` immutable `SettingsState` record so `Snapshot()` always reads a consistent pair. `Update(AppSettings, PromptSettings)` atomically swaps both values; individual `Current`/`Prompts` setters preserved for backward compatibility.
 
 **Settings migration**: `PromptDefaultsMigration` uses a revision integer to apply one-time prompt migrations without overwriting user customisations. `SettingsSplitMigration.MigrateIfNeeded` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local `prompts.json` and strip any remaining prompt keys from `settings.json` (best-effort, silent on failure).
 
@@ -158,7 +158,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **JobId migration**: `IEntryRepository.MigrateJobIdsAsync` (called once at startup in `App.xaml.cs`) rewrites legacy non-standard JobIds to the `YYMMDD_NNN_XXXXXXXX` format so all entries benefit from the date-prefix fast path. Crash-safe: skips individual files that fail to load/save, only rethrows `OperationCanceledException`. Tested in `EntryRepositoryTests`.
 
-**Settings snapshot for processing**: `SettingsHolder.Snapshot()` captures current `AppSettings` and `PromptSettings` references into a new isolated instance. `SummaryGenerator.WithSnapshot()` creates a scoped generator using the frozen settings. Every `EntryProcessingService` processing method (`ProcessAudioAsync`, `ReprocessAsync`, `ReprocessSectionAsync`, `RegenerateFromTranscriptAsync`, `GenerateEmailTextAsync`) calls `WithSnapshot()` at the start so all parallel GPT calls within one run use the same prompts, even if the user saves settings mid-flight via the non-modal `SettingsView`. Tested in `SettingsSnapshotTests`.
+**Settings snapshot for processing**: `SettingsHolder.Snapshot()` atomically captures current `AppSettings` and `PromptSettings` from the single `volatile SettingsState` reference into a new isolated instance, preventing torn reads. `SummaryGenerator.WithSnapshot()` creates a scoped generator using the frozen settings. Every `EntryProcessingService` processing method (`ProcessAudioAsync`, `ReprocessAsync`, `ReprocessSectionAsync`, `RegenerateFromTranscriptAsync`, `GenerateEmailTextAsync`) calls `WithSnapshot()` at the start so all parallel GPT calls within one run use the same prompts, even if the user saves settings mid-flight via the non-modal `SettingsView`. All write sites (`SettingsViewModel.SaveAsync`, `App.OnStartup`) use `SettingsHolder.Update()` for atomic dual-property writes. Tested in `SettingsSnapshotTests` (includes concurrent writer/reader stress test).
 
 <!-- END AUTO-MANAGED -->
 
@@ -183,7 +183,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **v1.3.0 documentation** (`7a93e0e` / `4d1f57d` / `1ddfbfd` / `08a582f`): `README.md`, `HANDBUCH.html`, and `RELEASE_NOTES.md` updated with transcript editing, Korrekturliste, drag & drop, and zoom keyboard shortcut features.
 - **GetByJobIdAsync optimization** (`74dc2bd`): date-prefix parsing reduces lookup from O(total entries) to O(single day). `TryParseDateFromJobId` + `ScanDirectoryForJobIdAsync` helpers extracted; fallback to full scan for non-standard JobIds.
 - **JobId migration** (`0cb97e6` / `c1a2919`): one-time startup migration rewrites legacy JobIds to standard `YYMMDD_NNN_XXXXXXXX` format. Made crash-safe with per-file error handling to prevent a single corrupt file from aborting the entire migration.
-- **Settings snapshot** (`75ef5b8`): `SettingsHolder.Snapshot()` + `SummaryGenerator.WithSnapshot()` freeze settings at processing start to prevent mid-flight inconsistency when user saves settings during parallel GPT calls.
+- **Settings snapshot** (`75ef5b8` / `d350fae`): `SettingsHolder` rewritten with `volatile` inner `SettingsState` record for tear-free atomic snapshots. `Update(AppSettings, PromptSettings)` added for atomic dual writes; all write sites in `SettingsViewModel` and `App.xaml.cs` migrated. `SummaryGenerator.WithSnapshot()` freezes settings at processing start. Concurrent stress test in `SettingsSnapshotTests` validates no torn reads.
 
 <!-- END AUTO-MANAGED -->
 
