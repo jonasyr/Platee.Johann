@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Services;
+using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
 using Platee.Johann.UI.Views;
@@ -70,6 +71,19 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool isSortReversed;
 
+    private readonly IMicrophoneRecorder microphoneRecorder;
+    private System.Windows.Threading.DispatcherTimer? recordingTimer;
+    private DateTimeOffset recordingStart;
+    private string? tempRecordingPath;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartDictationCommand))]
+    [NotifyCanExecuteChangedFor(nameof(StopDictationCommand))]
+    private bool isRecording;
+
+    [ObservableProperty]
+    private string recordingDuration = "00:00";
+
     public SectionVisibilityViewModel Sections { get; } = new();
 
     public bool IsSortById => this.CurrentSort == SortMode.ById;
@@ -112,7 +126,9 @@ public sealed partial class MainViewModel : ObservableObject
                          string outputRoot, IEntryProcessor processor,
                          ISettingsRepository settingsRepo,
                          SettingsHolder persistedSettingsHolder,
-                         SettingsHolder runtimeSettingsHolder, IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
+                         SettingsHolder runtimeSettingsHolder,
+                         IMicrophoneRecorder microphoneRecorder,
+                         IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
         this.repository = repository;
         this.renderers = renderers;
@@ -122,6 +138,7 @@ public sealed partial class MainViewModel : ObservableObject
         this.persistedSettingsHolder = persistedSettingsHolder;
         this.runtimeSettingsHolder = runtimeSettingsHolder;
         this.startupPathIssues = startupPathIssues ?? [];
+        this.microphoneRecorder = microphoneRecorder;
         this.detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, this.Sections,
             addLog: this.AddProcessLog,
             completeLog: this.CompleteProcessLog,
@@ -494,6 +511,104 @@ public sealed partial class MainViewModel : ObservableObject
         {
             this.ErrorMessage = string.Empty;
         }
+    }
+
+    private bool CanStartDictation() => !this.IsRecording;
+
+    [RelayCommand(CanExecute = nameof(CanStartDictation))]
+    private async Task StartDictation()
+    {
+        if (!this.processor.CanProcess)
+        {
+            this.ErrorMessage = "Kein OpenAI API-Key konfiguriert. OPENAI_API_KEY setzen oder .env Datei erstellen.";
+            return;
+        }
+
+        if (!this.microphoneRecorder.IsMicrophoneAvailable)
+        {
+            this.Toasts.Show("Kein Mikrofon gefunden oder Zugriff verweigert.", ToastTone.Error);
+            return;
+        }
+
+        this.tempRecordingPath = Path.Combine(
+            Path.GetTempPath(),
+            $"johann_diktier_{Guid.NewGuid():N}.mp3");
+
+        try
+        {
+            await this.microphoneRecorder.StartAsync(this.tempRecordingPath);
+            this.IsRecording = true;
+            this.recordingStart = DateTimeOffset.Now;
+            this.RecordingDuration = "00:00";
+
+            this.recordingTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1),
+            };
+            this.recordingTimer.Tick += this.OnRecordingTimerTick;
+            this.recordingTimer.Start();
+        }
+        catch (Exception ex)
+        {
+            this.Toasts.Show($"Mikrofon konnte nicht gestartet werden: {ex.Message}", ToastTone.Error);
+            try { File.Delete(this.tempRecordingPath); } catch { }
+            this.tempRecordingPath = null;
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(IsRecording))]
+    private async Task StopDictation()
+    {
+        this.recordingTimer?.Stop();
+        this.recordingTimer = null;
+        this.IsRecording = false;
+
+        try
+        {
+            await this.microphoneRecorder.StopAsync();
+        }
+        catch (Exception ex)
+        {
+            this.Toasts.Show($"Aufnahme konnte nicht beendet werden: {ex.Message}", ToastTone.Warn);
+        }
+
+        var tempPath = this.tempRecordingPath;
+        this.tempRecordingPath = null;
+
+        if (tempPath is null)
+        {
+            return;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var logItem = this.AddProcessLog("Diktieraufnahme wird verarbeitet…", isRunning: true);
+
+        var progress = new Progress<ProcessingProgress>(p =>
+            System.Windows.Application.Current.Dispatcher.Invoke(() => this.StatusText = p.Stage));
+
+        try
+        {
+            var entry = await this.processor.ProcessAudioAsync(tempPath, today, progress, CancellationToken.None);
+            await this.RefreshAfterEntryAsync(entry);
+            this.CompleteProcessLog(logItem, "Fertig");
+        }
+        catch (Exception ex)
+        {
+            this.ErrorMessage = $"Diktieraufnahme: Fehler – {ex.Message}";
+            this.CompleteProcessLog(logItem, $"Fehler: {ex.Message}");
+        }
+        finally
+        {
+            try { File.Delete(tempPath); } catch { }
+        }
+    }
+
+    private void OnRecordingTimerTick(object? sender, EventArgs e)
+    {
+        var elapsed = DateTimeOffset.Now - this.recordingStart;
+        this.RecordingDuration = elapsed.TotalHours >= 1
+            ? $"{(int)elapsed.TotalHours}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}"
+            : $"{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
     }
 
     [RelayCommand]

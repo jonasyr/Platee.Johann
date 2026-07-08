@@ -9,6 +9,7 @@ using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Parsing;
+using Platee.Johann.Infrastructure.Audio;
 using Platee.Johann.Infrastructure.Json;
 using Platee.Johann.Infrastructure.Llm;
 using Platee.Johann.Infrastructure.Renderers;
@@ -127,10 +128,30 @@ public partial class App : System.Windows.Application
 
         this.audioWatcher = new AudioWatcherService(processor, runtimeSettingsHolder);
 
+        IMicrophoneRecorder microphoneRecorder;
+        try
+        {
+            var realRecorder = new WindowsMicrophoneRecorder();
+            if (realRecorder.IsMicrophoneAvailable)
+            {
+                microphoneRecorder = realRecorder;
+            }
+            else
+            {
+                realRecorder.Dispose();
+                microphoneRecorder = new NoOpMicrophoneRecorder();
+            }
+        }
+        catch
+        {
+            microphoneRecorder = new NoOpMicrophoneRecorder();
+        }
+
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
                                            settingsRepo, persistedSettingsHolder,
-                                           runtimeSettingsHolder, pathResolution.Issues);
+                                           runtimeSettingsHolder, microphoneRecorder,
+                                           pathResolution.Issues);
 
         // Track per-file log items for the watcher
         var watcherLogs = new System.Collections.Concurrent.ConcurrentDictionary<string, ProcessLogItem>();
