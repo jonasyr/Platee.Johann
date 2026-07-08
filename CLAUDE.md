@@ -7,6 +7,7 @@
 
 Key features:
 - Automatic MP3 watch-folder processing (FileSystemWatcher)
+- In-app microphone dictation ("🎙 Diktieren" button, WASAPI recording via NAudio)
 - OpenAI Whisper transcription + GPT summarisation
 - Inline transcript editing with regeneration from corrected text
 - Five entry types: Aufgabe, E-Mail, Gesprächsnotiz, Stundenzettel, Analog
@@ -198,6 +199,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **Diktieren recording UI** (`816a277`): entry list pane bottom bar extended to dual-state XAML — idle shows "+ Neues Element" + "🎙 Diktieren" buttons; recording state shows pulsing red ellipse (WPF Storyboard), "REC" label, live timer, and "■ Stop" button. Binds to existing `IsRecording`, `RecordingDuration`, `StartDictationCommand`, `StopDictationCommand` properties via `BoolToVis` / `InverseBoolToVis` converters.
 - **WindowsMicrophoneRecorder dispose fix** (`65db67a`): `App.xaml.cs` now calls `realRecorder.Dispose()` before assigning `NoOpMicrophoneRecorder` when `IsMicrophoneAvailable` returns false, preventing a resource leak when microphone hardware is present but unavailable.
 - **WindowsMicrophoneRecorder robustness** (`1784c09`): `StartAsync` now throws `InvalidOperationException` on double-start. `StopAsync` made truly async — uses `TaskCompletionSource` wired to `RecordingStopped` event and awaits it before flushing/disposing the WAV writer, guaranteeing the file is complete before the caller proceeds.
+- **v1.3.0 documentation** (`ce30ade`): `RELEASE_NOTES.md` updated with in-app dictation feature notes for end users.
 
 <!-- END AUTO-MANAGED -->
 
