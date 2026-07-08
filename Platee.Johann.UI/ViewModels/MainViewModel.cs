@@ -532,7 +532,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         this.tempRecordingPath = Path.Combine(
             Path.GetTempPath(),
-            $"johann_diktier_{Guid.NewGuid():N}.wav");
+            $"johann_diktier_{Guid.NewGuid():N}.mp3");
 
         try
         {
