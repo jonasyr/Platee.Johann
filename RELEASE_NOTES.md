@@ -1,5 +1,16 @@
 # Was ist neu?
 
+## Version 1.4.0
+
+**In-App-Diktat per Mikrofon**
+
+- Neue Schaltfläche „🎙 Diktieren" in der Eintrags-Liste: Aufnahme direkt aus der App starten, ohne vorher eine MP3-Datei auf dem Smartphone aufzunehmen.
+- Während der Aufnahme wird ein roter Puls-Indikator mit laufendem Timer angezeigt. „■ Stop" beendet die Aufnahme und startet automatisch die Transkription und KI-Zusammenfassung.
+- Die Aufnahme wird per WASAPI (Windows Audio Session API) in höchster Qualität aufgezeichnet.
+- Ohne Mikrofon oder API-Key ist die Schaltfläche deaktiviert; der normale Datei-Drop-Betrieb bleibt unverändert.
+
+---
+
 ## Version 1.3.0
 
 **Transkript bearbeiten und neu generieren**
