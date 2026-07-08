@@ -28,6 +28,11 @@ public sealed class WindowsMicrophoneRecorder : IMicrophoneRecorder, IDisposable
 
     public Task StartAsync(string outputFilePath, CancellationToken ct = default)
     {
+        if (this.capture is not null)
+        {
+            throw new InvalidOperationException("Recording is already in progress.");
+        }
+
         this.capture = new WasapiCapture();
         this.writer = new WaveFileWriter(outputFilePath, this.capture.WaveFormat);
 
@@ -40,15 +45,23 @@ public sealed class WindowsMicrophoneRecorder : IMicrophoneRecorder, IDisposable
         return Task.CompletedTask;
     }
 
-    public Task StopAsync()
+    public async Task StopAsync()
     {
-        this.capture?.StopRecording();
+        if (this.capture is null)
+        {
+            return;
+        }
+
+        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        this.capture.RecordingStopped += (_, _) => tcs.TrySetResult(true);
+        this.capture.StopRecording();
+        await tcs.Task;
+
         this.writer?.Flush();
         this.writer?.Dispose();
         this.writer = null;
-        this.capture?.Dispose();
+        this.capture.Dispose();
         this.capture = null;
-        return Task.CompletedTask;
     }
 
     public void Dispose()

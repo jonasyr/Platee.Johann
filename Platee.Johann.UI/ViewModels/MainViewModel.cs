@@ -588,7 +588,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         try
         {
-            var entry = await this.processor.ProcessAudioAsync(tempPath, today, progress);
+            var entry = await this.processor.ProcessAudioAsync(tempPath, today, progress, CancellationToken.None);
             await this.RefreshAfterEntryAsync(entry);
             this.CompleteProcessLog(logItem, "Fertig");
         }
