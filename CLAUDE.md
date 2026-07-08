@@ -200,6 +200,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 - **WindowsMicrophoneRecorder dispose fix** (`65db67a`): `App.xaml.cs` now calls `realRecorder.Dispose()` before assigning `NoOpMicrophoneRecorder` when `IsMicrophoneAvailable` returns false, preventing a resource leak when microphone hardware is present but unavailable.
 - **WindowsMicrophoneRecorder robustness** (`1784c09`): `StartAsync` now throws `InvalidOperationException` on double-start. `StopAsync` made truly async — uses `TaskCompletionSource` wired to `RecordingStopped` event and awaits it before flushing/disposing the WAV writer, guaranteeing the file is complete before the caller proceeds.
 - **v1.3.0 documentation** (`ce30ade`): `RELEASE_NOTES.md` updated with in-app dictation feature notes for end users.
+- **In-app dictation documentation** (`5be0a71`): `README.md` and `HANDBUCH.html` updated with "Direkt diktieren (Mikrofon)" workflow section describing the 🎙 Diktieren button flow and requirements (microphone + API key).
 
 <!-- END AUTO-MANAGED -->
 
