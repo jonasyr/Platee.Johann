@@ -47,6 +47,10 @@ Vollständiger Inhalt: alle KI-Abschnitte, Exportbuttons und das aufklappbare Tr
 
 MP3 in `Dokumente\Johann\Eingang` legen – Johann erkennt die Datei automatisch und verarbeitet sie sofort. Kein Klick nötig. Ideal für automatische Synchronisation über OneDrive vom Smartphone.
 
+### Direkt diktieren (Mikrofon)
+
+**🎙 Diktieren**-Button in der Eintrags-Liste klicken, sprechen, dann **■ Stop** klicken. Johann transkribiert und erstellt die Zusammenfassung wie gewohnt. Erfordert ein angeschlossenes Mikrofon und einen konfigurierten API-Schlüssel.
+
 ### Manuellen Eintrag anlegen
 
 **+ Neues Element** öffnet einen Dialog: Typ und Projekt wählen, Text eingeben. Mit API-Schlüssel werden KI-Abschnitte sofort generiert.
