@@ -7,11 +7,20 @@ using Platee.Johann.Application.Diagnostics;
 public sealed class CrashLogWriterTests
 {
     [Fact]
-    public void ResolveLogDirectory_UsesUserProfilePeanoJohannLogs()
+    public void ResolveLogDirectory_UsesPeanoPlateeJohannLogsSegments()
     {
         var result = CrashLogWriter.ResolveLogDirectory(@"C:\Users\johann");
 
-        result.Should().Be(Path.Combine(@"C:\Users\johann", "Peano", "Johann", "logs"));
+        result.Should().Be(Path.Combine(@"C:\Users\johann", "Peano", "Platee.Johann", "logs"));
+    }
+
+    [Fact]
+    public void DefaultConstructor_ResolvesToUnifiedCDriveLogPath()
+    {
+        var fs = new FakeCrashLogFileSystem();
+        var sut = new CrashLogWriter(fileSystem: fs);
+
+        sut.LogDirectory.Should().Be(@"C:\Peano\Platee.Johann\logs");
     }
 
     [Fact]
@@ -21,7 +30,7 @@ public sealed class CrashLogWriterTests
 
         var result = sut.GetLogFilePath(new DateOnly(2026, 03, 31));
 
-        result.Should().Be(Path.Combine(@"C:\Users\johann", "Peano", "Johann", "logs", "johann-crash-2026-03-31.log"));
+        result.Should().Be(Path.Combine(@"C:\Users\johann", "Peano", "Platee.Johann", "logs", "johann-crash-2026-03-31.log"));
     }
 
     [Fact]
@@ -79,6 +88,33 @@ public sealed class CrashLogWriterTests
         fs.Appends[0].Contents.Should().Contain("TASK: second");
     }
 
+    [Fact]
+    public void WriteCrashLog_WhenPrimaryDirectoryUnwritable_FallsBackAndStillWrites()
+    {
+        var fs = new FakeCrashLogFileSystem { UnwritableDirectory = @"C:\Peano\Platee.Johann\logs" };
+        var now = new DateTimeOffset(2026, 03, 31, 10, 20, 30, TimeSpan.Zero);
+        var sut = new CrashLogWriter(appVersion: "3.0.0", fileSystem: fs, utcNow: () => now, fallbackRootPath: @"C:\FakeLocalAppData");
+
+        sut.WriteCrashLog("WARNING", "PDF render failed for JobId=1: boom");
+
+        sut.LogDirectory.Should().Be(Path.Combine(@"C:\FakeLocalAppData", "Peano", "Platee.Johann", "logs"));
+        fs.Appends.Should().ContainSingle();
+        fs.Appends[0].Path.Should().Be(Path.Combine(sut.LogDirectory, "johann-crash-2026-03-31.log"));
+        fs.Appends[0].Contents.Should().Contain("WARNING: PDF render failed");
+    }
+
+    [Fact]
+    public void WriteCrashLog_WhenBothLocationsUnwritable_DoesNotThrowAndWritesNothing()
+    {
+        var fs = new FakeCrashLogFileSystem { AlwaysThrowOnCreateDirectory = true };
+        var sut = new CrashLogWriter(appVersion: "3.0.0", fileSystem: fs, fallbackRootPath: @"C:\FakeLocalAppData");
+
+        var act = () => sut.WriteCrashLog("WARNING", "boom");
+
+        act.Should().NotThrow();
+        fs.Appends.Should().BeEmpty();
+    }
+
     private sealed class FakeCrashLogFileSystem : ICrashLogFileSystem
     {
         public List<string> CreatedDirectories { get; } = [];
@@ -89,9 +125,21 @@ public sealed class CrashLogWriterTests
 
         public bool FailFirstAppendOnly { get; init; }
 
+        public string? UnwritableDirectory { get; init; }
+
+        public bool AlwaysThrowOnCreateDirectory { get; init; }
+
         private int appendCalls;
 
-        public void CreateDirectory(string path) => this.CreatedDirectories.Add(path);
+        public void CreateDirectory(string path)
+        {
+            if (this.AlwaysThrowOnCreateDirectory || path == this.UnwritableDirectory)
+            {
+                throw new UnauthorizedAccessException("simulated permission error");
+            }
+
+            this.CreatedDirectories.Add(path);
+        }
 
         public void AppendAllText(string path, string contents)
         {

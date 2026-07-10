@@ -2,6 +2,7 @@ namespace Platee.Johann.Application.Processing;
 
 using System.IO;
 using System.Text;
+using Platee.Johann.Application.Diagnostics;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Entities;
@@ -23,6 +24,7 @@ public sealed class EntryProcessingService : IEntryProcessor
     private readonly IHtmlOverviewService? overviewService;
     private readonly SettingsHolder settings;
     private readonly IEnumerable<IEntryRenderer> renderers;
+    private readonly IEntryProcessingLogger logger;
 
     public bool CanProcess => this.transcriber.IsAvailable;
 
@@ -34,7 +36,8 @@ public sealed class EntryProcessingService : IEntryProcessor
         string outputRoot = "",
         IHtmlOverviewService? overviewService = null,
         SettingsHolder? settings = null,
-        IEnumerable<IEntryRenderer>? renderers = null)
+        IEnumerable<IEntryRenderer>? renderers = null,
+        IEntryProcessingLogger? logger = null)
     {
         this.transcriber = transcriber;
         this.summaryGenerator = summaryGenerator;
@@ -44,6 +47,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         this.overviewService = overviewService;
         this.settings = settings ?? new SettingsHolder(AppSettings.Default);
         this.renderers = renderers ?? Array.Empty<IEntryRenderer>();
+        this.logger = logger ?? new TraceEntryProcessingLogger();
     }
 
     /// <summary>
@@ -165,9 +169,9 @@ public sealed class EntryProcessingService : IEntryProcessor
                     await renderer.RenderAsync(finalEntry, new RenderOptions(rawFolder, false, true), ct);
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Fallback / ignore failure
+                this.logger.LogWarning($"{renderer.RendererName} render", finalEntry.JobId, ex);
             }
         }
 
@@ -200,9 +204,9 @@ public sealed class EntryProcessingService : IEntryProcessor
                 finalEntry = finalEntry with { Status = finalEntry.Status with { Archived = true } };
                 await this.repository.SaveAsync(finalEntry, ct);
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore move failure
+                this.logger.LogWarning("MP3 archive move", finalEntry.JobId, ex);
             }
         }
 
@@ -428,7 +432,7 @@ public sealed class EntryProcessingService : IEntryProcessor
     /// <summary>
     /// Copies the source audio file and writes the transcript text into
     /// {outputRoot}/{YYYY-MM-DD}/_raw/ using the FilenameBuilder convention.
-    /// Failures are swallowed — archival is non-critical.
+    /// Failures are non-fatal — archival is non-critical — but are logged via <see cref="logger"/>.
     /// </summary>
     private async Task ArchiveRawFilesAsync(string sourceAudioPath, Entry entry, CancellationToken ct)
     {
@@ -459,9 +463,10 @@ public sealed class EntryProcessingService : IEntryProcessor
                 await File.WriteAllTextAsync(txtPath, effectiveTranscript, ct);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Non-critical: archival failure must not break the pipeline
+            // Non-critical: archival failure must not break the pipeline, but it is logged.
+            this.logger.LogWarning("Raw file archival", entry.JobId, ex);
         }
     }
 

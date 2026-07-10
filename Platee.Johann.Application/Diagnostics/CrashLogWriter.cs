@@ -9,27 +9,46 @@ public interface ICrashLogFileSystem
     void AppendAllText(string path, string contents);
 }
 
+/// <summary>
+/// Writes crash and processing-warning entries to a single, unified log file so any failure —
+/// crash or non-fatal — is visible on disk without a debugger. Primarily targets
+/// <c>C:\Peano\Platee.Johann\logs</c>; if that location cannot be created or written to
+/// (e.g. insufficient permissions), it transparently falls back to a per-user writable
+/// location so log entries are never silently dropped.
+/// </summary>
 public sealed class CrashLogWriter
 {
     private const string ProductSegment = "Peano";
-    private const string AppSegment = "Johann";
+    private const string AppSegment = "Platee.Johann";
     private const string LogsSegment = "logs";
+    private const string DefaultPrimaryRoot = @"C:\";
 
     private readonly ICrashLogFileSystem fileSystem;
     private readonly Func<DateTimeOffset> utcNow;
     private readonly string appVersion;
     private readonly Lock sync = new();
     private readonly HashSet<string> headerWrittenFiles = [];
+    private readonly string primaryDirectory;
+    private readonly string fallbackDirectory;
+
+    private string activeDirectory;
 
     public CrashLogWriter(
-        string userProfilePath,
+        string? primaryRootPath = null,
         string? appVersion = null,
         ICrashLogFileSystem? fileSystem = null,
-        Func<DateTimeOffset>? utcNow = null)
+        Func<DateTimeOffset>? utcNow = null,
+        string? fallbackRootPath = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(userProfilePath);
+        var primaryRoot = string.IsNullOrWhiteSpace(primaryRootPath) ? DefaultPrimaryRoot : primaryRootPath;
+        var fallbackRoot = string.IsNullOrWhiteSpace(fallbackRootPath)
+            ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
+            : fallbackRootPath;
 
-        this.LogDirectory = ResolveLogDirectory(userProfilePath);
+        this.primaryDirectory = ResolveLogDirectory(primaryRoot);
+        this.fallbackDirectory = ResolveLogDirectory(fallbackRoot);
+        this.activeDirectory = this.primaryDirectory;
+
         this.appVersion = string.IsNullOrWhiteSpace(appVersion)
             ? Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "unknown"
             : appVersion;
@@ -37,20 +56,28 @@ public sealed class CrashLogWriter
         this.utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
     }
 
-    public string LogDirectory { get; }
+    /// <summary>
+    /// The directory entries are currently being written to. Starts out as the primary,
+    /// unified location and switches to the fallback location if the primary becomes unwritable.
+    /// </summary>
+    public string LogDirectory => this.activeDirectory;
 
-    public static string ResolveLogDirectory(string userProfilePath) =>
-        Path.Combine(userProfilePath, ProductSegment, AppSegment, LogsSegment);
+    public static string ResolveLogDirectory(string rootPath) =>
+        Path.Combine(rootPath, ProductSegment, AppSegment, LogsSegment);
 
     public static string BuildLogFileName(DateOnly date) => $"johann-crash-{date:yyyy-MM-dd}.log";
 
     public string GetLogFilePath(DateOnly date) => Path.Combine(this.LogDirectory, BuildLogFileName(date));
 
-    public void EnsureLogDirectory() => this.TryCreateDirectory();
+    public void EnsureLogDirectory() => this.TryEnsureWritableDirectory();
 
+    /// <summary>
+    /// Writes a log entry. Used both for unhandled crashes and for non-fatal warnings
+    /// (e.g. swallowed processing exceptions) so every failure leaves a diagnostic trail.
+    /// </summary>
     public void WriteCrashLog(string channel, object? ex)
     {
-        if (!this.TryCreateDirectory())
+        if (!this.TryEnsureWritableDirectory())
         {
             return;
         }
@@ -76,11 +103,33 @@ public sealed class CrashLogWriter
         }
     }
 
-    private bool TryCreateDirectory()
+    /// <summary>
+    /// Ensures <see cref="activeDirectory"/> points at a directory that can currently be created.
+    /// Tries the unified primary location first; falls back to a per-user writable location so
+    /// entries are never silently lost when the primary location is inaccessible.
+    /// </summary>
+    private bool TryEnsureWritableDirectory()
+    {
+        if (this.TryCreateDirectory(this.primaryDirectory))
+        {
+            this.activeDirectory = this.primaryDirectory;
+            return true;
+        }
+
+        if (this.TryCreateDirectory(this.fallbackDirectory))
+        {
+            this.activeDirectory = this.fallbackDirectory;
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryCreateDirectory(string directory)
     {
         try
         {
-            this.fileSystem.CreateDirectory(this.LogDirectory);
+            this.fileSystem.CreateDirectory(directory);
             return true;
         }
         catch (IOException)
