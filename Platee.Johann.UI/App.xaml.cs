@@ -124,7 +124,8 @@ public partial class App : System.Windows.Application
         var summaryGenerator = new SummaryGenerator(llmProvider, runtimeSettingsHolder);
         IEntryProcessor processor = new EntryProcessingService(
             transcriber, summaryGenerator, new HeaderParser(), repository,
-            outputRoot, overviewService, runtimeSettingsHolder, renderers);
+            outputRoot, overviewService, runtimeSettingsHolder, renderers,
+            new CrashLogEntryProcessingLogger(crashLogger));
 
         this.audioWatcher = new AudioWatcherService(processor, runtimeSettingsHolder);
 
