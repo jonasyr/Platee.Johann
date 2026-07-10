@@ -26,8 +26,7 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         var crashLogger = new CrashLogWriter(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            typeof(App).Assembly.GetName().Version?.ToString());
+            appVersion: typeof(App).Assembly.GetName().Version?.ToString());
         crashLogger.EnsureLogDirectory();
 
         this.DispatcherUnhandledException += (_, ex) =>
