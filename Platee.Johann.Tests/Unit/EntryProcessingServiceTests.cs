@@ -113,6 +113,63 @@ public sealed class EntryProcessingServiceTests : IDisposable
         results.Should().AllSatisfy(e => e.Status.Summarized.Should().BeTrue());
     }
 
+    [Fact]
+    public async Task ProcessAudioAsync_RendererNameCasingDiffers_StillRenders()
+    {
+        // Dispatch must agree with EntryDetailViewModel, which matches
+        // case-insensitively. See #40.
+        var renderer = CreateRenderer("pdf");
+        var ctx = this.CreateService(renderers: [renderer]);
+
+        var entry = await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 3));
+
+        await renderer.Received().RenderAsync(
+            Arg.Any<Entry>(), Arg.Any<RenderOptions>(), Arg.Any<CancellationToken>());
+        entry.Status.PdfCreated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ProcessAudioAsync_UnrecognisedRendererName_LogsExactlyOneWarning()
+    {
+        // A renderer that matches no branch used to vanish without a trace.
+        var renderer = CreateRenderer("Sparkline");
+        var ctx = this.CreateService(renderers: [renderer]);
+
+        await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 3));
+
+        ctx.Logger.Received(1).LogWarning(
+            Arg.Is<string>(op => op.Contains("Sparkline", StringComparison.Ordinal)),
+            Arg.Any<string>(),
+            Arg.Any<Exception>());
+        await renderer.DidNotReceive().RenderAsync(
+            Arg.Any<Entry>(), Arg.Any<RenderOptions>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessAudioAsync_EmailRenderer_IsSkippedWithoutWarningNoise()
+    {
+        // EmailRenderer is deliberately on-demand only; skipping it is correct
+        // and must not be reported as a problem.
+        var renderer = CreateRenderer("Email");
+        var ctx = this.CreateService(renderers: [renderer]);
+
+        await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 3));
+
+        ctx.Logger.DidNotReceive().LogWarning(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Exception>());
+        await renderer.DidNotReceive().RenderAsync(
+            Arg.Any<Entry>(), Arg.Any<RenderOptions>(), Arg.Any<CancellationToken>());
+    }
+
+    private static IEntryRenderer CreateRenderer(string name)
+    {
+        var renderer = Substitute.For<IEntryRenderer>();
+        renderer.RendererName.Returns(name);
+        renderer.RenderAsync(Arg.Any<Entry>(), Arg.Any<RenderOptions>(), Arg.Any<CancellationToken>())
+            .Returns(new RenderResult([0x01], "application/octet-stream", $"entry.{name}"));
+        return renderer;
+    }
+
     private Context CreateService(IEnumerable<IEntryRenderer>? renderers = null)
     {
         var transcriber = Substitute.For<IAudioTranscriber>();
@@ -133,6 +190,8 @@ public sealed class EntryProcessingServiceTests : IDisposable
             Archivverzeichnis = Path.Combine(this.tempDir, "archiv"),
         });
 
+        var logger = Substitute.For<IEntryProcessingLogger>();
+
         var service = new EntryProcessingService(
             transcriber,
             new SummaryGenerator(llm, settings),
@@ -142,14 +201,15 @@ public sealed class EntryProcessingServiceTests : IDisposable
             overviewService: null,
             settings: settings,
             renderers: renderers ?? [],
-            logger: Substitute.For<IEntryProcessingLogger>());
+            logger: logger);
 
-        return new Context(service, repo, llm, transcriber);
+        return new Context(service, repo, llm, transcriber, logger);
     }
 
     private sealed record Context(
         EntryProcessingService Service,
         IEntryRepository Repo,
         ILlmProvider Llm,
-        IAudioTranscriber Transcriber);
+        IAudioTranscriber Transcriber,
+        IEntryProcessingLogger Logger);
 }

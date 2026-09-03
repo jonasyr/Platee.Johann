@@ -159,14 +159,26 @@ public sealed class EntryProcessingService : IEntryProcessor
         {
             try
             {
-                if (renderer.RendererName == "PDF")
+                // Case-insensitive to agree with EntryDetailViewModel, which
+                // resolves the same renderers with OrdinalIgnoreCase.
+                if (IsRenderer(renderer, "PDF"))
                 {
                     await renderer.RenderAsync(finalEntry, new RenderOptions(dateFolder, false, true), ct);
                     pdfCreated = true;
                 }
-                else if (renderer.RendererName == "HTML")
+                else if (IsRenderer(renderer, "HTML"))
                 {
                     await renderer.RenderAsync(finalEntry, new RenderOptions(rawFolder, false, true), ct);
+                }
+                else if (!IsRenderer(renderer, "Email"))
+                {
+                    // Email is deliberately on-demand only. Anything else reaching
+                    // here is mis-registered, and used to vanish without a trace.
+                    this.logger.LogWarning(
+                        $"{renderer.RendererName} render",
+                        finalEntry.JobId,
+                        new InvalidOperationException(
+                            $"Renderer '{renderer.RendererName}' is registered but matches no known output; it was skipped."));
                 }
             }
             catch (Exception ex)
@@ -266,6 +278,14 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         return updatedEntry;
     }
+
+    /// <summary>
+    /// Renderer dispatch matches on name. This is the single comparison rule for
+    /// the pipeline, deliberately case-insensitive so it agrees with
+    /// EntryDetailViewModel's lookups rather than diverging from them.
+    /// </summary>
+    private static bool IsRenderer(IEntryRenderer renderer, string name) =>
+        renderer.RendererName.Equals(name, StringComparison.OrdinalIgnoreCase);
 
     public async Task<Entry> ReprocessSectionAsync(Entry entry, string sectionName,
         IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
