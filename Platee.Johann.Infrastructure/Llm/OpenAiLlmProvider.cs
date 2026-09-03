@@ -7,9 +7,15 @@ using Platee.Johann.Application.Interfaces;
 /// OpenAI ChatGPT provider.  Uses gpt-5-nano with max_completion_tokens.
 /// Mirrors _call_gpt() from Python summarizer.py.
 /// </summary>
-public sealed class OpenAiLlmProvider : ILlmProvider, IDisposable
+public sealed class OpenAiLlmProvider : ILlmProvider
 {
     private const string Model = "gpt-5-nano";
+
+    // Deliberately not IDisposable. ChatClient (OpenAI 2.2.0) implements no
+    // interfaces at all, so casting it to IDisposable is always null — an earlier
+    // attempt to dispose it that way was a guaranteed no-op. The SDK's
+    // System.ClientModel pipeline owns its transport, and exactly one provider is
+    // created for the process lifetime, so there is nothing here to release.
     private readonly ChatClient client;
 
     public bool IsAvailable => true;
@@ -38,13 +44,5 @@ public sealed class OpenAiLlmProvider : ILlmProvider, IDisposable
 
         var response = await this.client.CompleteChatAsync(messages, chatOptions, ct);
         return response.Value.Content.FirstOrDefault()?.Text ?? string.Empty;
-    }
-
-    public void Dispose()
-    {
-        // The OpenAI SDK's ChatClient does not expose IDisposable on its public
-        // surface, but its transport may; dispose it when it is there so the
-        // backing HTTP handler is released instead of waiting for the finalizer.
-        (this.client as IDisposable)?.Dispose();
     }
 }
