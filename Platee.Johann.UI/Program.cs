@@ -7,36 +7,15 @@ public class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        // Only run Velopack bootstrap when the process was actually started by a
-        // Velopack hook / restart path. Plain `dotnet run` and direct exe launches
-        // should continue straight into the WPF app during development.
-        if (ShouldRunVelopackBootstrap(args))
-        {
-            VelopackApp.Build().Run();
-        }
+        // Must run first: processes Velopack install/update/uninstall hooks AND
+        // initialises the locator that UpdateManager needs to find the install.
+        // Gating this on hook arguments broke auto-update for every normal launch
+        // (a double-clicked shortcut passes none of them) — see #42.
+        // On a non-installed build this is a no-op, so `dotnet run` is unaffected.
+        VelopackApp.Build().Run();
 
         var app = new App();
         app.InitializeComponent();
         app.Run();
-    }
-
-    private static bool ShouldRunVelopackBootstrap(string[] args)
-    {
-        if (args.Any(a => a.StartsWith("--veloapp-", StringComparison.OrdinalIgnoreCase)))
-        {
-            return true;
-        }
-
-        if (string.Equals(Environment.GetEnvironmentVariable("VELOPACK_FIRSTRUN"), "true", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        if (string.Equals(Environment.GetEnvironmentVariable("VELOPACK_RESTART"), "true", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return false;
     }
 }

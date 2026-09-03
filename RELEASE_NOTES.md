@@ -1,5 +1,16 @@
 # Was ist neu?
 
+## Version 1.3.1
+
+**Automatische Updates funktionieren wieder**
+
+- Johann hat seit Version 1.1.0 nie auf neue Versionen hingewiesen. Die Update-Prüfung wurde beim normalen Programmstart übersprungen und der Fehler dabei stillschweigend verschluckt.
+- Ab dieser Version meldet sich Johann wieder automatisch, sobald eine neue Version im Netzlaufwerk bereitliegt.
+- **Einmalig nötig:** Da alle bisher installierten Versionen den Fehler enthalten, können sie sich nicht selbst aktualisieren. Bitte einmal `Z:\12_Tools\Peano\Johann\Setup.exe` von Hand ausführen. Danach laufen alle weiteren Updates wieder automatisch.
+- Fehler bei der Update-Prüfung werden ab sofort im Fehlerprotokoll festgehalten, statt unbemerkt zu verschwinden.
+
+---
+
 ## Version 1.3.0
 
 **In-App-Diktat per Mikrofon**

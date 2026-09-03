@@ -227,10 +227,10 @@ public partial class App : System.Windows.Application
             await settingsRepo.SaveAsync(updatedSettings);
         }
 
-        _ = CheckForUpdatesAsync();
+        _ = CheckForUpdatesAsync(crashLogger);
     }
 
-    private static async Task CheckForUpdatesAsync()
+    private static async Task CheckForUpdatesAsync(CrashLogWriter crashLogger)
     {
         try
         {
@@ -238,10 +238,23 @@ public partial class App : System.Windows.Application
             const string releasePath = @"Z:\12_Tools\Peano\Johann";
             if (!Directory.Exists(releasePath))
             {
+                crashLogger.WriteCrashLog(
+                    "UPDATE",
+                    new DirectoryNotFoundException(
+                        $"Update-Verzeichnis '{releasePath}' ist nicht erreichbar; Update-Prüfung übersprungen."));
                 return;
             }
 
             var mgr = new UpdateManager(new SimpleFileSource(new DirectoryInfo(releasePath)));
+
+            // A build started from source is not Velopack-installed. That is normal
+            // during development and must stay quiet — everything else is a fault
+            // and gets logged rather than swallowed (see #42).
+            if (!mgr.IsInstalled)
+            {
+                return;
+            }
+
             var newVersion = await mgr.CheckForUpdatesAsync();
             if (newVersion == null)
             {
@@ -262,9 +275,11 @@ public partial class App : System.Windows.Application
             await mgr.DownloadUpdatesAsync(newVersion);
             mgr.ApplyUpdatesAndRestart(newVersion);
         }
-        catch
+        catch (Exception ex)
         {
-            // Nicht über Velopack installiert oder offline – still ignorieren
+            // Never swallow silently: this hid a total auto-update outage across
+            // v1.1.0-v1.3.0 because nothing ever surfaced the locator error (#42).
+            crashLogger.WriteCrashLog("UPDATE", ex);
         }
     }
 
