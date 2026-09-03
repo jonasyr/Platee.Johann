@@ -16,6 +16,7 @@ public sealed class AudioWatcherService : IDisposable
     private readonly SettingsHolder settings;
     private FileSystemWatcher? watcher;
     private readonly SemaphoreSlim processLock = new(1, 1);
+    private bool disposed;
 
     /// <summary>
     /// Raised on a background thread after an audio file is successfully processed.
@@ -146,6 +147,14 @@ public sealed class AudioWatcherService : IDisposable
 
     public void Dispose()
     {
+        // App.OnExit and the ProcessExit crash-path hook can both reach here.
+        if (this.disposed)
+        {
+            return;
+        }
+
+        this.disposed = true;
+
         if (this.watcher != null)
         {
             this.watcher.Created -= this.OnFileCreated;

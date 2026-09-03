@@ -283,6 +283,24 @@ public sealed class EntryRepositoryTests : IDisposable
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
+    // ── Sequence counter concurrency ──────────────────────────────────────────
+    [Fact]
+    public async Task GetNextSequenceNumberAsync_AcrossRepositoryInstances_NeverReturnsDuplicates()
+    {
+        // Two repository instances over one directory stand in for two processes:
+        // the instance-scoped SemaphoreSlim does not span them.
+        var date = new DateOnly(2026, 9, 3);
+        var repos = Enumerable.Range(0, 8)
+            .Select(_ => new JsonRepository(this.tempDir))
+            .ToArray();
+
+        var results = await Task.WhenAll(
+            repos.Select(r => Task.Run(() => r.GetNextSequenceNumberAsync(date))));
+
+        results.Should().OnlyHaveUniqueItems();
+        results.Should().BeEquivalentTo(Enumerable.Range(1, 8));
+    }
+
     private static Entry MakeEntry(string jobId = "test_001", int seq = 1, DateOnly? date = null) => new()
     {
         JobId = jobId,

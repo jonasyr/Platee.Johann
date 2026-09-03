@@ -184,6 +184,11 @@ public sealed class JsonRepository : IEntryRepository
             var rawDir = this.GetRawDir(date);
             Directory.CreateDirectory(rawDir);
 
+            // The SemaphoreSlim above is instance-scoped. This lock file is what
+            // makes the reservation safe when a second Johann process writes to
+            // the same output root.
+            await using var counterLock = await AcquireCounterLockAsync(rawDir, ct);
+
             var counterPath = Path.Combine(rawDir, "_counter.json");
             int next;
 
@@ -202,14 +207,50 @@ public sealed class JsonRepository : IEntryRepository
 
             // Write incremented value while still inside the lock — this is the key:
             // the reservation is durable before any other caller gets a chance to read.
-            await using var ws = File.Open(counterPath, FileMode.Create, FileAccess.Write, FileShare.None);
-            await JsonSerializer.SerializeAsync(ws, new CounterDoc(next + 1), WriteOptions, ct);
+            // Flush explicitly so the bytes are on disk before the lock file is
+            // released, not merely buffered.
+            await using (var ws = File.Open(counterPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                await JsonSerializer.SerializeAsync(ws, new CounterDoc(next + 1), WriteOptions, ct);
+                await ws.FlushAsync(ct);
+            }
 
             return next;
         }
         finally
         {
             this.seqLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Opens an exclusive lock file, retrying while another process holds it.
+    /// This is what makes the counter reservation safe across processes — the
+    /// instance-scoped SemaphoreSlim only covers callers inside one process.
+    /// </summary>
+    private static async Task<FileStream> AcquireCounterLockAsync(string rawDir, CancellationToken ct)
+    {
+        var lockPath = Path.Combine(rawDir, "_counter.lock");
+        var delayMs = 5;
+
+        for (var attempt = 0; ; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                return new FileStream(
+                    lockPath,
+                    FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite,
+                    FileShare.None,
+                    bufferSize: 1,
+                    FileOptions.DeleteOnClose);
+            }
+            catch (IOException) when (attempt < 60)
+            {
+                await Task.Delay(delayMs, ct);
+                delayMs = Math.Min(delayMs * 2, 100);
+            }
         }
     }
 

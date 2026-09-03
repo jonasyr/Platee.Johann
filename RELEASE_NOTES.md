@@ -45,6 +45,12 @@
 
 - Das Handbuch ("?" Button oben rechts) wurde auf den aktuellen Stand gebracht.
 
+**Verbesserungen und Fehlerbehebungen**
+
+- Der Button „Erledigt" sitzt jetzt oben links und bleibt beim Scrollen immer sichtbar. Er wird nicht mehr von Meldungen überdeckt, während ein neuer Eintrag eingelesen wird.
+- Doppelte Eintragsnummern können nicht mehr auftreten, wenn Johann auf mehreren Rechnern gleichzeitig in dasselbe Verzeichnis schreibt.
+- Ressourcen werden jetzt auch dann sauber freigegeben, wenn das Programm unerwartet beendet wird.
+
 ---
 
 ## Version 1.1.0

@@ -152,6 +152,12 @@
                 </MultiDataTrigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="DonePinnedButtonStyle" TargetType="Button"
+               BasedOn="{StaticResource DoneHeaderButtonStyle}">
+            <Setter Property="MinWidth" Value="220"/>
+            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
         <Style x:Key="StatusBarZoomButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="18"/>
             <Setter Property="Height" Value="18"/>
@@ -857,23 +863,36 @@
                     </Grid>
 
                     <!-- Detail content — filled -->
-                    <ScrollViewer x:Name="DetailScrollViewer"
-                                  Padding="24,16" VerticalScrollBarVisibility="Auto"
-                                  PreviewMouseWheel="DetailScrollViewer_PreviewMouseWheel"
-                                  Visibility="{Binding Detail.HasEntry, Converter={StaticResource BoolToVis}}">
+                    <Grid Visibility="{Binding Detail.HasEntry, Converter={StaticResource BoolToVis}}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Pinned action bar: stays visible while the detail scrolls,
+                             and sits left so the top-right toast tray cannot cover it. -->
+                        <Border Grid.Row="0"
+                                Background="{StaticResource BgBrush}"
+                                BorderBrush="{StaticResource BorderMidBrush}"
+                                BorderThickness="0,0,0,1"
+                                Padding="24,10">
+                            <Button HorizontalAlignment="Left"
+                                    Command="{Binding Detail.ToggleDoneCommand}"
+                                    Style="{StaticResource DonePinnedButtonStyle}"/>
+                        </Border>
+
+                        <ScrollViewer Grid.Row="1" x:Name="DetailScrollViewer"
+                                      Padding="24,16" VerticalScrollBarVisibility="Auto"
+                                      PreviewMouseWheel="DetailScrollViewer_PreviewMouseWheel">
                         <StackPanel>
                             <StackPanel.LayoutTransform>
                                 <ScaleTransform ScaleX="{Binding Detail.DetailZoom}"
                                                 ScaleY="{Binding Detail.DetailZoom}"/>
                             </StackPanel.LayoutTransform>
 
-                        <!-- Header: metadata left, done action right -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0" Margin="0,0,14,0">
+                        <!-- Header: metadata. The done action lives in the pinned
+                             bar above the ScrollViewer so it never scrolls away. -->
+                        <StackPanel Margin="0,0,0,12">
                                 <DockPanel Margin="0,0,0,4">
                                     <Border Style="{StaticResource TypeBadgeStyle}" DockPanel.Dock="Left"
                                             Margin="0,0,8,0">
@@ -891,12 +910,7 @@
                                     <Run Text=" · "/>
                                     <Run Text="{Binding Detail.DisplayDuration, Mode=OneWay}"/>
                                 </TextBlock>
-                            </StackPanel>
-                            <Button Grid.Column="1"
-                                    Command="{Binding Detail.ToggleDoneCommand}"
-                                    Style="{StaticResource DoneHeaderButtonStyle}"
-                                    VerticalAlignment="Top"/>
-                        </Grid>
+                        </StackPanel>
 
                         <Separator Margin="0,0,0,8"/>
 
@@ -1107,7 +1121,8 @@
                         </StackPanel>
 
                         </StackPanel>
-                    </ScrollViewer>
+                        </ScrollViewer>
+                    </Grid>
                 </Grid>
             </DockPanel>
         </Grid>
