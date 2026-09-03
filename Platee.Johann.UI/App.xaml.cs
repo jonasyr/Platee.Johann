@@ -22,7 +22,6 @@ using Velopack.Sources;
 public partial class App : System.Windows.Application
 {
     private AudioWatcherService? audioWatcher;
-    private ILlmProvider? llmProvider;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -116,7 +115,6 @@ public partial class App : System.Windows.Application
         ILlmProvider llmProvider = apiKey is not null
             ? new OpenAiLlmProvider(apiKey)
             : new NoOpLlmProvider();
-        this.llmProvider = llmProvider;
 
         IAudioTranscriber transcriber = apiKey is not null
             ? new WhisperTranscriber(apiKey)
@@ -389,7 +387,9 @@ public partial class App : System.Windows.Application
 
     private void DisposeServices()
     {
+        // Called from both OnExit and the ProcessExit crash-path hook; Dispose is
+        // idempotent. The LLM provider holds nothing disposable (see
+        // OpenAiLlmProvider), so the watcher is the only resource to release.
         this.audioWatcher?.Dispose();
-        (this.llmProvider as IDisposable)?.Dispose();
     }
 }
