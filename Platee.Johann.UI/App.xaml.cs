@@ -22,6 +22,7 @@ using Velopack.Sources;
 public partial class App : System.Windows.Application
 {
     private AudioWatcherService? audioWatcher;
+    private ILlmProvider? llmProvider;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -115,6 +116,7 @@ public partial class App : System.Windows.Application
         ILlmProvider llmProvider = apiKey is not null
             ? new OpenAiLlmProvider(apiKey)
             : new NoOpLlmProvider();
+        this.llmProvider = llmProvider;
 
         IAudioTranscriber transcriber = apiKey is not null
             ? new WhisperTranscriber(apiKey)
@@ -127,6 +129,11 @@ public partial class App : System.Windows.Application
             new CrashLogEntryProcessingLogger(crashLogger));
 
         this.audioWatcher = new AudioWatcherService(processor, runtimeSettingsHolder);
+
+        // OnExit does not run when the process dies on an unhandled exception,
+        // so register a second cleanup path. Both Dispose implementations are
+        // idempotent, so running twice is safe.
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => this.DisposeServices();
 
         IMicrophoneRecorder microphoneRecorder;
         try
@@ -362,6 +369,12 @@ public partial class App : System.Windows.Application
     protected override void OnExit(ExitEventArgs e)
     {
         base.OnExit(e);
+        this.DisposeServices();
+    }
+
+    private void DisposeServices()
+    {
         this.audioWatcher?.Dispose();
+        (this.llmProvider as IDisposable)?.Dispose();
     }
 }

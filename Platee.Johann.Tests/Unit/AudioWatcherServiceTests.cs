@@ -49,6 +49,27 @@ public sealed class AudioWatcherServiceTests : IDisposable
         failures[0].Error.Should().BeOfType<IOException>();
     }
 
+    [Fact]
+    public void Dispose_CalledTwice_DoesNotThrow()
+    {
+        // App.OnExit and the ProcessExit crash-path hook can both fire, so
+        // Dispose has to be safe to call more than once.
+        var settings = new SettingsHolder(AppSettings.Default with
+        {
+            Quellverzeichnis = this.tempDir,
+        });
+        var sut = new AudioWatcherService(new FakeEntryProcessor(), settings);
+        sut.Start();
+
+        var act = () =>
+        {
+            sut.Dispose();
+            sut.Dispose();
+        };
+
+        act.Should().NotThrow();
+    }
+
     private sealed class FakeEntryProcessor : IEntryProcessor
     {
         public bool CanProcess => true;
