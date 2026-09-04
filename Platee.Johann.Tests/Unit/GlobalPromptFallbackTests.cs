@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Infrastructure.Json;
@@ -21,13 +22,15 @@ public sealed class GlobalPromptFallbackTests : IDisposable
 
     private readonly JsonPromptSettingsRepository cache;
     private readonly string globalPath;
+    private readonly string cachePath;
 
     public GlobalPromptFallbackTests()
     {
         Directory.CreateDirectory(this.localDir);
         Directory.CreateDirectory(this.shareDir);
-        this.cache = JsonPromptSettingsRepository.FromFilePath(
-            Path.Combine(this.localDir, "prompts.cache.json"));
+        // Per-share name, as PromptStartupResolver.CacheFileNameFor produces.
+        this.cachePath = Path.Combine(this.localDir, "prompts.cache.abcd1234.json");
+        this.cache = JsonPromptSettingsRepository.FromFilePath(this.cachePath);
         this.globalPath = Path.Combine(this.shareDir, "prompts.json");
     }
 
@@ -94,8 +97,7 @@ public sealed class GlobalPromptFallbackTests : IDisposable
         afterCorruption.Warning.Should().NotBeNullOrWhiteSpace();
 
         // And the cache on disk must still hold the team prompt, not defaults.
-        var reread = await JsonPromptSettingsRepository
-            .FromFilePath(Path.Combine(this.localDir, "prompts.cache.json")).LoadAsync();
+        var reread = await JsonPromptSettingsRepository.FromFilePath(this.cachePath).LoadAsync();
         reread.SystemMessage.Should().Be("Team-Systemnachricht");
     }
 
@@ -130,6 +132,87 @@ public sealed class GlobalPromptFallbackTests : IDisposable
 
         afterOutage.Prompts.SystemMessage.Should().Be(PromptSettings.Default.SystemMessage);
         afterOutage.Warning.Should().Contain("weichen von denen der Kollegen ab");
+    }
+
+    // ── PR #46 review findings ────────────────────────────────────────────────
+    [Fact]
+    public async Task WhenTheGlobalPathIsCleared_TheCacheIsIgnored()
+    {
+        // Clearing the path is the user switching team prompts off. Serving them
+        // the cached team prompts anyway — silently — is the same class of bug the
+        // whole audit was about.
+        await WriteGlobalAsync("Team-Systemnachricht");
+        await this.StartupAsync();
+
+        var withoutShare = await PromptStartupResolver.ResolveAsync(
+            this.cache, globalRepo: null, globalPath: null);
+
+        withoutShare.Prompts.SystemMessage.Should().Be(PromptSettings.Default.SystemMessage);
+        withoutShare.Warning.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task WhenTheShareVanishesDuringTheRead_TheCacheSurvives()
+    {
+        await WriteGlobalAsync("Team-Systemnachricht");
+        await this.StartupAsync();
+
+        // IsReachable answers from a file that is gone by the time it is read.
+        var vanishing = new VanishingRepository(this.globalPath);
+        var result = await PromptStartupResolver.ResolveAsync(
+            this.cache, vanishing, this.globalPath);
+
+        result.Prompts.SystemMessage.Should().Be("Team-Systemnachricht");
+        result.Warning.Should().NotBeNullOrWhiteSpace();
+
+        var reread = await JsonPromptSettingsRepository.FromFilePath(this.cachePath).LoadAsync();
+        reread.SystemMessage.Should().Be("Team-Systemnachricht");
+    }
+
+    [Fact]
+    public async Task WhenTheCacheIsCorrupt_TheWarningDoesNotClaimTeamPromptsAreInUse()
+    {
+        await WriteGlobalAsync("Team-Systemnachricht");
+        await this.StartupAsync();
+
+        File.WriteAllText(this.cachePath, "{ kaputt");
+        File.Delete(this.globalPath);
+
+        var result = await this.StartupAsync();
+
+        result.Prompts.SystemMessage.Should().Be(PromptSettings.Default.SystemMessage);
+        result.Warning.Should().Contain("weichen von denen der Kollegen ab");
+        result.Warning.Should().NotContain("Zwischenspeicher");
+    }
+
+    [Fact]
+    public void CacheFileNameFor_DistinguishesShares_AndIsStable()
+    {
+        var a = PromptStartupResolver.CacheFileNameFor(@"Z:\12_Tools\Peano\Johann\prompts.json");
+        var b = PromptStartupResolver.CacheFileNameFor(@"Y:\anderes\Team\prompts.json");
+
+        a.Should().NotBe(b);
+        a.Should().Be(PromptStartupResolver.CacheFileNameFor(@"z:/12_Tools/Peano/Johann/prompts.json"));
+        a.Should().StartWith("prompts.cache.").And.EndWith(".json");
+    }
+
+    /// <summary>Reports the file as present, then finds it gone when reading.</summary>
+    private sealed class VanishingRepository(string path) : IPromptSettingsRepository
+    {
+        public bool IsReachable => true;
+
+        public SettingsFileFault? LastLoadFault => null;
+
+        public bool LastLoadReadFile => false;
+
+        public Task<PromptSettings> LoadAsync(CancellationToken ct = default)
+        {
+            _ = path;
+            return Task.FromResult(PromptSettings.Default);
+        }
+
+        public Task SaveAsync(PromptSettings settings, CancellationToken ct = default) =>
+            Task.CompletedTask;
     }
 
     private async Task WriteGlobalAsync(string systemMessage) =>

@@ -71,13 +71,19 @@ public partial class App : System.Windows.Application
         // the last known team prompts instead of silently reverting to built-in
         // defaults — which produced different GPT output than every colleague
         // with nothing on screen to say so (#45 H1).
-        var promptCacheRepo = JsonPromptSettingsRepository.FromFilePath(
-            Path.Combine(settingsDir, "prompts.cache.json"));
+        // The cache file name carries a digest of the share path, so switching to a
+        // different team share cannot serve the previous share's prompts (PR #46).
+        var globalPromptPath = persistedSettings.GlobalPromptFilePath;
+        var promptCachePath = Path.Combine(
+            settingsDir,
+            PromptStartupResolver.CacheFileNameFor(globalPromptPath ?? string.Empty));
+
+        var promptCacheRepo = JsonPromptSettingsRepository.FromFilePath(promptCachePath);
 
         JsonPromptSettingsRepository? globalPromptRepo = null;
-        if (!string.IsNullOrWhiteSpace(persistedSettings.GlobalPromptFilePath))
+        if (!string.IsNullOrWhiteSpace(globalPromptPath))
         {
-            globalPromptRepo = JsonPromptSettingsRepository.FromFilePath(persistedSettings.GlobalPromptFilePath);
+            globalPromptRepo = JsonPromptSettingsRepository.FromFilePath(globalPromptPath);
         }
 
         var promptStartup = await PromptStartupResolver.ResolveAsync(

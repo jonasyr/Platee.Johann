@@ -51,6 +51,18 @@ public static class PromptSettingsLoader
                 return new(localSettings, PromptSource.GlobalFallbackToLocal, fault.Reason);
             }
 
+            // IsReachable said the file was there, but the read found nothing. The
+            // share dropped in between, so these are built-in defaults wearing a
+            // successful load's clothes — caching them would destroy the last known
+            // good prompts (PR #46 review).
+            if (!globalRepo.LastLoadReadFile)
+            {
+                return new(
+                    localSettings,
+                    PromptSource.GlobalFallbackToLocal,
+                    "Die Datei war beim Lesen nicht mehr vorhanden.");
+            }
+
             return new(globalSettings, PromptSource.Global);
         }
         catch (OperationCanceledException)

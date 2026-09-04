@@ -32,6 +32,7 @@ public class PromptSettingsLoaderTests
         this.localRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(local);
         this.globalRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(global);
         this.globalRepo.IsReachable.Returns(true);
+        this.globalRepo.LastLoadReadFile.Returns(true);
 
         var result = await PromptSettingsLoader.LoadWithFallbackAsync(this.localRepo, this.globalRepo);
 
@@ -90,6 +91,7 @@ public class PromptSettingsLoaderTests
     {
         this.localRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
         this.globalRepo.IsReachable.Returns(true);
+        this.globalRepo.LastLoadReadFile.Returns(true);
         this.globalRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
         this.globalRepo.LastLoadFault.Returns((SettingsFileFault?)null);
 
@@ -107,6 +109,27 @@ public class PromptSettingsLoaderTests
 
         var result = await PromptSettingsLoader.LoadWithFallbackAsync(this.localRepo, this.globalRepo);
 
+        result.FallbackReason.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task LoadWithFallbackAsync_WhenGlobalVanishedBetweenProbeAndRead_FallsBackToLocal()
+    {
+        // The share dropped after IsReachable said yes. The repository answers with
+        // built-in defaults and no fault, which is indistinguishable from a genuine
+        // load of an empty configuration — and caching it would destroy the last
+        // known good team prompts.
+        var local = PromptSettings.Default with { SystemMessage = "local-msg" };
+        this.localRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(local);
+        this.globalRepo.IsReachable.Returns(true);
+        this.globalRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+        this.globalRepo.LastLoadFault.Returns((SettingsFileFault?)null);
+        this.globalRepo.LastLoadReadFile.Returns(false);
+
+        var result = await PromptSettingsLoader.LoadWithFallbackAsync(this.localRepo, this.globalRepo);
+
+        result.Settings.SystemMessage.Should().Be("local-msg");
+        result.Source.Should().Be(PromptSource.GlobalFallbackToLocal);
         result.FallbackReason.Should().NotBeNullOrWhiteSpace();
     }
 
