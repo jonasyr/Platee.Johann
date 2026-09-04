@@ -36,6 +36,39 @@ public static class PromptStartupResolver
         return $"prompts.cache.{Convert.ToHexString(digest)[..8].ToLowerInvariant()}.json";
     }
 
+    /// <summary>
+    /// Carries the flat <c>prompts.cache.json</c> written by the first version of
+    /// this feature over to its per-share name.
+    ///
+    /// Deleting it instead would throw away the only last-known-good prompts at
+    /// the exact moment they are needed: the first launch after the update, with
+    /// the share down, before any per-share cache exists (PR #47 review).
+    /// </summary>
+    /// <returns>The error message if the adoption failed, otherwise <c>null</c>.</returns>
+    public static string? AdoptLegacyCache(string legacyCachePath, string currentCachePath)
+    {
+        try
+        {
+            if (!File.Exists(legacyCachePath))
+            {
+                return null;
+            }
+
+            if (File.Exists(currentCachePath))
+            {
+                File.Delete(legacyCachePath);
+                return null;
+            }
+
+            File.Move(legacyCachePath, currentCachePath);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
     public static async Task<PromptStartupResult> ResolveAsync(
         IPromptSettingsRepository cacheRepo,
         IPromptSettingsRepository? globalRepo,

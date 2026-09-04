@@ -74,9 +74,21 @@ public partial class App : System.Windows.Application
         // The cache file name carries a digest of the share path, so switching to a
         // different team share cannot serve the previous share's prompts (PR #46).
         var globalPromptPath = persistedSettings.GlobalPromptFilePath;
-        var promptCacheRepo = JsonPromptSettingsRepository.FromFilePath(Path.Combine(
+        var promptCachePath = Path.Combine(
             settingsDir,
-            PromptStartupResolver.CacheFileNameFor(globalPromptPath ?? string.Empty)));
+            PromptStartupResolver.CacheFileNameFor(globalPromptPath ?? string.Empty));
+
+        if (!string.IsNullOrWhiteSpace(globalPromptPath))
+        {
+            var adoptError = PromptStartupResolver.AdoptLegacyCache(
+                Path.Combine(settingsDir, "prompts.cache.json"), promptCachePath);
+            if (adoptError is not null)
+            {
+                crashLogger.WriteCrashLog("PROMPT-CACHE", new InvalidOperationException(adoptError));
+            }
+        }
+
+        var promptCacheRepo = JsonPromptSettingsRepository.FromFilePath(promptCachePath);
 
         JsonPromptSettingsRepository? globalPromptRepo = null;
         if (!string.IsNullOrWhiteSpace(globalPromptPath))
