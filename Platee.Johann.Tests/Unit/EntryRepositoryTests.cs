@@ -301,6 +301,55 @@ public sealed class EntryRepositoryTests : IDisposable
         results.Should().BeEquivalentTo(Enumerable.Range(1, 8));
     }
 
+    // ── MigrateJobIdsAsync reporting (#45 M2) ─────────────────────────────────
+    [Fact]
+    public async Task MigrateJobIdsAsync_reports_how_many_entries_were_rewritten()
+    {
+        var date = new DateOnly(2026, 6, 17);
+        await this.sut.SaveAsync(MakeEntry(jobId: "legacy_a", seq: 1, date: date));
+        await this.sut.SaveAsync(MakeEntry(jobId: "legacy_b", seq: 2, date: date));
+
+        var result = await this.sut.MigrateJobIdsAsync();
+
+        result.Migrated.Should().Be(2);
+        result.Skipped.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_reports_files_it_could_not_read()
+    {
+        var date = new DateOnly(2026, 6, 17);
+        await this.sut.SaveAsync(MakeEntry(jobId: "legacy_a", seq: 1, date: date));
+        var rawDir = Path.Combine(this.tempDir, date.ToString("yyyy-MM-dd"), "_raw");
+        File.WriteAllText(Path.Combine(rawDir, "kaputt_status.json"), "{ not json");
+
+        var result = await this.sut.MigrateJobIdsAsync();
+
+        result.Migrated.Should().Be(1);
+        result.Skipped.Should().ContainSingle().Which.Should().Contain("kaputt_status.json");
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_on_empty_output_root_reports_nothing()
+    {
+        var result = await this.sut.MigrateJobIdsAsync();
+
+        result.Migrated.Should().Be(0);
+        result.Skipped.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task MigrateJobIdsAsync_does_not_count_already_standard_jobids()
+    {
+        var date = new DateOnly(2026, 6, 17);
+        await this.sut.SaveAsync(MakeEntry(jobId: "260617_001_a1b2c3d4", seq: 1, date: date));
+
+        var result = await this.sut.MigrateJobIdsAsync();
+
+        result.Migrated.Should().Be(0);
+        result.Skipped.Should().BeEmpty();
+    }
+
     private static Entry MakeEntry(string jobId = "test_001", int seq = 1, DateOnly? date = null) => new()
     {
         JobId = jobId,

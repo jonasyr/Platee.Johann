@@ -71,6 +71,7 @@ public sealed class PendingCountCalculatorTests
 
         public Task<int> GetNextSequenceNumberAsync(DateOnly date, CancellationToken ct = default) => Task.FromResult(1);
 
-        public Task MigrateJobIdsAsync(CancellationToken ct = default) => Task.CompletedTask;
+        public Task<JobIdMigrationResult> MigrateJobIdsAsync(CancellationToken ct = default) =>
+            Task.FromResult(JobIdMigrationResult.Empty);
     }
 }

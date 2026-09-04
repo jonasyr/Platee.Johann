@@ -254,12 +254,15 @@ public sealed class JsonRepository : IEntryRepository
         }
     }
 
-    public async Task MigrateJobIdsAsync(CancellationToken ct = default)
+    public async Task<JobIdMigrationResult> MigrateJobIdsAsync(CancellationToken ct = default)
     {
         if (!Directory.Exists(this.outputRoot))
         {
-            return;
+            return JobIdMigrationResult.Empty;
         }
+
+        var migrated = 0;
+        var skipped = new List<string>();
 
         foreach (var dir in Directory.EnumerateDirectories(this.outputRoot))
         {
@@ -275,36 +278,48 @@ public sealed class JsonRepository : IEntryRepository
                 try
                 {
                     var entry = await LoadFileAsync(file, ct);
-                    if (entry is null || TryParseDateFromJobId(entry.JobId, out _))
+                    if (entry is null)
+                    {
+                        skipped.Add($"{file}: Datei konnte nicht gelesen werden.");
+                        continue;
+                    }
+
+                    if (TryParseDateFromJobId(entry.JobId, out _))
                     {
                         continue;
                     }
 
                     var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
                     var newJobId = $"{date:yyMMdd}_{entry.SequenceNumber:D3}_{Guid.NewGuid().ToString("N")[..8]}";
-                    var migrated = entry with { JobId = newJobId };
+                    var rewritten = entry with { JobId = newJobId };
 
-                    await SaveAsync(migrated, ct);
+                    await SaveAsync(rewritten, ct);
 
                     // Remove old file if SaveAsync wrote to a different path
                     var newPath = Path.Combine(
                         this.GetRawDir(date),
-                        FilenameBuilder.Build(migrated) + "_status.json");
+                        FilenameBuilder.Build(rewritten) + "_status.json");
                     if (!string.Equals(Path.GetFullPath(file), Path.GetFullPath(newPath), StringComparison.OrdinalIgnoreCase))
                     {
                         File.Delete(file);
                     }
+
+                    migrated++;
                 }
                 catch (OperationCanceledException)
                 {
                     throw;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Skip files that fail to load or save — continue with remaining entries
+                    // Keep going with the remaining entries, but report what was
+                    // left behind instead of dropping it on the floor (#45 M2).
+                    skipped.Add($"{file}: {ex.Message}");
                 }
             }
         }
+
+        return new JobIdMigrationResult(migrated, skipped);
     }
 
     private string GetRawDir(DateOnly date) =>

@@ -3,7 +3,11 @@ using System.Text.Json.Nodes;
 
 namespace Platee.Johann.Application.Settings;
 
-public sealed record SettingsSplitMigrationResult(bool DidMigrate);
+/// <param name="Failure">
+/// Why the migration could not run, or <c>null</c> when nothing went wrong.
+/// Without this a crashed migration is indistinguishable from "nothing to do" (#45 M5).
+/// </param>
+public sealed record SettingsSplitMigrationResult(bool DidMigrate, string? Failure = null);
 
 public static class SettingsSplitMigration
 {
@@ -27,7 +31,11 @@ public static class SettingsSplitMigration
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
-    public static void CleanupLegacyFiles(string settingsDirectory)
+    /// <summary>
+    /// Best-effort removal of legacy local prompt files.
+    /// </summary>
+    /// <returns>The error message if cleanup failed, otherwise <c>null</c> (#45 L1).</returns>
+    public static string? CleanupLegacyFiles(string settingsDirectory)
     {
         try
         {
@@ -42,14 +50,14 @@ public static class SettingsSplitMigration
             var settingsPath = Path.Combine(settingsDirectory, "settings.json");
             if (!File.Exists(settingsPath))
             {
-                return;
+                return null;
             }
 
             var json = File.ReadAllText(settingsPath);
             var root = JsonNode.Parse(json);
             if (root is not JsonObject settingsObj)
             {
-                return;
+                return null;
             }
 
             var hadPromptFields = false;
@@ -65,10 +73,13 @@ public static class SettingsSplitMigration
             {
                 File.WriteAllText(settingsPath, settingsObj.ToJsonString(WriteOptions));
             }
+
+            return null;
         }
-        catch
+        catch (Exception ex)
         {
-            // Best-effort cleanup — don't break startup
+            // Cleanup must never break startup, but the caller still gets told.
+            return ex.Message;
         }
     }
 
@@ -116,9 +127,9 @@ public static class SettingsSplitMigration
 
             return new(true);
         }
-        catch
+        catch (Exception ex)
         {
-            return new(false);
+            return new(false, ex.Message);
         }
     }
 }

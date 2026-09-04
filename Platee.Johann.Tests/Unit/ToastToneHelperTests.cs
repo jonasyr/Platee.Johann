@@ -23,4 +23,21 @@ public sealed class ToastToneHelperTests
     {
         ToastToneHelper.DeriveFromCompletion(string.Empty).Should().Be(ToastTone.Ok);
     }
+
+    [Theory]
+    [InlineData("Fehler: PDF-Export fehlgeschlagen", ToastTone.Error)]
+    [InlineData("FEHLER: Datenträger voll", ToastTone.Error)]
+    [InlineData("Kein API-Schlüssel konfiguriert.", ToastTone.Warn)]
+    [InlineData("Verarbeite datei.mp3", ToastTone.Ok)]
+    public void DeriveFromAdd_ReturnsTone(string message, ToastTone expected)
+    {
+        // A log line added for a failure must not arrive as a green toast.
+        ToastToneHelper.DeriveFromAdd(message).Should().Be(expected);
+    }
+
+    [Fact]
+    public void DeriveFromAdd_EmptyMessage_ReturnsOk()
+    {
+        ToastToneHelper.DeriveFromAdd(string.Empty).Should().Be(ToastTone.Ok);
+    }
 }
