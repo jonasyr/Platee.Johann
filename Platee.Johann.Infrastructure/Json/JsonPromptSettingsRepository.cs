@@ -63,9 +63,13 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
     /// </summary>
     public SettingsFileFault? LastLoadFault { get; private set; }
 
+    /// <inheritdoc/>
+    public bool LastLoadReadFile { get; private set; }
+
     public async Task<PromptSettings> LoadAsync(CancellationToken ct = default)
     {
         this.LastLoadFault = null;
+        this.LastLoadReadFile = false;
 
         if (!File.Exists(this.filePath))
         {
@@ -76,6 +80,7 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
         {
             await using var stream = File.OpenRead(this.filePath);
             var dto = await JsonSerializer.DeserializeAsync<PromptDto>(stream, Options, ct).ConfigureAwait(false);
+            this.LastLoadReadFile = true;
             return dto is null ? PromptSettings.Default : MapToSettings(dto);
         }
         catch (OperationCanceledException)

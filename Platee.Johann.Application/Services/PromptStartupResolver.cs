@@ -1,5 +1,7 @@
 namespace Platee.Johann.Application.Services;
 
+using System.Security.Cryptography;
+using System.Text;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Settings;
 
@@ -20,6 +22,20 @@ public sealed record PromptStartupResult(PromptSettings Prompts, string? Warning
 /// </summary>
 public static class PromptStartupResolver
 {
+    /// <summary>
+    /// File name for the local cache belonging to <paramref name="globalPath"/>.
+    ///
+    /// The name carries a digest of the path, so pointing the app at a different
+    /// team share cannot silently serve the previous share's prompts from cache
+    /// (PR #46 review).
+    /// </summary>
+    public static string CacheFileNameFor(string globalPath)
+    {
+        var normalised = globalPath.Trim().Replace('/', '\\').ToLowerInvariant();
+        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(normalised));
+        return $"prompts.cache.{Convert.ToHexString(digest)[..8].ToLowerInvariant()}.json";
+    }
+
     public static async Task<PromptStartupResult> ResolveAsync(
         IPromptSettingsRepository cacheRepo,
         IPromptSettingsRepository? globalRepo,
@@ -27,11 +43,23 @@ public static class PromptStartupResolver
         Action<Exception>? onCacheWriteError = null,
         CancellationToken ct = default)
     {
-        var hadCache = cacheRepo.IsReachable;
+        // No team file configured means the user opted out of team prompts. The
+        // cache only exists to survive an outage of a configured share, so reading
+        // it here would silently resurrect prompts the user just switched off
+        // (PR #46 review).
+        if (globalRepo is null)
+        {
+            return new PromptStartupResult(PromptSettings.Default, null);
+        }
 
         var load = await PromptSettingsLoader
             .LoadWithFallbackAsync(cacheRepo, globalRepo, ct)
             .ConfigureAwait(false);
+
+        // Existence is not the same as usable: a corrupt cache still leaves us on
+        // built-in defaults, and saying otherwise would hide the very output
+        // divergence this warning exists to expose (PR #46 review).
+        var cacheUsable = cacheRepo.LastLoadReadFile && cacheRepo.LastLoadFault is null;
 
         if (load.Source == PromptSource.Global)
         {
@@ -56,7 +84,7 @@ public static class PromptStartupResolver
             return new PromptStartupResult(load.Settings, null);
         }
 
-        var used = hadCache
+        var used = cacheUsable
             ? "zuletzt geladene Team-Prompts (lokaler Zwischenspeicher)"
             : "eingebaute Standard-Prompts — die Ergebnisse weichen von denen der Kollegen ab";
 

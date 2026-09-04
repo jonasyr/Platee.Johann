@@ -46,6 +46,14 @@ public static class SettingsSplitMigration
                 File.Delete(promptsPath);
             }
 
+            // The prompt cache is now named per share (PromptStartupResolver
+            // .CacheFileNameFor); the flat name is a leftover from PR #46.
+            var legacyCachePath = Path.Combine(settingsDirectory, "prompts.cache.json");
+            if (File.Exists(legacyCachePath))
+            {
+                File.Delete(legacyCachePath);
+            }
+
             // Strip any remaining prompt keys from settings.json
             var settingsPath = Path.Combine(settingsDirectory, "settings.json");
             if (!File.Exists(settingsPath))

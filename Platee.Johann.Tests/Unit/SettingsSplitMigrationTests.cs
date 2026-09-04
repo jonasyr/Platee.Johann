@@ -121,6 +121,20 @@ public class SettingsSplitMigrationTests : IDisposable
         File.Exists(promptsPath).Should().BeFalse();
     }
 
+    [Fact]
+    public void CleanupLegacyFiles_RemovesTheFlatPromptCacheFromPr46()
+    {
+        var legacy = Path.Combine(this.tempDir, "prompts.cache.json");
+        var perShare = Path.Combine(this.tempDir, "prompts.cache.a1b2c3d4.json");
+        File.WriteAllText(legacy, "{}");
+        File.WriteAllText(perShare, "{}");
+
+        SettingsSplitMigration.CleanupLegacyFiles(this.tempDir).Should().BeNull();
+
+        File.Exists(legacy).Should().BeFalse();
+        File.Exists(perShare).Should().BeTrue("the per-share cache is the current one");
+    }
+
     // ── Failures must be distinguishable from "nothing to do" (#45 M5/L1) ─────
     [Fact]
     public void CleanupLegacyFiles_WhenItStripsPromptKeys_ReportsNoFailure()
