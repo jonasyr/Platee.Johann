@@ -65,4 +65,61 @@ public class PromptSettingsLoaderTests
         result.Settings.SystemMessage.Should().Be("local-msg");
         result.Source.Should().Be(PromptSource.GlobalFallbackToLocal);
     }
+
+    [Fact]
+    public async Task LoadWithFallbackAsync_WhenGlobalLoadFaulted_FallsBackToLocalInsteadOfDefaults()
+    {
+        // A repository that answers a corrupt file with built-in defaults looks
+        // exactly like a successful load; only LastLoadFault tells them apart.
+        var local = PromptSettings.Default with { SystemMessage = "local-msg" };
+        this.localRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(local);
+        this.globalRepo.IsReachable.Returns(true);
+        this.globalRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+        this.globalRepo.LastLoadFault.Returns(
+            new SettingsFileFault("prompts.json", "prompts.corrupt.json", "unexpected token"));
+
+        var result = await PromptSettingsLoader.LoadWithFallbackAsync(this.localRepo, this.globalRepo);
+
+        result.Settings.SystemMessage.Should().Be("local-msg");
+        result.Source.Should().Be(PromptSource.GlobalFallbackToLocal);
+        result.FallbackReason.Should().Be("unexpected token");
+    }
+
+    [Fact]
+    public async Task LoadWithFallbackAsync_WhenGlobalSucceeds_ReportsNoFallbackReason()
+    {
+        this.localRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+        this.globalRepo.IsReachable.Returns(true);
+        this.globalRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+        this.globalRepo.LastLoadFault.Returns((SettingsFileFault?)null);
+
+        var result = await PromptSettingsLoader.LoadWithFallbackAsync(this.localRepo, this.globalRepo);
+
+        result.Source.Should().Be(PromptSource.Global);
+        result.FallbackReason.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LoadWithFallbackAsync_WhenUnreachable_ExplainsWhy()
+    {
+        this.localRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+        this.globalRepo.IsReachable.Returns(false);
+
+        var result = await PromptSettingsLoader.LoadWithFallbackAsync(this.localRepo, this.globalRepo);
+
+        result.FallbackReason.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task LoadWithFallbackAsync_WhenCancelled_PropagatesInsteadOfFallingBack()
+    {
+        this.localRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+        this.globalRepo.IsReachable.Returns(true);
+        this.globalRepo.LoadAsync(Arg.Any<CancellationToken>())
+            .ThrowsAsync(new OperationCanceledException());
+
+        var act = () => PromptSettingsLoader.LoadWithFallbackAsync(this.localRepo, this.globalRepo);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
 }

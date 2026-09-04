@@ -112,11 +112,75 @@ public class SettingsSplitMigrationTests : IDisposable
     }
 
     [Fact]
-    public void CleanupLegacyFiles_WhenNoLegacyFiles_DoesNothing()
+    public void CleanupLegacyFiles_WhenNoLegacyFiles_ReportsNoFailure()
     {
+        SettingsSplitMigration.CleanupLegacyFiles(this.tempDir).Should().BeNull();
         SettingsSplitMigration.CleanupLegacyFiles(this.tempDir);
 
         var promptsPath = Path.Combine(this.tempDir, "prompts.json");
         File.Exists(promptsPath).Should().BeFalse();
+    }
+
+    // ── Failures must be distinguishable from "nothing to do" (#45 M5/L1) ─────
+    [Fact]
+    public void CleanupLegacyFiles_WhenItStripsPromptKeys_ReportsNoFailure()
+    {
+        var settingsPath = Path.Combine(this.tempDir, "settings.json");
+        File.WriteAllText(settingsPath, """{"name":"Jonas","systemMessage":"alt"}""");
+
+        var failure = SettingsSplitMigration.CleanupLegacyFiles(this.tempDir);
+
+        failure.Should().BeNull();
+        File.ReadAllText(settingsPath).Should().NotContain("systemMessage");
+    }
+
+    [Fact]
+    public void CleanupLegacyFiles_WhenSettingsFileIsCorrupt_ReportsTheFailure()
+    {
+        var settingsPath = Path.Combine(this.tempDir, "settings.json");
+        File.WriteAllText(settingsPath, "{ not json");
+
+        var failure = SettingsSplitMigration.CleanupLegacyFiles(this.tempDir);
+
+        failure.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public void MigrateIfNeeded_WhenSettingsFileIsCorrupt_ReportsTheFailure()
+    {
+        var settingsPath = Path.Combine(this.tempDir, "settings.json");
+        var promptsPath = Path.Combine(this.tempDir, "prompts.json");
+        File.WriteAllText(settingsPath, "{ not json");
+
+        var result = SettingsSplitMigration.MigrateIfNeeded(settingsPath, promptsPath);
+
+        result.DidMigrate.Should().BeFalse();
+        result.Failure.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public void MigrateIfNeeded_WhenNothingToDo_ReportsNoFailure()
+    {
+        var settingsPath = Path.Combine(this.tempDir, "settings.json");
+        var promptsPath = Path.Combine(this.tempDir, "prompts.json");
+        File.WriteAllText(settingsPath, """{"name":"Jonas"}""");
+
+        var result = SettingsSplitMigration.MigrateIfNeeded(settingsPath, promptsPath);
+
+        result.DidMigrate.Should().BeFalse();
+        result.Failure.Should().BeNull();
+    }
+
+    [Fact]
+    public void MigrateIfNeeded_WhenItMigrates_ReportsNoFailure()
+    {
+        var settingsPath = Path.Combine(this.tempDir, "settings.json");
+        var promptsPath = Path.Combine(this.tempDir, "prompts.json");
+        File.WriteAllText(settingsPath, """{"name":"Jonas","systemMessage":"alt"}""");
+
+        var result = SettingsSplitMigration.MigrateIfNeeded(settingsPath, promptsPath);
+
+        result.DidMigrate.Should().BeTrue();
+        result.Failure.Should().BeNull();
     }
 }

@@ -27,8 +27,17 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         this.filePath = Path.Combine(settingsDirectory, "settings.json");
     }
 
+    /// <summary>
+    /// Set when the last <see cref="LoadAsync"/> could not read an existing file.
+    /// The caller must surface this: falling back to defaults and then saving over
+    /// the file turns a recoverable parse error into permanent loss (#45 H2).
+    /// </summary>
+    public SettingsFileFault? LastLoadFault { get; private set; }
+
     public async Task<AppSettings> LoadAsync(CancellationToken ct = default)
     {
+        this.LastLoadFault = null;
+
         if (!File.Exists(this.filePath))
         {
             return AppSettings.Default;
@@ -40,9 +49,13 @@ public sealed class JsonSettingsRepository : ISettingsRepository
             var dto = await JsonSerializer.DeserializeAsync<SettingsDto>(stream, Options, ct).ConfigureAwait(false);
             return dto is null ? AppSettings.Default : MapToSettings(dto);
         }
-        catch
+        catch (OperationCanceledException)
         {
-            // Corrupt file — return defaults silently
+            throw;
+        }
+        catch (Exception ex)
+        {
+            this.LastLoadFault = CorruptSettingsBackup.Preserve(this.filePath, ex);
             return AppSettings.Default;
         }
     }

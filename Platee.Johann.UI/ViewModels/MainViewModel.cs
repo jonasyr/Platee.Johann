@@ -655,19 +655,29 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenHandbook()
     {
-        var handbuchPath = ExtractHandbook();
+        var handbuchPath = ExtractHandbook(out var error);
         if (handbuchPath is not null)
         {
-            System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(handbuchPath) { UseShellExecute = true });
-            return;
+            try
+            {
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(handbuchPath) { UseShellExecute = true });
+                return;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+            }
         }
 
+        // "Nicht gefunden" was shown for every cause, including a disk error that
+        // the user could actually act on (#45 M4).
         System.Windows.MessageBox.Show(
-            "Dokumentation nicht gefunden.",
+            "Das Handbuch konnte nicht geöffnet werden." + Environment.NewLine +
+            Environment.NewLine + $"Grund: {error}",
             "Hilfe",
             System.Windows.MessageBoxButton.OK,
-            System.Windows.MessageBoxImage.Information);
+            System.Windows.MessageBoxImage.Warning);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -756,7 +766,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private static string? ExtractHandbook()
+    private static string? ExtractHandbook(out string? error)
     {
         const string resourceName = "Platee.Johann.UI.Assets.HANDBUCH.html";
         var tempPath = Path.Combine(Path.GetTempPath(), "Platee.Johann.HANDBUCH.html");
@@ -766,15 +776,18 @@ public sealed partial class MainViewModel : ObservableObject
             using var stream = typeof(MainViewModel).Assembly.GetManifestResourceStream(resourceName);
             if (stream is null)
             {
+                error = $"Die eingebettete Ressource '{resourceName}' fehlt in dieser Programmversion.";
                 return null;
             }
 
             using var file = File.Create(tempPath);
             stream.CopyTo(file);
+            error = null;
             return tempPath;
         }
-        catch
+        catch (Exception ex)
         {
+            error = ex.Message;
             return null;
         }
     }

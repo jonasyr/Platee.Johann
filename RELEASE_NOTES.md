@@ -1,5 +1,34 @@
 # Was ist neu?
 
+## Version 1.3.2
+
+**Fehler, die bisher niemand gesehen hat**
+
+Diese Version behebt keine sichtbaren Funktionen, sondern eine Reihe von Fällen, in
+denen Johann bisher stillschweigend etwas anderes getan hat als erwartet – ohne
+Meldung, ohne Protokolleintrag.
+
+- **Zentrale Prompts bleiben erhalten, wenn das Netzlaufwerk fehlt.** War `Z:` nicht
+  erreichbar (z. B. ohne VPN), hat Johann kommentarlos auf die eingebauten
+  Standard-Prompts zurückgegriffen – die Ergebnisse wichen dann von denen der
+  Kolleginnen und Kollegen ab, ohne dass es jemand bemerken konnte. Johann legt jetzt
+  bei jedem erfolgreichen Start eine lokale Kopie der Team-Prompts an und verwendet
+  diese, wenn das Laufwerk gerade nicht erreichbar ist. Ein Hinweis beim Start sagt,
+  was verwendet wurde und warum.
+- **Defekte Einstellungsdateien werden nicht mehr überschrieben.** Eine beschädigte
+  `settings.json` oder `prompts.json` führte dazu, dass alle Einstellungen auf
+  Standardwerte zurückfielen und beim nächsten Speichern endgültig verloren waren.
+  Johann legt jetzt vor dem Zurückfallen eine Sicherungskopie an
+  (`…​.corrupt-<Zeitstempel>.json`) und meldet den Fehler beim Start.
+- **Fehlgeschlagener PDF-Export per Drag & Drop wird gemeldet.** Bisher passierte
+  beim Ziehen eines Eintrags in einen Ordner im Fehlerfall einfach nichts.
+- **Das Handbuch nennt den echten Grund**, wenn es sich nicht öffnen lässt, statt
+  immer „Dokumentation nicht gefunden" anzuzeigen.
+- **Übersprungene Einträge bei der einmaligen JobId-Umstellung** landen jetzt im
+  Fehlerprotokoll, statt unbemerkt zurückzubleiben.
+
+---
+
 ## Version 1.3.1
 
 **Automatische Updates funktionieren wieder**

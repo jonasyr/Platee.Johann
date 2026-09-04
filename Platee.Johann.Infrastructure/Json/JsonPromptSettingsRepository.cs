@@ -56,8 +56,17 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
         }
     }
 
+    /// <summary>
+    /// Set when the last <see cref="LoadAsync"/> could not read an existing file.
+    /// This file is usually the team-shared prompts.json, so a silent fallback to
+    /// built-in defaults degrades every colleague at once (#45 H3).
+    /// </summary>
+    public SettingsFileFault? LastLoadFault { get; private set; }
+
     public async Task<PromptSettings> LoadAsync(CancellationToken ct = default)
     {
+        this.LastLoadFault = null;
+
         if (!File.Exists(this.filePath))
         {
             return PromptSettings.Default;
@@ -69,8 +78,13 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
             var dto = await JsonSerializer.DeserializeAsync<PromptDto>(stream, Options, ct).ConfigureAwait(false);
             return dto is null ? PromptSettings.Default : MapToSettings(dto);
         }
-        catch
+        catch (OperationCanceledException)
         {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            this.LastLoadFault = CorruptSettingsBackup.Preserve(this.filePath, ex);
             return PromptSettings.Default;
         }
     }

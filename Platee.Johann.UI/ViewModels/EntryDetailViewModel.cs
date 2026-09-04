@@ -577,6 +577,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             r.RendererName.Equals("PDF", StringComparison.OrdinalIgnoreCase));
         if (renderer is null)
         {
+            this.ReportDragExportFailure("Kein PDF-Renderer registriert.");
             return null;
         }
 
@@ -592,11 +593,22 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             var result = await renderer.RenderAsync(entry, opts, ct);
             return Path.Combine(dateDir, result.SuggestedFilename);
         }
-        catch
+        catch (OperationCanceledException)
         {
+            // The user let go of the mouse or closed the view — not a failure.
+            return null;
+        }
+        catch (Exception ex)
+        {
+            // Returning null alone makes the drag do nothing at all, with no
+            // explanation anywhere in the UI (#45 M3).
+            this.ReportDragExportFailure(ex.Message);
             return null;
         }
     }
+
+    private void ReportDragExportFailure(string reason) =>
+        this.addLog?.Invoke($"Fehler: PDF-Export für Drag & Drop fehlgeschlagen – {reason}", false);
 
     private void RefreshSectionVisibility()
     {

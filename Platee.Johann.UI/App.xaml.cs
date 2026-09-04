@@ -48,24 +48,56 @@ public partial class App : System.Windows.Application
         // ── Settings ──────────────────────────────────────────────────────────
         var settingsDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann");
-        var settingsFilePath = Path.Combine(settingsDir, "settings.json");
-        ISettingsRepository settingsRepo = new JsonSettingsRepository(settingsDir);
+        var jsonSettingsRepo = new JsonSettingsRepository(settingsDir);
+        ISettingsRepository settingsRepo = jsonSettingsRepo;
+
+        var startupFaults = new List<string>();
 
         var persistedSettings = await settingsRepo.LoadAsync();
+        if (jsonSettingsRepo.LastLoadFault is { } settingsFault)
+        {
+            startupFaults.Add(DescribeFault("Einstellungen (settings.json)", settingsFault));
+        }
 
         // Clean up legacy local prompt files (one-time, idempotent)
-        SettingsSplitMigration.CleanupLegacyFiles(settingsDir);
+        if (SettingsSplitMigration.CleanupLegacyFiles(settingsDir) is { } cleanupError)
+        {
+            crashLogger.WriteCrashLog("SETTINGS-CLEANUP", new InvalidOperationException(cleanupError));
+        }
 
         // ── Prompt settings ───────────────────────────────────────────────────
-        // Global prompt file is the single source of truth.
-        // Falls back to built-in defaults if unreachable.
-        var effectivePrompts = PromptSettings.Default;
+        // The team's global prompt file is the source of truth. Every successful
+        // load is mirrored into a local cache so an unreachable share degrades to
+        // the last known team prompts instead of silently reverting to built-in
+        // defaults — which produced different GPT output than every colleague
+        // with nothing on screen to say so (#45 H1).
+        var promptCacheRepo = JsonPromptSettingsRepository.FromFilePath(
+            Path.Combine(settingsDir, "prompts.cache.json"));
+
+        JsonPromptSettingsRepository? globalPromptRepo = null;
         if (!string.IsNullOrWhiteSpace(persistedSettings.GlobalPromptFilePath))
         {
-            var globalPromptRepo = JsonPromptSettingsRepository.FromFilePath(persistedSettings.GlobalPromptFilePath);
-            if (globalPromptRepo.IsReachable)
+            globalPromptRepo = JsonPromptSettingsRepository.FromFilePath(persistedSettings.GlobalPromptFilePath);
+        }
+
+        var promptStartup = await PromptStartupResolver.ResolveAsync(
+            promptCacheRepo,
+            globalPromptRepo,
+            persistedSettings.GlobalPromptFilePath,
+            ex => crashLogger.WriteCrashLog("PROMPT-CACHE", ex));
+
+        var effectivePrompts = promptStartup.Prompts;
+
+        if (promptStartup.Warning is { } promptWarning)
+        {
+            startupFaults.Add(promptWarning);
+
+            // Only relevant alongside a fallback: when the share loaded fine the
+            // cache has just been rewritten, so a corrupt cache healed itself and
+            // there is nothing for the user to act on.
+            if (promptCacheRepo.LastLoadFault is { } cacheFault)
             {
-                effectivePrompts = await globalPromptRepo.LoadAsync();
+                startupFaults.Add(DescribeFault("Prompt-Zwischenspeicher", cacheFault));
             }
         }
 
@@ -89,6 +121,15 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Warning);
         }
 
+        if (startupFaults.Count > 0)
+        {
+            MessageBox.Show(
+                BuildSettingsFaultMessage(startupFaults),
+                "Platé.Johann – Einstellungen konnten nicht geladen werden",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+
         var persistedSettingsHolder = new SettingsHolder(persistedSettings, effectivePrompts);
         var runtimeSettingsHolder = new SettingsHolder(effectiveSettings, effectivePrompts);
 
@@ -97,7 +138,15 @@ public partial class App : System.Windows.Application
 
         // ── Manual DI ─────────────────────────────────────────────────────────
         IEntryRepository repository = new JsonRepository(outputRoot);
-        await repository.MigrateJobIdsAsync();
+        var jobIdMigration = await repository.MigrateJobIdsAsync();
+        if (jobIdMigration.Skipped.Count > 0)
+        {
+            crashLogger.WriteCrashLog(
+                "JOBID-MIGRATION",
+                new InvalidOperationException(
+                    $"{jobIdMigration.Skipped.Count} Eintrag/Einträge konnten nicht migriert werden:" +
+                    Environment.NewLine + string.Join(Environment.NewLine, jobIdMigration.Skipped)));
+        }
 
         // HTML overview service — regenerates _ItemÜbersicht.html after every save
         IHtmlOverviewService overviewService = new HtmlOverviewService(repository, outputRoot);
@@ -357,6 +406,36 @@ public partial class App : System.Windows.Application
             "Johann", "Eingang");
         Directory.CreateDirectory(path);
         return path;
+    }
+
+    private static string DescribeFault(string label, Platee.Johann.Application.Settings.SettingsFileFault fault)
+    {
+        var backup = fault.BackupPath is null
+            ? "Es konnte keine Sicherungskopie angelegt werden."
+            : $"Eine Sicherungskopie liegt unter: {fault.BackupPath}";
+
+        return string.Join(
+            Environment.NewLine,
+            $"{label}:",
+            $"Datei: {fault.FilePath}",
+            $"Grund: {fault.Reason}",
+            backup);
+    }
+
+    private static string BuildSettingsFaultMessage(IReadOnlyList<string> faults)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Beim Start konnten nicht alle Einstellungen gelesen werden.");
+        sb.AppendLine("Für diese Sitzung gelten Ersatzwerte.");
+        sb.AppendLine();
+
+        foreach (var fault in faults)
+        {
+            sb.AppendLine(fault);
+            sb.AppendLine();
+        }
+
+        return sb.ToString().TrimEnd();
     }
 
     private static string BuildPathWarningMessage(IReadOnlyList<StartupPathIssue> issues)
