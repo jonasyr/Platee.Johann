@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 #  Platé.Johann – Velopack Installer bauen & auf GitHub laden
 # ============================================================
 #
@@ -10,7 +10,7 @@
 #   .\build-installer.ps1 -Version 1.1.0 -GithubToken $env:GITHUB_TOKEN
 #
 param(
-    [Parameter(Mandatory)]
+    # Weglassen = genau die Version bauen, die im .csproj steht (und damit im Git liegt).
     [string]$Version,
 
     [string]$GithubToken = $env:GITHUB_TOKEN,
@@ -34,10 +34,34 @@ Write-Host ""
 Write-Host "=== Plate.Johann v$Version - Installer-Build ===" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Version im .csproj aktualisieren
-Write-Host "[0/3] Setze Version $Version im .csproj..." -ForegroundColor Yellow
-(Get-Content $UiProject) -replace '<Version>.*</Version>', "<Version>$Version</Version>" |
-    Set-Content $UiProject
+# 1. Version im .csproj abgleichen
+#
+# Frueher lief hier immer ein (Get-Content | Set-Content)-Roundtrip. Der schreibt
+# UTF-8 *ohne* BOM zurueck und hat damit bei jedem Release-Lauf das erste Byte der
+# .csproj geaendert - die Datei war danach immer "dirty", auch wenn die Version
+# unveraendert blieb. Jetzt wird nur geschrieben, wenn sich wirklich etwas aendert,
+# und dabei bleibt die urspruengliche Kodierung (BOM/kein BOM) erhalten.
+$csprojBytes = [System.IO.File]::ReadAllBytes($UiProject)
+$hasBom = $csprojBytes.Length -ge 3 -and
+          $csprojBytes[0] -eq 0xEF -and $csprojBytes[1] -eq 0xBB -and $csprojBytes[2] -eq 0xBF
+$csprojText = [System.Text.Encoding]::UTF8.GetString($csprojBytes).TrimStart([char]0xFEFF)
+
+if (-not $Version) {
+    if ($csprojText -notmatch '<Version>(.*?)</Version>') {
+        throw "Keine <Version> in $UiProject gefunden - bitte -Version angeben."
+    }
+    $Version = $Matches[1]
+    Write-Host "[0/3] Keine -Version angegeben, verwende $Version aus dem .csproj." -ForegroundColor Yellow
+}
+
+$updated = $csprojText -replace '<Version>.*</Version>', "<Version>$Version</Version>"
+if ($updated -ceq $csprojText) {
+    Write-Host "[0/3] Version $Version steht bereits im .csproj - keine Aenderung." -ForegroundColor Yellow
+}
+else {
+    [System.IO.File]::WriteAllText($UiProject, $updated, [System.Text.UTF8Encoding]::new($hasBom))
+    Write-Host "[0/3] Version im .csproj auf $Version gesetzt - bitte mitcommitten." -ForegroundColor Yellow
+}
 
 # 2. Publish (self-contained, kein SingleFile - Velopack braucht einzelne DLLs)
 Write-Host "[1/3] dotnet publish..." -ForegroundColor Yellow
