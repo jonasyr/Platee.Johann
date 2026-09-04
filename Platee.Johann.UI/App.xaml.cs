@@ -78,16 +78,6 @@ public partial class App : System.Windows.Application
             settingsDir,
             PromptStartupResolver.CacheFileNameFor(globalPromptPath ?? string.Empty));
 
-        if (!string.IsNullOrWhiteSpace(globalPromptPath))
-        {
-            var adoptError = PromptStartupResolver.AdoptLegacyCache(
-                Path.Combine(settingsDir, "prompts.cache.json"), promptCachePath);
-            if (adoptError is not null)
-            {
-                crashLogger.WriteCrashLog("PROMPT-CACHE", new InvalidOperationException(adoptError));
-            }
-        }
-
         var promptCacheRepo = JsonPromptSettingsRepository.FromFilePath(promptCachePath);
 
         JsonPromptSettingsRepository? globalPromptRepo = null;

@@ -28,7 +28,7 @@ public sealed class GlobalPromptFallbackTests : IDisposable
     {
         Directory.CreateDirectory(this.localDir);
         Directory.CreateDirectory(this.shareDir);
-        // Per-share name, deliberately distinct from the legacy flat "prompts.cache.json".
+        // Per-share name, as PromptStartupResolver.CacheFileNameFor produces.
         this.cachePath = Path.Combine(this.localDir, "prompts.cache.abcd1234.json");
         this.cache = JsonPromptSettingsRepository.FromFilePath(this.cachePath);
         this.globalPath = Path.Combine(this.shareDir, "prompts.json");
@@ -194,47 +194,6 @@ public sealed class GlobalPromptFallbackTests : IDisposable
         a.Should().NotBe(b);
         a.Should().Be(PromptStartupResolver.CacheFileNameFor(@"z:/12_Tools/Peano/Johann/prompts.json"));
         a.Should().StartWith("prompts.cache.").And.EndWith(".json");
-    }
-
-    [Fact]
-    public async Task UpgradingWhileTheShareIsDown_StillUsesTheOldFlatCache()
-    {
-        // Reproduces the upgrade window: the flat cache from the previous version
-        // is all we have, no per-share cache exists yet, and the share is down.
-        var legacy = Path.Combine(this.localDir, "prompts.cache.json");
-        await JsonPromptSettingsRepository.FromFilePath(legacy)
-            .SaveAsync(PromptSettings.Default with { SystemMessage = "Team-Systemnachricht" });
-        File.Exists(this.cachePath).Should().BeFalse();
-
-        PromptStartupResolver.AdoptLegacyCache(legacy, this.cachePath).Should().BeNull();
-        var result = await this.StartupAsync();
-
-        result.Prompts.SystemMessage.Should().Be("Team-Systemnachricht");
-        File.Exists(legacy).Should().BeFalse("it was carried over, not copied");
-    }
-
-    [Fact]
-    public async Task AdoptLegacyCache_WhenAPerShareCacheAlreadyExists_DropsTheFlatOne()
-    {
-        var legacy = Path.Combine(this.localDir, "prompts.cache.json");
-        await JsonPromptSettingsRepository.FromFilePath(legacy)
-            .SaveAsync(PromptSettings.Default with { SystemMessage = "alt" });
-        await this.cache.SaveAsync(PromptSettings.Default with { SystemMessage = "aktuell" });
-
-        PromptStartupResolver.AdoptLegacyCache(legacy, this.cachePath).Should().BeNull();
-
-        File.Exists(legacy).Should().BeFalse();
-        (await this.cache.LoadAsync()).SystemMessage.Should().Be("aktuell");
-    }
-
-    [Fact]
-    public void AdoptLegacyCache_WhenThereIsNothingToAdopt_IsAQuietNoOp()
-    {
-        PromptStartupResolver
-            .AdoptLegacyCache(Path.Combine(this.localDir, "prompts.cache.json"), this.cachePath)
-            .Should().BeNull();
-
-        File.Exists(this.cachePath).Should().BeFalse();
     }
 
     /// <summary>Reports the file as present, then finds it gone when reading.</summary>
