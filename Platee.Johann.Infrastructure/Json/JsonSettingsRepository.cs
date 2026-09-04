@@ -78,7 +78,12 @@ public sealed class JsonSettingsRepository : ISettingsRepository
             Quellverzeichnis = dto.Quellverzeichnis ?? defaultSettings.Quellverzeichnis,
             Archivverzeichnis = dto.Archivverzeichnis ?? defaultSettings.Archivverzeichnis,
             Ausgabeverzeichnis = dto.Ausgabeverzeichnis ?? defaultSettings.Ausgabeverzeichnis,
-            GlobalPromptFilePath = dto.GlobalPromptFilePath ?? defaultSettings.GlobalPromptFilePath,
+            // An explicitly cleared path must survive a restart. Coalescing a
+            // persisted null to the default silently re-enabled the team share the
+            // user had just switched off (PR #47 review).
+            GlobalPromptFilePath = dto.GlobalPromptFilePathWasPersisted
+                ? dto.GlobalPromptFilePath
+                : defaultSettings.GlobalPromptFilePath,
             LastSeenReleaseNotesVersion = dto.LastSeenReleaseNotesVersion,
             Korrekturliste = dto.Korrekturliste is { Count: > 0 }
                 ? dto.Korrekturliste
@@ -120,7 +125,26 @@ public sealed class JsonSettingsRepository : ISettingsRepository
 
         public string? Ausgabeverzeichnis { get; set; }
 
-        public string? GlobalPromptFilePath { get; set; }
+        /// <summary>
+        /// Backing field plus a "was it in the JSON at all" flag. System.Text.Json
+        /// invokes the setter only for properties present in the document, so an
+        /// explicit null (user cleared the path) is distinguishable from an absent
+        /// key (settings.json predates the property).
+        /// </summary>
+        private string? globalPromptFilePath;
+
+        public string? GlobalPromptFilePath
+        {
+            get => this.globalPromptFilePath;
+            set
+            {
+                this.globalPromptFilePath = value;
+                this.GlobalPromptFilePathWasPersisted = true;
+            }
+        }
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool GlobalPromptFilePathWasPersisted { get; private set; }
 
         public string? LastSeenReleaseNotesVersion { get; set; }
 

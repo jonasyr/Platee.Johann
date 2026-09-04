@@ -99,6 +99,45 @@ public sealed class CorruptSettingsFileTests : IDisposable
         sut.LastLoadFault.Should().BeNull();
     }
 
+    // ── Cleared team-prompt path must survive a restart (PR #47 review) ───────
+    [Fact]
+    public async Task SettingsRepository_WhenTheGlobalPromptPathIsCleared_ItStaysCleared()
+    {
+        var sut = new JsonSettingsRepository(this.tempDir);
+        AppSettings.Default.GlobalPromptFilePath.Should().NotBeNull(
+            "the default is a hardcoded share path, which is what made this bug bite");
+
+        await sut.SaveAsync(AppSettings.Default with { GlobalPromptFilePath = null });
+        var reloaded = await sut.LoadAsync();
+
+        reloaded.GlobalPromptFilePath.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SettingsRepository_WhenTheKeyIsAbsent_TheDefaultShareIsStillUsed()
+    {
+        // A settings.json written before the property existed must keep working.
+        File.WriteAllText(
+            Path.Combine(this.tempDir, "settings.json"),
+            """{"name":"Jonas"}""");
+        var sut = new JsonSettingsRepository(this.tempDir);
+
+        var loaded = await sut.LoadAsync();
+
+        loaded.GlobalPromptFilePath.Should().Be(AppSettings.Default.GlobalPromptFilePath);
+    }
+
+    [Fact]
+    public async Task SettingsRepository_RoundTripsAnExplicitPath()
+    {
+        var sut = new JsonSettingsRepository(this.tempDir);
+
+        await sut.SaveAsync(AppSettings.Default with { GlobalPromptFilePath = @"Y:\team\prompts.json" });
+        var reloaded = await sut.LoadAsync();
+
+        reloaded.GlobalPromptFilePath.Should().Be(@"Y:\team\prompts.json");
+    }
+
     // ── PromptSettings ─────────────────────────────────────────────────────────
     [Fact]
     public async Task PromptRepository_WhenFileIsCorrupt_ReportsFaultAndPreservesContent()
