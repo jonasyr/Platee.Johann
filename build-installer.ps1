@@ -30,10 +30,6 @@ $ReleasesDir= "$PublishDir\releases"
 $ExeName    = "Platee.Johann.UI.exe"
 $IconPath   = "$RepoRoot\Johann.ico"
 
-Write-Host ""
-Write-Host "=== Plate.Johann v$Version - Installer-Build ===" -ForegroundColor Cyan
-Write-Host ""
-
 # 1. Version im .csproj abgleichen
 #
 # Frueher lief hier immer ein (Get-Content | Set-Content)-Roundtrip. Der schreibt
@@ -41,6 +37,7 @@ Write-Host ""
 # .csproj geaendert - die Datei war danach immer "dirty", auch wenn die Version
 # unveraendert blieb. Jetzt wird nur geschrieben, wenn sich wirklich etwas aendert,
 # und dabei bleibt die urspruengliche Kodierung (BOM/kein BOM) erhalten.
+Write-Host ""
 $csprojBytes = [System.IO.File]::ReadAllBytes($UiProject)
 $hasBom = $csprojBytes.Length -ge 3 -and
           $csprojBytes[0] -eq 0xEF -and $csprojBytes[1] -eq 0xBB -and $csprojBytes[2] -eq 0xBF
@@ -53,6 +50,10 @@ if (-not $Version) {
     $Version = $Matches[1]
     Write-Host "[0/3] Keine -Version angegeben, verwende $Version aus dem .csproj." -ForegroundColor Yellow
 }
+
+Write-Host ""
+Write-Host "=== Plate.Johann v$Version - Installer-Build ===" -ForegroundColor Cyan
+Write-Host ""
 
 $updated = $csprojText -replace '<Version>.*</Version>', "<Version>$Version</Version>"
 if ($updated -ceq $csprojText) {
