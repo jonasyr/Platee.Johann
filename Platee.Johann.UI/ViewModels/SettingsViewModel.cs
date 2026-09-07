@@ -220,16 +220,47 @@ public sealed partial class SettingsViewModel : ObservableObject
         catch (Exception ex)
         {
             // A read-only or unreachable share must not swallow the edit (#45, #50).
+            //
+            // What can actually be rescued differs by kind, and the message must not
+            // overstate it: the user's own categories belong in the personal file and are
+            // saved there, but the eight built-in prompts are owned by the team file alone
+            // — writing them locally would shadow the team baseline for this user forever.
+            // So prompt text survives only for this session, and we say exactly that.
+            var hadPersonalCategories = updatedPrompts.CustomCategories
+                .Any(c => c.Scope == CategoryScope.Personal);
+
             await this.SavePersonalPromptsAsync(updatedPrompts);
             this.SaveTarget = CategoryScope.Personal;
+
+            var rescued = hadPersonalCategories
+                ? "Eigene Kategorien wurden persönlich gespeichert; Prompt-Änderungen"
+                : "Prompt-Änderungen";
+
             this.StatusMessage =
-                $"⚠ Globale Datei nicht schreibbar ({ex.Message}). Als persönliche Kopie gespeichert.";
+                $"⚠ Globale Datei nicht schreibbar ({ex.Message}). "
+                + $"{rescued} gelten nur bis zum nächsten Neustart.";
         }
     }
 
+    /// <summary>
+    /// Writes the user's own categories to the local personal file.
+    /// <para>
+    /// Only the categories are persisted, never the eight built-in prompts: the team file
+    /// on the share stays their sole owner, so a personal file can never shadow a team
+    /// prompt and freeze its owner out of baseline updates (#45 H1). Storing the team's
+    /// prompt text here as well would also leave a stale copy that silently diverges the
+    /// moment the team file changes.
+    /// </para>
+    /// </summary>
     private async Task SavePersonalPromptsAsync(PromptSettings updatedPrompts)
     {
-        await this.promptRepository.SaveAsync(updatedPrompts);
+        var personalOnly = PromptSettings.Default with
+        {
+            CustomCategories = [.. updatedPrompts.CustomCategories
+                .Where(c => c.Scope == CategoryScope.Personal)],
+        };
+
+        await this.promptRepository.SaveAsync(personalOnly);
         this.persistedHolder.Update(this.persistedHolder.Current, updatedPrompts);
         this.runtimeHolder.Update(this.runtimeHolder.Current, updatedPrompts);
     }

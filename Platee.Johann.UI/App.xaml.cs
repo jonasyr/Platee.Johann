@@ -98,7 +98,8 @@ public partial class App : System.Windows.Application
             promptCacheRepo,
             globalPromptRepo,
             persistedSettings.GlobalPromptFilePath,
-            ex => crashLogger.WriteCrashLog("PROMPT-CACHE", ex));
+            ex => crashLogger.WriteCrashLog("PROMPT-CACHE", ex),
+            personalRepo: personalPromptRepo);
 
         var effectivePrompts = promptStartup.Prompts;
 
