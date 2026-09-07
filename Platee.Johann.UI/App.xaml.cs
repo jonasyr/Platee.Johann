@@ -163,8 +163,14 @@ public partial class App : System.Windows.Application
                     Environment.NewLine + string.Join(Environment.NewLine, jobIdMigration.Skipped)));
         }
 
-        // HTML overview service — regenerates _ItemÜbersicht.html after every save
-        IHtmlOverviewService overviewService = new HtmlOverviewService(repository, outputRoot);
+        // HTML overview service — regenerates _ItemÜbersicht.html after every save.
+        // The name resolver is a delegate rather than a snapshot so a category renamed in
+        // the settings view takes effect on the next overview without an app restart;
+        // without it the overview would print raw category ids as headings.
+        IHtmlOverviewService overviewService = new HtmlOverviewService(
+            repository,
+            outputRoot,
+            () => CustomSectionNamesOf(runtimeSettingsHolder));
 
         IEntryRenderer[] renderers =
         [
@@ -270,6 +276,44 @@ public partial class App : System.Windows.Application
 
         var mainWindow = new MainWindow(viewModel);
         mainWindow.Show();
+
+        // ── One-time generation-mode prompt (v1.4.0) ──────────────────────────
+        // Version-gated exactly like the release notes below: asked once, the answer is
+        // persisted, and the prompt never returns. Declining to answer (closing the
+        // window) persists nothing, so nothing is decided behind the user's back.
+        if (SectionModeMigration.ShouldShow(persistedSettings))
+        {
+            var modeDialog = new SectionModeMigrationDialog { Owner = mainWindow };
+            modeDialog.ShowDialog();
+
+            if (modeDialog.UseRecommended is { } useRecommended)
+            {
+                persistedSettings = SectionModeMigration.Apply(persistedSettings, useRecommended);
+                var effectiveWithModes = SectionModeMigration.Apply(
+                    runtimeSettingsHolder.Current, useRecommended);
+
+                persistedSettingsHolder.Update(persistedSettings, persistedSettingsHolder.Prompts);
+                runtimeSettingsHolder.Update(effectiveWithModes, runtimeSettingsHolder.Prompts);
+
+                try
+                {
+                    await settingsRepo.SaveAsync(persistedSettings);
+                }
+                catch (Exception ex)
+                {
+                    // Never swallow (#45): an unwritable settings file means the prompt
+                    // returns at the next start, and the user deserves to know why.
+                    crashLogger.WriteCrashLog("SECTION-MODE-MIGRATION", ex);
+                    MessageBox.Show(
+                        "Die Auswahl konnte nicht gespeichert werden:" + Environment.NewLine
+                        + ex.Message + Environment.NewLine + Environment.NewLine
+                        + "Sie gilt für diese Sitzung; die Frage erscheint beim nächsten Start erneut.",
+                        "Platé.Johann – Einstellung nicht gespeichert",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+        }
 
         // ── Release Notes ─────────────────────────────────────────────────────
         var currentVersion = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
@@ -389,6 +433,14 @@ public partial class App : System.Windows.Application
             MessageBoxButton.OK,
             MessageBoxImage.Information);
     }
+
+    /// <summary>
+    /// Projects the currently loaded custom categories into the id → display-name map the
+    /// renderers use for section headings.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> CustomSectionNamesOf(SettingsHolder holder) =>
+        holder.Prompts.CustomCategories.ToDictionary(
+            c => c.Id, c => c.Name, StringComparer.Ordinal);
 
     private static DirectoryValidationResult ValidateDirectory(string path)
     {
