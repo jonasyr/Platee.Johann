@@ -16,7 +16,15 @@ public sealed class SettingsViewModelCorrectionTests
         var repo = Substitute.For<ISettingsRepository>();
         repo.SaveAsync(Arg.Any<AppSettings>()).Returns(Task.CompletedTask);
         var holder = new SettingsHolder(settings ?? AppSettings.Default);
-        return new SettingsViewModel(repo, holder);
+        return new SettingsViewModel(repo, CreatePromptRepo(), holder);
+    }
+
+    private static IPromptSettingsRepository CreatePromptRepo()
+    {
+        var promptRepo = Substitute.For<IPromptSettingsRepository>();
+        promptRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+        promptRepo.SaveAsync(Arg.Any<PromptSettings>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        return promptRepo;
     }
 
     [Fact]
@@ -75,7 +83,7 @@ public sealed class SettingsViewModelCorrectionTests
         repo.SaveAsync(Arg.Do<AppSettings>(s => saved = s)).Returns(Task.CompletedTask);
         var settings = AppSettings.Default with { Korrekturliste = [] };
         var holder = new SettingsHolder(settings);
-        var sut = new SettingsViewModel(repo, holder);
+        var sut = new SettingsViewModel(repo, CreatePromptRepo(), holder);
 
         sut.AddCorrectionCommand.Execute(null);
         sut.Korrekturen[0].Wrong = "Piano";
@@ -99,7 +107,7 @@ public sealed class SettingsViewModelCorrectionTests
         repo.SaveAsync(Arg.Do<AppSettings>(s => saved = s)).Returns(Task.CompletedTask);
         var settings = AppSettings.Default with { Korrekturliste = [] };
         var holder = new SettingsHolder(settings);
-        var sut = new SettingsViewModel(repo, holder);
+        var sut = new SettingsViewModel(repo, CreatePromptRepo(), holder);
 
         sut.AddCorrectionCommand.Execute(null);
         sut.Korrekturen[0].Wrong = "";

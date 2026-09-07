@@ -16,6 +16,7 @@ using Platee.Johann.Infrastructure.Json;
 public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly ISettingsRepository repository;
+    private readonly IPromptSettingsRepository promptRepository;
     private readonly SettingsHolder persistedHolder;
     private readonly SettingsHolder runtimeHolder;
 
@@ -71,22 +72,24 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private SettingsSectionItem? selectedSection;
 
+    /// <summary>
+    /// Gets or sets where a prompt or category edit is written. Replaces the former admin
+    /// password gate, which doubled as an implicit — and invisible — write-target switch.
+    /// </summary>
     [ObservableProperty]
-    private bool isAdminMode;
-
-    [ObservableProperty]
-    private string adminButtonLabel = "Admin";
-
-    [ObservableProperty]
-    private string promptWarningText = DefaultPromptWarning;
-
-    private const string DefaultPromptWarning =
-        "Hinweis: Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart und nur für Sie persönlich. Nach dem Neustart werden die globalen Team-Prompts wiederhergestellt. Für dauerhafte Änderungen bitte mit US/JW in Verbindung setzen.";
-
-    private const string AdminPromptWarning =
-        "ACHTUNG: Sie bearbeiten die globalen Team-Prompts. Änderungen betreffen ALLE Mitarbeiter nach deren nächstem App-Neustart!";
+    [NotifyPropertyChangedFor(nameof(IsGlobalTarget))]
+    [NotifyPropertyChangedFor(nameof(PromptWarningText))]
+    private CategoryScope saveTarget = CategoryScope.Personal;
 
     public IReadOnlyList<SettingsSectionItem> Sections { get; }
+
+    /// <summary>Gets a value indicating whether edits are written to the shared team file.</summary>
+    public bool IsGlobalTarget => this.SaveTarget == CategoryScope.Global;
+
+    /// <summary>Gets the warning shown above every prompt editor, driven by the save target.</summary>
+    public string PromptWarningText => this.IsGlobalTarget
+        ? "⚠ Ziel „Global (Team)“: Diese Änderung wirkt für alle Nutzer nach deren nächstem App-Neustart."
+        : "Ziel „Persönlich“: Diese Änderung gilt nur für Sie und wird lokal gespeichert.";
 
     public bool IsGeneralSelected => this.IsSelected(SectionGeneral);
 
@@ -116,21 +119,15 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool HasPathStatusMessage => !string.IsNullOrWhiteSpace(this.PathStatusMessage);
 
-    public bool IsPromptReadOnly => !this.IsAdminMode;
-
-    /// <summary>
-    /// Delegate that shows the admin password dialog and returns the entered password,
-    /// or null if the dialog was cancelled. Set by the UI layer; null-safe in tests.
-    /// </summary>
-    public Func<string?>? ShowAdminPasswordDialog { get; set; }
-
     public SettingsViewModel(
         ISettingsRepository repository,
+        IPromptSettingsRepository promptRepository,
         SettingsHolder persistedHolder,
         SettingsHolder? runtimeHolder = null,
         IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
     {
         this.repository = repository;
+        this.promptRepository = promptRepository;
         this.persistedHolder = persistedHolder;
         this.runtimeHolder = runtimeHolder ?? persistedHolder;
         this.Sections = BuildSections();
@@ -141,52 +138,6 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
 
         this.SelectedSection = this.Sections[0];
-    }
-
-    public bool ActivateAdmin(string password)
-    {
-        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(password));
-        var hex = Convert.ToHexStringLower(hash);
-
-        if (hex == AdminPasswordHash)
-        {
-            this.IsAdminMode = true;
-            return true;
-        }
-
-        return false;
-    }
-
-    public void DeactivateAdmin()
-    {
-        this.IsAdminMode = false;
-    }
-
-    [RelayCommand]
-    private void ToggleAdmin()
-    {
-        if (this.IsAdminMode)
-        {
-            this.DeactivateAdmin();
-            return;
-        }
-
-        var password = this.ShowAdminPasswordDialog?.Invoke();
-        if (password is not null && !this.ActivateAdmin(password))
-        {
-            System.Windows.MessageBox.Show(
-                "Falsches Passwort.",
-                "Admin-Zugang",
-                System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Warning);
-        }
-    }
-
-    partial void OnIsAdminModeChanged(bool value)
-    {
-        this.AdminButtonLabel = value ? "Admin aktiv" : "Admin";
-        this.PromptWarningText = value ? AdminPromptWarning : DefaultPromptWarning;
-        this.OnPropertyChanged(nameof(this.IsPromptReadOnly));
     }
 
     [RelayCommand]
@@ -219,43 +170,79 @@ public sealed partial class SettingsViewModel : ObservableObject
             AnalogPrompt = this.AnalogPrompt.Trim(),
         };
 
-        // Persist only personal settings — prompts are never saved locally
         await this.repository.SaveAsync(updatedSettings);
 
         this.persistedHolder.Update(updatedSettings, this.persistedHolder.Prompts);
         this.runtimeHolder.Update(updatedSettings, this.runtimeHolder.Prompts);
 
-        // Prompts
-        var promptsChanged = updatedPrompts != this.persistedHolder.Prompts;
-
-        if (this.IsAdminMode && promptsChanged)
-        {
-            // Admin mode: persist prompts to the global team file
-            var globalPath = this.persistedHolder.Current.GlobalPromptFilePath
-                             ?? updatedSettings.GlobalPromptFilePath;
-            if (!string.IsNullOrWhiteSpace(globalPath))
-            {
-                var globalRepo = JsonPromptSettingsRepository.FromFilePath(globalPath);
-                await globalRepo.SaveAsync(updatedPrompts);
-                this.persistedHolder.Update(this.persistedHolder.Current, updatedPrompts);
-                this.runtimeHolder.Update(this.runtimeHolder.Current, updatedPrompts);
-                this.StatusMessage = "✓ Globale Prompts für alle Mitarbeiter gespeichert.";
-            }
-        }
-        else if (promptsChanged)
-        {
-            // Normal mode: session-only
-            this.runtimeHolder.Update(this.runtimeHolder.Current, updatedPrompts);
-            this.StatusMessage = "✓ Einstellungen gespeichert. Prompt-Änderungen gelten nur bis zum nächsten Neustart.";
-        }
-        else
-        {
-            this.StatusMessage = "✓ Einstellungen gespeichert.";
-        }
+        await this.SavePromptsAsync(updatedPrompts, updatedSettings);
 
         this.PathStatusMessage = string.Empty;
         this.OnPropertyChanged(nameof(this.HasPathStatusMessage));
     }
+
+    /// <summary>
+    /// Writes the prompts to whichever file <see cref="SaveTarget"/> selects. Before v1.4.0
+    /// this decision hung off the admin password: on meant "global file", off meant
+    /// "session-only", so every non-admin prompt edit was silently lost on restart.
+    /// </summary>
+    private async Task SavePromptsAsync(PromptSettings updatedPrompts, AppSettings updatedSettings)
+    {
+        if (!HasPromptChanges(updatedPrompts, this.persistedHolder.Prompts))
+        {
+            this.StatusMessage = "✓ Einstellungen gespeichert.";
+            return;
+        }
+
+        if (!this.IsGlobalTarget)
+        {
+            await this.SavePersonalPromptsAsync(updatedPrompts);
+            this.StatusMessage = "✓ Persönliche Prompts gespeichert.";
+            return;
+        }
+
+        var globalPath = this.persistedHolder.Current.GlobalPromptFilePath
+                         ?? updatedSettings.GlobalPromptFilePath;
+        if (string.IsNullOrWhiteSpace(globalPath))
+        {
+            this.StatusMessage = "⚠ Kein globaler Prompt-Pfad konfiguriert – bitte unter „Team-Prompts“ eintragen.";
+            return;
+        }
+
+        try
+        {
+            var globalRepo = JsonPromptSettingsRepository.FromFilePath(globalPath);
+            await globalRepo.SaveAsync(updatedPrompts);
+            this.persistedHolder.Update(this.persistedHolder.Current, updatedPrompts);
+            this.runtimeHolder.Update(this.runtimeHolder.Current, updatedPrompts);
+            this.StatusMessage = "✓ Globale Prompts für alle Mitarbeiter gespeichert.";
+        }
+        catch (Exception ex)
+        {
+            // A read-only or unreachable share must not swallow the edit (#45, #50).
+            await this.SavePersonalPromptsAsync(updatedPrompts);
+            this.SaveTarget = CategoryScope.Personal;
+            this.StatusMessage =
+                $"⚠ Globale Datei nicht schreibbar ({ex.Message}). Als persönliche Kopie gespeichert.";
+        }
+    }
+
+    private async Task SavePersonalPromptsAsync(PromptSettings updatedPrompts)
+    {
+        await this.promptRepository.SaveAsync(updatedPrompts);
+        this.persistedHolder.Update(this.persistedHolder.Current, updatedPrompts);
+        this.runtimeHolder.Update(this.runtimeHolder.Current, updatedPrompts);
+    }
+
+    /// <summary>
+    /// Compares two prompt sets by content. The record's own <c>!=</c> is not usable:
+    /// <see cref="PromptSettings.CustomCategories"/> is an <see cref="IReadOnlyList{T}"/>,
+    /// which compares by reference, so a plain record comparison reports a change on
+    /// every single save — and would write to the shared team file each time.
+    /// </summary>
+    private static bool HasPromptChanges(PromptSettings updated, PromptSettings current) =>
+        (updated with { CustomCategories = [] }) != (current with { CustomCategories = [] })
+        || !updated.CustomCategories.SequenceEqual(current.CustomCategories);
 
     [RelayCommand]
     private void Reset()
@@ -453,8 +440,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         this.GlobalPromptStatus = EvaluateGlobalPromptStatus(value);
     }
-
-    private const string AdminPasswordHash = "1be344bf22d9aafb6cd0cc1223b315bb2ae4b4cc7d0788ed5bddf9dcecb02c17";
 
     private const string SectionGeneral = "general";
     private const string SectionPaths = "paths";

@@ -29,6 +29,7 @@ public sealed class MicrophoneRecordingViewModelTests
             string.Empty,
             this.processor,
             settingsRepo,
+            Substitute.For<IPromptSettingsRepository>(),
             holder,
             holder,
             this.recorder);

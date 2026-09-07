@@ -52,8 +52,6 @@
     <Page Include="..\Platee.Johann.UI\Views\SettingsView.xaml" Link="Views/SettingsView.xaml" />
     <Compile Include="..\Platee.Johann.UI\Views\NewEntryView.xaml.cs" Link="Views/NewEntryView.xaml.cs" />
     <Page Include="..\Platee.Johann.UI\Views\NewEntryView.xaml" Link="Views/NewEntryView.xaml" />
-    <Compile Include="..\Platee.Johann.UI\Views\AdminPasswordDialog.xaml.cs" Link="Views/AdminPasswordDialog.xaml.cs" />
-    <Page Include="..\Platee.Johann.UI\Views\AdminPasswordDialog.xaml" Link="Views/AdminPasswordDialog.xaml" />
   </ItemGroup>
 
 </Project>

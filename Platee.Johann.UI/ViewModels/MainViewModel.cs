@@ -19,6 +19,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IEntryProcessor processor;
     private readonly string outputRoot;
     private readonly ISettingsRepository settingsRepo;
+    private readonly IPromptSettingsRepository promptRepo;
         private readonly SettingsHolder persistedSettingsHolder;
     private readonly SettingsHolder runtimeSettingsHolder;
     private readonly IReadOnlyList<StartupPathIssue> startupPathIssues;
@@ -125,6 +126,7 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
                          string outputRoot, IEntryProcessor processor,
                          ISettingsRepository settingsRepo,
+                         IPromptSettingsRepository promptRepo,
                          SettingsHolder persistedSettingsHolder,
                          SettingsHolder runtimeSettingsHolder,
                          IMicrophoneRecorder microphoneRecorder,
@@ -135,6 +137,7 @@ public sealed partial class MainViewModel : ObservableObject
         this.outputRoot = outputRoot;
         this.processor = processor;
         this.settingsRepo = settingsRepo;
+        this.promptRepo = promptRepo;
         this.persistedSettingsHolder = persistedSettingsHolder;
         this.runtimeSettingsHolder = runtimeSettingsHolder;
         this.startupPathIssues = startupPathIssues ?? [];
@@ -627,19 +630,10 @@ public sealed partial class MainViewModel : ObservableObject
 
         this.settingsViewModel ??= new SettingsViewModel(
             this.settingsRepo,
+            this.promptRepo,
             this.persistedSettingsHolder,
             this.runtimeSettingsHolder,
             this.startupPathIssues);
-        this.settingsViewModel.ShowAdminPasswordDialog ??= () =>
-        {
-            var dialog = new AdminPasswordDialog
-            {
-                Owner = System.Windows.Application.Current.Windows
-                    .OfType<SettingsView>()
-                    .FirstOrDefault(),
-            };
-            return dialog.ShowDialog() == true ? dialog.EnteredPassword : null;
-        };
         this.settingsWindow = new SettingsView(this.settingsViewModel)
         {
             Owner = System.Windows.Application.Current.MainWindow,

@@ -80,6 +80,14 @@ public partial class App : System.Windows.Application
 
         var promptCacheRepo = JsonPromptSettingsRepository.FromFilePath(promptCachePath);
 
+        // Personal prompt overrides live in their own file. Deliberately NOT the cache
+        // above: the cache is a mirror of the team file and is overwritten on every
+        // successful share load, so personal edits stored there would vanish. It is also
+        // not the legacy local "prompts.json", which SettingsSplitMigration.CleanupLegacyFiles
+        // deletes at every startup.
+        var personalPromptRepo = JsonPromptSettingsRepository.FromFilePath(
+            Path.Combine(settingsDir, "prompts.personal.json"));
+
         JsonPromptSettingsRepository? globalPromptRepo = null;
         if (!string.IsNullOrWhiteSpace(globalPromptPath))
         {
@@ -209,7 +217,7 @@ public partial class App : System.Windows.Application
 
         // ── Window ────────────────────────────────────────────────────────────
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
-                                           settingsRepo, persistedSettingsHolder,
+                                           settingsRepo, personalPromptRepo, persistedSettingsHolder,
                                            runtimeSettingsHolder, microphoneRecorder,
                                            pathResolution.Issues);
 
