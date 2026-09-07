@@ -83,6 +83,10 @@ public sealed class AudioWatcherServiceTests : IDisposable
         public Task<string> GenerateEmailTextAsync(Entry entry, CancellationToken ct = default)
             => Task.FromResult(string.Empty);
 
+        public Task<Entry> GenerateSectionAsync(Entry entry, string sectionId, IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
+            => Task.FromResult(entry);
+
+        [Obsolete("Use GenerateSectionAsync with a stable section id.")]
         public Task<Entry> ReprocessSectionAsync(Entry entry, string sectionName, IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
             => Task.FromResult(entry);
 

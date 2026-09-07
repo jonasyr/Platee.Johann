@@ -31,6 +31,21 @@ public interface IEntryProcessor
         Entry entry,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Generates exactly one section by its stable id and persists the result.
+    /// Concurrent calls for the same (entry, section) share a single LLM call.
+    /// </summary>
+    Task<Entry> GenerateSectionAsync(
+        Entry entry,
+        string sectionId,
+        IProgress<ProcessingProgress>? progress = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Legacy entry point keyed by German display name. Superseded by
+    /// <see cref="GenerateSectionAsync"/>; removed once the XAML migrates (#53).
+    /// </summary>
+    [Obsolete("Use GenerateSectionAsync with a stable section id.")]
     Task<Entry> ReprocessSectionAsync(
         Entry entry,
         string sectionName,

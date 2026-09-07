@@ -1,5 +1,7 @@
 namespace Platee.Johann.Application.Processing;
 
+using System.Collections.Concurrent;
+
 using System.IO;
 using System.Text;
 using Platee.Johann.Application.Diagnostics;
@@ -25,6 +27,12 @@ public sealed class EntryProcessingService : IEntryProcessor
     private readonly SettingsHolder settings;
     private readonly IEnumerable<IEntryRenderer> renderers;
     private readonly IEntryProcessingLogger logger;
+
+    /// <summary>
+    /// Generations currently in flight, keyed by (job id, section id), so a double click
+    /// awaits the first call instead of paying for a second one.
+    /// </summary>
+    private readonly ConcurrentDictionary<(string JobId, string SectionId), Task<Entry>> inFlightSections = new();
 
     public bool CanProcess => this.transcriber.IsAvailable;
 
@@ -289,54 +297,138 @@ public sealed class EntryProcessingService : IEntryProcessor
     private static bool IsRenderer(IEntryRenderer renderer, string name) =>
         renderer.RendererName.Equals(name, StringComparison.OrdinalIgnoreCase);
 
-    public async Task<Entry> ReprocessSectionAsync(Entry entry, string sectionName,
-        IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
+    /// <summary>
+    /// Generates exactly one section by its stable id, merges it into the entry, and saves.
+    /// <para>
+    /// Concurrent calls for the same (entry, section) pair share a single LLM call: a
+    /// CanExecute flag in the UI cannot prevent two clicks being dispatched before the first
+    /// command completes, and every wasted call costs real money.
+    /// </para>
+    /// </summary>
+    public Task<Entry> GenerateSectionAsync(
+        Entry entry,
+        string sectionId,
+        IProgress<ProcessingProgress>? progress = null,
+        CancellationToken ct = default)
+    {
+        var key = (entry.JobId, sectionId);
+
+        // GetOrAdd's factory may run more than once under contention, but only one task is
+        // ever stored and returned, so both callers await the same generation.
+        var task = this.inFlightSections.GetOrAdd(
+            key, _ => this.RunSectionAsync(entry, sectionId, progress, ct));
+
+        return AwaitAndReleaseAsync(task, key);
+
+        async Task<Entry> AwaitAndReleaseAsync(Task<Entry> pending, (string, string) cacheKey)
+        {
+            try
+            {
+                return await pending.ConfigureAwait(false);
+            }
+            finally
+            {
+                // Released on failure too, so a transient LLM error does not permanently
+                // wedge the section behind a cached faulted task.
+                this.inFlightSections.TryRemove(cacheKey, out _);
+            }
+        }
+    }
+
+    private async Task<Entry> RunSectionAsync(
+        Entry entry, string sectionId, IProgress<ProcessingProgress>? progress, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             throw new InvalidOperationException("Kein Transkript vorhanden.");
         }
 
-        var scopedGenerator = this.summaryGenerator.WithSnapshot();
+        var descriptor = this.BuildCatalog().FirstOrDefault(s => s.Id == sectionId)
+            ?? throw new ArgumentException($"Unbekannte Sektion: {sectionId}", nameof(sectionId));
 
-        progress?.Report(new($"'{sectionName}' wird neu generiert…", 1, 1));
+        var generator = this.summaryGenerator.WithSnapshot();
+        var transcript = entry.EffectiveTranscript!;
 
-        var updated = sectionName switch
+        progress?.Report(new($"'{descriptor.Name}' wird generiert…", 1, 1));
+
+        var updated = sectionId switch
         {
-            "Zusammenfassung" => entry with
+            BuiltInSections.LongSummary => entry with
             {
-                LongSummary = await scopedGenerator.GenerateLongSummaryAsync(entry.EffectiveTranscript!, ct),
+                LongSummary = await generator.GenerateLongSummaryAsync(transcript, ct),
             },
-            "Ausführliche Zusammenfassung" => entry with
+            BuiltInSections.ProseSummary => entry with
             {
-                ProseSummary = await scopedGenerator.GenerateProseSummaryAsync(entry.EffectiveTranscript!, ct),
+                ProseSummary = await generator.GenerateProseSummaryAsync(transcript, ct),
             },
-            "Aufgaben" => entry with
+            BuiltInSections.TaskList => entry with
             {
-                TaskList = await scopedGenerator.GenerateAufgabeAsync(entry.EffectiveTranscript!, ct),
+                TaskList = await generator.GenerateAufgabeAsync(transcript, ct),
             },
-            "Gesprächsnotiz" => entry with
+            BuiltInSections.ConversationNote => entry with
             {
-                ConversationNote = await scopedGenerator.GenerateGespraechsnotizAsync(entry.EffectiveTranscript!, ct),
+                ConversationNote = await generator.GenerateGespraechsnotizAsync(transcript, ct),
             },
-            "E-Mail" => entry with
+            BuiltInSections.Stundenzettel => entry with
             {
-                EmailText = await scopedGenerator.GenerateEmailTextAsync(
-                    entry.ProseSummary ?? entry.LongSummary ?? entry.EffectiveTranscript!, ct),
+                StundenzettelText = await generator.GenerateStundenzettelAsync(transcript, ct),
             },
-            "Stundenzettel" => entry with
+            BuiltInSections.Analog => entry with
             {
-                StundenzettelText = await scopedGenerator.GenerateStundenzettelAsync(entry.EffectiveTranscript!, ct),
+                AnalogText = await generator.GenerateAnalogAsync(transcript, ct),
             },
-            "Analog" => entry with
+            BuiltInSections.EmailText => entry with
             {
-                AnalogText = await scopedGenerator.GenerateAnalogAsync(entry.EffectiveTranscript!, ct),
+                // EmailText reads a summary rather than the transcript; keep the original
+                // fallback chain so an entry without a prose summary still produces one.
+                EmailText = await generator.GenerateEmailTextAsync(
+                    entry.ProseSummary ?? entry.LongSummary ?? transcript, ct),
             },
-            _ => throw new ArgumentException($"Unbekannte Sektion: {sectionName}"),
+            _ => await GenerateCustomAsync(entry, descriptor, generator, transcript, ct),
         };
 
         await this.repository.SaveAsync(updated, ct);
         return updated;
+
+        static async Task<Entry> GenerateCustomAsync(
+            Entry entry, SectionDescriptor descriptor, SummaryGenerator generator,
+            string transcript, CancellationToken ct)
+        {
+            var text = await generator.GenerateCustomSectionAsync(descriptor.Category!, transcript, ct);
+            var sections = new Dictionary<string, string>(entry.CustomSections, StringComparer.Ordinal);
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                sections.Remove(descriptor.Id);
+            }
+            else
+            {
+                sections[descriptor.Id] = text;
+            }
+
+            return entry with { CustomSections = sections };
+        }
+    }
+
+    /// <summary>
+    /// Legacy entry point keyed by German display name.
+    /// <para>
+    /// Superseded by <see cref="GenerateSectionAsync"/>, which is keyed by a stable id and
+    /// therefore survives a category being renamed. Kept for one release while the XAML
+    /// command parameters migrate.
+    /// </para>
+    /// </summary>
+    [Obsolete("Use GenerateSectionAsync with a stable section id; removed once the XAML migrates (#53).")]
+    public Task<Entry> ReprocessSectionAsync(
+        Entry entry,
+        string sectionName,
+        IProgress<ProcessingProgress>? progress = null,
+        CancellationToken ct = default)
+    {
+        var sectionId = BuiltInSections.FromLegacyName(sectionName)
+            ?? throw new ArgumentException($"Unbekannte Sektion: {sectionName}", nameof(sectionName));
+
+        return this.GenerateSectionAsync(entry, sectionId, progress, ct);
     }
 
     /// <summary>
