@@ -156,26 +156,31 @@ ein v1.3.2-Client löscht `customCategories` beim Speichern wieder
 ### Geklärt am 2026-09-07
 
 1. ✅ **JOH-27 — Merge-Richtung.** A auf B ziehen → an B anhängen, **B** neu berechnen,
-   **A** löschen. Das wörtliche „B soll gelöscht werden“ im Transkript war ein Versprecher. → #54
-2. ✅ **JOH-19 — E-Mail-Ausgabe.** Weder PDF noch HTML: die Mail soll sich beim Klick **direkt in
-   Outlook** öffnen. `OpenInOutlookCommand` existiert bereits, hängt aber im Rechtsklick-Menü. → #57
+   **A** löschen. Das wörtliche „B soll gelöscht werden“ war ein Versprecher. → #54
+2. ✅ **JOH-19 — E-Mail-Ausgabe.** Weder PDF noch HTML: die Mail öffnet sich beim Klick **direkt
+   in Outlook**. `OpenInOutlookCommand` existiert bereits, hängt aber im Rechtsklick-Menü. → #57
+3. ✅ **JOH-14 — Diktat-Automatik.** Abstract + Zusammenfassung. Damit kostet ein Diktat
+   **zwei statt acht** GPT-Aufrufe. → #61
+4. ✅ **Texteingabe.** „+ Neues Element“ wird **vollständig entfernt** (#62).
+   Folge: #58 muss eine eigene Texteingabe mitbringen und wächst von `size: S` auf `size: M`.
+   **Beide Tickets gehören in dieselbe Version** — sonst ist die Texteingabe weg, bevor der
+   Ersatz existiert.
+5. ✅ **JOH-05 — „diese Testdinger“ ist bereits erledigt.** Gemeint war, dass persönliche
+   Prompt-Änderungen nur bis zum nächsten Neustart galten („gelten nur bis zum nächsten
+   Neustart“) — also faktisch nur zum Testen taugten. Genau das ist in v1.4.0 behoben:
+   #50 gibt persönlichen Prompts ein eigenes Ziel (`prompts.personal.json`), Commit `397ed32`
+   schließt die Lücke, dass `CustomCategories` gar nicht serialisiert wurde, und
+   `PromptStartupResolver` lädt sie beim Start wieder ein.
+   **Kein eigenes Ticket nötig.**
 
 ### Offene Rückfragen an den Chef
 
-1. **Texteingabe vs. „+ Neues Element“.** Er will den Button weg (#62), aber auch Übersetzungen,
-   „damit die beiden einfach **tippen** können“ (#58). „+ Neues Element“ ist der einzige Weg,
-   einen Eintrag zu tippen. Vorschlag: Button aus der unteren Leiste nehmen, Texteingabe ins
-   Kontextmenü verschieben. **#62 muss vor #58 entschieden werden.**
-2. **JOH-14 — welche 1–2 Ausgaben** sollen bei einem Diktat automatisch entstehen?
-   Vorschlag: Abstract + Zusammenfassung. → #61
-3. **JOH-05 — „diese Testdinger“** ist nicht eindeutig. Weder im Code noch im Team-Prompt-File auf
-   `Z:` gibt es eine Test-Kategorie. Vermutlich sind eigene Testeinträge gemeint.
-   Nachfragen, bevor etwas entfernt wird.
-4. **#36 vs. #61** — der Auswahldialog aus #36 ist laut Chef-Aussage vermutlich überflüssig.
+1. **#36 vs. #61** — der Auswahldialog aus #36 ist laut Chef-Aussage vermutlich überflüssig,
+   sobald #61 umgesetzt ist. Vor der Umsetzung von #36 kurz bestätigen lassen.
 
 ### Nicht übernommen
 
-- **JOH-05** (Test-Kategorien entfernen) — siehe Rückfrage 3, nichts Konkretes im Code gefunden.
+- — (alle Anforderungen zugeordnet)
 
 ---
 
