@@ -53,7 +53,7 @@ public sealed class CategoryDefinitionTests
     public void FromLegacyName_PreservesTheOriginalInvertedMapping(string legacy, string expectedId)
     {
         // "Zusammenfassung" maps to LongSummary and "Ausführliche Zusammenfassung" to
-        // ProseSummary. That inversion exists in the original ReprocessSectionAsync
+        // ProseSummary. That inversion existed in the original German-name dispatch
         // switch; the mapping must reproduce it exactly, not silently "fix" it.
         BuiltInSections.FromLegacyName(legacy).Should().Be(expectedId);
     }

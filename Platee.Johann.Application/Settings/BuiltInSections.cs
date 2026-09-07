@@ -67,7 +67,7 @@ public static class BuiltInSections
     /// Maps the legacy German <c>CommandParameter</c> strings used by MainWindow.xaml onto
     /// stable ids.
     /// <para>
-    /// Note the inversion inherited from the original <c>ReprocessSectionAsync</c> switch:
+    /// Note the inversion inherited from the original German-name dispatch switch:
     /// "Zusammenfassung" is <see cref="LongSummary"/> and "Ausführliche Zusammenfassung" is
     /// <see cref="ProseSummary"/>. The mapping reproduces that exactly rather than silently
     /// correcting it, so behaviour is preserved while the XAML migrates.

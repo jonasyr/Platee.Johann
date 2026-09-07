@@ -41,17 +41,6 @@ public interface IEntryProcessor
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default);
 
-    /// <summary>
-    /// Legacy entry point keyed by German display name. Superseded by
-    /// <see cref="GenerateSectionAsync"/>; removed once the XAML migrates (#53).
-    /// </summary>
-    [Obsolete("Use GenerateSectionAsync with a stable section id.")]
-    Task<Entry> ReprocessSectionAsync(
-        Entry entry,
-        string sectionName,
-        IProgress<ProcessingProgress>? progress = null,
-        CancellationToken ct = default);
-
     Task<Entry> RegenerateFromTranscriptAsync(
         Entry entry,
         string editedTranscript,

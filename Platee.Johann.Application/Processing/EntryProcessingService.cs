@@ -411,27 +411,6 @@ public sealed class EntryProcessingService : IEntryProcessor
     }
 
     /// <summary>
-    /// Legacy entry point keyed by German display name.
-    /// <para>
-    /// Superseded by <see cref="GenerateSectionAsync"/>, which is keyed by a stable id and
-    /// therefore survives a category being renamed. Kept for one release while the XAML
-    /// command parameters migrate.
-    /// </para>
-    /// </summary>
-    [Obsolete("Use GenerateSectionAsync with a stable section id; removed once the XAML migrates (#53).")]
-    public Task<Entry> ReprocessSectionAsync(
-        Entry entry,
-        string sectionName,
-        IProgress<ProcessingProgress>? progress = null,
-        CancellationToken ct = default)
-    {
-        var sectionId = BuiltInSections.FromLegacyName(sectionName)
-            ?? throw new ArgumentException($"Unbekannte Sektion: {sectionName}", nameof(sectionName));
-
-        return this.GenerateSectionAsync(entry, sectionId, progress, ct);
-    }
-
-    /// <summary>
     /// Re-generates all summaries from a user-corrected transcript,
     /// stores the edited transcript, and persists the updated entry.
     /// </summary>

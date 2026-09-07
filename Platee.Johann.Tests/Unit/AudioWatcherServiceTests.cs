@@ -86,10 +86,6 @@ public sealed class AudioWatcherServiceTests : IDisposable
         public Task<Entry> GenerateSectionAsync(Entry entry, string sectionId, IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
             => Task.FromResult(entry);
 
-        [Obsolete("Use GenerateSectionAsync with a stable section id.")]
-        public Task<Entry> ReprocessSectionAsync(Entry entry, string sectionName, IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
-            => Task.FromResult(entry);
-
         public Task<Entry> RegenerateFromTranscriptAsync(Entry entry, string editedTranscript, IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
             => Task.FromResult(entry);
 
