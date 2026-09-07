@@ -25,6 +25,60 @@ public class JsonPromptSettingsRepositoryTests : IDisposable
         }
     }
 
+    // ── CustomCategories round-trip ───────────────────────────────────────────
+    [Fact]
+    public async Task SaveAsync_then_LoadAsync_PreservesCustomCategories()
+    {
+        var settings = PromptSettings.Default with
+        {
+            CustomCategories =
+            [
+                new()
+                {
+                    Id = "custom.programmierung",
+                    Name = "Programmierung",
+                    Prompt = "Analysiere: {transcript}",
+                    Order = 3,
+                    MaxTokens = 1234,
+                },
+            ],
+        };
+
+        await this.sut.SaveAsync(settings);
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.CustomCategories.Should().HaveCount(1);
+        loaded.CustomCategories[0].Id.Should().Be("custom.programmierung");
+        loaded.CustomCategories[0].Name.Should().Be("Programmierung");
+        loaded.CustomCategories[0].Prompt.Should().Be("Analysiere: {transcript}");
+        loaded.CustomCategories[0].Order.Should().Be(3);
+        loaded.CustomCategories[0].MaxTokens.Should().Be(1234);
+    }
+
+    [Fact]
+    public async Task SaveAsync_WritesCustomCategoriesIntoTheJson()
+    {
+        var settings = PromptSettings.Default with
+        {
+            CustomCategories = [new() { Id = "custom.a", Name = "A", Prompt = "{transcript}" }],
+        };
+
+        await this.sut.SaveAsync(settings);
+        var json = await File.ReadAllTextAsync(Path.Combine(this.tempDir, "prompts.json"));
+
+        json.Should().Contain("customCategories").And.Contain("custom.a");
+    }
+
+    [Fact]
+    public async Task LoadAsync_FileWithoutCustomCategories_YieldsEmptyListNotNull()
+    {
+        await this.sut.SaveAsync(PromptSettings.Default);
+
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.CustomCategories.Should().NotBeNull().And.BeEmpty();
+    }
+
     [Fact]
     public async Task LoadAsync_WhenNoFileExists_ReturnsDefaults()
     {
