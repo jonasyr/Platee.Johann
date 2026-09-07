@@ -60,5 +60,14 @@ public sealed record Entry
 
     public int WordCount { get; init; }
 
-    public int SchemaVersion { get; init; } = 3;
+    /// <summary>
+    /// Gets generated text for user-defined categories, keyed by CategoryDefinition.Id.
+    /// The eight built-in sections keep their own fixed properties above; this map holds
+    /// only what the user added, which is why a v1.3.x client reading a v4 entry loses
+    /// nothing it ever knew about.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> CustomSections { get; init; }
+        = new Dictionary<string, string>();
+
+    public int SchemaVersion { get; init; } = 4;
 }

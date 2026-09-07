@@ -34,6 +34,7 @@ internal static class EntryMapper
         IsDone = dto.IsDone,
         DurationSeconds = dto.DurationSeconds,
         WordCount = dto.WordCount,
+        CustomSections = dto.CustomSections,
         SchemaVersion = dto.SchemaVersion,
     };
 
@@ -68,6 +69,7 @@ internal static class EntryMapper
         IsDone = entry.IsDone,
         DurationSeconds = entry.DurationSeconds,
         WordCount = entry.WordCount,
+        CustomSections = new Dictionary<string, string>(entry.CustomSections),
     };
 
     private static EntryType ParseType(string type) =>
