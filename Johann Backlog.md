@@ -92,12 +92,16 @@ Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/is
 | [#20](https://github.com/jonasyr/Platee.Johann/issues/20) | Edit transcript and re-generate | geschlossen | ✅ Transkriptionstext bearbeiten |
 | [#21](https://github.com/jonasyr/Platee.Johann/issues/21) | In-app dictation | geschlossen | ✅ Neue Einträge direkt in Johann diktieren |
 | [#29](https://github.com/jonasyr/Platee.Johann/issues/29) | SettingsHolder.Snapshot() not atomic | geschlossen | ✅ (Teil von „Inkonsistente Generierung") |
-| [#34](https://github.com/jonasyr/Platee.Johann/issues/34) | User-definable categories, no password gate | **offen** | ☐ Frei definierbare Kategorien |
-| [#35](https://github.com/jonasyr/Platee.Johann/issues/35) | Auto vs. on-demand generation per category | **offen** | ☐ Auto- vs. Knopfdruck-Generierung |
+| [#34](https://github.com/jonasyr/Platee.Johann/issues/34) | User-definable categories, no password gate | **offen (umgeplant)** | → zerlegt in #50–#53 |
+| [#35](https://github.com/jonasyr/Platee.Johann/issues/35) | Auto vs. on-demand generation per category | **offen (ersetzt)** | → #52 |
 | [#36](https://github.com/jonasyr/Platee.Johann/issues/36) | Live dictation mode with category checkboxes | **offen** | ☐ Live-Diktat-Modus |
 | [#37](https://github.com/jonasyr/Platee.Johann/issues/37) | Move „Erledigt" button top-left and pin it | geschlossen (v1.3.0) | ✅ „Erledigt"-Button verdeckt & scrollt weg |
 | [#38](https://github.com/jonasyr/Platee.Johann/issues/38) | End-to-end Markdown | **offen** | ☐ Markdown durchgängig |
 | [#39](https://github.com/jonasyr/Platee.Johann/issues/39) | Epic: Live dictation & user-definable categories | **offen** | (Klammer um #34/#35/#36) |
+| [#50](https://github.com/jonasyr/Platee.Johann/issues/50) | Admin-Passwort entfernen | **offen** | ☐ v1.4.0 PR 1 |
+| [#51](https://github.com/jonasyr/Platee.Johann/issues/51) | Kategorien-Modell + Persistenz (Schema v4) | **offen** | ☐ v1.4.0 PR 2 |
+| [#52](https://github.com/jonasyr/Platee.Johann/issues/52) | Auto vs. Knopfdruck + id-basiertes Dispatch | **offen** | ☐ v1.4.0 PR 3 (ersetzt #35) |
+| [#53](https://github.com/jonasyr/Platee.Johann/issues/53) | Kategorien-Einstellungen + On-Demand-Zeilen | **offen** | ☐ v1.4.0 PR 4 |
 | [#40](https://github.com/jonasyr/Platee.Johann/issues/40) | Renderer dispatch is case-sensitive, skips silently | geschlossen (v1.3.0) | ✅ Renderer-Dispatch überspringt Renderer |
 | [#42](https://github.com/jonasyr/Platee.Johann/issues/42) | Auto-update broken since v1.1.0 | geschlossen (v1.3.1) | ✅ Auto-Update seit v1.1.0 kaputt |
 | [#45](https://github.com/jonasyr/Platee.Johann/issues/45) | Audit: silent-failure sweep, 9 findings | geschlossen (v1.3.2) | ✅ Stille Fehler im gesamten Programm |
@@ -125,15 +129,23 @@ bündelt die Kategorien-Umbau-Arbeit als Sub-Issues.
 
 | # | Titel | Prio | Größe | Milestone | Abhängig von |
 | - | ----- | ---- | ----- | --------- | ------------ |
-| [#34](https://github.com/jonasyr/Platee.Johann/issues/34) | Frei definierbare Kategorien | P1 | XL (3–5 T) | v1.4.0 | — |
-| [#35](https://github.com/jonasyr/Platee.Johann/issues/35) | Auto vs. Knopfdruck pro Kategorie | P1 | M (1–2 T) | v1.4.0 | #34 |
-| [#36](https://github.com/jonasyr/Platee.Johann/issues/36) | Live-Diktat-Modus | P1 | M (1–2 T) | v1.4.0 | #34, #35 |
+| [#50](https://github.com/jonasyr/Platee.Johann/issues/50) | Admin-Passwort entfernen | P1 | S (2–4 h) | v1.4.0 | — |
+| [#51](https://github.com/jonasyr/Platee.Johann/issues/51) | Kategorien-Modell + Persistenz | P1 | M (1–2 T) | v1.4.0 | — |
+| [#52](https://github.com/jonasyr/Platee.Johann/issues/52) | Auto vs. Knopfdruck + Dispatch | P1 | M (1–2 T) | v1.4.0 | #51 |
+| [#53](https://github.com/jonasyr/Platee.Johann/issues/53) | Kategorien-UI + On-Demand-Zeilen | P1 | M (1–2 T) | v1.4.0 | #51, #52 |
+| [#36](https://github.com/jonasyr/Platee.Johann/issues/36) | Live-Diktat-Modus | P1 | M (1–2 T) | v1.4.1 | #51, #52, #53 |
 | [#38](https://github.com/jonasyr/Platee.Johann/issues/38) | Markdown durchgängig | P1 | L (2–3 T) | v1.5.0 | #34 (weich) |
 | [#8](https://github.com/jonasyr/Platee.Johann/issues/8) | FileSystemWatcher verliert Events | P2 | M (1–2 T) | v1.5.0 | — |
 | [#10](https://github.com/jonasyr/Platee.Johann/issues/10) | API Key per DPAPI verschlüsseln | P2 | M (1–2 T) | v1.5.0 | — |
 | [#18](https://github.com/jonasyr/Platee.Johann/issues/18) | Parallel Processing | P3 | S (2–4 h) | v1.5.0 | #6 ✅ |
 
-**Gesamtaufwand offener Issues: ca. 10–14 Arbeitstage.**
+**Gesamtaufwand offener Issues: ca. 9–13 Arbeitstage.** v1.4.0 (#50–#53): ca. 4–6 Tage.
+
+> #34 und #35 wurden am 2026-09-07 umgeplant und durch #50–#53 ersetzt.
+> Entwurf: `docs/v1.4.0 Categories Design.md`. Kernentscheidung: **additiv** —
+> die acht eingebauten Abschnitte bleiben feste Felder, benutzerdefinierte
+> Kategorien kommen daneben. Das vermeidet ~290 Referenzen in 21 Dateien und
+> entschärft den Datenverlust-Pfad bei gemischten Client-Versionen.
 
 ### Empfohlene Reihenfolge
 
@@ -141,7 +153,16 @@ bündelt die Kategorien-Umbau-Arbeit als Sub-Issues.
 2. ~~#15 als Sicherheitsnetz vor dem Umbau von `EntryProcessingService`~~ ✅ erledigt.
 3. ~~v1.3.2 veröffentlichen (#45)~~ ✅ erledigt (04.09.2026). Auto-Update gegen die
    installierte v1.3.1 verifiziert: die Update-Meldung erscheint wieder.
-4. **#34 → #35 → #36** in dieser Reihenfolge (Epic #39). Der größte Brocken und
-   der einzige, der die Bedienung spürbar verändert.
-5. **#38** direkt nach #34, solange das Section-`DataTemplate` frisch ist.
-6. **#8 → #10 → #18** als abschließende Härtungs-Runde.
+4. **v1.4.0: #50 → #51 → #52 → #53** (Epic #39). #50 und #51 sind risikoarm und
+   einzeln auslieferbar; #52 und #53 brauchen die Review-Aufmerksamkeit und
+   müssen ggf. zusammen gemergt werden.
+5. **#36** (Live-Diktat) als v1.4.1, sobald das Kategorien-Modell steht.
+6. **#38** direkt danach, solange das Section-`DataTemplate` frisch ist.
+7. **#8 → #10 → #18** als abschließende Härtungs-Runde.
+
+### Vor dem v1.4.0-Release zu klären
+
+- Tatsächliches `Ausgabeverzeichnis` des Teams prüfen: liegen Einträge auf `Z:`?
+  Wenn ja, muss die Flotte updaten, bevor eigene Kategorien genutzt werden.
+- Neue Auto-Defaults (4 statt 8 Abschnitte) still ausrollen oder mit Hinweis
+  beim ersten Start? Sichtbare Verhaltensänderung → Release Notes zwingend.
