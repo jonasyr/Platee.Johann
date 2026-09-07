@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using Platee.Johann.Application.Interfaces;
+using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Entities;
@@ -145,7 +146,9 @@ public sealed partial class MainViewModel : ObservableObject
         this.detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, this.Sections,
             addLog: this.AddProcessLog,
             completeLog: this.CompleteProcessLog,
-            updateStatus: s => System.Windows.Application.Current.Dispatcher.Invoke(() => this.StatusText = s));
+            updateStatus: s => System.Windows.Application.Current.Dispatcher.Invoke(() => this.StatusText = s),
+            sectionCatalog: () => SectionCatalog.Build(
+                runtimeSettingsHolder.Prompts, runtimeSettingsHolder.Current.SectionModes));
         this.detail.EntryStatusChanged += entry =>
         {
             _ = this.LoadEntriesAsync(this.SelectedDateItem?.Date);

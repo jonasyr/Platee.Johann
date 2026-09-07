@@ -22,6 +22,17 @@ public sealed partial class SectionVisibilityViewModel : ObservableObject
     [ObservableProperty]
     private bool showTranscript = true;
 
+    /// <summary>
+    /// Gets the export visibility for user-defined sections, keyed by category id.
+    /// A missing key means visible.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately a separate dictionary rather than extra fields on the positional
+    /// <see cref="SectionVisibility"/> record: all three renderers consume that record's
+    /// shape, and reshaping it would multiply the diff for no gain (spec risk 7).
+    /// </remarks>
+    public Dictionary<string, bool> CustomSectionVisibility { get; } = [];
+
     public SectionVisibility ToSectionVisibility() => new(
         this.ShowLongSummary,
         this.ShowProseSummary,
