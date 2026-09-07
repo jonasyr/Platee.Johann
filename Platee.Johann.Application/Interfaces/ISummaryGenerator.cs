@@ -24,4 +24,13 @@ public interface ISummaryGenerator
     Task<string?> GenerateStundenzettelAsync(string transcript, CancellationToken ct = default);
 
     Task<string?> GenerateAnalogAsync(string transcript, CancellationToken ct = default);
+
+    /// <summary>
+    /// Generates the text for one user-defined category. Built-in sections keep their own
+    /// dedicated methods above; this is the single generic path for everything the user adds.
+    /// </summary>
+    Task<string?> GenerateCustomSectionAsync(
+        Platee.Johann.Application.Settings.CategoryDefinition category,
+        string transcript,
+        CancellationToken ct = default);
 }
