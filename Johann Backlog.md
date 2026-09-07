@@ -110,6 +110,68 @@ Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/is
 
 ---
 
+## 📥 Anforderungen Chef (Sprachnachricht 2026-09)
+
+Abgeglichen am 2026-09-07 gegen den v1.4.0-Branch und die offenen Issues.
+Quelle: Original-Transkript + ChatGPT-Zusammenfassung (JOH-01…27).
+
+### Bereits erledigt — steckt in v1.4.0 (Branch `feat/51-category-model`, noch nicht gemergt)
+
+| JOH | Anforderung | Umgesetzt in |
+| --- | ----------- | ------------ |
+| JOH-01 | Globale Kategorien editierbar | #50 (Passwort weg) + #53 |
+| JOH-02 | Globale Kategorien ergänzbar | #51 + #53 |
+| JOH-03 | Persönliche Kategorien pro Benutzer | #51 + #53 |
+| JOH-04 | Persönliche Kategorien verwalten | #53 |
+| JOH-15 | Weitere Ausgaben erst bei Auswahl generieren | #52 (`GenerateSectionAsync` + „Generieren"-Button) |
+
+**Der inhaltliche Hauptwunsch des Chefs ist damit fertig und wartet nur auf den Merge.**
+
+### Reine Konfiguration — kein Code nötig
+
+| JOH | Anforderung | Hinweis |
+| --- | ----------- | ------- |
+| JOH-06 | Kategorie „E-Mail formlos" | als globale Vorlage anlegen |
+| JOH-07 | Kategorie „E-Mail förmlich" | als globale Vorlage anlegen |
+| JOH-10/12 | Automatische Spracherkennung | übernimmt das Modell, muss nur im Prompt stehen (#58) |
+
+⚠️ Globale Vorlagen erst anlegen, wenn das **ganze Team** auf v1.4.0 ist —
+ein v1.3.2-Client löscht `customCategories` beim Speichern wieder
+(siehe `TESTPLAN-v1.4.0.md` §3.3).
+
+### Neue Issues
+
+| JOH | Anforderung | Issue |
+| --- | ----------- | ----- |
+| JOH-13/14/16 | Diktat vs. Import getrennt behandeln | [#61](https://github.com/jonasyr/Platee.Johann/issues/61) |
+| JOH-17/18 | Einträge löschen (Papierkorb + Rechtsklick) | [#55](https://github.com/jonasyr/Platee.Johann/issues/55) |
+| JOH-19/20 | E-Mail als Dokument öffnen | [#57](https://github.com/jonasyr/Platee.Johann/issues/57) |
+| JOH-21/22/23 | Kopiersymbol je Abschnitt | [#56](https://github.com/jonasyr/Platee.Johann/issues/56) |
+| JOH-24…27 | Einträge zusammenführen (A → B) | [#54](https://github.com/jonasyr/Platee.Johann/issues/54) |
+| JOH-09/11 | Übersetzung Arabisch / Ukrainisch | [#58](https://github.com/jonasyr/Platee.Johann/issues/58) |
+| JOH-08 | Ariadne-Integration „KI" | [#60](https://github.com/jonasyr/Platee.Johann/issues/60) |
+| — | „Vorlagen" statt „Kategorien" (Jonas) | [#59](https://github.com/jonasyr/Platee.Johann/issues/59) |
+
+### Offene Rückfragen an den Chef
+
+1. **JOH-27 — Merge-Richtung.** Das Original sagt wörtlich „**B** soll nach Nachfrage gelöscht
+   werden", die ChatGPT-Zusammenfassung macht daraus „Löschung von **A**". Wörtlich gelesen wäre das
+   Zusammengeführte weg. Angenommen: A→B anhängen, B neu berechnen, **A** löschen. → #54
+2. **JOH-14 — welche 1–2 Ausgaben** sollen bei einem Diktat automatisch entstehen?
+   Vorschlag: Abstract + Zusammenfassung. → #61
+3. **JOH-05 — „diese Testdinger"** ist nicht eindeutig. Im Code gibt es keine Test-Kategorie;
+   im Team-Prompt-File auf `Z:` ebenfalls nicht. Vermutlich sind Testeinträge des Chefs gemeint.
+   Nachfragen, bevor irgendetwas entfernt wird.
+4. **JOH-19 — E-Mail als PDF oder HTML?** Der Chef sagt „sollte ein PDF aufgehen"; für einen
+   E-Mail-Text wäre HTML naheliegender. → #57
+5. **#36 vs. #61** — der Auswahldialog aus #36 ist laut Chef-Aussage vermutlich überflüssig.
+
+### Nicht übernommen
+
+- **JOH-05** (Test-Kategorien entfernen) — siehe Rückfrage 3, nichts Konkretes im Code gefunden.
+
+---
+
 ## 🚀 Releases
 
 | Version | Datum | Inhalt |
