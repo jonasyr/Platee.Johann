@@ -19,6 +19,11 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+
+        // GenerationMode values in AppSettings.SectionModes persist as "Auto" / "OnDemand"
+        // rather than 0 / 1: readable for anyone editing settings.json by hand, and immune
+        // to a reordering of the enum silently remapping every stored mode.
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
     };
 
     public JsonSettingsRepository(string settingsDirectory)
@@ -95,6 +100,10 @@ public sealed class JsonSettingsRepository : ISettingsRepository
                     })
                     .ToList()
                 : defaultSettings.Korrekturliste,
+            SectionModes = dto.SectionModes is { Count: > 0 }
+                ? new Dictionary<string, GenerationMode>(dto.SectionModes, StringComparer.Ordinal)
+                : defaultSettings.SectionModes,
+            SectionModesMigrationDone = dto.SectionModesMigrationDone,
         };
     }
 
@@ -110,6 +119,8 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         Korrekturliste = s.Korrekturliste
             .Select(c => new CorrectionEntryDto { Wrong = c.Wrong, Correct = c.Correct })
             .ToList(),
+        SectionModes = new Dictionary<string, GenerationMode>(s.SectionModes, StringComparer.Ordinal),
+        SectionModesMigrationDone = s.SectionModesMigrationDone,
     };
 
     // Separate DTO to decouple JSON shape from the domain record
@@ -124,6 +135,16 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         public string? Archivverzeichnis { get; set; }
 
         public string? Ausgabeverzeichnis { get; set; }
+
+        /// <summary>
+        /// Gets or sets the per-section generation modes. Absent in files written before
+        /// v1.4.0, which is why <c>MapToSettings</c> falls back to the default rather than
+        /// treating an empty map as an explicit "nothing is Auto".
+        /// </summary>
+        public Dictionary<string, GenerationMode>? SectionModes { get; set; }
+
+        /// <summary>Gets or sets a value indicating whether the first-run mode prompt was answered.</summary>
+        public bool SectionModesMigrationDone { get; set; }
 
         /// <summary>
         /// Backing field plus a "was it in the JSON at all" flag. System.Text.Json

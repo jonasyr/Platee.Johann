@@ -25,6 +25,47 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         }
     }
 
+    // ── SectionModes round-trip ───────────────────────────────────────────────
+    [Fact]
+    public async Task SaveAsync_then_LoadAsync_PreservesSectionModes()
+    {
+        var settings = AppSettings.Default with
+        {
+            SectionModes = new Dictionary<string, GenerationMode>
+            {
+                [BuiltInSections.LongSummary] = GenerationMode.Auto,
+                [BuiltInSections.Analog] = GenerationMode.OnDemand,
+            },
+            SectionModesMigrationDone = true,
+        };
+
+        await this.sut.SaveAsync(settings);
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.SectionModesMigrationDone.Should().BeTrue();
+        loaded.SectionModes[BuiltInSections.LongSummary].Should().Be(GenerationMode.Auto);
+        loaded.SectionModes[BuiltInSections.Analog].Should().Be(GenerationMode.OnDemand);
+    }
+
+    [Fact]
+    public async Task SaveAsync_WritesGenerationModeAsAReadableName_NotAnOrdinal()
+    {
+        // Persisting the ordinal would make settings.json unreadable for a user editing it
+        // by hand, and would silently corrupt every stored mode if the enum is reordered.
+        var settings = AppSettings.Default with
+        {
+            SectionModes = new Dictionary<string, GenerationMode>
+            {
+                [BuiltInSections.Analog] = GenerationMode.OnDemand,
+            },
+        };
+
+        await this.sut.SaveAsync(settings);
+        var json = await File.ReadAllTextAsync(Path.Combine(this.tempDir, "settings.json"));
+
+        json.Should().Contain("OnDemand");
+    }
+
     // ── Missing file → defaults ───────────────────────────────────────────────
     [Fact]
     public async Task LoadAsync_WhenNoFileExists_ReturnsDefaults()
