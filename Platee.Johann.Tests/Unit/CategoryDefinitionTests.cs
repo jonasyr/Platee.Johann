@@ -42,25 +42,4 @@ public sealed class CategoryDefinitionTests
         BuiltInSections.DisplayNameOf("custom.unbekannt").Should().Be("custom.unbekannt");
     }
 
-    [Theory]
-    [InlineData("Zusammenfassung", "builtin.longSummary")]
-    [InlineData("Ausführliche Zusammenfassung", "builtin.proseSummary")]
-    [InlineData("Aufgaben", "builtin.taskList")]
-    [InlineData("Gesprächsnotiz", "builtin.conversationNote")]
-    [InlineData("E-Mail", "builtin.emailText")]
-    [InlineData("Stundenzettel", "builtin.stundenzettel")]
-    [InlineData("Analog", "builtin.analog")]
-    public void FromLegacyName_PreservesTheOriginalInvertedMapping(string legacy, string expectedId)
-    {
-        // "Zusammenfassung" maps to LongSummary and "Ausführliche Zusammenfassung" to
-        // ProseSummary. That inversion existed in the original German-name dispatch
-        // switch; the mapping must reproduce it exactly, not silently "fix" it.
-        BuiltInSections.FromLegacyName(legacy).Should().Be(expectedId);
-    }
-
-    [Fact]
-    public void FromLegacyName_UnknownName_ReturnsNull()
-    {
-        BuiltInSections.FromLegacyName("Gibt es nicht").Should().BeNull();
-    }
 }

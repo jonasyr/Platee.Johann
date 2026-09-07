@@ -41,9 +41,6 @@ public static class BuiltInSections
         [Analog] = "Analog",
     };
 
-    private static readonly Dictionary<string, string> LegacyNames =
-        Names.ToDictionary(kv => kv.Value, kv => kv.Key, StringComparer.Ordinal);
-
     /// <summary>Gets every displayable built-in section id, in detail-view order.</summary>
     public static IReadOnlyList<string> All { get; } =
     [
@@ -63,16 +60,4 @@ public static class BuiltInSections
     public static string DisplayNameOf(string id) =>
         Names.TryGetValue(id, out var name) ? name : id;
 
-    /// <summary>
-    /// Maps the legacy German <c>CommandParameter</c> strings used by MainWindow.xaml onto
-    /// stable ids.
-    /// <para>
-    /// Note the inversion inherited from the original German-name dispatch switch:
-    /// "Zusammenfassung" is <see cref="LongSummary"/> and "Ausführliche Zusammenfassung" is
-    /// <see cref="ProseSummary"/>. The mapping reproduces that exactly rather than silently
-    /// correcting it, so behaviour is preserved while the XAML migrates.
-    /// </para>
-    /// </summary>
-    public static string? FromLegacyName(string legacyName) =>
-        LegacyNames.TryGetValue(legacyName, out var id) ? id : null;
 }
