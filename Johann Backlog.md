@@ -150,21 +150,28 @@ ein v1.3.2-Client löscht `customCategories` beim Speichern wieder
 | JOH-24…27 | Einträge zusammenführen (A → B) | [#54](https://github.com/jonasyr/Platee.Johann/issues/54) |
 | JOH-09/11 | Übersetzung Arabisch / Ukrainisch | [#58](https://github.com/jonasyr/Platee.Johann/issues/58) |
 | JOH-08 | Ariadne-Integration „KI" | [#60](https://github.com/jonasyr/Platee.Johann/issues/60) |
+| — | „+ Neues Element“-Button entfernen (Chef) | [#62](https://github.com/jonasyr/Platee.Johann/issues/62) |
 | — | „Vorlagen" statt „Kategorien" (Jonas) | [#59](https://github.com/jonasyr/Platee.Johann/issues/59) |
+
+### Geklärt am 2026-09-07
+
+1. ✅ **JOH-27 — Merge-Richtung.** A auf B ziehen → an B anhängen, **B** neu berechnen,
+   **A** löschen. Das wörtliche „B soll gelöscht werden“ im Transkript war ein Versprecher. → #54
+2. ✅ **JOH-19 — E-Mail-Ausgabe.** Weder PDF noch HTML: die Mail soll sich beim Klick **direkt in
+   Outlook** öffnen. `OpenInOutlookCommand` existiert bereits, hängt aber im Rechtsklick-Menü. → #57
 
 ### Offene Rückfragen an den Chef
 
-1. **JOH-27 — Merge-Richtung.** Das Original sagt wörtlich „**B** soll nach Nachfrage gelöscht
-   werden", die ChatGPT-Zusammenfassung macht daraus „Löschung von **A**". Wörtlich gelesen wäre das
-   Zusammengeführte weg. Angenommen: A→B anhängen, B neu berechnen, **A** löschen. → #54
+1. **Texteingabe vs. „+ Neues Element“.** Er will den Button weg (#62), aber auch Übersetzungen,
+   „damit die beiden einfach **tippen** können“ (#58). „+ Neues Element“ ist der einzige Weg,
+   einen Eintrag zu tippen. Vorschlag: Button aus der unteren Leiste nehmen, Texteingabe ins
+   Kontextmenü verschieben. **#62 muss vor #58 entschieden werden.**
 2. **JOH-14 — welche 1–2 Ausgaben** sollen bei einem Diktat automatisch entstehen?
    Vorschlag: Abstract + Zusammenfassung. → #61
-3. **JOH-05 — „diese Testdinger"** ist nicht eindeutig. Im Code gibt es keine Test-Kategorie;
-   im Team-Prompt-File auf `Z:` ebenfalls nicht. Vermutlich sind Testeinträge des Chefs gemeint.
-   Nachfragen, bevor irgendetwas entfernt wird.
-4. **JOH-19 — E-Mail als PDF oder HTML?** Der Chef sagt „sollte ein PDF aufgehen"; für einen
-   E-Mail-Text wäre HTML naheliegender. → #57
-5. **#36 vs. #61** — der Auswahldialog aus #36 ist laut Chef-Aussage vermutlich überflüssig.
+3. **JOH-05 — „diese Testdinger“** ist nicht eindeutig. Weder im Code noch im Team-Prompt-File auf
+   `Z:` gibt es eine Test-Kategorie. Vermutlich sind eigene Testeinträge gemeint.
+   Nachfragen, bevor etwas entfernt wird.
+4. **#36 vs. #61** — der Auswahldialog aus #36 ist laut Chef-Aussage vermutlich überflüssig.
 
 ### Nicht übernommen
 
