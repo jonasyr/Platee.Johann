@@ -289,6 +289,118 @@
                         </StackPanel>
                     </ScrollViewer>
 
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Margin="12,10,12,8"
+                                  Visibility="{Binding IsKategorienSelected, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource HintStyle}"
+                                       Text="Eigene Kategorien erzeugen zusätzliche Abschnitte aus dem Transkript. Pro Abschnitt legen Sie fest, ob er automatisch nach jeder Aufnahme entsteht oder erst auf Knopfdruck im Eintrag."/>
+
+                            <TextBlock Style="{StaticResource LabelStyle}" Text="Feste Abschnitte"/>
+                            <TextBlock Style="{StaticResource HintStyle}"
+                                       Text="Diese Abschnitte gehören zum Programm und können nicht umbenannt oder gelöscht werden. Ihre Prompts stehen unter GLOBALE PROMPTS bzw. TYP-SPEZIFISCHE PROMPTS."/>
+                            <ItemsControl ItemsSource="{Binding BuiltInSectionModes}" Margin="0,0,0,10">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,3">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                       FontSize="13" VerticalAlignment="Center"/>
+                                            <CheckBox Grid.Column="1"
+                                                      Content="Automatisch"
+                                                      FontSize="12"
+                                                      VerticalAlignment="Center"
+                                                      IsChecked="{Binding IsAuto, Mode=TwoWay}"
+                                                      ToolTip="Aus = nur auf Knopfdruck im Eintrag"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Style="{StaticResource LabelStyle}" Text="Eigene Kategorien"/>
+                            <Border BorderBrush="#DADADA" BorderThickness="1" Padding="0" Margin="0,0,0,6">
+                                <ListBox ItemsSource="{Binding Categories}"
+                                         SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                                         MaxHeight="150"
+                                         BorderThickness="0"
+                                         HorizontalContentAlignment="Stretch">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Text="{Binding Name}" FontSize="13"/>
+                                                    <TextBlock Text="{Binding Id}" FontSize="10" Foreground="#999"/>
+                                                </StackPanel>
+                                                <CheckBox Grid.Column="1"
+                                                          Content="Automatisch"
+                                                          FontSize="12"
+                                                          VerticalAlignment="Center"
+                                                          IsChecked="{Binding IsAuto, Mode=TwoWay}"
+                                                          ToolTip="Aus = nur auf Knopfdruck im Eintrag"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <Button Content="+ Kategorie" Padding="10,5" FontSize="12"
+                                        Command="{Binding AddCategoryCommand}"/>
+                                <Button Content="Duplizieren" Padding="10,5" FontSize="12" Margin="6,0,0,0"
+                                        Command="{Binding DuplicateCategoryCommand}"
+                                        CommandParameter="{Binding SelectedCategory}"
+                                        IsEnabled="{Binding HasSelectedCategory}"/>
+                                <Button Content="Löschen" Padding="10,5" FontSize="12" Margin="6,0,0,0"
+                                        Command="{Binding RemoveCategoryCommand}"
+                                        CommandParameter="{Binding SelectedCategory}"
+                                        IsEnabled="{Binding HasSelectedCategory}"
+                                        ToolTip="Bereits erzeugte Texte bleiben erhalten und erscheinen im Eintrag als „Nicht mehr konfiguriert“."/>
+                                <Button Content="▲" Padding="10,5" FontSize="12" Margin="6,0,0,0"
+                                        Command="{Binding MoveCategoryUpCommand}"
+                                        CommandParameter="{Binding SelectedCategory}"
+                                        IsEnabled="{Binding HasSelectedCategory}"
+                                        ToolTip="Nach oben"/>
+                                <Button Content="▼" Padding="10,5" FontSize="12" Margin="6,0,0,0"
+                                        Command="{Binding MoveCategoryDownCommand}"
+                                        CommandParameter="{Binding SelectedCategory}"
+                                        IsEnabled="{Binding HasSelectedCategory}"
+                                        ToolTip="Nach unten"/>
+                            </StackPanel>
+
+                            <StackPanel DataContext="{Binding SelectedCategory}"
+                                        Visibility="{Binding DataContext.HasSelectedCategory,
+                                                     RelativeSource={RelativeSource AncestorType=Window},
+                                                     Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock Style="{StaticResource LabelStyle}" Text="Name"/>
+                                <TextBox Style="{StaticResource FieldBox}"
+                                         Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+
+                                <TextBlock Style="{StaticResource LabelStyle}" Text="Speicherort"/>
+                                <CheckBox Content="Global (Team) – für alle Kollegen sichtbar"
+                                          FontSize="12" Margin="0,2,0,0"
+                                          IsChecked="{Binding IsGlobal, Mode=TwoWay}"/>
+                                <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
+                                           Text="Globale Kategorien werden nur geschrieben, wenn unten „Speichern nach: Global (Team)“ gewählt ist."/>
+
+                                <TextBlock Style="{StaticResource LabelStyle}" Text="Prompt"/>
+                                <TextBlock FontSize="11" Foreground="#C0392B" Background="#FDF1F0"
+                                           Padding="8,6" Margin="0,0,0,4" TextWrapping="Wrap"
+                                           Text="⚠ Der Prompt enthält keinen Platzhalter {transcript}. Ohne ihn erhält die KI das Transkript nicht und der Abschnitt wird unbrauchbar."
+                                           Visibility="{Binding IsPromptInvalid, Converter={StaticResource BoolToVisibility}}"/>
+                                <TextBox Style="{StaticResource PromptBox}" MinHeight="140"
+                                         Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+
                     <Grid Margin="12,10,12,8"
                           Visibility="{Binding IsSystemMessageSelected, Converter={StaticResource BoolToVisibility}}">
                         <Grid.RowDefinitions>

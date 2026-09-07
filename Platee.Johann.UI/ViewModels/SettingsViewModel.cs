@@ -65,6 +65,20 @@ public sealed partial class SettingsViewModel : ObservableObject
     // ── Correction list ──────────────────────────────────────────────────────
     public ObservableCollection<CorrectionEntryViewModel> Korrekturen { get; } = [];
 
+    // ── Categories ───────────────────────────────────────────────────────────
+
+    /// <summary>Gets the user-defined categories, in display order.</summary>
+    public ObservableCollection<CategoryEditorViewModel> Categories { get; } = [];
+
+    /// <summary>
+    /// Gets the Auto / „Auf Knopfdruck“ toggles for the seven built-in sections.
+    /// Custom categories carry their own toggle on their editor row.
+    /// </summary>
+    public IReadOnlyList<SectionModeRowViewModel> BuiltInSectionModes { get; }
+
+    [ObservableProperty]
+    private CategoryEditorViewModel? selectedCategory;
+
     [ObservableProperty]
     private string statusMessage = string.Empty;
     [ObservableProperty]
@@ -117,6 +131,11 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool IsKorrekturlisteSelected => this.IsSelected(SectionKorrekturliste);
 
+    public bool IsKategorienSelected => this.IsSelected(SectionKategorien);
+
+    /// <summary>Gets a value indicating whether a category is selected for editing.</summary>
+    public bool HasSelectedCategory => this.SelectedCategory is not null;
+
     public bool HasPathStatusMessage => !string.IsNullOrWhiteSpace(this.PathStatusMessage);
 
     public SettingsViewModel(
@@ -131,6 +150,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.persistedHolder = persistedHolder;
         this.runtimeHolder = runtimeHolder ?? persistedHolder;
         this.Sections = BuildSections();
+        this.BuiltInSectionModes = BuildBuiltInSectionModes(persistedHolder.Current.SectionModes);
         this.LoadFromHolder();
         if (startupPathIssues is { Count: > 0 })
         {
@@ -155,6 +175,10 @@ public sealed partial class SettingsViewModel : ObservableObject
                 .Where(c => !string.IsNullOrWhiteSpace(c.Wrong))
                 .Select(c => new CorrectionEntry { Wrong = c.Wrong.Trim(), Correct = c.Correct.Trim() })
                 .ToList(),
+
+            // Modes are always personal, whatever SaveTarget says: category definitions may
+            // be shared, but nobody may change a colleague's waiting time.
+            SectionModes = this.CollectSectionModes(),
         };
 
         var updatedPrompts = this.runtimeHolder.Prompts with
@@ -168,6 +192,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             GespraechsnotizPrompt = this.GespraechsnotizPrompt.Trim(),
             StundenzettelPrompt = this.StundenzettelPrompt.Trim(),
             AnalogPrompt = this.AnalogPrompt.Trim(),
+            CustomCategories = [.. this.Categories.Select(c => c.ToDefinition())],
         };
 
         await this.repository.SaveAsync(updatedSettings);
@@ -351,6 +376,112 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
+    // ── Category commands ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Adds a category with a freshly minted, collision-free id.
+    /// <para>
+    /// Personal and on-demand by default: a new category must never silently slow down
+    /// processing, and must never land in the team file without the user saying so.
+    /// </para>
+    /// </summary>
+    [RelayCommand]
+    private void AddCategory()
+    {
+        this.AppendCategory("Neue Kategorie", CategoryEditorViewModel.DefaultPrompt);
+    }
+
+    /// <summary>
+    /// Copies a category's prompt into a new one. The copy gets its own id — sharing it
+    /// would make both categories write to the same slot in <c>Entry.CustomSections</c>.
+    /// </summary>
+    [RelayCommand]
+    private void DuplicateCategory(CategoryEditorViewModel? source)
+    {
+        var original = source ?? this.SelectedCategory;
+        if (original is null)
+        {
+            return;
+        }
+
+        var copy = this.AppendCategory($"{original.Name} (Kopie)", original.Prompt);
+        copy.Scope = original.Scope;
+        copy.Mode = original.Mode;
+    }
+
+    [RelayCommand]
+    private void RemoveCategory(CategoryEditorViewModel? category)
+    {
+        var target = category ?? this.SelectedCategory;
+        if (target is null)
+        {
+            return;
+        }
+
+        this.Categories.Remove(target);
+        this.RenumberCategories();
+        this.SelectedCategory = this.Categories.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    private void MoveCategoryUp(CategoryEditorViewModel? category) =>
+        this.MoveCategory(category, -1);
+
+    [RelayCommand]
+    private void MoveCategoryDown(CategoryEditorViewModel? category) =>
+        this.MoveCategory(category, +1);
+
+    private CategoryEditorViewModel AppendCategory(string name, string prompt)
+    {
+        var id = CategoryIdFactory.Create(name, this.Categories.Select(c => c.Id));
+        var editor = new CategoryEditorViewModel(
+            new CategoryDefinition
+            {
+                Id = id,
+                Name = name,
+                Prompt = prompt,
+                Scope = CategoryScope.Personal,
+                Order = this.Categories.Count,
+            },
+            GenerationMode.OnDemand);
+
+        this.Categories.Add(editor);
+        this.SelectedCategory = editor;
+        return editor;
+    }
+
+    private void MoveCategory(CategoryEditorViewModel? category, int delta)
+    {
+        var target = category ?? this.SelectedCategory;
+        if (target is null)
+        {
+            return;
+        }
+
+        var index = this.Categories.IndexOf(target);
+        var newIndex = index + delta;
+        if (index < 0 || newIndex < 0 || newIndex >= this.Categories.Count)
+        {
+            return;
+        }
+
+        this.Categories.Move(index, newIndex);
+        this.RenumberCategories();
+        this.SelectedCategory = target;
+    }
+
+    /// <summary>
+    /// Rewrites <see cref="CategoryEditorViewModel.Order"/> from list position, so the
+    /// persisted order matches what the user sees. Ids are untouched.
+    /// </summary>
+    private void RenumberCategories()
+    {
+        for (var i = 0; i < this.Categories.Count; i++)
+        {
+            this.Categories[i].Order = i;
+        }
+    }
+
     // ── Private ───────────────────────────────────────────────────────────────
     private void LoadFromHolder()
     {
@@ -379,6 +510,43 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             this.Korrekturen.Add(new CorrectionEntryViewModel { Wrong = c.Wrong, Correct = c.Correct });
         }
+
+        this.Categories.Clear();
+        foreach (var category in p.CustomCategories.OrderBy(c => c.Order))
+        {
+            this.Categories.Add(new CategoryEditorViewModel(
+                category,
+                s.SectionModes.TryGetValue(category.Id, out var mode) ? mode : GenerationMode.OnDemand));
+        }
+
+        this.SelectedCategory = this.Categories.FirstOrDefault();
+    }
+
+    private static IReadOnlyList<SectionModeRowViewModel> BuildBuiltInSectionModes(
+        IReadOnlyDictionary<string, GenerationMode> modes) =>
+        [.. BuiltInSections.All.Select(id => new SectionModeRowViewModel(
+            id,
+            BuiltInSections.DisplayNameOf(id),
+            modes.TryGetValue(id, out var mode) ? mode : GenerationMode.Auto))];
+
+    /// <summary>
+    /// Collects the per-section modes from both toggle sources — the built-in rows and each
+    /// category's own toggle — into the single map persisted in the local settings file.
+    /// </summary>
+    private Dictionary<string, GenerationMode> CollectSectionModes()
+    {
+        var modes = new Dictionary<string, GenerationMode>(StringComparer.Ordinal);
+        foreach (var row in this.BuiltInSectionModes)
+        {
+            modes[row.Id] = row.Mode;
+        }
+
+        foreach (var category in this.Categories)
+        {
+            modes[category.Id] = category.Mode;
+        }
+
+        return modes;
     }
 
     private static string? PickFolder(string initialDir)
@@ -407,7 +575,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsStundenzettelSelected));
         OnPropertyChanged(nameof(IsAnalogSelected));
         OnPropertyChanged(nameof(IsKorrekturlisteSelected));
+        OnPropertyChanged(nameof(IsKategorienSelected));
     }
+
+    partial void OnSelectedCategoryChanged(CategoryEditorViewModel? value) =>
+        this.OnPropertyChanged(nameof(this.HasSelectedCategory));
 
     private bool IsSelected(string sectionKey) =>
         string.Equals(this.SelectedSection?.Key, sectionKey, StringComparison.Ordinal);
@@ -441,6 +613,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             new(SectionPaths, "Verzeichnisse", "GRUNDDATEN"),
             new(SectionTeam, "Team-Prompts", "GRUNDDATEN"),
             new(SectionKorrekturliste, "Korrekturliste", "GRUNDDATEN"),
+            new(SectionKategorien, "Kategorien", "GRUNDDATEN"),
             new(SectionSystemMessage, "System-Nachricht", "GLOBALE PROMPTS"),
             new(SectionAbstract, "Kurzfassung", "GLOBALE PROMPTS"),
             new(SectionStructured, "Zusammenfassung", "GLOBALE PROMPTS"),
@@ -485,6 +658,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private const string SectionStundenzettel = "stundenzettel";
     private const string SectionAnalog = "analog";
     private const string SectionKorrekturliste = "korrekturliste";
+    private const string SectionKategorien = "kategorien";
 }
 
 public sealed record SettingsSectionItem(string Key, string Label, string Group);
