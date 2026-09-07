@@ -35,7 +35,7 @@ public sealed class HtmlRenderer : IEntryRenderer
         var filePath = Path.Combine(outputDir, filename);
 
         var sections = options.Sections ?? new SectionVisibility();
-        var html = BuildEntryHtml(entry, sections);
+        var html = BuildEntryHtml(entry, sections, options);
         await File.WriteAllTextAsync(filePath, html, Encoding.UTF8, ct);
 
         // Regenerate the daily overview after saving the entry HTML
@@ -49,7 +49,7 @@ public sealed class HtmlRenderer : IEntryRenderer
         return new RenderResult(bytes, "text/html", filename);
     }
 
-    private static string BuildEntryHtml(Entry entry, SectionVisibility sections)
+    private static string BuildEntryHtml(Entry entry, SectionVisibility sections, RenderOptions options)
     {
         var typeColor = entry.Type switch
         {
@@ -125,6 +125,14 @@ public sealed class HtmlRenderer : IEntryRenderer
             AppendSection(sb, "Ausführliche Zusammenfassung", entry.ProseSummary!, "section-prose");
         }
 
+        // User-defined categories. They go through the very same AppendSection helper as the
+        // built-ins above, so they inherit its encoding — a second escaping path here would
+        // reopen the XSS hole closed in acfd293.
+        foreach (var (_, heading, text) in options.SelectCustomSections(entry))
+        {
+            AppendSection(sb, heading, text, "section-custom");
+        }
+
         if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             sb.AppendLine("<details><summary class=\"transcript-toggle\">Transkript</summary>");
@@ -186,6 +194,8 @@ public sealed class HtmlRenderer : IEntryRenderer
   .section-stundenzettel .md-content {{ background: #FAF0FF; border: 1px solid #8E44AD; border-radius: 4px; padding: 12px; }}
   .section-analog .md-content {{ background: #F8F8F8; border: 1px solid #888888; border-radius: 4px; padding: 12px; }}
   .section-email .md-content {{ background: #F0FFF4; border: 1px solid #27AE60; border-radius: 4px; padding: 12px; }}
+  .section-custom .md-content {{ background: #F7F7FB; border: 1px solid #D8D8E4;
+                                 border-radius: 4px; padding: 12px; }}
   .section-transcript .md-content {{ background: #FAFAFA; border: 1px solid #E8E8E8;
                                       border-radius: 4px; padding: 12px; font-size: 12px; }}
   .md-content h1, .md-content h2 {{ font-size: 14px; font-weight: 600; color: #333;

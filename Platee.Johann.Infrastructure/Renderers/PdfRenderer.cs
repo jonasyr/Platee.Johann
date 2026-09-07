@@ -64,7 +64,7 @@ public sealed class PdfRenderer : IEntryRenderer
 
                 var sections = options.Sections ?? new SectionVisibility();
                 page.Header().Element(header => ComposeHeader(header, entry));
-                page.Content().Element(content => ComposeContent(content, entry, sections));
+                page.Content().Element(content => ComposeContent(content, entry, sections, options));
                 page.Footer().Column(col =>
                 {
                     col.Item().AlignCenter().Text(x =>
@@ -147,7 +147,8 @@ public sealed class PdfRenderer : IEntryRenderer
         });
     }
 
-    private static void ComposeContent(IContainer content, Entry entry, SectionVisibility sections)
+    private static void ComposeContent(IContainer content, Entry entry, SectionVisibility sections,
+                                       RenderOptions options)
     {
         content.Column(col =>
         {
@@ -231,6 +232,15 @@ public sealed class PdfRenderer : IEntryRenderer
             if (sections.ProseSummary && !string.IsNullOrWhiteSpace(entry.ProseSummary))
             {
                 col.Item().Element(c => Section(c, "Ausführliche Zusammenfassung", entry.ProseSummary!, "#F0F8FF", "#B8D4F0"));
+            }
+
+            // User-defined categories, rendered through the same Section helper as the
+            // built-ins so they share its markdown handling.
+            foreach (var (_, heading, text) in options.SelectCustomSections(entry))
+            {
+                var capturedHeading = heading;
+                var capturedText = text;
+                col.Item().Element(c => Section(c, capturedHeading, capturedText, "#F7F7FB", "#D8D8E4"));
             }
 
             if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
