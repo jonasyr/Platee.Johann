@@ -212,9 +212,13 @@ public sealed class CategoryEditorTests
         sut.AddCategoryCommand.Execute(null);
         sut.Categories[0].Name = "Programmierung";
         sut.Categories[0].Mode = GenerationMode.Auto;
-        var id = sut.Categories[0].Id;
 
         await sut.SaveCommand.ExecuteAsync(null);
+
+        // The id is minted on save, from the name the user typed — not at creation time from
+        // the „Neue Kategorie" placeholder, which used to give every first category the same id.
+        var id = sut.Categories[0].Id;
+        id.Should().StartWith("custom.programmierung-");
 
         savedSettings.Should().NotBeNull();
         savedSettings!.SectionModes.Should().ContainKey(id)

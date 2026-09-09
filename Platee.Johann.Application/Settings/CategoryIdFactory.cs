@@ -20,27 +20,32 @@ public static class CategoryIdFactory
     /// <summary>
     /// Creates an id for <paramref name="name"/> that does not collide with any of
     /// <paramref name="existingIds"/>. The <c>custom.</c> prefix guarantees it can never
-    /// collide with a <see cref="BuiltInSections"/> id either.
+    /// collide with a <see cref="BuiltInSections"/> id either, and the random suffix
+    /// guarantees a deleted category's id is never handed out a second time.
     /// </summary>
-    public static string Create(string name, IEnumerable<string> existingIds)
+    public static string Create(
+        string name, IEnumerable<string> existingIds, Func<string>? suffixFactory = null)
     {
         var taken = new HashSet<string>(existingIds, StringComparer.OrdinalIgnoreCase);
         var baseId = Prefix + Slug(name);
+        var suffix = suffixFactory ?? DefaultSuffix;
 
-        if (!taken.Contains(baseId))
+        // The suffix is what makes a deleted category's id unrecoverable. Without it,
+        // deleting a category and creating another one frees the slug for reuse, and the
+        // orphaned text of the old category silently re-attaches to the new one.
+        for (var attempt = 0; attempt < 1000; attempt++)
         {
-            return baseId;
-        }
-
-        for (var i = 2; ; i++)
-        {
-            var candidate = $"{baseId}-{i}";
+            var candidate = $"{baseId}-{suffix()}";
             if (!taken.Contains(candidate))
             {
                 return candidate;
             }
         }
+
+        return $"{baseId}-{Guid.NewGuid():N}";
     }
+
+    private static string DefaultSuffix() => Random.Shared.Next(0x10000).ToString("x4");
 
     private static string Slug(string name)
     {

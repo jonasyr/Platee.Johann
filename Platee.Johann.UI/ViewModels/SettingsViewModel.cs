@@ -163,6 +163,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
+        // A category added in this session still carries the placeholder id minted from
+        // „Neue Kategorie". Re-mint it from the name the user actually typed, once, here —
+        // before SectionModes are collected, because those are keyed by category id.
+        this.FinalizeNewCategoryIds();
+
         var updatedSettings = this.persistedHolder.Current with
         {
             Name = this.Name.Trim(),
@@ -431,6 +436,22 @@ public sealed partial class SettingsViewModel : ObservableObject
     private void MoveCategoryDown(CategoryEditorViewModel? category) =>
         this.MoveCategory(category, +1);
 
+    /// <summary>
+    /// Gives every not-yet-saved category its final id, derived from the name the user typed.
+    /// <para>
+    /// Minting at creation time is what produced <c>custom.neue-kategorie</c> for every first
+    /// category: the id was derived from the placeholder name before the user had renamed it.
+    /// </para>
+    /// </summary>
+    private void FinalizeNewCategoryIds()
+    {
+        foreach (var category in this.Categories.Where(c => c.HasProvisionalId).ToList())
+        {
+            var taken = this.Categories.Where(c => c != category).Select(c => c.Id);
+            category.FinalizeId(CategoryIdFactory.Create(category.Name, taken));
+        }
+    }
+
     private CategoryEditorViewModel AppendCategory(string name, string prompt)
     {
         var id = CategoryIdFactory.Create(name, this.Categories.Select(c => c.Id));
@@ -445,6 +466,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             },
             GenerationMode.OnDemand);
 
+        editor.MarkProvisional();
         this.Categories.Add(editor);
         this.SelectedCategory = editor;
         return editor;

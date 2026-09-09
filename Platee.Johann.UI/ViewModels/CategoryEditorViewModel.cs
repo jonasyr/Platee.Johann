@@ -51,8 +51,33 @@ public sealed partial class CategoryEditorViewModel : ObservableObject
     [ObservableProperty]
     private int order;
 
-    /// <summary>Gets the stable id. Minted once at creation; never changes.</summary>
-    public string Id { get; }
+    /// <summary>Gets the stable id. Fixed once the category has been saved; never changes after that.</summary>
+    public string Id { get; private set; }
+
+    /// <summary>
+    /// Gets a value indicating whether this category has never been saved, so its id is
+    /// still a placeholder derived from the default name rather than the one the user typed.
+    /// </summary>
+    internal bool HasProvisionalId { get; private set; }
+
+    /// <summary>Marks a newly added category whose id must be re-minted on first save.</summary>
+    internal void MarkProvisional() => this.HasProvisionalId = true;
+
+    /// <summary>
+    /// Replaces a provisional id with the final one, derived from the name the user actually
+    /// typed. Does nothing once the category has been saved, because generated text is stored
+    /// under the id and re-deriving it later would orphan every existing section.
+    /// </summary>
+    internal void FinalizeId(string id)
+    {
+        if (!this.HasProvisionalId)
+        {
+            return;
+        }
+
+        this.Id = id;
+        this.HasProvisionalId = false;
+    }
 
     /// <summary>Gets the per-category token budget, carried through unchanged.</summary>
     public int MaxTokens { get; }
