@@ -165,6 +165,27 @@ public sealed class SummaryGenerator : ISummaryGenerator
         return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, new LlmOptions(20000), ct);
     }
 
+    /// <summary>
+    /// Generates the text for one user-defined category.
+    /// <para>
+    /// Reuses <c>BuildSystemPrompt()</c> so custom categories inherit the Korrekturliste
+    /// exactly like the built-in sections do.
+    /// </para>
+    /// </summary>
+    public async Task<string?> GenerateCustomSectionAsync(
+        CategoryDefinition category, string transcript, CancellationToken ct = default)
+    {
+        if (!this.llm.IsAvailable || string.IsNullOrWhiteSpace(transcript))
+        {
+            return null;
+        }
+
+        var userContent = category.Prompt.Replace("{transcript}", transcript);
+
+        return await this.llm.GenerateAsync(
+            this.BuildSystemPrompt(), userContent, new LlmOptions(category.MaxTokens), ct);
+    }
+
     public async Task<string?> GenerateAnalogAsync(string transcript, CancellationToken ct = default)
     {
         if (!this.llm.IsAvailable || string.IsNullOrWhiteSpace(transcript))

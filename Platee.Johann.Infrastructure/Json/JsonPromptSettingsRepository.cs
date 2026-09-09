@@ -116,6 +116,21 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
             GespraechsnotizPrompt = dto.GespraechsnotizPrompt ?? defaults.GespraechsnotizPrompt,
             StundenzettelPrompt = dto.StundenzettelPrompt ?? defaults.StundenzettelPrompt,
             AnalogPrompt = dto.AnalogPrompt ?? defaults.AnalogPrompt,
+
+            // Absent in files written before v1.4.0 and in any file a v1.3.x client has
+            // rewritten, so a missing key means "none", not "fall back to defaults".
+            CustomCategories = dto.CustomCategories is { Count: > 0 }
+                ? [.. dto.CustomCategories
+                    .Where(c => !string.IsNullOrWhiteSpace(c.Id) && !string.IsNullOrWhiteSpace(c.Name))
+                    .Select(c => new CategoryDefinition
+                    {
+                        Id = c.Id!,
+                        Name = c.Name!,
+                        Prompt = c.Prompt ?? string.Empty,
+                        Order = c.Order,
+                        MaxTokens = c.MaxTokens > 0 ? c.MaxTokens : 20000,
+                    })]
+                : [],
         };
     }
 
@@ -131,6 +146,18 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
         GespraechsnotizPrompt = s.GespraechsnotizPrompt,
         StundenzettelPrompt = s.StundenzettelPrompt,
         AnalogPrompt = s.AnalogPrompt,
+
+        // Scope is deliberately NOT written: it is derived from which file the category
+        // was read from, so persisting it would let a hand-edited global file claim to be
+        // personal and escape the "wirkt für alle Nutzer" warning.
+        CustomCategories = [.. s.CustomCategories.Select(c => new CategoryDto
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Prompt = c.Prompt,
+            Order = c.Order,
+            MaxTokens = c.MaxTokens,
+        })],
     };
 
     private sealed class PromptDto
@@ -154,5 +181,20 @@ public sealed class JsonPromptSettingsRepository : IPromptSettingsRepository
         public string? StundenzettelPrompt { get; set; }
 
         public string? AnalogPrompt { get; set; }
+
+        public List<CategoryDto>? CustomCategories { get; set; }
+    }
+
+    private sealed class CategoryDto
+    {
+        public string? Id { get; set; }
+
+        public string? Name { get; set; }
+
+        public string? Prompt { get; set; }
+
+        public int Order { get; set; }
+
+        public int MaxTokens { get; set; }
     }
 }

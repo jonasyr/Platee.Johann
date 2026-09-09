@@ -30,7 +30,7 @@ public sealed class JsonMigratorTests
         var element = JsonDocument.Parse(json).RootElement;
         var dto = JsonMigrator.Migrate(element);
 
-        dto.SchemaVersion.Should().Be(3);
+        dto.SchemaVersion.Should().Be(4);
         dto.Type.Should().Be("Aufgabe");
         dto.Title.Should().Be("Test Titel");
         dto.TaskList.Should().Be("1. Task A");
@@ -58,7 +58,7 @@ public sealed class JsonMigratorTests
         var dto = JsonMigrator.Migrate(element);
 
         dto.Type.Should().Be("Projekt");
-        dto.SchemaVersion.Should().Be(3);
+        dto.SchemaVersion.Should().Be(4);
     }
 
     [Fact]
@@ -149,12 +149,12 @@ public sealed class JsonMigratorTests
         dto.Status.PdfCreated.Should().BeTrue();
         dto.Status.EmailCreated.Should().BeFalse();
         dto.Type.Should().Be("Projekt");            // no type field → Projekt
-        dto.SchemaVersion.Should().Be(3);
+        dto.SchemaVersion.Should().Be(4);
     }
 
     // --- v2-to-v3 migration ---
     [Fact]
-    public void Migrate_V2WithoutEditedTranscript_DefaultsToNull_SetsVersion3()
+    public void Migrate_V2WithoutEditedTranscript_DefaultsToNull_SetsVersion4()
     {
         var json = """
             {
@@ -176,7 +176,7 @@ public sealed class JsonMigratorTests
         var element = JsonDocument.Parse(json).RootElement;
         var dto = JsonMigrator.Migrate(element);
 
-        dto.SchemaVersion.Should().Be(3);
+        dto.SchemaVersion.Should().Be(4);
         dto.EditedTranscript.Should().BeNull();
         dto.Transcript.Should().Be("Original transcript text");
     }
@@ -205,7 +205,7 @@ public sealed class JsonMigratorTests
         var element = JsonDocument.Parse(json).RootElement;
         var dto = JsonMigrator.Migrate(element);
 
-        dto.SchemaVersion.Should().Be(3);
+        dto.SchemaVersion.Should().Be(4);
         dto.Transcript.Should().Be("Original from Whisper");
         dto.EditedTranscript.Should().Be("User corrected version");
     }

@@ -1,5 +1,7 @@
 namespace Platee.Johann.Application.Processing;
 
+using System.Collections.Concurrent;
+
 using System.IO;
 using System.Text;
 using Platee.Johann.Application.Diagnostics;
@@ -25,6 +27,12 @@ public sealed class EntryProcessingService : IEntryProcessor
     private readonly SettingsHolder settings;
     private readonly IEnumerable<IEntryRenderer> renderers;
     private readonly IEntryProcessingLogger logger;
+
+    /// <summary>
+    /// Generations currently in flight, keyed by (job id, section id), so a double click
+    /// awaits the first call instead of paying for a second one.
+    /// </summary>
+    private readonly ConcurrentDictionary<(string JobId, string SectionId), Task<Entry>> inFlightSections = new();
 
     public bool CanProcess => this.transcriber.IsAvailable;
 
@@ -124,25 +132,28 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 3 – Summaries (parallel for speed)
         progress?.Report(new("KI erstellt alle Abschnitte…", 3, total));
-        var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
-            await this.GenerateSummariesAsync(transcription.Transcript, scopedGenerator, ct);
+        var catalog = this.BuildCatalog();
+        var sections = await this.GenerateSummariesAsync(
+            transcription.Transcript, scopedGenerator, catalog, ct);
 
         var finalEntry = baseEntry with
         {
-            Abstract = string.IsNullOrEmpty(abstractText) ? null : abstractText,
-            LongSummary = string.IsNullOrEmpty(longSummary) ? null : longSummary,
-            ProseSummary = string.IsNullOrEmpty(proseSummary) ? null : proseSummary,
-            TaskList = string.IsNullOrEmpty(taskList) ? null : taskList,
-            ConversationNote = string.IsNullOrEmpty(conversationNote) ? null : conversationNote,
-            StundenzettelText = string.IsNullOrEmpty(stundenzettelText) ? null : stundenzettelText,
-            AnalogText = string.IsNullOrEmpty(analogText) ? null : analogText,
-            EmailText = string.IsNullOrEmpty(emailText) ? null : emailText,
+            Abstract = string.IsNullOrEmpty(sections.Abstract) ? null : sections.Abstract,
+            LongSummary = string.IsNullOrEmpty(sections.LongSummary) ? null : sections.LongSummary,
+            ProseSummary = string.IsNullOrEmpty(sections.ProseSummary) ? null : sections.ProseSummary,
+            TaskList = string.IsNullOrEmpty(sections.TaskList) ? null : sections.TaskList,
+            ConversationNote = string.IsNullOrEmpty(sections.ConversationNote) ? null : sections.ConversationNote,
+            StundenzettelText = string.IsNullOrEmpty(sections.StundenzettelText) ? null : sections.StundenzettelText,
+            AnalogText = string.IsNullOrEmpty(sections.AnalogText) ? null : sections.AnalogText,
+            EmailText = string.IsNullOrEmpty(sections.EmailText) ? null : sections.EmailText,
+            CustomSections = sections.CustomSections,
+            CustomSectionNames = NamesFor(catalog, sections.CustomSections.Keys),
             Status = new ProcessingStatus(
                 Transcribed: true,
                 Summarized: true,
                 PdfCreated: false,
                 Archived: false,
-                EmailCreated: !string.IsNullOrEmpty(emailText)),
+                EmailCreated: !string.IsNullOrEmpty(sections.EmailText)),
         };
 
         // Step 4 – Auto-generate HTML/PDF
@@ -250,19 +261,23 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 1 – Summaries
         progress?.Report(new("Alle Abschnitte werden neu generiert…", 1, total));
-        var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
-            await this.GenerateSummariesAsync(entry.EffectiveTranscript!, scopedGenerator, ct);
+        var catalog = this.BuildRegenerationCatalog(entry);
+        var sections = await this.GenerateSummariesAsync(
+            entry.EffectiveTranscript!, scopedGenerator, catalog, ct);
 
         var updatedEntry = entry with
         {
-            Abstract = string.IsNullOrEmpty(abstractText) ? entry.Abstract : abstractText,
-            LongSummary = string.IsNullOrEmpty(longSummary) ? entry.LongSummary : longSummary,
-            ProseSummary = string.IsNullOrEmpty(proseSummary) ? entry.ProseSummary : proseSummary,
-            TaskList = string.IsNullOrEmpty(taskList) ? entry.TaskList : taskList,
-            ConversationNote = string.IsNullOrEmpty(conversationNote) ? entry.ConversationNote : conversationNote,
-            StundenzettelText = string.IsNullOrEmpty(stundenzettelText) ? entry.StundenzettelText : stundenzettelText,
-            AnalogText = string.IsNullOrEmpty(analogText) ? entry.AnalogText : analogText,
-            EmailText = string.IsNullOrEmpty(emailText) ? entry.EmailText : emailText,
+            Abstract = string.IsNullOrEmpty(sections.Abstract) ? entry.Abstract : sections.Abstract,
+            LongSummary = string.IsNullOrEmpty(sections.LongSummary) ? entry.LongSummary : sections.LongSummary,
+            ProseSummary = string.IsNullOrEmpty(sections.ProseSummary) ? entry.ProseSummary : sections.ProseSummary,
+            TaskList = string.IsNullOrEmpty(sections.TaskList) ? entry.TaskList : sections.TaskList,
+            ConversationNote = string.IsNullOrEmpty(sections.ConversationNote) ? entry.ConversationNote : sections.ConversationNote,
+            StundenzettelText = string.IsNullOrEmpty(sections.StundenzettelText) ? entry.StundenzettelText : sections.StundenzettelText,
+            AnalogText = string.IsNullOrEmpty(sections.AnalogText) ? entry.AnalogText : sections.AnalogText,
+            EmailText = string.IsNullOrEmpty(sections.EmailText) ? entry.EmailText : sections.EmailText,
+            CustomSections = MergeCustomSections(entry.CustomSections, sections.CustomSections),
+            CustomSectionNames = MergeCustomSectionNames(
+                entry.CustomSectionNames, NamesFor(catalog, sections.CustomSections.Keys)),
             Status = entry.Status with { Summarized = true },
         };
 
@@ -287,54 +302,137 @@ public sealed class EntryProcessingService : IEntryProcessor
     private static bool IsRenderer(IEntryRenderer renderer, string name) =>
         renderer.RendererName.Equals(name, StringComparison.OrdinalIgnoreCase);
 
-    public async Task<Entry> ReprocessSectionAsync(Entry entry, string sectionName,
-        IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
+    /// <summary>
+    /// Generates exactly one section by its stable id, merges it into the entry, and saves.
+    /// <para>
+    /// Concurrent calls for the same (entry, section) pair share a single LLM call: a
+    /// CanExecute flag in the UI cannot prevent two clicks being dispatched before the first
+    /// command completes, and every wasted call costs real money.
+    /// </para>
+    /// </summary>
+    public Task<Entry> GenerateSectionAsync(
+        Entry entry,
+        string sectionId,
+        IProgress<ProcessingProgress>? progress = null,
+        CancellationToken ct = default)
+    {
+        var key = (entry.JobId, sectionId);
+
+        // GetOrAdd's factory may run more than once under contention, but only one task is
+        // ever stored and returned, so both callers await the same generation.
+        var task = this.inFlightSections.GetOrAdd(
+            key, _ => this.RunSectionAsync(entry, sectionId, progress, ct));
+
+        return AwaitAndReleaseAsync(task, key);
+
+        async Task<Entry> AwaitAndReleaseAsync(Task<Entry> pending, (string, string) cacheKey)
+        {
+            try
+            {
+                return await pending.ConfigureAwait(false);
+            }
+            finally
+            {
+                // Released on failure too, so a transient LLM error does not permanently
+                // wedge the section behind a cached faulted task.
+                this.inFlightSections.TryRemove(cacheKey, out _);
+            }
+        }
+    }
+
+    private async Task<Entry> RunSectionAsync(
+        Entry entry, string sectionId, IProgress<ProcessingProgress>? progress, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             throw new InvalidOperationException("Kein Transkript vorhanden.");
         }
 
-        var scopedGenerator = this.summaryGenerator.WithSnapshot();
+        var descriptor = this.BuildCatalog().FirstOrDefault(s => s.Id == sectionId)
+            ?? throw new ArgumentException($"Unbekannte Sektion: {sectionId}", nameof(sectionId));
 
-        progress?.Report(new($"'{sectionName}' wird neu generiert…", 1, 1));
+        var generator = this.summaryGenerator.WithSnapshot();
+        var transcript = entry.EffectiveTranscript!;
 
-        var updated = sectionName switch
+        progress?.Report(new($"'{descriptor.Name}' wird generiert…", 1, 1));
+
+        var updated = sectionId switch
         {
-            "Zusammenfassung" => entry with
+            BuiltInSections.LongSummary => entry with
             {
-                LongSummary = await scopedGenerator.GenerateLongSummaryAsync(entry.EffectiveTranscript!, ct),
+                LongSummary = await generator.GenerateLongSummaryAsync(transcript, ct),
             },
-            "Ausführliche Zusammenfassung" => entry with
+            BuiltInSections.ProseSummary => entry with
             {
-                ProseSummary = await scopedGenerator.GenerateProseSummaryAsync(entry.EffectiveTranscript!, ct),
+                ProseSummary = await generator.GenerateProseSummaryAsync(transcript, ct),
             },
-            "Aufgaben" => entry with
+            BuiltInSections.TaskList => entry with
             {
-                TaskList = await scopedGenerator.GenerateAufgabeAsync(entry.EffectiveTranscript!, ct),
+                TaskList = await generator.GenerateAufgabeAsync(transcript, ct),
             },
-            "Gesprächsnotiz" => entry with
+            BuiltInSections.ConversationNote => entry with
             {
-                ConversationNote = await scopedGenerator.GenerateGespraechsnotizAsync(entry.EffectiveTranscript!, ct),
+                ConversationNote = await generator.GenerateGespraechsnotizAsync(transcript, ct),
             },
-            "E-Mail" => entry with
+            BuiltInSections.Stundenzettel => entry with
             {
-                EmailText = await scopedGenerator.GenerateEmailTextAsync(
-                    entry.ProseSummary ?? entry.LongSummary ?? entry.EffectiveTranscript!, ct),
+                StundenzettelText = await generator.GenerateStundenzettelAsync(transcript, ct),
             },
-            "Stundenzettel" => entry with
+            BuiltInSections.Analog => entry with
             {
-                StundenzettelText = await scopedGenerator.GenerateStundenzettelAsync(entry.EffectiveTranscript!, ct),
+                AnalogText = await generator.GenerateAnalogAsync(transcript, ct),
             },
-            "Analog" => entry with
+            BuiltInSections.EmailText => entry with
             {
-                AnalogText = await scopedGenerator.GenerateAnalogAsync(entry.EffectiveTranscript!, ct),
+                // EmailText reads a summary rather than the transcript; keep the original
+                // fallback chain so an entry without a prose summary still produces one.
+                EmailText = await generator.GenerateEmailTextAsync(
+                    entry.ProseSummary ?? entry.LongSummary ?? transcript, ct),
             },
-            _ => throw new ArgumentException($"Unbekannte Sektion: {sectionName}"),
+            _ => await GenerateCustomAsync(entry, descriptor, generator, transcript, ct),
         };
 
         await this.repository.SaveAsync(updated, ct);
+
+        // The daily overview is a rendered artefact of the entries, so every path that
+        // persists one has to refresh it — otherwise a section generated on demand is
+        // missing from _ItemÜbersicht.html until the next full run.
+        if (this.overviewService is not null)
+        {
+            await this.overviewService.RegenerateAsync(
+                DateOnly.FromDateTime(updated.CreatedAt.DateTime), ct);
+        }
+
         return updated;
+
+        static async Task<Entry> GenerateCustomAsync(
+            Entry entry, SectionDescriptor descriptor, SummaryGenerator generator,
+            string transcript, CancellationToken ct)
+        {
+            var text = await generator.GenerateCustomSectionAsync(descriptor.Category!, transcript, ct);
+            var sections = new Dictionary<string, string>(entry.CustomSections, StringComparer.Ordinal);
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                sections.Remove(descriptor.Id);
+            }
+            else
+            {
+                sections[descriptor.Id] = text;
+            }
+
+            var names = new Dictionary<string, string>(entry.CustomSectionNames, StringComparer.Ordinal);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                names.Remove(descriptor.Id);
+            }
+            else
+            {
+                names[descriptor.Id] = descriptor.Name;
+            }
+
+            return entry with { CustomSections = sections, CustomSectionNames = names };
+        }
     }
 
     /// <summary>
@@ -359,20 +457,24 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 1 – Re-generate all summaries from the edited transcript
         progress?.Report(new("Alle Abschnitte werden aus bearbeitetem Transkript neu generiert…", 1, total));
-        var (abstractText, longSummary, proseSummary, taskList, conversationNote, stundenzettelText, analogText, emailText) =
-            await this.GenerateSummariesAsync(editedTranscript, scopedGenerator, ct);
+        var catalog = this.BuildRegenerationCatalog(entry);
+        var sections = await this.GenerateSummariesAsync(
+            editedTranscript, scopedGenerator, catalog, ct);
 
         var updatedEntry = entry with
         {
             EditedTranscript = editedTranscript,
-            Abstract = string.IsNullOrEmpty(abstractText) ? entry.Abstract : abstractText,
-            LongSummary = string.IsNullOrEmpty(longSummary) ? entry.LongSummary : longSummary,
-            ProseSummary = string.IsNullOrEmpty(proseSummary) ? entry.ProseSummary : proseSummary,
-            TaskList = string.IsNullOrEmpty(taskList) ? entry.TaskList : taskList,
-            ConversationNote = string.IsNullOrEmpty(conversationNote) ? entry.ConversationNote : conversationNote,
-            StundenzettelText = string.IsNullOrEmpty(stundenzettelText) ? entry.StundenzettelText : stundenzettelText,
-            AnalogText = string.IsNullOrEmpty(analogText) ? entry.AnalogText : analogText,
-            EmailText = string.IsNullOrEmpty(emailText) ? entry.EmailText : emailText,
+            Abstract = string.IsNullOrEmpty(sections.Abstract) ? entry.Abstract : sections.Abstract,
+            LongSummary = string.IsNullOrEmpty(sections.LongSummary) ? entry.LongSummary : sections.LongSummary,
+            ProseSummary = string.IsNullOrEmpty(sections.ProseSummary) ? entry.ProseSummary : sections.ProseSummary,
+            TaskList = string.IsNullOrEmpty(sections.TaskList) ? entry.TaskList : sections.TaskList,
+            ConversationNote = string.IsNullOrEmpty(sections.ConversationNote) ? entry.ConversationNote : sections.ConversationNote,
+            StundenzettelText = string.IsNullOrEmpty(sections.StundenzettelText) ? entry.StundenzettelText : sections.StundenzettelText,
+            AnalogText = string.IsNullOrEmpty(sections.AnalogText) ? entry.AnalogText : sections.AnalogText,
+            EmailText = string.IsNullOrEmpty(sections.EmailText) ? entry.EmailText : sections.EmailText,
+            CustomSections = MergeCustomSections(entry.CustomSections, sections.CustomSections),
+            CustomSectionNames = MergeCustomSectionNames(
+                entry.CustomSectionNames, NamesFor(catalog, sections.CustomSections.Keys)),
             Status = entry.Status with { Summarized = true },
         };
 
@@ -414,39 +516,189 @@ public sealed class EntryProcessingService : IEntryProcessor
         return BuildFallbackEmailText(entry);
     }
 
+    /// <summary>
+    /// The output of one generation run. Replaces the former eight-element tuple, which
+    /// could not carry the user-defined sections.
+    /// </summary>
+    private sealed record GeneratedSections(
+        string Abstract,
+        string LongSummary,
+        string ProseSummary,
+        string? TaskList,
+        string? ConversationNote,
+        string? StundenzettelText,
+        string? AnalogText,
+        string? EmailText,
+        IReadOnlyDictionary<string, string> CustomSections);
+
     // ── Private helpers ───────────────────────────────────────────────────────
-    private async Task<(string Abstract, string LongSummary, string ProseSummary, string? TaskList, string? ConversationNote, string? StundenzettelText, string? AnalogText, string? EmailText)>
-        GenerateSummariesAsync(string transcript, SummaryGenerator scopedGenerator, CancellationToken ct)
+    /// <summary>
+    /// Runs every section whose mode is <see cref="GenerationMode.Auto"/>, in parallel.
+    /// <para>
+    /// Abstract and Title are intrinsics: they drive the entry list, so they always run and
+    /// are never part of the catalog. EmailText is derived from ProseSummary rather than the
+    /// transcript, so it stays chained after it instead of running alongside.
+    /// </para>
+    /// </summary>
+    private async Task<GeneratedSections> GenerateSummariesAsync(
+        string transcript,
+        SummaryGenerator scopedGenerator,
+        IReadOnlyList<SectionDescriptor> catalog,
+        CancellationToken ct)
     {
-        // Step 1: run the three core summaries in parallel
+        var auto = new HashSet<string>(
+            catalog.Where(s => s.Mode == GenerationMode.Auto).Select(s => s.Id),
+            StringComparer.Ordinal);
+
+        // Step 1: the intrinsic abstract plus the two core summaries, in parallel.
         var abstractTask = scopedGenerator.GenerateAbstractAsync(transcript, ct);
-        var longTask = scopedGenerator.GenerateLongSummaryAsync(transcript, ct);
-        var proseTask = scopedGenerator.GenerateProseSummaryAsync(transcript, ct);
+        var longTask = auto.Contains(BuiltInSections.LongSummary)
+            ? scopedGenerator.GenerateLongSummaryAsync(transcript, ct)
+            : Task.FromResult(string.Empty);
+        var proseTask = auto.Contains(BuiltInSections.ProseSummary)
+            ? scopedGenerator.GenerateProseSummaryAsync(transcript, ct)
+            : Task.FromResult(string.Empty);
 
         await Task.WhenAll(abstractTask, longTask, proseTask);
 
-        var abstractText = abstractTask.Result;
-        var longSummary = longTask.Result;
-        var proseSummary = proseTask.Result;
+        var proseSummary = await proseTask;
 
-        // Step 2: run type-specific summaries in parallel (EmailText depends on proseSummary)
-        var taskListTask = scopedGenerator.GenerateAufgabeAsync(transcript, ct);
-        var conversationNoteTask = scopedGenerator.GenerateGespraechsnotizAsync(transcript, ct);
-        var stundenzettelTask = scopedGenerator.GenerateStundenzettelAsync(transcript, ct);
-        var analogTask = scopedGenerator.GenerateAnalogAsync(transcript, ct);
-        var emailTask = scopedGenerator.GenerateEmailTextAsync(proseSummary, ct);
+        // Step 2: the remaining built-ins plus every auto custom category, in parallel.
+        var taskListTask = auto.Contains(BuiltInSections.TaskList)
+            ? scopedGenerator.GenerateAufgabeAsync(transcript, ct)
+            : Task.FromResult<string?>(null);
+        var conversationNoteTask = auto.Contains(BuiltInSections.ConversationNote)
+            ? scopedGenerator.GenerateGespraechsnotizAsync(transcript, ct)
+            : Task.FromResult<string?>(null);
+        var stundenzettelTask = auto.Contains(BuiltInSections.Stundenzettel)
+            ? scopedGenerator.GenerateStundenzettelAsync(transcript, ct)
+            : Task.FromResult<string?>(null);
+        var analogTask = auto.Contains(BuiltInSections.Analog)
+            ? scopedGenerator.GenerateAnalogAsync(transcript, ct)
+            : Task.FromResult<string?>(null);
+
+        // EmailText reads the prose summary, so an auto E-Mail with an on-demand prose
+        // summary would have nothing to work from — fall back to the transcript.
+        var emailTask = auto.Contains(BuiltInSections.EmailText)
+            ? scopedGenerator.GenerateEmailTextAsync(
+                string.IsNullOrWhiteSpace(proseSummary) ? transcript : proseSummary, ct)
+            : Task.FromResult<string?>(null);
+
+        var customTasks = catalog
+            .Where(s => !s.IsBuiltIn && s.Category is not null && auto.Contains(s.Id))
+            .ToDictionary(
+                s => s.Id,
+                s => scopedGenerator.GenerateCustomSectionAsync(s.Category!, transcript, ct),
+                StringComparer.Ordinal);
 
         await Task.WhenAll(
-            (Task)taskListTask,
-            conversationNoteTask,
-            stundenzettelTask,
-            analogTask,
-            emailTask);
+            [
+                (Task)taskListTask, conversationNoteTask, stundenzettelTask,
+                analogTask, emailTask, .. customTasks.Values,
+            ]);
 
-        return (abstractText, longSummary, proseSummary,
-            taskListTask.Result, conversationNoteTask.Result,
-            stundenzettelTask.Result, analogTask.Result,
-            emailTask.Result);
+        var customSections = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (id, task) in customTasks)
+        {
+            var text = await task;
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                customSections[id] = text;
+            }
+        }
+
+        return new GeneratedSections(
+            await abstractTask,
+            await longTask,
+            proseSummary,
+            await taskListTask,
+            await conversationNoteTask,
+            await stundenzettelTask,
+            await analogTask,
+            await emailTask,
+            customSections);
+    }
+
+    /// <summary>
+    /// Builds the section catalog from the settings currently in force.
+    /// </summary>
+    private IReadOnlyList<SectionDescriptor> BuildCatalog() =>
+        SectionCatalog.Build(this.settings.Prompts, this.settings.Current.SectionModes);
+
+    /// <summary>
+    /// The catalog used when regenerating an existing entry.
+    /// <para>
+    /// Sections that already carry text are promoted to <see cref="GenerationMode.Auto"/>,
+    /// so a regeneration refreshes what the user can actually see. On-demand sections that
+    /// were never generated stay untouched — regenerating a transcript must not silently
+    /// spend GPT calls on sections the user deliberately left unproduced.
+    /// </para>
+    /// </summary>
+    private IReadOnlyList<SectionDescriptor> BuildRegenerationCatalog(Entry entry) =>
+        [.. this.BuildCatalog().Select(s =>
+            s.Mode == GenerationMode.Auto || !HasContent(entry, s.Id)
+                ? s
+                : s with { Mode = GenerationMode.Auto })];
+
+    private static bool HasContent(Entry entry, string sectionId) => sectionId switch
+    {
+        BuiltInSections.LongSummary => !string.IsNullOrWhiteSpace(entry.LongSummary),
+        BuiltInSections.ProseSummary => !string.IsNullOrWhiteSpace(entry.ProseSummary),
+        BuiltInSections.TaskList => !string.IsNullOrWhiteSpace(entry.TaskList),
+        BuiltInSections.ConversationNote => !string.IsNullOrWhiteSpace(entry.ConversationNote),
+        BuiltInSections.EmailText => !string.IsNullOrWhiteSpace(entry.EmailText),
+        BuiltInSections.Stundenzettel => !string.IsNullOrWhiteSpace(entry.StundenzettelText),
+        BuiltInSections.Analog => !string.IsNullOrWhiteSpace(entry.AnalogText),
+        _ => entry.CustomSections.TryGetValue(sectionId, out var text)
+             && !string.IsNullOrWhiteSpace(text),
+    };
+
+    /// <summary>
+    /// Overlays freshly generated custom sections onto the existing ones. Sections that were
+    /// not regenerated keep their previous text rather than disappearing.
+    /// </summary>
+    /// <summary>
+    /// The display name of every generated custom section, taken from the catalog in force at
+    /// generation time. Stored on the entry so deleting the category later leaves a readable
+    /// heading behind instead of a raw id.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> NamesFor(
+        IReadOnlyList<SectionDescriptor> catalog, IEnumerable<string> generatedIds)
+    {
+        var wanted = new HashSet<string>(generatedIds, StringComparer.Ordinal);
+        return catalog
+            .Where(d => !d.IsBuiltIn && wanted.Contains(d.Id))
+            .ToDictionary(d => d.Id, d => d.Name, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Overlays freshly recorded section names onto the existing ones, mirroring
+    /// <see cref="MergeCustomSections"/> so a name never outlives or precedes its text.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> MergeCustomSectionNames(
+        IReadOnlyDictionary<string, string> existing,
+        IReadOnlyDictionary<string, string> regenerated)
+    {
+        var merged = new Dictionary<string, string>(existing, StringComparer.Ordinal);
+        foreach (var (id, name) in regenerated)
+        {
+            merged[id] = name;
+        }
+
+        return merged;
+    }
+
+    private static IReadOnlyDictionary<string, string> MergeCustomSections(
+        IReadOnlyDictionary<string, string> existing,
+        IReadOnlyDictionary<string, string> regenerated)
+    {
+        var merged = new Dictionary<string, string>(existing, StringComparer.Ordinal);
+        foreach (var (id, text) in regenerated)
+        {
+            merged[id] = text;
+        }
+
+        return merged;
     }
 
     /// <summary>

@@ -37,6 +37,20 @@ public sealed record AppSettings
         new() { Wrong = "JGPT", Correct = "ChatGPT" },
     ];
 
+    /// <summary>
+    /// Gets the per-section generation mode, keyed by built-in section id or category id.
+    /// <para>
+    /// Deliberately personal and stored in the local settings file: category definitions
+    /// may be shared through the team prompts file, but nobody may change a colleague's
+    /// waiting time. A missing key falls back to the SectionCatalog default.
+    /// </para>
+    /// </summary>
+    public IReadOnlyDictionary<string, GenerationMode> SectionModes { get; init; }
+        = new Dictionary<string, GenerationMode>();
+
+    /// <summary>Gets a value indicating whether the one-time v1.4.0 mode prompt has been answered.</summary>
+    public bool SectionModesMigrationDone { get; init; }
+
     /// <summary>Gets a fresh instance with all default values.</summary>
     public static AppSettings Default => new();
 }

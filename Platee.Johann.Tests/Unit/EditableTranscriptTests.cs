@@ -44,10 +44,10 @@ public sealed class EditableTranscriptTests
     }
 
     [Fact]
-    public void SchemaVersion_DefaultsTo3()
+    public void SchemaVersion_DefaultsTo4()
     {
         var entry = CreateEntry();
-        entry.SchemaVersion.Should().Be(3);
+        entry.SchemaVersion.Should().Be(4);
     }
 
     [Fact]

@@ -31,9 +31,13 @@ public interface IEntryProcessor
         Entry entry,
         CancellationToken ct = default);
 
-    Task<Entry> ReprocessSectionAsync(
+    /// <summary>
+    /// Generates exactly one section by its stable id and persists the result.
+    /// Concurrent calls for the same (entry, section) share a single LLM call.
+    /// </summary>
+    Task<Entry> GenerateSectionAsync(
         Entry entry,
-        string sectionName,
+        string sectionId,
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default);
 

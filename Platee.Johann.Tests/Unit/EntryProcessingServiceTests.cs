@@ -170,7 +170,157 @@ public sealed class EntryProcessingServiceTests : IDisposable
         return renderer;
     }
 
-    private Context CreateService(IEnumerable<IEntryRenderer>? renderers = null)
+    // ── Generation-mode filtering (#52) ───────────────────────────────────────
+    [Fact]
+    public async Task ProcessAudioAsync_WithDefaultModes_StillGeneratesEverySection()
+    {
+        // No SectionModes configured yet (user has not seen the first-run prompt):
+        // behaviour must be identical to before v1.4.0.
+        var ctx = this.CreateService();
+
+        var entry = await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 7));
+
+        entry.StundenzettelText.Should().NotBeNullOrEmpty();
+        entry.AnalogText.Should().NotBeNullOrEmpty();
+        entry.EmailText.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task ProcessAudioAsync_WithRecommendedModes_SkipsTheOnDemandSections()
+    {
+        var ctx = this.CreateService(
+            appSettings: AppSettings.Default with { SectionModes = SectionModeDefaults.Recommended });
+
+        var entry = await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 7));
+
+        entry.LongSummary.Should().NotBeNullOrEmpty();
+        entry.ProseSummary.Should().NotBeNullOrEmpty();
+        entry.TaskList.Should().NotBeNullOrEmpty();
+        entry.ConversationNote.Should().NotBeNullOrEmpty();
+
+        entry.StundenzettelText.Should().BeNull();
+        entry.AnalogText.Should().BeNull();
+        entry.EmailText.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ProcessAudioAsync_WithRecommendedModes_IssuesFewerLlmCalls()
+    {
+        var all = this.CreateService();
+        var reduced = this.CreateService(
+            appSettings: AppSettings.Default with { SectionModes = SectionModeDefaults.Recommended });
+
+        await all.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 7));
+        await reduced.Service.ProcessAudioAsync(this.secondAudioPath, new DateOnly(2026, 9, 7));
+
+        var allCalls = all.Llm.ReceivedCalls().Count(c => c.GetMethodInfo().Name == "GenerateAsync");
+        var reducedCalls = reduced.Llm.ReceivedCalls().Count(c => c.GetMethodInfo().Name == "GenerateAsync");
+
+        reducedCalls.Should().BeLessThan(allCalls);
+        (allCalls - reducedCalls).Should().Be(3, "Stundenzettel, Analog and E-Mail move to on demand");
+    }
+
+    [Fact]
+    public async Task ProcessAudioAsync_AutoCustomCategory_IsGeneratedIntoCustomSections()
+    {
+        var category = new CategoryDefinition
+        {
+            Id = "custom.prog",
+            Name = "Programmierung",
+            Prompt = "Analysiere: {transcript}",
+        };
+        var ctx = this.CreateService(
+            appSettings: AppSettings.Default with
+            {
+                SectionModes = new Dictionary<string, GenerationMode>
+                {
+                    ["custom.prog"] = GenerationMode.Auto,
+                },
+            },
+            promptSettings: PromptSettings.Default with { CustomCategories = [category] });
+
+        var entry = await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 7));
+
+        entry.CustomSections.Should().ContainKey("custom.prog");
+        entry.CustomSections["custom.prog"].Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task ProcessAudioAsync_OnDemandCustomCategory_IsNotGenerated()
+    {
+        var category = new CategoryDefinition
+        {
+            Id = "custom.spaeter",
+            Name = "Später",
+            Prompt = "{transcript}",
+        };
+        var ctx = this.CreateService(
+            promptSettings: PromptSettings.Default with { CustomCategories = [category] });
+
+        var entry = await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 7));
+
+        entry.CustomSections.Should().NotContainKey("custom.spaeter");
+    }
+
+    [Fact]
+    public async Task RegenerateFromTranscriptAsync_RefreshesPopulatedOnDemandSections()
+    {
+        var ctx = this.CreateService(
+            appSettings: AppSettings.Default with { SectionModes = SectionModeDefaults.Recommended });
+        var entry = await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 7));
+
+        // Stundenzettel is on-demand, but this entry already has one — a regeneration must
+        // refresh what the user can actually see.
+        var withStundenzettel = entry with { StundenzettelText = "ALTER STUNDENZETTEL" };
+
+        var result = await ctx.Service.RegenerateFromTranscriptAsync(
+            withStundenzettel, "Ein korrigiertes Transkript.");
+
+        result.StundenzettelText.Should().NotBe("ALTER STUNDENZETTEL");
+        result.StundenzettelText.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task RegenerateFromTranscriptAsync_DoesNotNewlyGenerateUntouchedOnDemandSections()
+    {
+        var ctx = this.CreateService(
+            appSettings: AppSettings.Default with { SectionModes = SectionModeDefaults.Recommended });
+        var entry = await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 7));
+
+        entry.AnalogText.Should().BeNull("precondition: Analog is on-demand and was never generated");
+
+        var result = await ctx.Service.RegenerateFromTranscriptAsync(
+            entry, "Ein korrigiertes Transkript.");
+
+        result.AnalogText.Should().BeNull(
+            "regenerating a transcript must not spend GPT calls on sections the user left unproduced");
+    }
+
+    [Fact]
+    public async Task RegenerateFromTranscriptAsync_KeepsCustomSectionsItDidNotRegenerate()
+    {
+        var ctx = this.CreateService(
+            appSettings: AppSettings.Default with { SectionModes = SectionModeDefaults.Recommended });
+        var entry = await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 7));
+
+        // A category that no longer exists in settings: its text must survive rather than
+        // silently vanish on the next regeneration.
+        var withOrphan = entry with
+        {
+            CustomSections = new Dictionary<string, string> { ["custom.weg"] = "VERWAISTER TEXT" },
+        };
+
+        var result = await ctx.Service.RegenerateFromTranscriptAsync(
+            withOrphan, "Ein korrigiertes Transkript.");
+
+        result.CustomSections.Should().ContainKey("custom.weg")
+            .WhoseValue.Should().Be("VERWAISTER TEXT");
+    }
+
+    private Context CreateService(
+        IEnumerable<IEntryRenderer>? renderers = null,
+        AppSettings? appSettings = null,
+        PromptSettings? promptSettings = null)
     {
         var transcriber = Substitute.For<IAudioTranscriber>();
         transcriber.IsAvailable.Returns(true);
@@ -185,10 +335,12 @@ public sealed class EntryProcessingServiceTests : IDisposable
         var repo = Substitute.For<IEntryRepository>();
         repo.GetNextSequenceNumberAsync(Arg.Any<DateOnly>(), Arg.Any<CancellationToken>()).Returns(1);
 
-        var settings = new SettingsHolder(AppSettings.Default with
-        {
-            Archivverzeichnis = Path.Combine(this.tempDir, "archiv"),
-        });
+        var settings = new SettingsHolder(
+            (appSettings ?? AppSettings.Default) with
+            {
+                Archivverzeichnis = Path.Combine(this.tempDir, "archiv"),
+            },
+            promptSettings ?? PromptSettings.Default);
 
         var logger = Substitute.For<IEntryProcessingLogger>();
 
@@ -203,7 +355,7 @@ public sealed class EntryProcessingServiceTests : IDisposable
             renderers: renderers ?? [],
             logger: logger);
 
-        return new Context(service, repo, llm, transcriber, logger);
+        return new Context(service, repo, llm, transcriber, logger, settings);
     }
 
     private sealed record Context(
@@ -211,5 +363,6 @@ public sealed class EntryProcessingServiceTests : IDisposable
         IEntryRepository Repo,
         ILlmProvider Llm,
         IAudioTranscriber Transcriber,
-        IEntryProcessingLogger Logger);
+        IEntryProcessingLogger Logger,
+        SettingsHolder Settings);
 }

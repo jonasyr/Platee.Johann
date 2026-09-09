@@ -41,7 +41,8 @@ public static class PromptStartupResolver
         IPromptSettingsRepository? globalRepo,
         string? globalPath,
         Action<Exception>? onCacheWriteError = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IPromptSettingsRepository? personalRepo = null)
     {
         // No team file configured means the user opted out of team prompts. The
         // cache only exists to survive an outage of a configured share, so reading
@@ -49,7 +50,10 @@ public static class PromptStartupResolver
         // (PR #46 review).
         if (globalRepo is null)
         {
-            return new PromptStartupResult(PromptSettings.Default, null);
+            return new PromptStartupResult(
+                await MergePersonalCategoriesAsync(PromptSettings.Default, personalRepo, ct)
+                    .ConfigureAwait(false),
+                null);
         }
 
         var load = await PromptSettingsLoader
@@ -79,9 +83,12 @@ public static class PromptStartupResolver
             }
         }
 
+        var prompts = await MergePersonalCategoriesAsync(load.Settings, personalRepo, ct)
+            .ConfigureAwait(false);
+
         if (load.Source != PromptSource.GlobalFallbackToLocal)
         {
-            return new PromptStartupResult(load.Settings, null);
+            return new PromptStartupResult(prompts, null);
         }
 
         var used = cacheUsable
@@ -94,6 +101,52 @@ public static class PromptStartupResolver
             $"Grund: {load.FallbackReason}",
             $"Verwendet: {used}");
 
-        return new PromptStartupResult(load.Settings, warning);
+        return new PromptStartupResult(prompts, warning);
+    }
+
+    /// <summary>
+    /// Folds the user's own categories on top of the team's prompts.
+    /// <para>
+    /// Only <see cref="PromptSettings.CustomCategories"/> is taken from the personal file.
+    /// The team file stays the sole owner of the eight built-in prompts, so a personal file
+    /// can never shadow a team prompt and freeze its owner out of baseline updates with
+    /// nothing on screen to say so (#45 H1).
+    /// </para>
+    /// <para>
+    /// A personal file that cannot be read is not worth failing startup over: the user keeps
+    /// working on the team prompts, minus their own categories.
+    /// </para>
+    /// </summary>
+    private static async Task<PromptSettings> MergePersonalCategoriesAsync(
+        PromptSettings teamPrompts,
+        IPromptSettingsRepository? personalRepo,
+        CancellationToken ct)
+    {
+        if (personalRepo is null)
+        {
+            return teamPrompts with
+            {
+                CustomCategories = PromptSettingsLoader.MergeCategories(teamPrompts, PromptSettings.Default),
+            };
+        }
+
+        PromptSettings personal;
+        try
+        {
+            personal = await personalRepo.LoadAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            personal = PromptSettings.Default;
+        }
+
+        return teamPrompts with
+        {
+            CustomCategories = PromptSettingsLoader.MergeCategories(teamPrompts, personal),
+        };
     }
 }

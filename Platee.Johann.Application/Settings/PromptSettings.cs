@@ -24,5 +24,12 @@ public sealed record PromptSettings
 
     public string AnalogPrompt { get; init; } = SummaryPrompts.Analog;
 
+    /// <summary>
+    /// Gets the user-defined categories. Present in both the global and the local prompts
+    /// file; <c>PromptSettingsLoader.MergeCategories</c> combines them, with a personal
+    /// category winning over a global one sharing its Id.
+    /// </summary>
+    public IReadOnlyList<CategoryDefinition> CustomCategories { get; init; } = [];
+
     public static PromptSettings Default => new();
 }

@@ -20,6 +20,34 @@ public sealed record PromptSettingsLoadResult(
 
 public static class PromptSettingsLoader
 {
+    /// <summary>
+    /// Combines the global and personal category lists.
+    /// <para>
+    /// <see cref="CategoryDefinition.Scope"/> is derived from the file a category was read
+    /// from and deliberately overwritten here, never trusted from the JSON — otherwise a
+    /// hand-edited global file could claim to be personal and escape the "wirkt für alle
+    /// Nutzer" warning. A personal category wins over a global one sharing its Id.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<CategoryDefinition> MergeCategories(
+        PromptSettings global,
+        PromptSettings local)
+    {
+        var merged = new Dictionary<string, CategoryDefinition>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var category in global.CustomCategories)
+        {
+            merged[category.Id] = category with { Scope = CategoryScope.Global };
+        }
+
+        foreach (var category in local.CustomCategories)
+        {
+            merged[category.Id] = category with { Scope = CategoryScope.Personal };
+        }
+
+        return [.. merged.Values.OrderBy(c => c.Order).ThenBy(c => c.Name, StringComparer.Ordinal)];
+    }
+
     public static async Task<PromptSettingsLoadResult> LoadWithFallbackAsync(
         IPromptSettingsRepository localRepo,
         IPromptSettingsRepository? globalRepo,

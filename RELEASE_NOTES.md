@@ -1,5 +1,32 @@
 # Was ist neu?
 
+## Version 1.3.3
+
+**Eigene Kategorien.**
+
+- Neben den acht eingebauten Abschnitten lassen sich jetzt eigene Kategorien anlegen —
+  persönlich (nur für dich) oder global für das ganze Team.
+- Jede Kategorie läuft entweder **automatisch** bei jedem Eintrag mit oder erst **auf
+  Knopfdruck**. Standardmäßig sind nur vier der eingebauten Abschnitte automatisch,
+  statt bisher acht — ein Eintrag ist dadurch spürbar schneller fertig.
+- Beim ersten Start fragt Johann einmalig, ob die neue Aufteilung übernommen werden soll.
+
+**Kein Admin-Passwort mehr.**
+
+- Prompts werden nicht mehr per Passwort freigeschaltet. Stattdessen wählst du beim
+  Speichern aus, ob die Änderung persönlich gilt oder für das ganze Team.
+- Persönliche Prompt-Änderungen überleben jetzt den Neustart.
+
+**Abschnitte ein- und ausblenden.**
+
+- Die Liste links steuert jetzt auch eigene Kategorien — getrennt nach eigenen,
+  Team- und gelöschten Kategorien. Was abgewählt ist, fehlt in der Ansicht, im PDF,
+  im HTML und beim Kopieren.
+- Text einer gelöschten Kategorie geht nicht verloren: er bleibt unter seinem
+  ursprünglichen Namen sichtbar und lässt sich ausblenden.
+
+---
+
 ## Version 1.3.2
 
 **Defekte Einstellungsdateien werden nicht mehr überschrieben.**

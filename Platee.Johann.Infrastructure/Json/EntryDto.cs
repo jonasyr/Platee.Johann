@@ -10,7 +10,7 @@ using System.Text.Json.Serialization;
 public sealed class EntryDto
 {
     [JsonPropertyName("schemaVersion")]
-    public int SchemaVersion { get; set; } = 3;
+    public int SchemaVersion { get; set; } = 4;
 
     [JsonPropertyName("jobId")]
     public string JobId { get; set; } = string.Empty;
@@ -75,9 +75,23 @@ public sealed class EntryDto
     [JsonPropertyName("isDone")]
     public bool IsDone { get; set; }
 
-    /// <summary>Gets or sets extension bag for future fields without breaking schema changes.</summary>
-    [JsonPropertyName("extensions")]
-    public JsonElement? Extensions { get; set; }
+    /// <summary>Gets or sets generated text for user-defined categories, keyed by category id.</summary>
+    [JsonPropertyName("customSections")]
+    public Dictionary<string, string> CustomSections { get; set; } = [];
+
+    [JsonPropertyName("customSectionNames")]
+    public Dictionary<string, string> CustomSectionNames { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets any field this version does not know about, so a load/save cycle is
+    /// lossless.
+    /// <para>
+    /// Replaces the former named "extensions" bag, which <c>EntryMapper.ToDto</c> never
+    /// wrote — it was dead on the write path and silently dropped whatever it held.
+    /// </para>
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement> AdditionalData { get; set; } = [];
 }
 
 public sealed class StatusDto

@@ -30,7 +30,10 @@ public static class JsonMigrator
             ApplyV1Fixes(dto, element);
         }
 
-        dto.SchemaVersion = 3;
+        // Never stamp backwards. The previous unconditional "= 3" downgraded the stamp on
+        // any file written by a newer client, turning a readable-but-unknown document into
+        // one that claims to be older than it is.
+        dto.SchemaVersion = Math.Max(version, 4);
         return dto;
     }
 

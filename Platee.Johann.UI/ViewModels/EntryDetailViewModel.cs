@@ -1,5 +1,6 @@
 namespace Platee.Johann.UI.ViewModels;
 
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,6 +19,13 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     private readonly Func<string, bool, ProcessLogItem>? addLog;
     private readonly Action<ProcessLogItem, string>? completeLog;
     private readonly Action<string>? updateStatus;
+
+    /// <summary>
+    /// Resolves the current section catalog. A delegate rather than a snapshot so a
+    /// category added or renamed in the (non-modal) settings view is picked up on the next
+    /// entry selection instead of requiring an app restart.
+    /// </summary>
+    private readonly Func<IReadOnlyList<SectionDescriptor>> sectionCatalog;
 
     [ObservableProperty]
     private Entry? entry;
@@ -104,8 +112,29 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     public bool CanReprocess => this.Entry is not null && this.processor?.CanProcess == true;
 
+    /// <summary>
+    /// Gets the user-defined and orphaned sections of the current entry, one row each.
+    /// Rebuilt whenever <see cref="Entry"/> changes.
+    /// </summary>
+    public ObservableCollection<SectionRowViewModel> SectionRows { get; } = [];
+
+    /// <summary>Gets a value indicating whether the custom-section list has anything to show.</summary>
+    public bool HasSectionRows => this.SectionRows.Count > 0;
+
     /// <summary>Raised after an entry's IsDone status is toggled so the list can refresh.</summary>
     public event Action<Entry>? EntryStatusChanged;
+
+    /// <summary>
+    /// Raised whenever a command has persisted a new version of the current entry.
+    /// <para>
+    /// The entry list owns the instance this view model is re-seeded from on every
+    /// re-selection. Without this notification the row keeps the pre-edit entry and the
+    /// user's persisted work looks discarded the moment they click another entry.
+    /// Distinct from <see cref="EntryStatusChanged"/>, which reloads the whole list
+    /// because the done-state also moves the pending counts.
+    /// </para>
+    /// </summary>
+    public event Action<Entry>? EntryUpdated;
 
     public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers, string outputRoot,
                                 IEntryProcessor? processor = null,
@@ -113,8 +142,10 @@ public sealed partial class EntryDetailViewModel : ObservableObject
                                 SectionVisibilityViewModel? sections = null,
                                 Func<string, bool, ProcessLogItem>? addLog = null,
                                 Action<ProcessLogItem, string>? completeLog = null,
-                                Action<string>? updateStatus = null)
+                                Action<string>? updateStatus = null,
+                                Func<IReadOnlyList<SectionDescriptor>>? sectionCatalog = null)
     {
+        this.sectionCatalog = sectionCatalog ?? (static () => []);
         this.renderers = renderers;
         this.outputRoot = outputRoot;
         this.processor = processor;
@@ -156,6 +187,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         OnPropertyChanged(nameof(HasTranscriptBeenEdited));
         OnPropertyChanged(nameof(IsNotEditingTranscript));
         RefreshSectionVisibility();
+        RebuildSectionRows();
         GeneratePdfCommand.NotifyCanExecuteChanged();
         GenerateHtmlCommand.NotifyCanExecuteChanged();
         CopyEmailCommand.NotifyCanExecuteChanged();
@@ -165,7 +197,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         CopyPdfCommand.NotifyCanExecuteChanged();
         CopyHtmlCommand.NotifyCanExecuteChanged();
         ToggleDoneCommand.NotifyCanExecuteChanged();
-        ReprocessSectionCommand.NotifyCanExecuteChanged();
+        GenerateSectionCommand.NotifyCanExecuteChanged();
         RegenerateFromTranscriptCommand.NotifyCanExecuteChanged();
     }
 
@@ -315,9 +347,25 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(HasEntry))]
     private void Copy()
     {
-        if (this.Entry is null)
+        var text = this.BuildCopyText();
+        if (text is null)
         {
             return;
+        }
+
+        System.Windows.Clipboard.SetText(text);
+        this.addLog?.Invoke("✓ Alles kopiert!", false);
+    }
+
+    /// <summary>
+    /// Builds the clipboard text. Split out from <see cref="Copy"/> so the section
+    /// selection can be tested without an STA thread and a real clipboard.
+    /// </summary>
+    internal string? BuildCopyText()
+    {
+        if (this.Entry is null)
+        {
+            return null;
         }
 
         var sb = new StringBuilder();
@@ -367,6 +415,16 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             sb.AppendLine();
         }
 
+        // Custom categories — same name and visibility rules the HTML and PDF
+        // renderers use, so the clipboard never disagrees with the export.
+        var names = this.CustomSectionNames();
+        foreach (var (id, text) in this.OrderedCustomSections())
+        {
+            sb.AppendLine((names.TryGetValue(id, out var name) ? name : id).ToUpperInvariant());
+            sb.AppendLine(text);
+            sb.AppendLine();
+        }
+
         // Transcript — only when checkbox is checked
         if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.EffectiveTranscript))
         {
@@ -378,8 +436,34 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         sb.AppendLine(new string('─', 60));
         sb.AppendLine($"[Johann · {this.Entry.CreatedAt:dd.MM.yyyy} · {this.Entry.ProjectName}]");
 
-        System.Windows.Clipboard.SetText(sb.ToString());
-        this.addLog?.Invoke("✓ Alles kopiert!", false);
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// The entry's non-empty custom sections that are currently ticked, in catalog order.
+    /// </summary>
+    private IEnumerable<(string Id, string Text)> OrderedCustomSections()
+    {
+        if (this.Entry is null)
+        {
+            yield break;
+        }
+
+        var visibility = this.sections.CustomSectionVisibility;
+        var order = this.sectionCatalog()
+            .Select((d, i) => (d.Id, Index: i))
+            .ToDictionary(x => x.Id, x => x.Index, StringComparer.Ordinal);
+
+        var visible = this.Entry.CustomSections
+            .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+            .Where(kv => !visibility.TryGetValue(kv.Key, out var shown) || shown)
+            .OrderBy(kv => order.TryGetValue(kv.Key, out var i) ? i : int.MaxValue)
+            .ThenBy(kv => kv.Key, StringComparer.Ordinal);
+
+        foreach (var kv in visible)
+        {
+            yield return (kv.Key, kv.Value);
+        }
     }
 
     [RelayCommand]
@@ -433,6 +517,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             var updated = await this.processor.RegenerateFromTranscriptAsync(
                 this.Entry, editedText, progress, ct);
             this.Entry = updated;
+            this.EntryUpdated?.Invoke(updated);
 
             if (logItem is not null)
             {
@@ -486,41 +571,136 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         this.DetailZoom = 1.0;
     }
 
+    /// <summary>
+    /// Generates exactly one section, addressed by its stable id.
+    /// <para>
+    /// Ids rather than German display names: the two summary names were already inverted
+    /// in the legacy switch, and a renamed custom category would otherwise stop resolving.
+    /// </para>
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanReprocess))]
-    private async Task ReprocessSectionAsync(string section, CancellationToken ct)
+    private async Task GenerateSectionAsync(string sectionId, CancellationToken ct)
     {
         if (this.Entry is null || this.processor is null)
         {
             return;
         }
 
-        var logItem = this.addLog?.Invoke($"'{section}' wird neu generiert…", true);
+        var row = this.SectionRows.FirstOrDefault(r => r.Id == sectionId);
+        var label = row?.Name ?? this.DisplayNameOf(sectionId);
+
+        var logItem = this.addLog?.Invoke($"'{label}' wird generiert…", true);
+        if (row is not null)
+        {
+            row.IsBusy = true;
+        }
+
         try
         {
             var progress = new Progress<ProcessingProgress>(p =>
                 this.updateStatus?.Invoke(p.Stage));
-            var updated = await this.processor.ReprocessSectionAsync(this.Entry, section, progress, ct);
+            var updated = await this.processor.GenerateSectionAsync(this.Entry, sectionId, progress, ct);
+
+            // Assigning Entry rebuilds SectionRows, so the row above is replaced rather
+            // than mutated — its IsBusy flag dies with it.
             this.Entry = updated;
-            if (logItem is not null)
-            {
-                this.completeLog?.Invoke(logItem, $"'{section}' aktualisiert");
-            }
-            else
-            {
-                this.addLog?.Invoke($"✓ '{section}' aktualisiert", false);
-            }
+            this.EntryUpdated?.Invoke(updated);
+            this.Report(logItem, $"'{label}' aktualisiert", success: true);
         }
         catch (Exception ex)
         {
-            if (logItem is not null)
+            // Never swallow: a failed on-demand generation that only cleared the spinner
+            // would look exactly like an empty section (#45).
+            if (row is not null)
             {
-                this.completeLog?.Invoke(logItem, $"Fehler: {ex.Message}");
+                row.IsBusy = false;
             }
-            else
-            {
-                this.addLog?.Invoke($"Fehler: {ex.Message}", false);
-            }
+
+            this.Report(logItem, $"Fehler: {ex.Message}", success: false);
         }
+    }
+
+    private void Report(ProcessLogItem? logItem, string message, bool success)
+    {
+        if (logItem is not null)
+        {
+            this.completeLog?.Invoke(logItem, message);
+        }
+        else
+        {
+            this.addLog?.Invoke(success ? $"✓ {message}" : message, false);
+        }
+    }
+
+    /// <summary>
+    /// Projects the configured custom categories into the id → heading map the renderers
+    /// use. Without it every export would print raw category ids as section headings.
+    /// </summary>
+    private IReadOnlyDictionary<string, string> CustomSectionNames()
+    {
+        // Start from the names recorded on the entry so a deleted category still exports
+        // under a readable heading, then let the current catalog win for live categories —
+        // a rename has to reach the export.
+        var names = new Dictionary<string, string>(
+            this.Entry?.CustomSectionNames ?? new Dictionary<string, string>(),
+            StringComparer.Ordinal);
+
+        foreach (var descriptor in this.sectionCatalog().Where(d => !d.IsBuiltIn))
+        {
+            names[descriptor.Id] = descriptor.Name;
+        }
+
+        return names;
+    }
+
+    /// <summary>Resolves a section id to its display name via the catalog, then the built-ins.</summary>
+    private string DisplayNameOf(string sectionId)
+    {
+        var descriptor = this.sectionCatalog().FirstOrDefault(d => d.Id == sectionId);
+        return descriptor?.Name ?? Application.Settings.BuiltInSections.DisplayNameOf(sectionId);
+    }
+
+    /// <summary>
+    /// Rebuilds the custom-section rows: one per configured custom category, plus one
+    /// read-only orphan row per stored section whose category no longer exists.
+    /// </summary>
+    private void RebuildSectionRows()
+    {
+        this.SectionRows.Clear();
+
+        var entry = this.Entry;
+        if (entry is null)
+        {
+            this.OnPropertyChanged(nameof(this.HasSectionRows));
+            return;
+        }
+
+        var configured = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var descriptor in this.sectionCatalog().Where(d => !d.IsBuiltIn))
+        {
+            configured.Add(descriptor.Id);
+            entry.CustomSections.TryGetValue(descriptor.Id, out var text);
+            this.SectionRows.Add(new SectionRowViewModel(
+                descriptor.Id, descriptor.Name, text, isConfigured: true));
+        }
+
+        foreach (var pair in entry.CustomSections.OrderBy(p => p.Key, StringComparer.Ordinal))
+        {
+            if (configured.Contains(pair.Key))
+            {
+                continue;
+            }
+
+            var name = entry.CustomSectionNames.TryGetValue(pair.Key, out var recorded)
+                ? recorded
+                : pair.Key;
+            this.SectionRows.Add(new SectionRowViewModel(
+                pair.Key, name, pair.Value, isConfigured: false));
+        }
+
+        this.ApplyCustomSectionVisibility();
+        this.OnPropertyChanged(nameof(this.HasSectionRows));
     }
 
     [RelayCommand(CanExecute = nameof(CanReprocess))]
@@ -545,6 +725,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
             var updated = await this.processor.ReprocessAsync(this.Entry, progress, ct);
             this.Entry = updated;
+            this.EntryUpdated?.Invoke(updated);
             if (logItem is not null)
             {
                 this.completeLog?.Invoke(logItem, "Verarbeitung abgeschlossen!");
@@ -588,7 +769,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
                 OutputDirectory: dateDir,
                 OpenAfterRender: false,
                 IncludeTranscript: this.sections.ShowTranscript,
-                Sections: this.sections.ToSectionVisibility());
+                Sections: this.sections.ToSectionVisibility())
+            {
+                CustomSectionNames = this.CustomSectionNames(),
+                CustomSectionVisibility = this.sections.CustomSectionVisibility,
+            };
 
             var result = await renderer.RenderAsync(entry, opts, ct);
             return Path.Combine(dateDir, result.SuggestedFilename);
@@ -620,6 +805,19 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         this.OnPropertyChanged(nameof(this.ShowAnalogSection));
         this.OnPropertyChanged(nameof(this.ShowEmailSection));
         this.OnPropertyChanged(nameof(this.ShowTranscriptSection));
+        this.ApplyCustomSectionVisibility();
+    }
+
+    /// <summary>
+    /// Pushes the sidebar checkboxes onto the custom rows. A missing key means visible, so
+    /// a section the panel has not heard of yet is never hidden by accident.
+    /// </summary>
+    private void ApplyCustomSectionVisibility()
+    {
+        foreach (var row in this.SectionRows)
+        {
+            row.IsVisible = !this.sections.CustomSectionVisibility.TryGetValue(row.Id, out var shown) || shown;
+        }
     }
 
     private async Task<string?> RenderToFileAsync(string rendererName, CancellationToken ct)
@@ -647,7 +845,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
                 OutputDirectory: dateDir,
                 OpenAfterRender: false,
                 IncludeTranscript: this.sections.ShowTranscript,
-                Sections: this.sections.ToSectionVisibility());
+                Sections: this.sections.ToSectionVisibility())
+            {
+                CustomSectionNames = this.CustomSectionNames(),
+                CustomSectionVisibility = this.sections.CustomSectionVisibility,
+            };
 
             var result = await renderer.RenderAsync(this.Entry!, opts, ct);
             var filePath = Path.Combine(dateDir, result.SuggestedFilename);

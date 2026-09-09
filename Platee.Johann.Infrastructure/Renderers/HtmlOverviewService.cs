@@ -14,19 +14,37 @@ using Platee.Johann.Domain.Enums;
 /// </summary>
 public sealed class HtmlOverviewService : IHtmlOverviewService
 {
+    private static readonly IReadOnlyDictionary<string, string> NoCustomSectionNames
+        = new Dictionary<string, string>();
+
     private readonly IEntryRepository repository;
     private readonly string outputRoot;
+    private readonly Func<IReadOnlyDictionary<string, string>> customSectionNames;
 
-    public HtmlOverviewService(IEntryRepository repository, string outputRoot)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HtmlOverviewService"/> class.
+    /// </summary>
+    /// <param name="repository">Source of the entries listed on the overview page.</param>
+    /// <param name="outputRoot">Root directory the dated overview folders are written to.</param>
+    /// <param name="customSectionNames">
+    /// Optional resolver for category id → display name. It is a delegate rather than a plain
+    /// dictionary because the user can rename categories while the app runs; when omitted the
+    /// raw category id is used as the heading.
+    /// </param>
+    public HtmlOverviewService(
+        IEntryRepository repository,
+        string outputRoot,
+        Func<IReadOnlyDictionary<string, string>>? customSectionNames = null)
     {
         this.repository = repository;
         this.outputRoot = outputRoot;
+        this.customSectionNames = customSectionNames ?? (() => NoCustomSectionNames);
     }
 
     public async Task RegenerateAsync(DateOnly date, CancellationToken ct = default)
     {
         var entries = await this.repository.GetEntriesForDateAsync(date, ct);
-        var html = BuildOverviewHtml(date, entries);
+        var html = BuildOverviewHtml(date, entries, this.customSectionNames() ?? NoCustomSectionNames);
 
         var dateDir = Path.Combine(this.outputRoot, date.ToString("yyyy-MM-dd"));
         Directory.CreateDirectory(dateDir);
@@ -35,7 +53,8 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
         await File.WriteAllTextAsync(path, html, Encoding.UTF8, ct);
     }
 
-    private static string BuildOverviewHtml(DateOnly date, IReadOnlyList<Entry> entries)
+    private static string BuildOverviewHtml(DateOnly date, IReadOnlyList<Entry> entries,
+                                            IReadOnlyDictionary<string, string> customNames)
     {
         var sb = new StringBuilder();
         var dateFormatted = date.ToString("dd.MM.yyyy");
@@ -77,7 +96,7 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
             sb.AppendLine("<div class=\"entries\">");
             foreach (var entry in entries)
             {
-                AppendEntryCard(sb, entry);
+                AppendEntryCard(sb, entry, customNames);
             }
 
             sb.AppendLine("</div>");
@@ -88,7 +107,8 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
         return sb.ToString();
     }
 
-    private static void AppendEntryCard(StringBuilder sb, Entry entry)
+    private static void AppendEntryCard(StringBuilder sb, Entry entry,
+                                        IReadOnlyDictionary<string, string> customNames)
     {
         var typeColor = entry.Type switch
         {
@@ -171,8 +191,32 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
             sb.AppendLine($"    <div class=\"prose-summary\">{MarkdownHelper.ToHtml(entry.ProseSummary)}</div>");
         }
 
+        // User-defined categories. Body text goes through MarkdownHelper.ToHtml and the
+        // heading through HtmlEncode — exactly like the built-in sections above. No second
+        // escaping path.
+        foreach (var pair in entry.CustomSections.OrderBy(p => p.Key, StringComparer.Ordinal))
+        {
+            if (string.IsNullOrWhiteSpace(pair.Value))
+            {
+                continue;
+            }
+
+            // Current catalog first, so a rename shows up. Then the name recorded on the
+            // entry when the text was generated, which is all that is left once the
+            // category has been deleted. The raw id is the last resort.
+            var label = Name(customNames, pair.Key)
+                ?? Name(entry.CustomSectionNames, pair.Key)
+                ?? pair.Key;
+
+            sb.AppendLine($"    <div class=\"section-label\">{HtmlEncode(label)}</div>");
+            sb.AppendLine($"    <div class=\"custom-section\">{MarkdownHelper.ToHtml(pair.Value)}</div>");
+        }
+
         sb.AppendLine($"  </div>");
     }
+
+    private static string? Name(IReadOnlyDictionary<string, string> names, string id) =>
+        names.TryGetValue(id, out var name) && !string.IsNullOrWhiteSpace(name) ? name : null;
 
     private static string HtmlEncode(string s)
         => WebUtility.HtmlEncode(s);
@@ -217,14 +261,16 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
             border: 1px solid #888; border-radius: 4px; padding: 8px; }
   .email-text { font-size: 12px; color: #333; background: #F0FFF4;
                 border: 1px solid #27AE60; border-radius: 4px; padding: 8px; }
+  .custom-section { font-size: 12px; color: #333; background: #F7F7FB;
+                    border: 1px solid #D8D8E4; border-radius: 4px; padding: 8px; }
   .long-summary, .prose-summary { font-size: 12px; color: #333; background: #F5F5F5;
                                    border: 1px solid #E0E0E0; border-radius: 4px; padding: 8px; }
   .abstract p, .task-list p, .conv-note p, .stundenzettel p, .analog p,
-  .email-text p, .long-summary p, .prose-summary p { margin: 3px 0; }
+  .email-text p, .long-summary p, .prose-summary p, .custom-section p { margin: 3px 0; }
   .abstract ul, .task-list ul, .conv-note ul, .stundenzettel ul, .analog ul,
-  .email-text ul, .long-summary ul, .prose-summary ul { margin: 3px 0 3px 18px; padding: 0; }
+  .email-text ul, .long-summary ul, .prose-summary ul, .custom-section ul { margin: 3px 0 3px 18px; padding: 0; }
   .abstract li, .task-list li, .conv-note li, .stundenzettel li, .analog li,
-  .email-text li, .long-summary li, .prose-summary li { margin: 1px 0; }
+  .email-text li, .long-summary li, .prose-summary li, .custom-section li { margin: 1px 0; }
   .empty { color: #aaa; font-style: italic; text-align: center; padding: 40px; }
   footer { text-align: center; color: #bbb; font-size: 11px; margin-top: 32px; }
 </style>";

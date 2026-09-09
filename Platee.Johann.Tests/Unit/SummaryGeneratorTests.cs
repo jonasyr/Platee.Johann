@@ -177,6 +177,79 @@ public sealed class SummaryGeneratorTests
             Arg.Is<LlmOptions>(o => o.MaxTokens == 4000));
     }
 
+    // ── GenerateCustomSectionAsync ────────────────────────────────────────────
+    [Fact]
+    public async Task GenerateCustomSectionAsync_SubstitutesTranscriptAndUsesCategoryTokenBudget()
+    {
+        var llm = Substitute.For<ILlmProvider>();
+        llm.IsAvailable.Returns(true);
+        llm.GenerateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<LlmOptions>())
+            .Returns("ERGEBNIS");
+        var sut = new SummaryGenerator(llm);
+        var category = new CategoryDefinition
+        {
+            Id = "custom.prog",
+            Name = "Programmierung",
+            Prompt = "Analysiere den Code: {transcript}",
+            MaxTokens = 1234,
+        };
+
+        var result = await sut.GenerateCustomSectionAsync(category, "MEIN TRANSKRIPT");
+
+        result.Should().Be("ERGEBNIS");
+        await llm.Received(1).GenerateAsync(
+            Arg.Any<string>(),
+            Arg.Is<string>(u => u.Contains("MEIN TRANSKRIPT") && !u.Contains("{transcript}")),
+            Arg.Is<LlmOptions>(o => o.MaxTokens == 1234));
+    }
+
+    [Fact]
+    public async Task GenerateCustomSectionAsync_WhenLlmUnavailable_ReturnsNull()
+    {
+        var llm = Substitute.For<ILlmProvider>();
+        llm.IsAvailable.Returns(false);
+        var sut = new SummaryGenerator(llm);
+        var category = new CategoryDefinition { Id = "custom.a", Name = "A", Prompt = "{transcript}" };
+
+        (await sut.GenerateCustomSectionAsync(category, "text")).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GenerateCustomSectionAsync_WhenTranscriptIsBlank_ReturnsNullWithoutCallingLlm()
+    {
+        var llm = Substitute.For<ILlmProvider>();
+        llm.IsAvailable.Returns(true);
+        var sut = new SummaryGenerator(llm);
+        var category = new CategoryDefinition { Id = "custom.a", Name = "A", Prompt = "{transcript}" };
+
+        (await sut.GenerateCustomSectionAsync(category, "   ")).Should().BeNull();
+
+        await llm.DidNotReceive().GenerateAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<LlmOptions>());
+    }
+
+    [Fact]
+    public async Task GenerateCustomSectionAsync_InheritsTheKorrekturlisteSystemPrompt()
+    {
+        var llm = Substitute.For<ILlmProvider>();
+        llm.IsAvailable.Returns(true);
+        var settings = new SettingsHolder(AppSettings.Default with
+        {
+            Korrekturliste = [new() { Wrong = "Piano", Correct = "Peano" }],
+        });
+        var sut = new SummaryGenerator(llm, settings);
+        var category = new CategoryDefinition { Id = "custom.a", Name = "A", Prompt = "{transcript}" };
+
+        await sut.GenerateCustomSectionAsync(category, "text");
+
+        // Custom categories must go through the same BuildSystemPrompt path as built-ins,
+        // otherwise they silently lose the correction list.
+        await llm.Received(1).GenerateAsync(
+            Arg.Is<string>(s => s.Contains("Piano→Peano")),
+            Arg.Any<string>(),
+            Arg.Any<LlmOptions>());
+    }
+
     // -----------------------------------------------------------------------
     private static string BuildTranscript(int wordCount)
         => string.Join(" ", Enumerable.Repeat("Wort", wordCount));
