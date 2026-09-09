@@ -1,8 +1,13 @@
-# Testplan v1.4.0 — Kategorien & Auto/On-Demand
+# Testplan v1.3.3 — Kategorien & Auto/On-Demand
 
-> Stand: 2026-09-07 · Branch `feat/51-category-model` (21 Commits, 422 Tests grün, nicht gepusht)
+> **Status 2026-09-09: abgeschlossen.** §1–§3 und §5 bestanden, alle dabei gefundenen
+> Fehler behoben. Offen bleiben nur §4 und §6 (Rollback auf 1.3.2) — nur relevant,
+> falls tatsächlich zurückgegangen wird.
+>
+> Stand ist getaggt als `v1.3.3-dev` und nach `main` gemergt. **Nicht veröffentlicht.**
 > Backup: `C:\Users\JW\Documents\Johann_Backup_v1.4.0_2026-09-07_150924`
-> (Pfad steht auch in `Documents\Johann_Backup_LATEST.txt`)
+
+---
 
 ## Vor dem Testen
 

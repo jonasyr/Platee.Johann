@@ -69,6 +69,27 @@
 
 ---
 
+## 📌 Aktueller Stand (2026-09-09)
+
+**v1.3.3 liegt in `main`, getaggt als `v1.3.3-dev`, ist aber NICHT veröffentlicht.**
+Kein Installer gebaut, kein GitHub-Release — Nutzer laufen weiter auf v1.3.2.
+
+Fertig und gemergt: #50, #51, #52, #53 — eigene Kategorien (persönlich + global),
+Auto/Auf-Knopfdruck pro Abschnitt, Admin-Passwort entfernt, Abschnitts-Sichtbarkeit
+mit Gruppierung, Namensgrabsteine für gelöschte Kategorien. 453 Tests grün.
+
+Der Testplan (`TESTPLAN-v1.3.3.md`) ist bis auf die Rollback-Abschnitte durch;
+zwölf dabei gefundene Fehler wurden behoben.
+
+**Nächste Schritte:** #55 (Löschen), #56 (Kopiersymbole), #57 (Outlook), #61 (Diktat-Profil).
+Vor einem Release: Installer bauen, Auto-Update gegen ein installiertes v1.3.2 prüfen.
+
+**Kopplung beachten:** #62 (Textentry entfernen) darf nur zusammen mit #58 (Übersetzung)
+ausgeliefert werden — sonst gibt es keinen Weg mehr, einen Eintrag zu tippen.
+
+---
+
+
 ## 🔗 GitHub-Issue-Zuordnung
 
 Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues) (Stand: 2026-09-04).
@@ -98,10 +119,10 @@ Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/is
 | [#37](https://github.com/jonasyr/Platee.Johann/issues/37) | Move „Erledigt" button top-left and pin it | geschlossen (v1.3.0) | ✅ „Erledigt"-Button verdeckt & scrollt weg |
 | [#38](https://github.com/jonasyr/Platee.Johann/issues/38) | End-to-end Markdown | **offen** | ☐ Markdown durchgängig |
 | [#39](https://github.com/jonasyr/Platee.Johann/issues/39) | Epic: Live dictation & user-definable categories | **offen** | (Klammer um #34/#35/#36) |
-| [#50](https://github.com/jonasyr/Platee.Johann/issues/50) | Admin-Passwort entfernen | **offen** | ☐ v1.4.0 PR 1 |
-| [#51](https://github.com/jonasyr/Platee.Johann/issues/51) | Kategorien-Modell + Persistenz (Schema v4) | **offen** | ☐ v1.4.0 PR 2 |
-| [#52](https://github.com/jonasyr/Platee.Johann/issues/52) | Auto vs. Knopfdruck + id-basiertes Dispatch | **offen** | ☐ v1.4.0 PR 3 (ersetzt #35) |
-| [#53](https://github.com/jonasyr/Platee.Johann/issues/53) | Kategorien-Einstellungen + On-Demand-Zeilen | **offen** | ☐ v1.4.0 PR 4 |
+| [#50](https://github.com/jonasyr/Platee.Johann/issues/50) | Admin-Passwort entfernen | erledigt (v1.3.3) | ✅ in `main` |
+| [#51](https://github.com/jonasyr/Platee.Johann/issues/51) | Kategorien-Modell + Persistenz (Schema v4) | erledigt (v1.3.3) | ✅ in `main` |
+| [#52](https://github.com/jonasyr/Platee.Johann/issues/52) | Auto vs. Knopfdruck + id-basiertes Dispatch | erledigt (v1.3.3) | ✅ in `main` (ersetzt #35) |
+| [#53](https://github.com/jonasyr/Platee.Johann/issues/53) | Kategorien-Einstellungen + On-Demand-Zeilen | erledigt (v1.3.3) | ✅ in `main` |
 | [#40](https://github.com/jonasyr/Platee.Johann/issues/40) | Renderer dispatch is case-sensitive, skips silently | geschlossen (v1.3.0) | ✅ Renderer-Dispatch überspringt Renderer |
 | [#42](https://github.com/jonasyr/Platee.Johann/issues/42) | Auto-update broken since v1.1.0 | geschlossen (v1.3.1) | ✅ Auto-Update seit v1.1.0 kaputt |
 | [#45](https://github.com/jonasyr/Platee.Johann/issues/45) | Audit: silent-failure sweep, 9 findings | geschlossen (v1.3.2) | ✅ Stille Fehler im gesamten Programm |

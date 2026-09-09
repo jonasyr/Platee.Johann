@@ -11,6 +11,7 @@ Key features:
 - OpenAI Whisper transcription + GPT summarisation
 - Inline transcript editing with regeneration from corrected text
 - Five entry types: Aufgabe, E-Mail, Gesprächsnotiz, Stundenzettel, Analog
+- User-definable categories (personal + team) with per-section Auto / on-demand generation
 - WPF three-pane UI: date list → entry list → detail view
 - Velopack-based installer with GitHub Releases auto-update
 - Fully offline/viewer mode when no API key is present
@@ -51,6 +52,7 @@ Clean Architecture with four projects + one test project:
 Platee.Johann.Domain/          # Core entities, no external deps
   Entities/Entry.cs            # Immutable sealed record — central domain model
                                #   EditedTranscript + EffectiveTranscript (edited ?? original)
+                               #   CustomSections + CustomSectionNames (schema v4)
   Enums/EntryType.cs
   Parsing/                     # Header, title, type extraction from filenames
   Services/                    # DurationFormatter (shared formatting helper)
@@ -60,10 +62,13 @@ Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
   Interfaces/                  # IEntryRepository (incl. MigrateJobIdsAsync),
                                #   ILlmProvider, IAudioTranscriber, IPromptSettingsRepository,
                                #   IMicrophoneRecorder
-  Processing/                  # EntryProcessingService, SummaryGenerator, AudioWatcherService
+  Processing/                  # EntryProcessingService, SummaryGenerator, AudioWatcherService,
+                               #   SectionCatalog (SectionDescriptor)
   Services/                    # PromptSettingsLoader (local/global fallback)
   Settings/                    # AppSettings, PromptSettings, SettingsHolder,
-                               #   PromptDefaultsMigration, SettingsSplitMigration
+                               #   PromptDefaultsMigration, SettingsSplitMigration,
+                               #   CategoryDefinition, BuiltInSections, CategoryIdFactory,
+                               #   SectionModeDefaults, SectionModeMigration
 
 Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Domain)
   Audio/                       # WindowsMicrophoneRecorder (NAudio 2.2.1 WasapiCapture → temp WAV → MP3),
@@ -78,12 +83,15 @@ Platee.Johann.UI/              # WPF presentation layer (depends on all)
                                #   auto-copied from repo root via CopyDocsToAssets MSBuild target)
   Helpers/                     # DurationFormatter, ReleaseNotesHelper — pure static helpers
   ViewModels/                  # MainViewModel, SettingsViewModel, NewEntryViewModel,
-                               #   CorrectionEntryViewModel, …
+                               #   CorrectionEntryViewModel, CategoryEditorViewModel,
+                               #   SectionRowViewModel, SectionVisibilityViewModel,
+                               #   CustomSectionToggleViewModel, …
                                #   Toast stack: ToastTone, ToastToneHelper, ToastItem,
                                #                ToastQueue, ToastsViewModel
-  Views/                       # AdminPasswordDialog.xaml, NewEntryView.xaml,
-                               #   ReleaseNotesWindow.xaml, SettingsView.xaml,
+  Views/                       # NewEntryView.xaml, ReleaseNotesWindow.xaml,
+                               #   SectionModeMigrationDialog.xaml, SettingsView.xaml,
                                #   ToastView.xaml
+                               #   (AdminPasswordDialog deleted in v1.3.3)
   Converters/                  # WPF value converters
   Program.cs                   # Entry point + Velopack init + crash logging
 
@@ -126,7 +134,7 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **In-app dictation (microphone recording)**: `IMicrophoneRecorder` interface (Application/Interfaces/) with `IsMicrophoneAvailable`, `StartAsync(string outputFilePath, CancellationToken)`, `StopAsync()`. `WindowsMicrophoneRecorder` (Infrastructure/Audio/) is the concrete implementation using NAudio 2.2.1 `WasapiCapture` + `WaveFileWriter` to capture WASAPI PCM into a temporary `.tmp.wav` file (`Path.ChangeExtension(outputFilePath, ".tmp.wav")`). `StopAsync()` is truly async: wires a `TaskCompletionSource<bool>` to `WasapiCapture.RecordingStopped`, awaits it, flushes/disposes the writer, then on a background thread encodes the temp WAV to MP3 at `outputFilePath` via `MediaFoundationEncoder.EncodeToMp3` (NAudio MediaFoundation) and deletes the temp WAV. The caller always receives an MP3, never a raw WAV. `Dispose()` cleans up capture/writer and deletes the temp WAV if present. `IsMicrophoneAvailable` gracefully returns `false` on any exception (no hardware). `StartAsync` throws `InvalidOperationException("Recording is already in progress.")` on double-start. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) is the offline stub injected in tests. `MainViewModel` exposes `IsRecording` (`[ObservableProperty]`), `RecordingDuration` (live `mm:ss` string updated via `DispatcherTimer`), `StartDictationCommand` (CanExecute = `!IsRecording`; checks `processor.CanProcess` and `microphoneRecorder.IsMicrophoneAvailable`; sets `tempRecordingPath` to an `.mp3` path in `Path.GetTempPath()`), and `StopDictationCommand` (CanExecute = `IsRecording` property directly; stops timer + recorder — recorder internally converts WAV→MP3 — then pipes the MP3 through `processor.ProcessAudioAsync`). Flow: microphone → temp WAV (internal) → MP3 at temp path → `ProcessAudioAsync` → `RefreshAfterEntryAsync`. Tested in `MicrophoneRecordingViewModelTests.cs`. UI: bottom bar of the entry list pane is dual-state — idle shows "+ Neues Element" and "🎙 Diktieren" buttons (visibility via `InverseBoolToVis`); recording shows a pulsing red ellipse (WPF Storyboard, Opacity 1→0.15, 0.8 s, AutoReverse, Forever), "REC" label in `AccentBrush`, `RecordingDuration` timer in `MonoFamily`, and "■ Stop" button docked right (visibility via `BoolToVis`).
 
-**Schema versioning**: `Entry.SchemaVersion` (currently 3) + `JsonMigrator` handle forward migration of persisted JSON files. v2→v3 added `EditedTranscript` field.
+**Schema versioning**: `Entry.SchemaVersion` (currently **4**) + `JsonMigrator` handle forward migration of persisted JSON files. v2→v3 added `EditedTranscript`; v3→v4 added `CustomSections` and `CustomSectionNames`. `EntryDto` carries `[JsonExtensionData]` so unknown fields survive a round-trip. **`EntryDto`/`EntryMapper`, `SettingsDto` and `PromptDto` are hand-written mappers — every new field must be added to the DTO *and* both mapping directions. This has silently eaten a field three times (`CustomCategories`, `SectionModes`, `CustomSections`); always add a round-trip test.**
 
 **Settings split**: `AppSettings` holds user preferences (name, company, directories); `PromptSettings` holds all LLM prompt templates. Persisted separately as `settings.json` and `prompts.json`. `SettingsHolder` wraps both for live propagation to `SummaryGenerator`. Internally uses a `volatile` immutable `SettingsState` record so `Snapshot()` always reads a consistent pair. `Update(AppSettings, PromptSettings)` atomically swaps both values; individual `Current`/`Prompts` setters preserved for backward compatibility.
 
@@ -173,8 +181,58 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 <!-- END AUTO-MANAGED -->
 
 <!-- AUTO-MANAGED: git-insights -->
+**User-definable categories (v1.3.3)**: `CategoryDefinition` (Application/Settings/) is a
+`sealed record` with `Id`/`Name`/`Prompt`/`Scope`/`Order`/`MaxTokens`. `BuiltInSections` holds the
+seven stable ids for the built-in sections (`builtin.longSummary` …); Title and Abstract are
+intrinsics and deliberately absent. `CategoryIdFactory.Create(name, existingIds, suffixFactory?)`
+mints `custom.<slug>-<4 hex>` — **the random suffix is load-bearing**: without it, deleting a
+category and creating another frees the id and the old category's orphaned text re-attaches to the
+new one. Ids are minted on **first save** (from the name the user actually typed) and never change
+afterwards, because generated text is keyed by id.
+
+**Section catalog & generation modes**: `SectionCatalog.Build(prompts, modes)` produces
+`SectionDescriptor(Id, Name, Mode, IsBuiltIn, Category)`. `GenerationMode` is `Auto` or `OnDemand`,
+stored per user in `AppSettings.SectionModes`. `SectionModeDefaults.Recommended` runs four built-ins
+automatically instead of eight; `SectionModeMigration` drives a one-time first-run dialog
+(`SectionModeMigrationDialog`). `EntryProcessingService.GenerateSectionAsync(entry, sectionId, …)`
+generates exactly one section and coalesces concurrent calls for the same (entry, section) through a
+`ConcurrentDictionary` — a UI CanExecute flag is not enough, since each duplicate click costs money.
+
+**Category storage & scope**: the team `prompts.json` (`AppSettings.GlobalPromptFilePath`, typically
+on `Z:`) owns the eight built-in prompts and global categories; `prompts.personal.json` in
+`Documents\Johann` owns **only** the user's own categories — never prompt text, so a user can never
+be frozen out of team prompt updates. `Scope` is derived from which file a category came from and is
+never persisted. `PromptSettingsLoader.MergeCategories` merges them, personal winning on id.
+`PromptStartupResolver.ResolveAsync` runs at startup; `SettingsViewModel.ReloadTeamPromptsAsync`
+re-runs the merge when the configured team path changes. **v1.3.2 clients strip `customCategories`
+from the team file on save** — documented, unfixable, hence the warning not to create global
+categories until the whole team has upgraded.
+
+**Section visibility**: `SectionVisibilityViewModel` has a fixed property per built-in section plus
+`CustomSectionVisibility` (id → bool, missing key = visible) and `CustomSections`, one
+`CustomSectionToggleViewModel` per category, split into `PersonalSections` / `GlobalSections` /
+`OrphanedSections` for the grouped sidebar. `SyncCustomSections(catalog, entrySections,
+entrySectionNames)` is rebuilt on entry selection and takes the **entry** as well as the catalog, so
+text whose category was deleted still gets a toggle — otherwise it could not be hidden anywhere.
+All four outputs (detail view, PDF, HTML, clipboard) honour this map.
+
+**Deleted-category tombstones**: `Entry.CustomSectionNames` records the display name each custom
+section was generated under. Resolution order everywhere is *current catalog → recorded name → raw
+id*, so renames reach the exports while deleted categories stay readable.
+
+**Save target replaces the admin password**: `SettingsViewModel.SaveTarget` (`CategoryScope`,
+default `Personal`) decides which file prompts go to. The `AdminPasswordDialog` is deleted. If the
+global target is unwritable, the save falls back to personal and the status message states exactly
+which half was rescued — prompt text is team-owned and survives only for the session.
+
 ## Git Insights
 
+- **Category rework, v1.3.3** (`v1.3.3-dev` tag, merged to `main` 2026-09-09, **not released**):
+  #50–#53 — custom categories, auto vs. on-demand, password gate removed, section visibility,
+  tombstones. A full manual test pass found twelve defects, all fixed with tests; the notable ones
+  were persisted detail-view edits lost on re-selection (`EntryRowViewModel` held a stale immutable
+  `Entry`; fixed with `EntryDetailViewModel.EntryUpdated`), category ids reused after deletion, and
+  custom sections missing from the clipboard and the daily overview. Users remain on v1.3.2.
 - **Clean Architecture introduced** gradually — Infrastructure and Application were split to isolate LLM dependencies.
 - **Settings path fallback** (`1d0716f`): startup now shows meaningful feedback when `.env` is missing rather than silently failing.
 - **HTML hardening** (`acfd293`): `HtmlRenderer` sanitises user content to prevent XSS in the embedded WebView.
