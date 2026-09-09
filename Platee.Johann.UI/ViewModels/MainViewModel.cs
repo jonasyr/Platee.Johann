@@ -154,6 +154,15 @@ public sealed partial class MainViewModel : ObservableObject
             _ = this.LoadEntriesAsync(this.SelectedDateItem?.Date);
             _ = this.RecalculatePendingCountsAsync();
         };
+
+        // Swap the row's entry in place rather than reloading the list: LoadEntriesAsync
+        // resets the selection to the first row, which would yank the user away from the
+        // entry they just generated a section for.
+        this.detail.EntryUpdated += updated =>
+        {
+            var row = this.Entries.FirstOrDefault(r => r.JobId == updated.JobId);
+            row?.UpdateEntry(updated);
+        };
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)

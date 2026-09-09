@@ -124,6 +124,18 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     /// <summary>Raised after an entry's IsDone status is toggled so the list can refresh.</summary>
     public event Action<Entry>? EntryStatusChanged;
 
+    /// <summary>
+    /// Raised whenever a command has persisted a new version of the current entry.
+    /// <para>
+    /// The entry list owns the instance this view model is re-seeded from on every
+    /// re-selection. Without this notification the row keeps the pre-edit entry and the
+    /// user's persisted work looks discarded the moment they click another entry.
+    /// Distinct from <see cref="EntryStatusChanged"/>, which reloads the whole list
+    /// because the done-state also moves the pending counts.
+    /// </para>
+    /// </summary>
+    public event Action<Entry>? EntryUpdated;
+
     public EntryDetailViewModel(IEnumerable<IEntryRenderer> renderers, string outputRoot,
                                 IEntryProcessor? processor = null,
                                 IEntryRepository? repository = null,
@@ -335,9 +347,25 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(HasEntry))]
     private void Copy()
     {
-        if (this.Entry is null)
+        var text = this.BuildCopyText();
+        if (text is null)
         {
             return;
+        }
+
+        System.Windows.Clipboard.SetText(text);
+        this.addLog?.Invoke("✓ Alles kopiert!", false);
+    }
+
+    /// <summary>
+    /// Builds the clipboard text. Split out from <see cref="Copy"/> so the section
+    /// selection can be tested without an STA thread and a real clipboard.
+    /// </summary>
+    internal string? BuildCopyText()
+    {
+        if (this.Entry is null)
+        {
+            return null;
         }
 
         var sb = new StringBuilder();
@@ -395,11 +423,47 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             sb.AppendLine();
         }
 
+        // Custom categories — same name and visibility rules the HTML and PDF
+        // renderers use, so the clipboard never disagrees with the export.
+        var names = this.CustomSectionNames();
+        foreach (var (id, text) in this.OrderedCustomSections())
+        {
+            sb.AppendLine((names.TryGetValue(id, out var name) ? name : id).ToUpperInvariant());
+            sb.AppendLine(text);
+            sb.AppendLine();
+        }
+
         sb.AppendLine(new string('─', 60));
         sb.AppendLine($"[Johann · {this.Entry.CreatedAt:dd.MM.yyyy} · {this.Entry.ProjectName}]");
 
-        System.Windows.Clipboard.SetText(sb.ToString());
-        this.addLog?.Invoke("✓ Alles kopiert!", false);
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// The entry's non-empty custom sections that are currently ticked, in catalog order.
+    /// </summary>
+    private IEnumerable<(string Id, string Text)> OrderedCustomSections()
+    {
+        if (this.Entry is null)
+        {
+            yield break;
+        }
+
+        var visibility = this.sections.CustomSectionVisibility;
+        var order = this.sectionCatalog()
+            .Select((d, i) => (d.Id, Index: i))
+            .ToDictionary(x => x.Id, x => x.Index, StringComparer.Ordinal);
+
+        var visible = this.Entry.CustomSections
+            .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+            .Where(kv => !visibility.TryGetValue(kv.Key, out var shown) || shown)
+            .OrderBy(kv => order.TryGetValue(kv.Key, out var i) ? i : int.MaxValue)
+            .ThenBy(kv => kv.Key, StringComparer.Ordinal);
+
+        foreach (var kv in visible)
+        {
+            yield return (kv.Key, kv.Value);
+        }
     }
 
     [RelayCommand]
@@ -453,6 +517,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             var updated = await this.processor.RegenerateFromTranscriptAsync(
                 this.Entry, editedText, progress, ct);
             this.Entry = updated;
+            this.EntryUpdated?.Invoke(updated);
 
             if (logItem is not null)
             {
@@ -539,6 +604,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             // Assigning Entry rebuilds SectionRows, so the row above is replaced rather
             // than mutated — its IsBusy flag dies with it.
             this.Entry = updated;
+            this.EntryUpdated?.Invoke(updated);
             this.Report(logItem, $"'{label}' aktualisiert", success: true);
         }
         catch (Exception ex)
@@ -643,6 +709,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
             var updated = await this.processor.ReprocessAsync(this.Entry, progress, ct);
             this.Entry = updated;
+            this.EntryUpdated?.Invoke(updated);
             if (logItem is not null)
             {
                 this.completeLog?.Invoke(logItem, "Verarbeitung abgeschlossen!");
