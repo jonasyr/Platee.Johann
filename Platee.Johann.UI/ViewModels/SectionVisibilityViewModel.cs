@@ -38,6 +38,37 @@ public sealed partial class SectionVisibilityViewModel : ObservableObject
     /// <summary>Gets one checkbox per user-defined category, in catalog order.</summary>
     public ObservableCollection<CustomSectionToggleViewModel> CustomSections { get; } = [];
 
+    /// <summary>Gets the user's own categories.</summary>
+    public ObservableCollection<CustomSectionToggleViewModel> PersonalSections { get; } = [];
+
+    /// <summary>Gets the categories that come from the shared team file.</summary>
+    public ObservableCollection<CustomSectionToggleViewModel> GlobalSections { get; } = [];
+
+    /// <summary>Gets text whose category has been deleted.</summary>
+    public ObservableCollection<CustomSectionToggleViewModel> OrphanedSections { get; } = [];
+
+    public bool HasPersonalSections => this.PersonalSections.Count > 0;
+
+    public bool HasGlobalSections => this.GlobalSections.Count > 0;
+
+    public bool HasOrphanedSections => this.OrphanedSections.Count > 0;
+
+    /// <summary>Gets the orphan header, which carries the count because the group starts closed.</summary>
+    public string OrphanedHeader => $"{OrphanGroup.ToUpperInvariant()} ({this.OrphanedSections.Count})";
+
+    [ObservableProperty]
+    private bool isPersonalExpanded = true;
+
+    [ObservableProperty]
+    private bool isGlobalExpanded = true;
+
+    /// <summary>
+    /// Orphaned text starts collapsed: it is the least interesting group and would otherwise
+    /// grow without bound as categories come and go.
+    /// </summary>
+    [ObservableProperty]
+    private bool isOrphanedExpanded;
+
     /// <summary>Group heading for a user's own categories.</summary>
     public const string PersonalGroup = "Eigene Kategorien";
 
@@ -98,18 +129,36 @@ public sealed partial class SectionVisibilityViewModel : ObservableObject
         this.CustomSections.Clear();
         this.CustomSectionVisibility.Clear();
 
+        this.PersonalSections.Clear();
+        this.GlobalSections.Clear();
+        this.OrphanedSections.Clear();
+
         foreach (var (id, name, group) in wanted)
         {
-            this.CustomSections.Add(new CustomSectionToggleViewModel(
+            var toggle = new CustomSectionToggleViewModel(
                 id,
                 name,
                 group,
                 previous.TryGetValue(id, out var wasVisible) ? wasVisible : true,
-                this.SetCustomVisibility));
+                this.SetCustomVisibility);
+
+            this.CustomSections.Add(toggle);
+            this.GroupFor(group).Add(toggle);
         }
 
         this.OnPropertyChanged(nameof(this.CustomSectionVisibility));
+        this.OnPropertyChanged(nameof(this.HasPersonalSections));
+        this.OnPropertyChanged(nameof(this.HasGlobalSections));
+        this.OnPropertyChanged(nameof(this.HasOrphanedSections));
+        this.OnPropertyChanged(nameof(this.OrphanedHeader));
     }
+
+    private ObservableCollection<CustomSectionToggleViewModel> GroupFor(string group) => group switch
+    {
+        GlobalGroup => this.GlobalSections,
+        OrphanGroup => this.OrphanedSections,
+        _ => this.PersonalSections,
+    };
 
     private void SetCustomVisibility(string id, bool isVisible)
     {

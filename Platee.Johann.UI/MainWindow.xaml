@@ -209,6 +209,35 @@
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+        <Style x:Key="SectionGroupToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Margin" Value="0,9,0,2"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bg" Background="Transparent" Padding="0,2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="Chevron" Text="&#x25BE;" FontSize="8"
+                                           Width="11" VerticalAlignment="Center"
+                                           Foreground="{StaticResource TextFaintBrush}"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="False">
+                                <Setter TargetName="Chevron" Property="Text" Value="&#x25B8;"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="#F0F0F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="MicroCapsLabelStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10"/>
             <Setter Property="FontWeight" Value="Bold"/>
@@ -247,11 +276,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <CollectionViewSource x:Key="CustomSectionsGrouped" Source="{Binding Sections.CustomSections}">
-            <CollectionViewSource.GroupDescriptions>
-                <PropertyGroupDescription PropertyName="Group"/>
-            </CollectionViewSource.GroupDescriptions>
-        </CollectionViewSource>
         <CollectionViewSource x:Key="DatesGrouped" Source="{Binding AvailableDates}">
             <CollectionViewSource.GroupDescriptions>
                 <PropertyGroupDescription PropertyName="MonthYearKey"/>
@@ -484,27 +508,56 @@
                         <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        FontSize="11" Margin="0,1"/>
-                        <ItemsControl ItemsSource="{Binding Source={StaticResource CustomSectionsGrouped}}">
+                        <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         FontSize="11" Margin="0,1"/>
+                        <ToggleButton IsChecked="{Binding Sections.IsPersonalExpanded}"
+                                      Visibility="{Binding Sections.HasPersonalSections, Converter={StaticResource BoolToVis}}"
+                                      Style="{StaticResource SectionGroupToggleStyle}">
+                            <TextBlock
+                                       Text="EIGENE KATEGORIEN" Style="{StaticResource MicroCapsLabelStyle}"/>
+                        </ToggleButton>
+                        <ItemsControl ItemsSource="{Binding Sections.PersonalSections}"
+                                      Margin="11,0,0,0"
+                                      Visibility="{Binding Sections.IsPersonalExpanded, Converter={StaticResource BoolToVis}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <CheckBox Content="{Binding Name}" IsChecked="{Binding IsVisible}"
                                               FontSize="11" Margin="0,1"/>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
-                            <ItemsControl.GroupStyle>
-                                <GroupStyle>
-                                    <GroupStyle.HeaderTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Name}"
-                                                       FontSize="9"
-                                                       Foreground="{StaticResource TextFaintBrush}"
-                                                       Margin="0,6,0,1"/>
-                                        </DataTemplate>
-                                    </GroupStyle.HeaderTemplate>
-                                </GroupStyle>
-                            </ItemsControl.GroupStyle>
                         </ItemsControl>
-                        <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         FontSize="11" Margin="0,1"/>
+                        <ToggleButton IsChecked="{Binding Sections.IsGlobalExpanded}"
+                                      Visibility="{Binding Sections.HasGlobalSections, Converter={StaticResource BoolToVis}}"
+                                      Style="{StaticResource SectionGroupToggleStyle}">
+                            <TextBlock
+                                       Text="TEAM-KATEGORIEN" Style="{StaticResource MicroCapsLabelStyle}"/>
+                        </ToggleButton>
+                        <ItemsControl ItemsSource="{Binding Sections.GlobalSections}"
+                                      Margin="11,0,0,0"
+                                      Visibility="{Binding Sections.IsGlobalExpanded, Converter={StaticResource BoolToVis}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsVisible}"
+                                              FontSize="11" Margin="0,1"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ToggleButton IsChecked="{Binding Sections.IsOrphanedExpanded}"
+                                      Visibility="{Binding Sections.HasOrphanedSections, Converter={StaticResource BoolToVis}}"
+                                      Style="{StaticResource SectionGroupToggleStyle}">
+                            <TextBlock
+                                       Text="{Binding Sections.OrphanedHeader}" Style="{StaticResource MicroCapsLabelStyle}"/>
+                        </ToggleButton>
+                        <ItemsControl ItemsSource="{Binding Sections.OrphanedSections}"
+                                      Margin="11,0,0,0"
+                                      Visibility="{Binding Sections.IsOrphanedExpanded, Converter={StaticResource BoolToVis}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsVisible}"
+                                              FontSize="11" Margin="0,1"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
                         <Button Content="↻ Standard wiederherstellen"
                                 Command="{Binding ResetSectionsCommand}"
                                 Style="{StaticResource LinkButtonStyle}"

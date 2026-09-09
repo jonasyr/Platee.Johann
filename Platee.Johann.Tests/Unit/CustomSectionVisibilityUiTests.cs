@@ -132,6 +132,44 @@ public sealed class CustomSectionVisibilityUiTests
         sut.CustomSections.Should().BeEmpty();
     }
 
+    [Fact]
+    public void SyncCustomSections_SplitsTheTogglesIntoTheThreeSidebarGroups()
+    {
+        var sut = new SectionVisibilityViewModel();
+
+        sut.SyncCustomSections(
+            ScopedCatalog(
+                ("custom.a-1111", "Alpha", CategoryScope.Personal),
+                ("custom.b-2222", "Beta", CategoryScope.Global)),
+            new Dictionary<string, string> { ["custom.weg"] = "TEXT" },
+            new Dictionary<string, string> { ["custom.weg"] = "Weg" });
+
+        sut.PersonalSections.Single().Name.Should().Be("Alpha");
+        sut.GlobalSections.Single().Name.Should().Be("Beta");
+        sut.OrphanedSections.Single().Name.Should().Be("Weg");
+        sut.HasOrphanedSections.Should().BeTrue();
+        sut.OrphanedHeader.Should().Contain("(1)");
+    }
+
+    [Fact]
+    public void OrphanedGroup_StartsCollapsed()
+    {
+        // It is the least interesting group and grows as categories come and go.
+        new SectionVisibilityViewModel().IsOrphanedExpanded.Should().BeFalse();
+    }
+
+    [Fact]
+    public void EmptyGroups_ReportThemselvesAsHiddenSoNoStrayHeadingIsShown()
+    {
+        var sut = new SectionVisibilityViewModel();
+
+        sut.SyncCustomSections(Catalog(("custom.a-1111", "Alpha")));
+
+        sut.HasPersonalSections.Should().BeTrue();
+        sut.HasGlobalSections.Should().BeFalse();
+        sut.HasOrphanedSections.Should().BeFalse();
+    }
+
     private static IReadOnlyList<SectionDescriptor> Catalog(params (string Id, string Name)[] categories) =>
         ScopedCatalog([.. categories.Select(c => (c.Id, c.Name, CategoryScope.Personal))]);
 
