@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using Platee.Johann.Application.Interfaces;
+using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.ValueObjects;
@@ -168,6 +169,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         // before SectionModes are collected, because those are keyed by category id.
         this.FinalizeNewCategoryIds();
 
+        var previousGlobalPath = this.persistedHolder.Current.GlobalPromptFilePath;
         var updatedSettings = this.persistedHolder.Current with
         {
             Name = this.Name.Trim(),
@@ -205,10 +207,61 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.persistedHolder.Update(updatedSettings, this.persistedHolder.Prompts);
         this.runtimeHolder.Update(updatedSettings, this.runtimeHolder.Prompts);
 
-        await this.SavePromptsAsync(updatedPrompts, updatedSettings);
+        if (!string.Equals(previousGlobalPath, updatedSettings.GlobalPromptFilePath, StringComparison.OrdinalIgnoreCase))
+        {
+            await this.ReloadTeamPromptsAsync(updatedSettings);
+        }
+        else
+        {
+            await this.SavePromptsAsync(updatedPrompts, updatedSettings);
+        }
 
         this.PathStatusMessage = string.Empty;
         this.OnPropertyChanged(nameof(this.HasPathStatusMessage));
+    }
+
+    /// <summary>
+    /// Reloads the team prompts after the configured team file has been changed.
+    /// <para>
+    /// Without this the previous file's prompts and categories stay live until the next
+    /// restart: <c>PromptStartupResolver</c> runs only at startup, so the app keeps
+    /// generating from a file the user is no longer pointing at. Prompt edits made in the
+    /// same save are deliberately dropped rather than written to the new file — they belong
+    /// to the old one, and writing them across would overwrite the new team file's content.
+    /// </para>
+    /// </summary>
+    private async Task ReloadTeamPromptsAsync(AppSettings updatedSettings)
+    {
+        var path = updatedSettings.GlobalPromptFilePath;
+        var personal = await this.promptRepository.LoadAsync();
+
+        PromptSettings team;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            team = PromptSettings.Default;
+        }
+        else
+        {
+            try
+            {
+                team = await JsonPromptSettingsRepository.FromFilePath(path).LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                this.StatusMessage = $"⚠ Team-Prompt-Datei konnte nicht gelesen werden: {ex.Message}";
+                return;
+            }
+        }
+
+        var merged = team with { CustomCategories = PromptSettingsLoader.MergeCategories(team, personal) };
+
+        this.persistedHolder.Update(updatedSettings, merged);
+        this.runtimeHolder.Update(updatedSettings, merged);
+        this.LoadFromHolder();
+
+        this.StatusMessage = string.IsNullOrWhiteSpace(path)
+            ? "✓ Team-Prompt-Datei entfernt — Prompts auf Standard zurückgesetzt."
+            : "✓ Team-Prompt-Datei gewechselt — Prompts neu geladen.";
     }
 
     /// <summary>

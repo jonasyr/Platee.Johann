@@ -479,6 +479,14 @@
                         <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        FontSize="11" Margin="0,1"/>
+                        <ItemsControl ItemsSource="{Binding Sections.CustomSections}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsVisible}"
+                                              FontSize="11" Margin="0,1"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         FontSize="11" Margin="0,1"/>
                         <Button Content="↻ Standard wiederherstellen"
                                 Command="{Binding ResetSectionsCommand}"
