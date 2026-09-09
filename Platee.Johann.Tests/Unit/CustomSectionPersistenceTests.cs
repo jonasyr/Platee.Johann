@@ -14,7 +14,7 @@ using Platee.Johann.Infrastructure.Json;
 /// </summary>
 public sealed class CustomSectionPersistenceTests : IDisposable
 {
-    private const string V4Json = """
+    private static readonly string V4Json = """
         {
           "schemaVersion": 4,
           "jobId": "260907_001_abc",
@@ -30,7 +30,11 @@ public sealed class CustomSectionPersistenceTests : IDisposable
                       "pdfCreated": false, "archived": false, "emailCreated": false },
           "customSections": { "custom.programmierung": "Code-Notizen hier" }
         }
-        """;
+        """.ReplaceLineEndings("\n");
+
+    // Normalised on purpose: the raw literal inherits the source file's line endings,
+    // so on a CRLF checkout the newline-based Replace below matched nothing and the
+    // test silently asserted against an unmodified document.
 
     private readonly string tempDir;
 
