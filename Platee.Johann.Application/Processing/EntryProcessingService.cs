@@ -393,6 +393,16 @@ public sealed class EntryProcessingService : IEntryProcessor
         };
 
         await this.repository.SaveAsync(updated, ct);
+
+        // The daily overview is a rendered artefact of the entries, so every path that
+        // persists one has to refresh it — otherwise a section generated on demand is
+        // missing from _ItemÜbersicht.html until the next full run.
+        if (this.overviewService is not null)
+        {
+            await this.overviewService.RegenerateAsync(
+                DateOnly.FromDateTime(updated.CreatedAt.DateTime), ct);
+        }
+
         return updated;
 
         static async Task<Entry> GenerateCustomAsync(

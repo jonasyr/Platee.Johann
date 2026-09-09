@@ -10,6 +10,7 @@ using Platee.Johann.Domain.Enums;
 using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Domain.ValueObjects;
 using Platee.Johann.Infrastructure.Json;
+using Platee.Johann.Infrastructure.Renderers;
 using Platee.Johann.UI.ViewModels;
 
 /// <summary>
@@ -101,6 +102,49 @@ public sealed class CustomSectionNameTombstoneTests : IDisposable
         vm.SectionRows.Single(r => r.Id == "custom.alt").Name.Should().Be("custom.alt");
     }
 
+    [Fact]
+    public async Task DailyOverview_NamesADeletedCategoryFromTheEntry()
+    {
+        var repo = new JsonRepository(this.tempDir);
+        var entry = MakeEntry() with
+        {
+            CustomSections = new Dictionary<string, string> { ["custom.weg-36d3"] = "ES FUNKTIONIERT" },
+            CustomSectionNames = new Dictionary<string, string> { ["custom.weg-36d3"] = "TestOnDemand" },
+        };
+        await repo.SaveAsync(entry);
+
+        var outputRoot = Path.Combine(this.tempDir, "out");
+        // No catalog entry: the category has been deleted, which is the whole point.
+        var sut = new HtmlOverviewService(repo, outputRoot);
+        var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+
+        await sut.RegenerateAsync(date);
+
+        var html = await File.ReadAllTextAsync(
+            Path.Combine(outputRoot, date.ToString("yyyy-MM-dd"), "_ItemÜbersicht.html"));
+
+        html.Should().Contain("TestOnDemand");
+        html.Should().NotContain("custom.weg-36d3");
+    }
+
+    [Fact]
+    public async Task GenerateSectionAsync_RefreshesTheDailyOverview()
+    {
+        var llm = Substitute.For<ILlmProvider>();
+        llm.IsAvailable.Returns(true);
+        llm.GenerateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<LlmOptions>(), Arg.Any<CancellationToken>())
+            .Returns("TEXT");
+
+        var overview = Substitute.For<IHtmlOverviewService>();
+        var service = this.CreateService(llm, overview, Category("custom.prog-1a2b", "Programmierung"));
+
+        var entry = MakeEntry();
+        await service.GenerateSectionAsync(entry, "custom.prog-1a2b");
+
+        await overview.Received(1).RegenerateAsync(
+            DateOnly.FromDateTime(entry.CreatedAt.DateTime), Arg.Any<CancellationToken>());
+    }
+
     private static CategoryDefinition Category(string id, string name) =>
         new() { Id = id, Name = name, Prompt = "{transcript}" };
 
@@ -129,7 +173,12 @@ public sealed class CustomSectionNameTombstoneTests : IDisposable
             Entry = entry,
         };
 
-    private EntryProcessingService CreateService(ILlmProvider llm, params CategoryDefinition[] categories)
+    private EntryProcessingService CreateService(
+        ILlmProvider llm, params CategoryDefinition[] categories) =>
+        this.CreateService(llm, null, categories);
+
+    private EntryProcessingService CreateService(
+        ILlmProvider llm, IHtmlOverviewService? overview, params CategoryDefinition[] categories)
     {
         var settings = new SettingsHolder(
             AppSettings.Default, PromptSettings.Default with { CustomCategories = categories });
@@ -140,7 +189,7 @@ public sealed class CustomSectionNameTombstoneTests : IDisposable
             new HeaderParser(),
             Substitute.For<IEntryRepository>(),
             outputRoot: Path.Combine(this.tempDir, "out"),
-            overviewService: null,
+            overviewService: overview,
             settings: settings,
             renderers: [],
             logger: Substitute.For<IEntryProcessingLogger>());

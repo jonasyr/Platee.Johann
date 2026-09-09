@@ -201,9 +201,12 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
                 continue;
             }
 
-            var label = customNames.TryGetValue(pair.Key, out var name) && !string.IsNullOrWhiteSpace(name)
-                ? name
-                : pair.Key;
+            // Current catalog first, so a rename shows up. Then the name recorded on the
+            // entry when the text was generated, which is all that is left once the
+            // category has been deleted. The raw id is the last resort.
+            var label = Name(customNames, pair.Key)
+                ?? Name(entry.CustomSectionNames, pair.Key)
+                ?? pair.Key;
 
             sb.AppendLine($"    <div class=\"section-label\">{HtmlEncode(label)}</div>");
             sb.AppendLine($"    <div class=\"custom-section\">{MarkdownHelper.ToHtml(pair.Value)}</div>");
@@ -211,6 +214,9 @@ public sealed class HtmlOverviewService : IHtmlOverviewService
 
         sb.AppendLine($"  </div>");
     }
+
+    private static string? Name(IReadOnlyDictionary<string, string> names, string id) =>
+        names.TryGetValue(id, out var name) && !string.IsNullOrWhiteSpace(name) ? name : null;
 
     private static string HtmlEncode(string s)
         => WebUtility.HtmlEncode(s);
