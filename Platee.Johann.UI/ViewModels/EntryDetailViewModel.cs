@@ -415,14 +415,6 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             sb.AppendLine();
         }
 
-        // Transcript — only when checkbox is checked
-        if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.EffectiveTranscript))
-        {
-            sb.AppendLine(this.Entry.EditedTranscript is not null ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT");
-            sb.AppendLine(this.Entry.EffectiveTranscript!);
-            sb.AppendLine();
-        }
-
         // Custom categories — same name and visibility rules the HTML and PDF
         // renderers use, so the clipboard never disagrees with the export.
         var names = this.CustomSectionNames();
@@ -430,6 +422,14 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         {
             sb.AppendLine((names.TryGetValue(id, out var name) ? name : id).ToUpperInvariant());
             sb.AppendLine(text);
+            sb.AppendLine();
+        }
+
+        // Transcript — only when checkbox is checked
+        if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.EffectiveTranscript))
+        {
+            sb.AppendLine(this.Entry.EditedTranscript is not null ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT");
+            sb.AppendLine(this.Entry.EffectiveTranscript!);
             sb.AppendLine();
         }
 

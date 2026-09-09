@@ -232,6 +232,31 @@ public sealed class CategoryEditorTests
     }
 
     [Fact]
+    public async Task SaveAsync_RaisesPropertyChangedForTheFinalisedId()
+    {
+        var repo = Substitute.For<ISettingsRepository>();
+        repo.LoadAsync(Arg.Any<CancellationToken>()).Returns(AppSettings.Default);
+        var promptRepo = Substitute.For<IPromptSettingsRepository>();
+        promptRepo.IsReachable.Returns(true);
+        promptRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+
+        var sut = new SettingsViewModel(
+            repo, promptRepo, new SettingsHolder(AppSettings.Default, PromptSettings.Default));
+
+        sut.AddCategoryCommand.Execute(null);
+        sut.Categories[0].Name = "TestOnDemand";
+
+        var changed = new List<string?>();
+        sut.Categories[0].PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        await sut.SaveCommand.ExecuteAsync(null);
+
+        changed.Should().Contain(
+            nameof(CategoryEditorViewModel.Id),
+            "the id shown under the category name must update without reopening the window");
+    }
+
+    [Fact]
     public void Sections_ContainsKategorien()
     {
         var sut = CreateSut();

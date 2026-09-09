@@ -1047,6 +1047,57 @@
                                 FontSize="13"/>
                         </StackPanel>
 
+                        <!-- Eigene Kategorien und Abschnitte auf Knopfdruck.
+                             Above the transcript, which always stays last: one row per configured
+                             custom category, plus read-only rows for text whose category
+                             was deleted. This is where #38's Markdown rendering lands. -->
+                        <ItemsControl ItemsSource="{Binding Detail.SectionRows}"
+                                      Visibility="{Binding Detail.HasSectionRows, Converter={StaticResource BoolToVis}}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,14,0,22">
+                                        <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" Style="{StaticResource SectionHeaderStyle}"/>
+                                                <TextBlock Text=" · Nicht mehr konfiguriert"
+                                                           FontSize="11" Foreground="#999" FontStyle="Italic"
+                                                           VerticalAlignment="Bottom" Margin="6,0,0,1"
+                                                           ToolTip="Diese Kategorie wurde entfernt. Der erzeugte Text bleibt erhalten."
+                                                           Visibility="{Binding IsOrphaned, Converter={StaticResource BoolToVis}}"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <FlowDocumentScrollViewer
+                                            Document="{Binding Text, Converter={StaticResource MdToDoc}}"
+                                            Visibility="{Binding IsGenerated, Converter={StaticResource BoolToVis}}"
+                                            VerticalScrollBarVisibility="Disabled"
+                                            HorizontalScrollBarVisibility="Disabled"
+                                            IsSelectionEnabled="True"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0"
+                                            FontFamily="Segoe UI, Arial"
+                                            FontSize="13"/>
+
+                                        <StackPanel Orientation="Horizontal"
+                                                    Visibility="{Binding CanGenerate, Converter={StaticResource BoolToVis}}">
+                                            <Button Content="Generieren"
+                                                    Style="{StaticResource ActionButtonStyle}"
+                                                    Command="{Binding DataContext.Detail.GenerateSectionCommand,
+                                                              RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding Id}"
+                                                    IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}"
+                                                    ToolTip="Diesen Abschnitt jetzt erzeugen"/>
+                                            <TextBlock Text="wird generiert…"
+                                                       FontSize="12" Foreground="#777"
+                                                       VerticalAlignment="Center" Margin="10,0,0,0"
+                                                       Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
                         <!-- Transcript -->
                         <StackPanel Visibility="{Binding Detail.ShowTranscriptSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
@@ -1120,57 +1171,6 @@
                                         Margin="8,0,0,0"/>
                             </StackPanel>
                         </StackPanel>
-
-                        <!-- Eigene Kategorien und Abschnitte auf Knopfdruck.
-                             Beneath the eight hand-written panels: one row per configured
-                             custom category, plus read-only rows for text whose category
-                             was deleted. This is where #38's Markdown rendering lands. -->
-                        <ItemsControl ItemsSource="{Binding Detail.SectionRows}"
-                                      Visibility="{Binding Detail.HasSectionRows, Converter={StaticResource BoolToVis}}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="0,14,0,22">
-                                        <Border Style="{StaticResource SectionHeaderBorderStyle}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Name}" Style="{StaticResource SectionHeaderStyle}"/>
-                                                <TextBlock Text=" · Nicht mehr konfiguriert"
-                                                           FontSize="11" Foreground="#999" FontStyle="Italic"
-                                                           VerticalAlignment="Bottom" Margin="6,0,0,1"
-                                                           ToolTip="Diese Kategorie wurde entfernt. Der erzeugte Text bleibt erhalten."
-                                                           Visibility="{Binding IsOrphaned, Converter={StaticResource BoolToVis}}"/>
-                                            </StackPanel>
-                                        </Border>
-
-                                        <FlowDocumentScrollViewer
-                                            Document="{Binding Text, Converter={StaticResource MdToDoc}}"
-                                            Visibility="{Binding IsGenerated, Converter={StaticResource BoolToVis}}"
-                                            VerticalScrollBarVisibility="Disabled"
-                                            HorizontalScrollBarVisibility="Disabled"
-                                            IsSelectionEnabled="True"
-                                            Background="Transparent"
-                                            BorderThickness="0"
-                                            Padding="0"
-                                            FontFamily="Segoe UI, Arial"
-                                            FontSize="13"/>
-
-                                        <StackPanel Orientation="Horizontal"
-                                                    Visibility="{Binding CanGenerate, Converter={StaticResource BoolToVis}}">
-                                            <Button Content="Generieren"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Command="{Binding DataContext.Detail.GenerateSectionCommand,
-                                                              RelativeSource={RelativeSource AncestorType=Window}}"
-                                                    CommandParameter="{Binding Id}"
-                                                    IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}"
-                                                    ToolTip="Diesen Abschnitt jetzt erzeugen"/>
-                                            <TextBlock Text="wird generiert…"
-                                                       FontSize="12" Foreground="#777"
-                                                       VerticalAlignment="Center" Margin="10,0,0,0"
-                                                       Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
 
                         </StackPanel>
                         </ScrollViewer>

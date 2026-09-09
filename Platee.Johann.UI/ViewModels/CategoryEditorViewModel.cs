@@ -77,6 +77,7 @@ public sealed partial class CategoryEditorViewModel : ObservableObject
 
         this.Id = id;
         this.HasProvisionalId = false;
+        this.OnPropertyChanged(nameof(this.Id));
     }
 
     /// <summary>Gets the per-category token budget, carried through unchanged.</summary>

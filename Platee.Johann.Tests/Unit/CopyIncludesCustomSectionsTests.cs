@@ -62,6 +62,19 @@ public sealed class CopyIncludesCustomSectionsTests
         text.Should().Contain("ZUSAMMENFASSUNG").And.Contain("KURZFASSUNG-TEXT");
     }
 
+    [Fact]
+    public void BuildCopyText_PutsTheTranscriptLast()
+    {
+        var sections = new SectionVisibilityViewModel { ShowTranscript = true };
+        var vm = CreateVm(new Dictionary<string, string> { ["custom.x"] = "EIGENER TEXT" }, sections);
+
+        var text = vm.BuildCopyText()!;
+
+        text.IndexOf("EIGENER TEXT", StringComparison.Ordinal).Should().BeLessThan(
+            text.IndexOf("Ein Transkript.", StringComparison.Ordinal),
+            "the transcript is the raw source material and always closes the entry");
+    }
+
     private static EntryDetailViewModel CreateVm(
         Dictionary<string, string> customSections,
         SectionVisibilityViewModel? sections = null)
