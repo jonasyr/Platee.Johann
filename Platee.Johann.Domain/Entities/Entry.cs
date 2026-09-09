@@ -69,5 +69,17 @@ public sealed record Entry
     public IReadOnlyDictionary<string, string> CustomSections { get; init; }
         = new Dictionary<string, string>();
 
+    /// <summary>
+    /// Gets the display name each custom section was generated under, keyed by the same id
+    /// as <see cref="CustomSections"/>.
+    /// <para>
+    /// Recorded here rather than looked up in the settings because it is needed exactly when
+    /// the category no longer exists. It also keeps the heading historically honest: the text
+    /// shows the name it was actually generated under.
+    /// </para>
+    /// </summary>
+    public IReadOnlyDictionary<string, string> CustomSectionNames { get; init; }
+        = new Dictionary<string, string>();
+
     public int SchemaVersion { get; init; } = 4;
 }

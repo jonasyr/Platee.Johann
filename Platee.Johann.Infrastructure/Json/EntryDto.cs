@@ -79,6 +79,9 @@ public sealed class EntryDto
     [JsonPropertyName("customSections")]
     public Dictionary<string, string> CustomSections { get; set; } = [];
 
+    [JsonPropertyName("customSectionNames")]
+    public Dictionary<string, string> CustomSectionNames { get; set; } = [];
+
     /// <summary>
     /// Gets or sets any field this version does not know about, so a load/save cycle is
     /// lossless.

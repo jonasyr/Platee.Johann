@@ -61,8 +61,10 @@ neu anlegen.
 
 - [ ] **2.1** Kategorie **umbenennen** → bereits erzeugter Text bleibt sichtbar
       *(Ids werden einmal vergeben; verschwindet der Text, ist die Id-Logik kaputt)*
-- [ ] **2.2** Kategorie **löschen** → alter Text erscheint als „Nicht mehr konfiguriert",
-      **ohne** „Generieren"-Button
+- [ ] **2.2** Kategorie **löschen** → alter Text erscheint als „Nicht mehr konfiguriert“,
+      **ohne** „Generieren“-Button, und mit dem **Namen** der gelöschten Kategorie.
+      *(Der Name wird seit 09.09. beim Generieren im Eintrag mitgespeichert. Älterer Text,
+      der vor dieser Änderung erzeugt wurde, zeigt weiterhin die Id — das ist erwartet.)*
 - [x] **2.3** **„Generieren" schnell doppelt klicken** → nur eine Generierung.
       *Der Test, der sonst unbemerkt Geld kostet.*
 - [ ] **2.4** **PDF und HTML** exportieren → eigener Abschnitt erscheint mit **Namen, nicht `custom.xyz`**

@@ -636,10 +636,22 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     /// Projects the configured custom categories into the id → heading map the renderers
     /// use. Without it every export would print raw category ids as section headings.
     /// </summary>
-    private IReadOnlyDictionary<string, string> CustomSectionNames() =>
-        this.sectionCatalog()
-            .Where(d => !d.IsBuiltIn)
-            .ToDictionary(d => d.Id, d => d.Name, StringComparer.Ordinal);
+    private IReadOnlyDictionary<string, string> CustomSectionNames()
+    {
+        // Start from the names recorded on the entry so a deleted category still exports
+        // under a readable heading, then let the current catalog win for live categories —
+        // a rename has to reach the export.
+        var names = new Dictionary<string, string>(
+            this.Entry?.CustomSectionNames ?? new Dictionary<string, string>(),
+            StringComparer.Ordinal);
+
+        foreach (var descriptor in this.sectionCatalog().Where(d => !d.IsBuiltIn))
+        {
+            names[descriptor.Id] = descriptor.Name;
+        }
+
+        return names;
+    }
 
     /// <summary>Resolves a section id to its display name via the catalog, then the built-ins.</summary>
     private string DisplayNameOf(string sectionId)
@@ -680,8 +692,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
                 continue;
             }
 
+            var name = entry.CustomSectionNames.TryGetValue(pair.Key, out var recorded)
+                ? recorded
+                : pair.Key;
             this.SectionRows.Add(new SectionRowViewModel(
-                pair.Key, pair.Key, pair.Value, isConfigured: false));
+                pair.Key, name, pair.Value, isConfigured: false));
         }
 
         this.OnPropertyChanged(nameof(this.HasSectionRows));

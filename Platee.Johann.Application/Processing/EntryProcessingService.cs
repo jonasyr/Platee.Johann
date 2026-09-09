@@ -132,8 +132,9 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 3 – Summaries (parallel for speed)
         progress?.Report(new("KI erstellt alle Abschnitte…", 3, total));
+        var catalog = this.BuildCatalog();
         var sections = await this.GenerateSummariesAsync(
-            transcription.Transcript, scopedGenerator, this.BuildCatalog(), ct);
+            transcription.Transcript, scopedGenerator, catalog, ct);
 
         var finalEntry = baseEntry with
         {
@@ -146,6 +147,7 @@ public sealed class EntryProcessingService : IEntryProcessor
             AnalogText = string.IsNullOrEmpty(sections.AnalogText) ? null : sections.AnalogText,
             EmailText = string.IsNullOrEmpty(sections.EmailText) ? null : sections.EmailText,
             CustomSections = sections.CustomSections,
+            CustomSectionNames = NamesFor(catalog, sections.CustomSections.Keys),
             Status = new ProcessingStatus(
                 Transcribed: true,
                 Summarized: true,
@@ -259,8 +261,9 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 1 – Summaries
         progress?.Report(new("Alle Abschnitte werden neu generiert…", 1, total));
+        var catalog = this.BuildRegenerationCatalog(entry);
         var sections = await this.GenerateSummariesAsync(
-            entry.EffectiveTranscript!, scopedGenerator, this.BuildRegenerationCatalog(entry), ct);
+            entry.EffectiveTranscript!, scopedGenerator, catalog, ct);
 
         var updatedEntry = entry with
         {
@@ -273,6 +276,8 @@ public sealed class EntryProcessingService : IEntryProcessor
             AnalogText = string.IsNullOrEmpty(sections.AnalogText) ? entry.AnalogText : sections.AnalogText,
             EmailText = string.IsNullOrEmpty(sections.EmailText) ? entry.EmailText : sections.EmailText,
             CustomSections = MergeCustomSections(entry.CustomSections, sections.CustomSections),
+            CustomSectionNames = MergeCustomSectionNames(
+                entry.CustomSectionNames, NamesFor(catalog, sections.CustomSections.Keys)),
             Status = entry.Status with { Summarized = true },
         };
 
@@ -406,7 +411,17 @@ public sealed class EntryProcessingService : IEntryProcessor
                 sections[descriptor.Id] = text;
             }
 
-            return entry with { CustomSections = sections };
+            var names = new Dictionary<string, string>(entry.CustomSectionNames, StringComparer.Ordinal);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                names.Remove(descriptor.Id);
+            }
+            else
+            {
+                names[descriptor.Id] = descriptor.Name;
+            }
+
+            return entry with { CustomSections = sections, CustomSectionNames = names };
         }
     }
 
@@ -432,8 +447,9 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 1 – Re-generate all summaries from the edited transcript
         progress?.Report(new("Alle Abschnitte werden aus bearbeitetem Transkript neu generiert…", 1, total));
+        var catalog = this.BuildRegenerationCatalog(entry);
         var sections = await this.GenerateSummariesAsync(
-            editedTranscript, scopedGenerator, this.BuildRegenerationCatalog(entry), ct);
+            editedTranscript, scopedGenerator, catalog, ct);
 
         var updatedEntry = entry with
         {
@@ -447,6 +463,8 @@ public sealed class EntryProcessingService : IEntryProcessor
             AnalogText = string.IsNullOrEmpty(sections.AnalogText) ? entry.AnalogText : sections.AnalogText,
             EmailText = string.IsNullOrEmpty(sections.EmailText) ? entry.EmailText : sections.EmailText,
             CustomSections = MergeCustomSections(entry.CustomSections, sections.CustomSections),
+            CustomSectionNames = MergeCustomSectionNames(
+                entry.CustomSectionNames, NamesFor(catalog, sections.CustomSections.Keys)),
             Status = entry.Status with { Summarized = true },
         };
 
@@ -629,6 +647,37 @@ public sealed class EntryProcessingService : IEntryProcessor
     /// Overlays freshly generated custom sections onto the existing ones. Sections that were
     /// not regenerated keep their previous text rather than disappearing.
     /// </summary>
+    /// <summary>
+    /// The display name of every generated custom section, taken from the catalog in force at
+    /// generation time. Stored on the entry so deleting the category later leaves a readable
+    /// heading behind instead of a raw id.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> NamesFor(
+        IReadOnlyList<SectionDescriptor> catalog, IEnumerable<string> generatedIds)
+    {
+        var wanted = new HashSet<string>(generatedIds, StringComparer.Ordinal);
+        return catalog
+            .Where(d => !d.IsBuiltIn && wanted.Contains(d.Id))
+            .ToDictionary(d => d.Id, d => d.Name, StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Overlays freshly recorded section names onto the existing ones, mirroring
+    /// <see cref="MergeCustomSections"/> so a name never outlives or precedes its text.
+    /// </summary>
+    private static IReadOnlyDictionary<string, string> MergeCustomSectionNames(
+        IReadOnlyDictionary<string, string> existing,
+        IReadOnlyDictionary<string, string> regenerated)
+    {
+        var merged = new Dictionary<string, string>(existing, StringComparer.Ordinal);
+        foreach (var (id, name) in regenerated)
+        {
+            merged[id] = name;
+        }
+
+        return merged;
+    }
+
     private static IReadOnlyDictionary<string, string> MergeCustomSections(
         IReadOnlyDictionary<string, string> existing,
         IReadOnlyDictionary<string, string> regenerated)
