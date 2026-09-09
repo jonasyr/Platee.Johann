@@ -44,14 +44,14 @@ neu anlegen.
 
 ## 1 · Zuerst — den behobenen Bug verifizieren (5 Min)
 
-- [ ] **1.1** Persönliche Kategorie anlegen und speichern
-- [ ] **1.2** Datei prüfen:
+- [x] **1.1** Persönliche Kategorie anlegen und speichern
+- [x] **1.2** Datei prüfen:
       ```powershell
       (Get-Content "$env:USERPROFILE\Documents\Johann\prompts.personal.json" -Raw | ConvertFrom-Json).customCategories
       ```
       Muss die Kategorie auflisten. **Vor dem Fix war das leer — genau das war der Bug.**
-- [ ] **1.3** **App neu starten** → Kategorie ist noch da
-- [ ] **1.4** Auf „Automatisch" stellen, MP3 in den Eingang → Abschnitt wird erzeugt
+- [x] **1.3** **App neu starten** → Kategorie ist noch da
+- [x] **1.4** Auf „Automatisch" stellen, MP3 in den Eingang → Abschnitt wird erzeugt
 
 > Wenn 1.2 oder 1.3 fehlschlägt: abbrechen und melden. Alles andere ist dann zweitrangig.
 
@@ -63,15 +63,16 @@ neu anlegen.
       *(Ids werden einmal vergeben; verschwindet der Text, ist die Id-Logik kaputt)*
 - [ ] **2.2** Kategorie **löschen** → alter Text erscheint als „Nicht mehr konfiguriert",
       **ohne** „Generieren"-Button
-- [ ] **2.3** **„Generieren" schnell doppelt klicken** → nur eine Generierung.
+- [x] **2.3** **„Generieren" schnell doppelt klicken** → nur eine Generierung.
       *Der Test, der sonst unbemerkt Geld kostet.*
 - [ ] **2.4** **PDF und HTML** exportieren → eigener Abschnitt erscheint mit **Namen, nicht `custom.xyz`**
 - [ ] **2.5** Eigenen Abschnitt links abwählen → fehlt im PDF/HTML
 - [ ] **2.6** Heutige `_ItemÜbersicht.html` → Name statt Id
-- [ ] **2.7** Kontextmenü → „Neu generieren" auf **Zusammenfassung** →
-      regeneriert die *ausführliche* Zusammenfassung.
-      *(Geerbte Namensvertauschung, die die Id-Migration exakt erhalten musste — hier
-      würde sie auffallen.)*
+- [x] **2.7** Kontextmenü → „Neu generieren“ auf **Zusammenfassung** →
+      regeneriert die **Zusammenfassung**, nicht die ausführliche. ✅ 09.09.2026
+      *(Korrigiert: die Vertauschung steckt nur in den internen Feldnamen —
+      `Entry.LongSummary` hält die strukturierte Kurzfassung aus `StructuredPrompt`,
+      `Entry.ProseSummary` die Fließtext-Langfassung. Nach außen stimmt die Zuordnung.)*
 
 ---
 
@@ -139,12 +140,10 @@ Das ist der dokumentierte, akzeptierte Restverlust. Prüfen, dass es genau so un
 
 ## Priorität bei wenig Zeit
 
-**1.3, 2.3, 2.7** — in dieser Reihenfolge.
+**1.3, 2.3, 2.7 — alle drei am 09.09.2026 bestanden.** ✅
 
-- **1.3** ist der gerade behobene Bug; ein grüner Test ersetzt keinen echten Neustart.
-- **2.3** fällt sonst niemandem auf, kostet aber bei jedem Fehlklick echtes Geld.
-- **2.7** ist die einzige Stelle, an der die Id-Migration zwei Abschnitte stillschweigend
-  vertauscht haben könnte.
+Als Nächstes: **2.1** und **2.2** (Umbenennen/Löschen), dann 2.4–2.6 (Export),
+dann §3 — aber nur gegen die Kopie, nie gegen `Z:`.
 
 ## Vor dem Release noch offen
 
