@@ -247,6 +247,11 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <CollectionViewSource x:Key="CustomSectionsGrouped" Source="{Binding Sections.CustomSections}">
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="Group"/>
+            </CollectionViewSource.GroupDescriptions>
+        </CollectionViewSource>
         <CollectionViewSource x:Key="DatesGrouped" Source="{Binding AvailableDates}">
             <CollectionViewSource.GroupDescriptions>
                 <PropertyGroupDescription PropertyName="MonthYearKey"/>
@@ -479,13 +484,25 @@
                         <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" FontSize="11" Margin="0,1"/>
                         <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        FontSize="11" Margin="0,1"/>
-                        <ItemsControl ItemsSource="{Binding Sections.CustomSections}">
+                        <ItemsControl ItemsSource="{Binding Source={StaticResource CustomSectionsGrouped}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <CheckBox Content="{Binding Name}" IsChecked="{Binding IsVisible}"
                                               FontSize="11" Margin="0,1"/>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
+                            <ItemsControl.GroupStyle>
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="9"
+                                                       Foreground="{StaticResource TextFaintBrush}"
+                                                       Margin="0,6,0,1"/>
+                                        </DataTemplate>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </ItemsControl.GroupStyle>
                         </ItemsControl>
                         <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         FontSize="11" Margin="0,1"/>
                         <Button Content="↻ Standard wiederherstellen"
@@ -1063,7 +1080,8 @@
                                       Visibility="{Binding Detail.HasSectionRows, Converter={StaticResource BoolToVis}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Margin="0,14,0,22">
+                                    <StackPanel Margin="0,14,0,22"
+                                                Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
                                         <Border Style="{StaticResource SectionHeaderBorderStyle}">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="{Binding Name}" Style="{StaticResource SectionHeaderStyle}"/>

@@ -215,8 +215,11 @@ public sealed partial class MainViewModel : ObservableObject
     {
         // The catalog can have changed since the last selection (settings are non-modal),
         // so refresh the custom-category checkboxes before the detail view renders.
-        this.Sections.SyncCustomSections(SectionCatalog.Build(
-            this.runtimeSettingsHolder.Prompts, this.runtimeSettingsHolder.Current.SectionModes));
+        this.Sections.SyncCustomSections(
+            SectionCatalog.Build(
+                this.runtimeSettingsHolder.Prompts, this.runtimeSettingsHolder.Current.SectionModes),
+            value?.Entry.CustomSections,
+            value?.Entry.CustomSectionNames);
         Detail.Entry = value?.Entry;
 
         // Auto-select type-specific section; keep LongSummary + ProseSummary always true

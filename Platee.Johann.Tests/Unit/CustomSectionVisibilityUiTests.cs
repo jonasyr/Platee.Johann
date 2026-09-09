@@ -74,13 +74,75 @@ public sealed class CustomSectionVisibilityUiTests
         sut.CustomSections.Single().Name.Should().Be("Alpha Neu");
     }
 
+    [Fact]
+    public void SyncCustomSections_GivesDeletedCategoryTextItsOwnToggle()
+    {
+        // Without this the text of a deleted category renders in the detail view, the PDF,
+        // the HTML and the clipboard with no way whatsoever to switch it off.
+        var sut = new SectionVisibilityViewModel();
+
+        sut.SyncCustomSections(
+            Catalog(),
+            new Dictionary<string, string> { ["custom.weg-36d3"] = "ES FUNKTIONIERT" },
+            new Dictionary<string, string> { ["custom.weg-36d3"] = "TestOnDemand" });
+
+        var toggle = sut.CustomSections.Single();
+        toggle.Name.Should().Be("TestOnDemand");
+        toggle.Group.Should().Be(SectionVisibilityViewModel.OrphanGroup);
+
+        toggle.IsVisible = false;
+        sut.CustomSectionVisibility["custom.weg-36d3"].Should().BeFalse();
+    }
+
+    [Fact]
+    public void SyncCustomSections_SeparatesPersonalFromTeamCategories()
+    {
+        var sut = new SectionVisibilityViewModel();
+
+        sut.SyncCustomSections(ScopedCatalog(
+            ("custom.a-1111", "Alpha", CategoryScope.Personal),
+            ("custom.b-2222", "Beta", CategoryScope.Global)));
+
+        sut.CustomSections.Single(t => t.Id == "custom.a-1111").Group
+            .Should().Be(SectionVisibilityViewModel.PersonalGroup);
+        sut.CustomSections.Single(t => t.Id == "custom.b-2222").Group
+            .Should().Be(SectionVisibilityViewModel.GlobalGroup);
+    }
+
+    [Fact]
+    public void SyncCustomSections_ASectionStillConfiguredIsNotListedAsOrphaned()
+    {
+        var sut = new SectionVisibilityViewModel();
+
+        sut.SyncCustomSections(
+            Catalog(("custom.a-1111", "Alpha")),
+            new Dictionary<string, string> { ["custom.a-1111"] = "TEXT" });
+
+        sut.CustomSections.Should().ContainSingle()
+            .Which.Group.Should().Be(SectionVisibilityViewModel.PersonalGroup);
+    }
+
+    [Fact]
+    public void SyncCustomSections_IgnoresEmptyOrphanedText()
+    {
+        var sut = new SectionVisibilityViewModel();
+
+        sut.SyncCustomSections(Catalog(), new Dictionary<string, string> { ["custom.leer"] = "  " });
+
+        sut.CustomSections.Should().BeEmpty();
+    }
+
     private static IReadOnlyList<SectionDescriptor> Catalog(params (string Id, string Name)[] categories) =>
+        ScopedCatalog([.. categories.Select(c => (c.Id, c.Name, CategoryScope.Personal))]);
+
+    private static IReadOnlyList<SectionDescriptor> ScopedCatalog(
+        params (string Id, string Name, CategoryScope Scope)[] categories) =>
         SectionCatalog.Build(
             PromptSettings.Default with
             {
                 CustomCategories = [.. categories.Select(c => new CategoryDefinition
                 {
-                    Id = c.Id, Name = c.Name, Prompt = "{transcript}",
+                    Id = c.Id, Name = c.Name, Prompt = "{transcript}", Scope = c.Scope,
                 })],
             },
             new Dictionary<string, GenerationMode>());

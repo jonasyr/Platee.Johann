@@ -38,6 +38,10 @@ public sealed partial class SectionRowViewModel : ObservableObject
     [ObservableProperty]
     private bool isBusy;
 
+    /// <summary>Gets or sets a value indicating whether the section is ticked in the sidebar.</summary>
+    [ObservableProperty]
+    private bool isVisible = true;
+
     /// <summary>Gets a value indicating whether the row has generated text to show.</summary>
     public bool IsGenerated => !string.IsNullOrWhiteSpace(this.Text);
 

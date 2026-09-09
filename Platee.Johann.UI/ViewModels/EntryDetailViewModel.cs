@@ -699,6 +699,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
                 pair.Key, name, pair.Value, isConfigured: false));
         }
 
+        this.ApplyCustomSectionVisibility();
         this.OnPropertyChanged(nameof(this.HasSectionRows));
     }
 
@@ -804,6 +805,19 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         this.OnPropertyChanged(nameof(this.ShowAnalogSection));
         this.OnPropertyChanged(nameof(this.ShowEmailSection));
         this.OnPropertyChanged(nameof(this.ShowTranscriptSection));
+        this.ApplyCustomSectionVisibility();
+    }
+
+    /// <summary>
+    /// Pushes the sidebar checkboxes onto the custom rows. A missing key means visible, so
+    /// a section the panel has not heard of yet is never hidden by accident.
+    /// </summary>
+    private void ApplyCustomSectionVisibility()
+    {
+        foreach (var row in this.SectionRows)
+        {
+            row.IsVisible = !this.sections.CustomSectionVisibility.TryGetValue(row.Id, out var shown) || shown;
+        }
     }
 
     private async Task<string?> RenderToFileAsync(string rendererName, CancellationToken ct)
