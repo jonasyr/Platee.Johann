@@ -476,7 +476,7 @@
         <!-- 3-pane layout -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="160" MinWidth="120"/>
+                <ColumnDefinition Width="196" MinWidth="150"/>
                 <ColumnDefinition Width="5"/>
                 <ColumnDefinition Width="280" MinWidth="200"/>
                 <ColumnDefinition Width="5"/>
@@ -512,48 +512,66 @@
                         <ToggleButton IsChecked="{Binding Sections.IsPersonalExpanded}"
                                       Visibility="{Binding Sections.HasPersonalSections, Converter={StaticResource BoolToVis}}"
                                       Style="{StaticResource SectionGroupToggleStyle}">
-                            <TextBlock
-                                       Text="EIGENE KATEGORIEN" Style="{StaticResource MicroCapsLabelStyle}"/>
+                            <TextBlock Text="EIGENE KATEGORIEN"
+                                       Style="{StaticResource MicroCapsLabelStyle}"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="EIGENE KATEGORIEN"/>
                         </ToggleButton>
                         <ItemsControl ItemsSource="{Binding Sections.PersonalSections}"
                                       Margin="11,0,0,0"
                                       Visibility="{Binding Sections.IsPersonalExpanded, Converter={StaticResource BoolToVis}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsVisible}"
-                                              FontSize="11" Margin="0,1"/>
+                                    <CheckBox IsChecked="{Binding IsVisible}"
+                                              FontSize="11" Margin="0,1"
+                                              ToolTip="{Binding Name}">
+                                        <TextBlock Text="{Binding Name}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </CheckBox>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <ToggleButton IsChecked="{Binding Sections.IsGlobalExpanded}"
                                       Visibility="{Binding Sections.HasGlobalSections, Converter={StaticResource BoolToVis}}"
                                       Style="{StaticResource SectionGroupToggleStyle}">
-                            <TextBlock
-                                       Text="TEAM-KATEGORIEN" Style="{StaticResource MicroCapsLabelStyle}"/>
+                            <TextBlock Text="TEAM-KATEGORIEN"
+                                       Style="{StaticResource MicroCapsLabelStyle}"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="TEAM-KATEGORIEN"/>
                         </ToggleButton>
                         <ItemsControl ItemsSource="{Binding Sections.GlobalSections}"
                                       Margin="11,0,0,0"
                                       Visibility="{Binding Sections.IsGlobalExpanded, Converter={StaticResource BoolToVis}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsVisible}"
-                                              FontSize="11" Margin="0,1"/>
+                                    <CheckBox IsChecked="{Binding IsVisible}"
+                                              FontSize="11" Margin="0,1"
+                                              ToolTip="{Binding Name}">
+                                        <TextBlock Text="{Binding Name}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </CheckBox>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         <ToggleButton IsChecked="{Binding Sections.IsOrphanedExpanded}"
                                       Visibility="{Binding Sections.HasOrphanedSections, Converter={StaticResource BoolToVis}}"
                                       Style="{StaticResource SectionGroupToggleStyle}">
-                            <TextBlock
-                                       Text="{Binding Sections.OrphanedHeader}" Style="{StaticResource MicroCapsLabelStyle}"/>
+                            <TextBlock Text="{Binding Sections.OrphanedHeader}"
+                                       Style="{StaticResource MicroCapsLabelStyle}"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding Sections.OrphanedHeader}"/>
                         </ToggleButton>
                         <ItemsControl ItemsSource="{Binding Sections.OrphanedSections}"
                                       Margin="11,0,0,0"
                                       Visibility="{Binding Sections.IsOrphanedExpanded, Converter={StaticResource BoolToVis}}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding IsVisible}"
-                                              FontSize="11" Margin="0,1"/>
+                                    <CheckBox IsChecked="{Binding IsVisible}"
+                                              FontSize="11" Margin="0,1"
+                                              ToolTip="{Binding Name}">
+                                        <TextBlock Text="{Binding Name}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </CheckBox>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
