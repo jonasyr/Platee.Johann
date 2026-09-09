@@ -104,7 +104,13 @@ Kein `Titel … Ende`? Dann generiert GPT den Titel automatisch aus dem Inhalt.
 
 Über die Checkboxen links werden Abschnitte ein-/ausgeblendet. Ausgeblendete Abschnitte sind auch bei PDF, HTML und Kopieren nicht enthalten.
 
-**Alle Abschnitte werden für jeden Eintrag generiert.** Die Checkbox-Vorauswahl richtet sich nach dem Typ – sie kann jederzeit manuell angepasst werden.
+**Nicht mehr jeder Abschnitt wird automatisch erzeugt.** Jeder Abschnitt hat einen Modus:
+**Automatisch** (läuft bei jedem Eintrag mit) oder **Auf Knopfdruck** (wird erst erzeugt, wenn du
+im Eintrag auf „Generieren“ klickst). Standardmäßig sind vier der eingebauten Abschnitte
+automatisch — das halbiert die Wartezeit pro Eintrag. Die Modi stellst du in den Einstellungen
+unter **Kategorien** ein; sie gelten nur für dich.
+
+Die Checkbox-Vorauswahl links richtet sich nach dem Typ und kann jederzeit angepasst werden.
 
 | Abschnitt | Inhalt | Standard aktiv bei |
 |---|---|---|
@@ -117,6 +123,7 @@ Kein `Titel … Ende`? Dann generiert GPT den Titel automatisch aus dem Inhalt.
 | **Stundenzettel** | Zeiterfassung | Typ „Stundenzettel" |
 | **Analog** | Freitext-Abschnitt | Typ „Analog" |
 | **Transkript** | Vollständiger Originaltext (ausklappbar) | Alle Typen |
+| **Eigene Kategorien** | Frei definierbar, siehe unten | Nach Konfiguration |
 
 ### Aktions-Buttons
 
@@ -188,18 +195,50 @@ Das **⚙ Einstellungen**-Symbol öffnet den Einstellungs-Dialog.
 
 In den Einstellungen unter **Korrekturliste** können häufig falsch erkannte Wörter als Korrekturpaare hinterlegt werden (z. B. „Piano" → „Peano"). Die Korrekturen werden automatisch bei der KI-Zusammenfassung berücksichtigt. Vier Standardkorrekturen sind bereits voreingestellt.
 
-### Team-Prompts
+### Team-Prompts und eigene Prompts
 
-Prompts werden zentral vom Netzlaufwerk geladen (`Z:\12_Tools\Peano\Johann\prompts.json`). Lokale Änderungen an Prompts gelten nur temporär bis zum nächsten App-Neustart – beim Start werden immer die aktuellen Team-Prompts vom Netzlaufwerk übernommen.
+Die acht eingebauten Prompt-Vorlagen liegen zentral auf dem Netzlaufwerk
+(`Z:\12_Tools\Peano\Johann\prompts.json`) und werden beim Start geladen. Der Bereich
+**Team-Prompts** in den Einstellungen zeigt den Pfad.
 
-Der Bereich **Team-Prompts** in den Einstellungen zeigt den Pfad zur globalen Prompt-Datei.
+**Das Admin-Passwort entfällt.** Stattdessen wählst du unten in den Einstellungen bei
+**Speichern nach** aus, wohin eine Änderung geht:
 
-**Admin-Modus:** Unten links in den Einstellungen gibt es einen **Admin**-Button (passwortgeschützt). Berechtigte Personen können darüber die Prompt-Vorlagen dauerhaft für alle Mitarbeiter ändern.
+| Speichern nach | Wirkung |
+|---|---|
+| **Persönlich** | Gilt nur für dich, liegt in `Dokumente\Johann\prompts.personal.json` und überlebt den Neustart. |
+| **Global (Team)** | Schreibt in die Team-Datei und gilt für alle Kolleginnen und Kollegen. |
 
-Bereits vorhandene Einträge können per **↻ Neu generieren** mit den aktuellen Prompts aktualisiert werden.
+Ist das Netzlaufwerk nicht erreichbar, wird auf die persönliche Datei ausgewichen und
+angezeigt, was tatsächlich gespeichert werden konnte.
 
-- Persönliche Einstellungen (Name, Firma, Verzeichnisse) werden in `Dokumente\Johann\settings.json` gespeichert.
-- Prompt-Vorlagen werden zentral von `Z:\12_Tools\Peano\Johann\prompts.json` geladen.
+---
+
+## Eigene Kategorien
+
+Neben den eingebauten Abschnitten kannst du unter **Einstellungen → Kategorien** eigene
+Kategorien anlegen: ein Name und ein Prompt, der `{transcript}` enthalten muss — dort wird
+der Text des Eintrags eingesetzt.
+
+**Persönlich oder global.** Eine persönliche Kategorie sieht nur du. Eine globale Kategorie
+liegt in der Team-Datei und steht allen zur Verfügung. Umschalten über **Speicherort** in der
+Kategorie und **Speichern nach** unten im Fenster.
+
+> ⚠ **Globale Kategorien erst anlegen, wenn alle auf der neuen Version sind.** Ältere
+> Versionen kennen das Feld nicht und entfernen es beim nächsten Speichern wieder aus der
+> Team-Datei. Persönliche Kategorien sind davon nie betroffen.
+
+**Umbenennen ist gefahrlos.** Jede Kategorie bekommt beim ersten Speichern eine feste,
+unsichtbare Kennung. Bereits erzeugte Texte hängen an dieser Kennung, nicht am Namen.
+
+**Gelöschte Kategorien.** Wird eine Kategorie gelöscht, bleibt bereits erzeugter Text
+erhalten und erscheint unter seinem ursprünglichen Namen mit dem Hinweis
+„Nicht mehr konfiguriert“. Über die Liste links lässt er sich ausblenden. Eine neue Kategorie
+mit demselben Namen übernimmt diesen Text **nicht**.
+
+**Abschnitte ein- und ausblenden.** Die Liste links gruppiert die Kategorien nach *Eigene*,
+*Team* und *Nicht mehr konfiguriert*. Was abgewählt ist, fehlt in der Ansicht, im PDF, im
+HTML und beim Kopieren.
 
 ---
 
