@@ -170,6 +170,29 @@ public sealed class SummaryPromptsTests
         SummaryPrompts.Aufgabe.Should().Contain("keine Dopplungen");
     }
 
+    // ── Keine doppelten Abschnittsüberschriften ───────────────────────────────
+    [Theory]
+    [InlineData(nameof(SummaryPrompts.Gespraechsnotiz))]
+    [InlineData(nameof(SummaryPrompts.Stundenzettel))]
+    [InlineData(nameof(SummaryPrompts.Analog))]
+    [InlineData(nameof(SummaryPrompts.Prose))]
+    public void Section_prompts_do_not_repeat_the_heading_the_app_already_renders(string name)
+    {
+        // Die App überschreibt jeden Abschnitt selbst („Gesprächsnotiz", „Analog", …).
+        // Schreibt das Modell dieselbe Überschrift nochmal, steht sie doppelt da — in der
+        // Detailansicht, im PDF und in der Aufgaben-Mail.
+        var prompt = name switch
+        {
+            nameof(SummaryPrompts.Gespraechsnotiz) => SummaryPrompts.Gespraechsnotiz,
+            nameof(SummaryPrompts.Stundenzettel) => SummaryPrompts.Stundenzettel,
+            nameof(SummaryPrompts.Analog) => SummaryPrompts.Analog,
+            nameof(SummaryPrompts.Prose) => SummaryPrompts.Prose,
+            _ => throw new ArgumentOutOfRangeException(nameof(name)),
+        };
+
+        prompt.Should().Contain("keine Überschrift für den Abschnitt");
+    }
+
     // ── Ausgabesprache (#58) ──────────────────────────────────────────────────
     [Fact]
     public void SystemMessage_ForcesGermanOutputRegardlessOfTheDictationLanguage()

@@ -98,6 +98,9 @@ public static class SummaryPrompts
 
     public const string Prose =
         "Bereite den unten stehenden Transkript so auf, dass alle Inhalten enthalten sind, er aber gut lesbar ist. Behebe grammatikalische Fehler und umgangsprachliche Formulierungen. Wichtig ist, dass der Text inhaltlich vollständig und gut lesbar ist. In ganzen Sätzen.\n\n" +
+        "Gib keine Überschrift für den Abschnitt aus und wiederhole nicht den Titel des " +
+        "Eintrags — beides steht in der Anwendung bereits darüber. Zwischenüberschriften " +
+        "innerhalb des Textes sind erlaubt, wenn sie den Text wirklich gliedern.\n\n" +
         "Transkript:\n{transcript}";
 
     public const string Email =
@@ -165,15 +168,21 @@ public static class SummaryPrompts
     public const string Gespraechsnotiz =
         "Du erhältst ein Transkript eines Gesprächs auf Deutsch.\n" +
         "Erstelle eine strukturierte, kundentaugliche Gesprächsnotiz (Teilnehmer, Themen, Beschlüsse, weiteres Vorgehen).\n\n" +
+        "Gib keine Überschrift für den Abschnitt aus — die Anwendung setzt sie bereits. " +
+        "Beginne direkt mit dem Inhalt.\n\n" +
         "Transkript:\n{transcript}";
 
     public const string Stundenzettel =
         "Du erhältst ein Transkript eines Sprach-Diktats auf Deutsch.\n" +
         "Extrahiere die Zeiten und Tätigkeiten, um sie in einen Stundenzettel einzutragen.\n\n" +
+        "Gib keine Überschrift für den Abschnitt aus — die Anwendung setzt sie bereits. " +
+        "Beginne direkt mit dem Inhalt.\n\n" +
         "Transkript:\n{transcript}";
 
     public const string Analog =
         "Du erhältst ein Transkript eines analogen Eintrags auf Deutsch.\n" +
         "Fasse den Eintrag treffend zusammen.\n\n" +
+        "Gib keine Überschrift für den Abschnitt aus — die Anwendung setzt sie bereits. " +
+        "Beginne direkt mit dem Inhalt.\n\n" +
         "Transkript:\n{transcript}";
 }
