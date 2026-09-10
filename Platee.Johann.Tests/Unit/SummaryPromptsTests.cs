@@ -83,16 +83,42 @@ public sealed class SummaryPromptsTests
 
     // ── Aufgabe ───────────────────────────────────────────────────────────────
     [Fact]
-    public void Aufgabe_AsksForASummaryBeforeTheTasks()
+    public void Aufgabe_AsksForASummaryParagraphBeforeTheTaskList()
     {
-        var prompt = SummaryPrompts.Aufgabe;
+        SummaryPrompts.Aufgabe.Should().Contain("zwei bis vier Sätzen");
+        SummaryPrompts.Aufgabe.Should().Contain("Aufgabenliste");
+    }
 
-        prompt.Should().Contain("### Zusammenfassung");
-        prompt.Should().Contain("### Aufgaben");
-        prompt.IndexOf("### Zusammenfassung", StringComparison.Ordinal)
-            .Should().BeLessThan(
-                prompt.IndexOf("### Aufgaben", StringComparison.Ordinal),
-                "der Chef will erst den Kontext lesen und dann die Aufgaben");
+    [Fact]
+    public void Aufgabe_ForbidsHeadingsInTheOutput()
+    {
+        // Die App setzt „Aufgaben" bereits als Abschnittsüberschrift. Gibt das Modell
+        // nochmal eine aus, steht sie doppelt da — in der Detailansicht, im PDF und in
+        // der Aufgaben-Mail.
+        SummaryPrompts.Aufgabe.Should().Contain("keine Überschriften");
+    }
+
+    [Fact]
+    public void Aufgabe_ForbidsItsOwnTaskNumbering()
+    {
+        // gpt-5-nano hat „Aufgabe 1:", „Aufgabe 2:" vor jeden Stichpunkt gesetzt,
+        // obwohl die Aufzählung ohnehin nummeriert.
+        SummaryPrompts.Aufgabe.Should().Contain("Aufgabe 1:");
+    }
+
+    [Fact]
+    public void Aufgabe_CapsTheLengthOfASingleTask()
+    {
+        // Ohne Obergrenze liefert das Modell ganze Absaetze statt abhakbarer Aufgaben.
+        SummaryPrompts.Aufgabe.Should().Contain("höchstens 20 Wörter");
+    }
+
+    [Fact]
+    public void Aufgabe_AsksForMarkdownExplicitly()
+    {
+        // GPT-5 formatiert von sich aus kein Markdown — das muss im Prompt stehen,
+        // sonst kommt Fliesstext an, wo die App eine Aufzaehlung rendern will.
+        SummaryPrompts.Aufgabe.Should().Contain("Markdown-Aufzählung");
     }
 
     [Fact]
