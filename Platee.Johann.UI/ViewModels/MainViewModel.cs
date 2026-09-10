@@ -68,6 +68,19 @@ public sealed partial class MainViewModel : ObservableObject
     // Filter & Sort
     [ObservableProperty]
     private bool showOnlyPending = false;
+
+    // How many days the "Nur unerledigte" filter is currently hiding. Surfaced in the
+    // sidebar so a shortened date list reads as filtered rather than as lost data.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasHiddenDates))]
+    [NotifyPropertyChangedFor(nameof(HiddenDatesLabel))]
+    private int hiddenDateCount;
+
+    public bool HasHiddenDates => this.HiddenDateCount > 0;
+
+    public string HiddenDatesLabel => this.HiddenDateCount == 1
+        ? "1 erledigter Tag ausgeblendet"
+        : $"{this.HiddenDateCount} erledigte Tage ausgeblendet";
     [ObservableProperty]
     private SortMode currentSort = SortMode.ById;
     [ObservableProperty]
@@ -236,6 +249,14 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshAvailableDatesView();
         _ = LoadEntriesAsync(SelectedDateItem?.Date);
     }
+
+    /// <summary>
+    /// Clears the "Nur unerledigte" filter so the hidden days come back. Bound to the
+    /// hint under the date list, which is the only affordance telling the user why the
+    /// list got shorter.
+    /// </summary>
+    [RelayCommand]
+    private void ShowAllDates() => this.ShowOnlyPending = false;
 
     partial void OnCurrentSortChanged(SortMode value)
     {
@@ -710,16 +731,15 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             var selectedDate = this.SelectedDateItem?.Date;
-            var visibleDates = this.allDates
-                .Where(d => !this.ShowOnlyPending || d.PendingCount > 0)
-                .OrderByDescending(d => d.Date)
-                .ToList();
+            var selection = DateListFilter.SelectVisible(this.allDates, this.ShowOnlyPending, selectedDate);
 
             this.AvailableDates.Clear();
-            foreach (var item in visibleDates)
+            foreach (var item in selection.Visible)
             {
                 this.AvailableDates.Add(item);
             }
+
+            this.HiddenDateCount = selection.HiddenCount;
 
             if (selectedDate is not null)
             {
