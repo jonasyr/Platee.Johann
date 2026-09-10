@@ -135,7 +135,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string OutputPathDisplay => this.outputRoot;
 
-    public string WhisperVersion => "Whisper whisper-1";
+    public string WhisperVersion => ModelNames.StatusBarLabel;
 
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
                          string outputRoot, IEntryProcessor processor,
