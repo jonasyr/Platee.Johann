@@ -231,82 +231,109 @@ ein v1.3.2-Client löscht `customCategories` beim Speichern wieder
 
 ---
 
-## 🎯 Priorisierung & Reihenfolge
+## 🔢 Versionierung
 
-Stand 2026-09-10, nach dem Meeting mit dem Chef. Alle Issues tragen auf GitHub
-`priority:`, `size:` und `area:`-Labels.
+**Entschieden 2026-09-10.**
 
-### Block A — Diktieren (der große Brocken)
+| Stelle | Bedeutung |
+| ------ | --------- |
+| `x.X.x` **Minor** | Alles, was beim Nutzer ankommt. Jeder Release an den Chef und das Team ist ein Minor. |
+| `x.x.X` **Patch** | Nur Entwickler-Zwischenstände, nichts davon wird ausgeliefert. |
 
-Die Reihenfolge ist **zwingend**, nicht beliebig: ohne das Datenmodell lässt
-sich „nicht umgesetzt" nicht von „ausgeblendet" unterscheiden.
+Deshalb wurde v1.3.3 zu **v1.4.0**: der Kategorien-Umbau war nie beim Nutzer und
+bekommt keinen eigenen Release, sondern geht in v1.4.0 auf. Der Tag `v1.3.3-dev`
+bleibt als Entwicklungsmarke liegen.
 
-| # | Titel | Prio | Größe | Abhängig von |
-| - | ----- | ---- | ----- | ------------ |
-| [#64](https://github.com/jonasyr/Platee.Johann/issues/64) | Abschnitts-Auswahl am Eintrag speichern (Schema v5) | P1 | M | — |
-| [#36](https://github.com/jonasyr/Platee.Johann/issues/36) | Diktier-Popup, Aufnahme startet sofort | P1 | M | #64 |
-| [#61](https://github.com/jonasyr/Platee.Johann/issues/61) | Profil Diktat vs. Datei → Vorauswahl | P1 | S | #64, Teil von #36 |
-| [#62](https://github.com/jonasyr/Platee.Johann/issues/62) | „+ Neues Element" entfernen | P1 | S | Teil von #36 |
-| [#59](https://github.com/jonasyr/Platee.Johann/issues/59) | Abschnitte „Vorlagen" nennen | P3 | S | fällt bei #36 ab |
-| [#65](https://github.com/jonasyr/Platee.Johann/issues/65) | „nicht umgesetzt", selektiv neu generieren | P1 | M | #64 |
+---
 
-Bei #65 sollte **#56** (Kopiersymbol je Abschnitt) opportunistisch mitlaufen —
-das Abschnitts-Rendering wird dort ohnehin angefasst.
+## 🎯 Release-Plan
 
-### Block B — E-Mail
+Stand 2026-09-10. Milestones sind auf GitHub gesetzt.
 
-| # | Titel | Prio | Größe | Abhängig von |
-| - | ----- | ---- | ----- | ------------ |
-| [#66](https://github.com/jonasyr/Platee.Johann/issues/66) | Aufgaben-Prompt: Zusammenfassung + Aufgaben | P1 | S | — |
-| [#57](https://github.com/jonasyr/Platee.Johann/issues/57) | Aufgaben- und E-Mail-Knopf öffnen Outlook direkt | P1 | M | #66 |
+### v1.4.0 — Kategorien & sichtbare Verbesserungen · ~1 Tag
 
-#57 ist von S auf M gewachsen: `mailto:` kann weder Anhang noch Signatur, das
-wird ein Mechanismuswechsel auf Outlook-COM.
+Enthält **rückwirkend den nie ausgelieferten Kategorien-Umbau** (#34, #35, #50–#53):
+eigene Kategorien, Auto/Auf-Abruf, Abschnitts-Sichtbarkeit, Admin-Passwort entfernt.
 
-### Block C — Modell & Kosten
+| # | Titel | Größe |
+| - | ----- | ----- |
+| [#63](https://github.com/jonasyr/Platee.Johann/issues/63) | Tage verschwinden bei „alles erledigt" | S |
+| [#62](https://github.com/jonasyr/Platee.Johann/issues/62) | „+ Neues Element" raus, Diktieren volle Breite | XS |
+| [#66](https://github.com/jonasyr/Platee.Johann/issues/66) | Aufgaben-Prompt: Zusammenfassung + Aufgaben | S |
+| [#59](https://github.com/jonasyr/Platee.Johann/issues/59) | Abschnitte heißen „Vorlagen" | S |
+| [#56](https://github.com/jonasyr/Platee.Johann/issues/56) | Kopiersymbol je Abschnitt, zentraler Knopf bleibt | S–M |
+| [#55](https://github.com/jonasyr/Platee.Johann/issues/55) | Einträge löschen | M |
+| [#67](https://github.com/jonasyr/Platee.Johann/issues/67) | Aktuelle OpenAI-Modelle | S–M |
 
-| # | Titel | Prio | Größe | Abhängig von |
-| - | ----- | ---- | ----- | ------------ |
-| [#67](https://github.com/jonasyr/Platee.Johann/issues/67) | Aktuelle OpenAI-Modelle (`gpt-transcribe`, modernes Textmodell) | P1 | M | Spike: Audiodauer |
-| [#68](https://github.com/jonasyr/Platee.Johann/issues/68) | Kostentelemetrie | — | — | **Entwurf, nicht freigegeben** |
+Nebenarbeiten: `Platee.Johann.UI.csproj` auf 1.4.0, `RELEASE_NOTES.md` den
+1.3.3-Abschnitt in 1.4.0 einschmelzen.
 
-### Block D — Fehler
+### v1.5.0 — E-Mail direkt aus Johann · ~2 Tage
 
-| # | Titel | Prio | Größe |
-| - | ----- | ---- | ----- |
-| [#63](https://github.com/jonasyr/Platee.Johann/issues/63) | Tage verschwinden, wenn alles erledigt ist | P1 | S |
-| [#18](https://github.com/jonasyr/Platee.Johann/issues/18) | Paralleles Verarbeiten (vom Chef erneut gemeldet) | P1 | M |
-| [#8](https://github.com/jonasyr/Platee.Johann/issues/8) | FileSystemWatcher verliert Events | P2 | M |
+[#57](https://github.com/jonasyr/Platee.Johann/issues/57) — Aufgaben- und E-Mail-Knopf
+öffnen Outlook, PDF im Anhang, Signatur.
 
-### Nicht in diesem Zyklus
+Eigener Release, weil Outlook-COM eine neue Abhängigkeit ist: klemmt das bei jemandem,
+will man nicht gleichzeitig ein neues Diktier-Fenster debuggen.
 
-[#55](https://github.com/jonasyr/Platee.Johann/issues/55) Löschen ·
-[#54](https://github.com/jonasyr/Platee.Johann/issues/54) Zusammenführen ·
-[#58](https://github.com/jonasyr/Platee.Johann/issues/58) Übersetzung ·
-[#38](https://github.com/jonasyr/Platee.Johann/issues/38) Markdown ·
-[#10](https://github.com/jonasyr/Platee.Johann/issues/10) DPAPI ·
-[#60](https://github.com/jonasyr/Platee.Johann/issues/60) Ariadne-Epic
+### v1.6.0 — Diktieren · ~7 Tage
 
-### Offene Fragen an den Chef
+Reihenfolge zwingend: [#64](https://github.com/jonasyr/Platee.Johann/issues/64) Schema v5
+→ [#36](https://github.com/jonasyr/Platee.Johann/issues/36) Diktier-Popup
+(+ [#61](https://github.com/jonasyr/Platee.Johann/issues/61))
+→ [#65](https://github.com/jonasyr/Platee.Johann/issues/65) „nicht umgesetzt"
+→ [#18](https://github.com/jonasyr/Platee.Johann/issues/18) paralleles Diktieren.
 
-1. **PDF beim externen E-Mail-Knopf** ja oder nein. Bis zur Klärung ohne bauen,
-   aber so, dass das Nachrüsten kein großer Eingriff ist.
+⚠ **Startet erst, wenn der Chef #36 in der neuen Form bestätigt hat.** Stellt er es sich
+anders vor, kippt der Zuschnitt von #64 mit.
+
+### v1.7.0 — Übersetzung & Zusammenführen · ~4 Tage
+
+[#58](https://github.com/jonasyr/Platee.Johann/issues/58) Arabisch/Ukrainisch ·
+[#54](https://github.com/jonasyr/Platee.Johann/issues/54) Einträge zusammenführen.
+
+#58 profitiert direkt von #67 aus v1.4.0 — `gpt-transcribe` ist bei beiden Sprachen
+deutlich stärker als `whisper-1`.
+
+### v1.8.0 — Härtung · ~5 Tage
+
+[#8](https://github.com/jonasyr/Platee.Johann/issues/8) FileSystemWatcher ·
+[#10](https://github.com/jonasyr/Platee.Johann/issues/10) API-Key per DPAPI ·
+[#38](https://github.com/jonasyr/Platee.Johann/issues/38) Markdown durchgängig.
+
+Kein Nutzerdruck — die aufgelaufene Schuld aus dem Audit.
+
+### Ohne Termin
+
+[#60](https://github.com/jonasyr/Platee.Johann/issues/60) Ariadne-Integration (Epic, noch
+nicht geschnitten) · [#68](https://github.com/jonasyr/Platee.Johann/issues/68)
+Kostentelemetrie (Entwurf, wartet auf Entscheidung des Chefs).
+
+**Gesamt bis v1.8.0: ca. 19 Arbeitstage.**
+
+---
+
+## ❓ Offene Fragen an den Chef
+
+1. **PDF beim externen E-Mail-Knopf** ja oder nein. Bis zur Klärung ohne bauen, aber so,
+   dass das Nachrüsten billig bleibt. *(blockiert v1.5.0 nicht)*
 2. **Kostenanzeige** (#68) — dauerhaft in der App oder reicht das OpenAI-Dashboard?
    Der Verbrauch der 100 € ist nur dort einsehbar, nicht aus dem Repo.
-3. **Ist #36 in der neuen Form richtig verstanden?** Auswahl im Aufnahme-Fenster
-   statt nachträglich neben dem Transkript.
+3. **Ist #36 richtig verstanden?** Vorlagen-Auswahl im Aufnahme-Fenster statt nachträglich
+   neben dem Transkript. *(blockiert v1.6.0)*
 
-### Bereits entschieden (2026-09-10)
+## ✅ Bereits entschieden (2026-09-10)
 
-- **Option A** für die Abschnitts-Auswahl: am Eintrag speichern, drei
-  Checkbox-Ebenen auf eine reduzieren (#64).
-- **`EntryType` bei Diktaten ist immer `Projekt`.** Typ-Autoerkennung nur noch
-  für den Watch-Folder.
-- **Rollout-Entscheidung vertagt** — 1.3.3 sofort ausliefern oder alles in ein
-  1.3.4 bündeln, wird nach der Backlog-Klärung entschieden.
+- **Option A** für die Abschnitts-Auswahl: am Eintrag speichern, drei Checkbox-Ebenen auf
+  eine reduzieren (#64).
+- **`EntryType` bei Diktaten ist immer `Projekt`.** Typ-Autoerkennung nur noch für den
+  Watch-Folder.
+- **Zentraler „Kopieren"-Knopf bleibt** und kopiert weiter alles Sichtbare; die
+  Abschnitts-Symbole kommen daneben (#56).
+- **Kopplung #62 ↔ #58 aufgelöst** — #58 braucht keine Tastatureingabe.
 
-### Vor jedem Release
+## 🚦 Vor jedem Release
 
-- Installer bauen: `.uild-installer.ps1 -Version 1.3.x`
-- Auto-Update gegen ein installiertes v1.3.2 prüfen
+- Installer bauen: `.uild-installer.ps1 -Version 1.x.0`
+- Auto-Update gegen die zuletzt ausgelieferte Version prüfen
 - Sichtbare Verhaltensänderungen gehören in die Release Notes
