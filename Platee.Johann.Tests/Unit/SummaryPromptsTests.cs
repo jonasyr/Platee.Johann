@@ -83,23 +83,46 @@ public sealed class SummaryPromptsTests
 
     // ── Aufgabe ───────────────────────────────────────────────────────────────
     [Fact]
-    public void Aufgabe_StartsWithContextSentenceInstruction()
+    public void Aufgabe_AsksForASummaryBeforeTheTasks()
     {
-        SummaryPrompts.Aufgabe.Should().Contain("Gebe in einem Satz den Kontext an");
+        var prompt = SummaryPrompts.Aufgabe;
+
+        prompt.Should().Contain("### Zusammenfassung");
+        prompt.Should().Contain("### Aufgaben");
+        prompt.IndexOf("### Zusammenfassung", StringComparison.Ordinal)
+            .Should().BeLessThan(
+                prompt.IndexOf("### Aufgaben", StringComparison.Ordinal),
+                "der Chef will erst den Kontext lesen und dann die Aufgaben");
+    }
+
+    [Fact]
+    public void Aufgabe_TellsTheModelWhatToWriteWhenThereAreNoTasks()
+    {
+        // Ohne diese Regel erfindet das Modell Aufgaben, statt die Liste leer zu lassen.
+        SummaryPrompts.Aufgabe.Should().Contain("Keine Aufgaben genannt");
     }
 
     [Fact]
     public void Aufgabe_ContainsStructureRequirements()
     {
-        SummaryPrompts.Aufgabe.Should().Contain("fasse zusammengehörige Handlungen zu einer Aufgabe zusammen");
-        SummaryPrompts.Aufgabe.Should().Contain("falls vorhanden: nenne Frist");
-        SummaryPrompts.Aufgabe.Should().Contain("falls vorhanden: nenne Person die Aufgabe ausführen soll");
+        SummaryPrompts.Aufgabe.Should().Contain("zusammengehörige Handlungen");
+        SummaryPrompts.Aufgabe.Should().Contain("Frist");
+        SummaryPrompts.Aufgabe.Should().Contain("zuständige Person");
     }
 
     [Fact]
     public void Aufgabe_ContainsNoDuplicatesRule()
     {
         SummaryPrompts.Aufgabe.Should().Contain("keine Dopplungen");
+    }
+
+    // ── Ausgabesprache (#58) ──────────────────────────────────────────────────
+    [Fact]
+    public void SystemMessage_ForcesGermanOutputRegardlessOfTheDictationLanguage()
+    {
+        // Ohne diese Anweisung spiegelt das Modell die Eingabesprache: ein arabisches
+        // Diktat ergaebe eine arabische Zusammenfassung. Johann ist einsprachig deutsch.
+        SummaryPrompts.SystemMessage.Should().Contain("unabhängig von der Sprache des Diktats");
     }
 
     [Fact]

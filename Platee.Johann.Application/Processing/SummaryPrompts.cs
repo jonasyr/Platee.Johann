@@ -12,6 +12,9 @@ public static class SummaryPrompts
         "DEIN ZIEL IST ES, AUS ROHEN, MÜNDLICH FORMULIERTEN INHALTEN EINE PROFESSIONELLE, GUT LESBARE UND SACHLICHE DARSTELLUNG ZU ERSTELLEN, DIE DEN STANDARDS HOCHRANGIGER GESCHÄFTSKOMMUNIKATION ENTSPRICHT.\n\n" +
         "---\n\n" +
         "### INSTRUKTIONEN ###\n\n" +
+        "- SCHREIBE ausnahmslos auf Deutsch, unabhängig von der Sprache des Diktats. " +
+        "Das Diktat kann in einer beliebigen Sprache vorliegen; sämtliche Ausgaben sind " +
+        "dennoch immer deutsch\n" +
         "- ANALYSIERE das bereitgestellte Sprach-Diktat sorgfältig und vollständig\n" +
         "- IDENTIFIZIERE die zentralen Aussagen, Kernthemen und relevanten Details\n" +
         "- STRUKTURIERE die Inhalte logisch (z. B. Einleitung, Hauptpunkte, nächste Schritte)\n" +
@@ -122,22 +125,29 @@ public static class SummaryPrompts
         "Zusammenfassung:\n{prose_summary}";
 
     public const string Aufgabe =
-        "Du erhältst ein Transkript eines Sprach-Diktats auf Deutsch.\n\n" +
-        "Gebe in einem Satz den Kontext an.\n\n" +
-        "Extrahiere die im Transkript genannten Aufgaben.\n" +
-        "Struktur:\n" +
-        "- Je Aufgabe ein Stichpunkt\n" +
-        "- fasse zusammengehörige Handlungen zu einer Aufgabe zusammen\n" +
-        "- falls vorhanden: nenne Frist\n" +
-        "- falls vorhanden: nenne Person die Aufgabe ausführen soll\n\n" +
-        "Regeln:\n" +
-        "- nutze nur Informationen die explizit im Transkript stehen\n" +
-        "- keine Ergänzungen oder Annahmen\n" +
-        "- kurz und präzise formulieren\n" +
-        "- keine Dopplungen\n" +
-        "- chronologische Abfolge beibehalten\n" +
-        "- Korrigiere dabei offensichtliche Transkriptions- und Spracherkennungsfehler.\n\n" +
-        "Transkript:\n{transcript}";
+        "Du erhältst das Transkript eines Sprach-Diktats.\n\n" +
+        "## Auftrag\n\n" +
+        "Erzeuge genau zwei Abschnitte in dieser Reihenfolge.\n\n" +
+        "### Zusammenfassung\n\n" +
+        "Zwei bis vier Sätze Fließtext: worum es geht, wer beteiligt ist und in welchem " +
+        "Zusammenhang die Aufgaben stehen. Keine Aufzählung, und nimm die Aufgabenliste " +
+        "hier nicht vorweg.\n\n" +
+        "### Aufgaben\n\n" +
+        "Je Aufgabe ein Stichpunkt.\n\n" +
+        "- Fasse zusammengehörige Handlungen zu einer Aufgabe zusammen\n" +
+        "- Nenne die Frist, sofern eine genannt wurde\n" +
+        "- Nenne die zuständige Person, sofern eine genannt wurde\n" +
+        "- Behalte die chronologische Abfolge des Diktats bei\n\n" +
+        "Nennt das Transkript keine Aufgaben, schreibe unter „Aufgaben\" genau diesen " +
+        "Satz und sonst nichts: Keine Aufgaben genannt.\n\n" +
+        "## Regeln\n\n" +
+        "- Nutze ausschließlich Informationen, die explizit im Transkript stehen\n" +
+        "- Keine Ergänzungen, keine Annahmen, keine Dopplungen\n" +
+        "- Formuliere kurz und präzise\n" +
+        "- Korrigiere offensichtliche Transkriptions- und Spracherkennungsfehler stillschweigend\n" +
+        "- Gib ausschließlich die beiden Abschnitte aus, ohne Einleitung und ohne Schlusssatz\n\n" +
+        "## Transkript\n\n" +
+        "{transcript}";
 
     public const string Gespraechsnotiz =
         "Du erhältst ein Transkript eines Gesprächs auf Deutsch.\n" +
