@@ -25,6 +25,30 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         }
     }
 
+    // ── HideEmptySectionHint round-trip ───────────────────────────────────────
+    [Fact]
+    public async Task SaveAsync_then_LoadAsync_PreservesHideEmptySectionHint()
+    {
+        // Die DTO-Mapper sind handgeschrieben und haben schon dreimal ein Feld
+        // stillschweigend geschluckt. Ohne diesen Test käme der Hinweis nach jedem
+        // Neustart wieder, obwohl der Nutzer „nicht mehr anzeigen" gewählt hat.
+        var settings = AppSettings.Default with { HideEmptySectionHint = true };
+
+        await this.sut.SaveAsync(settings);
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.HideEmptySectionHint.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task HideEmptySectionHint_DefaultsToFalse_SoTheHintIsShownOnce()
+    {
+        await this.sut.SaveAsync(AppSettings.Default);
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.HideEmptySectionHint.Should().BeFalse();
+    }
+
     // ── SectionModes round-trip ───────────────────────────────────────────────
     [Fact]
     public async Task SaveAsync_then_LoadAsync_PreservesSectionModes()

@@ -1,12 +1,50 @@
 # Was ist neu?
 
-## Version 1.3.3
+## Version 1.4.0
 
-**Eigene Kategorien.**
+**Bessere und schnellere Transkripte.**
 
-- Neben den acht eingebauten Abschnitten lassen sich jetzt eigene Kategorien anlegen —
+- Johann nutzt jetzt die aktuellen OpenAI-Modelle. Die Spracherkennung ist deutlich
+  genauer und pro Minute sogar günstiger als bisher, die Zusammenfassungen laufen auf
+  einem spürbar stärkeren Modell.
+- Diktate in einer anderen Sprache werden korrekt erkannt und ergeben trotzdem einen
+  deutschen Eintrag. Das Transkript bleibt in der gesprochenen Sprache, alles andere
+  ist deutsch. Vorher war Johann fest auf Deutsch eingestellt.
+
+**Aufgaben lesen sich jetzt wie Aufgaben.**
+
+- Der Aufgaben-Abschnitt beginnt mit einer kurzen Zusammenfassung und listet darunter
+  die Aufgaben — je eine Zeile, kurz und abhakbar statt als Textblock.
+
+**Die Darstellung stimmt wieder.**
+
+- Verschachtelte Aufzählungen wurden bisher flachgeklopft: Unterpunkte standen auf
+  derselben Ebene wie ihre Oberpunkte, die Gliederung ging verloren. Sie wird jetzt
+  korrekt eingerückt dargestellt.
+- Die ausführliche Zusammenfassung und das Abstract zeigten Formatierungszeichen wie
+  `**` und `##` im Klartext an. Beide werden jetzt richtig dargestellt.
+- Kein Abschnitt wiederholt mehr seine eigene Überschrift. Bisher stand etwa über der
+  Gesprächsnotiz zweimal „Gesprächsnotiz".
+
+**Behobener Fehler: verschwundene Tage.**
+
+- Wurden alle Einträge eines Tages abgehakt, verschwand der Tag aus der Liste links —
+  bei mehreren Tagen sah es aus, als wären Einträge verloren. Der Filter blendet
+  erledigte Tage weiterhin aus, aber der gerade geöffnete Tag bleibt immer sichtbar,
+  und unter der Liste steht, wie viele Tage ausgeblendet sind.
+
+**Aufgeräumte Oberfläche.**
+
+- „+ Neues Element" ist entfallen, „🎙 Diktieren" nimmt jetzt die volle Breite ein.
+- Was bisher „Kategorien" hieß, heißt jetzt durchgängig **Vorlagen**. „Typ" bezeichnet
+  weiterhin die Art des Eintrags. Vorher meinten beide Wörter dasselbe und
+  Verschiedenes zugleich.
+
+**Eigene Vorlagen.**
+
+- Neben den acht eingebauten Abschnitten lassen sich jetzt eigene Vorlagen anlegen —
   persönlich (nur für dich) oder global für das ganze Team.
-- Jede Kategorie läuft entweder **automatisch** bei jedem Eintrag mit oder erst **auf
+- Jede Vorlage läuft entweder **automatisch** bei jedem Eintrag mit oder erst **auf
   Knopfdruck**. Standardmäßig sind nur vier der eingebauten Abschnitte automatisch,
   statt bisher acht — ein Eintrag ist dadurch spürbar schneller fertig.
 - Beim ersten Start fragt Johann einmalig, ob die neue Aufteilung übernommen werden soll.
@@ -19,10 +57,10 @@
 
 **Abschnitte ein- und ausblenden.**
 
-- Die Liste links steuert jetzt auch eigene Kategorien — getrennt nach eigenen,
-  Team- und gelöschten Kategorien. Was abgewählt ist, fehlt in der Ansicht, im PDF,
+- Die Liste links steuert jetzt auch eigene Vorlagen — getrennt nach eigenen,
+  Team- und gelöschten Vorlagen. Was abgewählt ist, fehlt in der Ansicht, im PDF,
   im HTML und beim Kopieren.
-- Text einer gelöschten Kategorie geht nicht verloren: er bleibt unter seinem
+- Text einer gelöschten Vorlage geht nicht verloren: er bleibt unter seinem
   ursprünglichen Namen sichtbar und lässt sich ausblenden.
 
 ---

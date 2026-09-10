@@ -4,7 +4,24 @@ using Platee.Johann.Application.Processing;
 
 public sealed record PromptSettings
 {
-    public int PromptDefaultsRevision { get; init; } = PromptDefaultsMigration.CurrentRevision;
+    /// <summary>
+    /// Gets a legacy marker that is read and written but no longer acted upon.
+    /// <para>
+    /// It once drove <c>PromptDefaultsMigration</c>, which was never wired up and has been
+    /// removed: the team's <c>prompts.json</c> is the single source of truth for prompt
+    /// text, and a client that silently rewrote it would overwrite curated wording for
+    /// everyone — the same failure mode as a v1.3.2 client stripping
+    /// <c>customCategories</c>.
+    /// </para>
+    /// <para>
+    /// The field is kept so the key survives a round-trip. Dropping it from the DTO would
+    /// strip it from the shared file on the next save.
+    /// </para>
+    /// </summary>
+    public int PromptDefaultsRevision { get; init; } = LegacyDefaultsRevision;
+
+    /// <summary>The last revision the removed migration would have applied.</summary>
+    public const int LegacyDefaultsRevision = 20260513;
 
     public string SystemMessage { get; init; } = SummaryPrompts.SystemMessage;
 

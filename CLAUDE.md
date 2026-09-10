@@ -38,6 +38,8 @@ dotnet run --project Platee.Johann.UI
 dotnet tool install -g vpk
 ```
 
+Version: **1.4.0**
+
 Test framework: **xUnit 2.9** · Mocking: **NSubstitute 5.3** · Assertions: **FluentAssertions 8.8**
 Target: **.NET 10 / net10.0-windows** (UI), **net10.0** (all other projects)
 
@@ -66,16 +68,17 @@ Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
                                #   SectionCatalog (SectionDescriptor)
   Services/                    # PromptSettingsLoader (local/global fallback)
   Settings/                    # AppSettings, PromptSettings, SettingsHolder,
-                               #   PromptDefaultsMigration, SettingsSplitMigration,
+                               #   SettingsSplitMigration,
                                #   CategoryDefinition, BuiltInSections, CategoryIdFactory,
                                #   SectionModeDefaults, SectionModeMigration
 
 Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Domain)
   Audio/                       # WindowsMicrophoneRecorder (NAudio 2.2.1 WasapiCapture → temp WAV → MP3),
-                               #   NoOpMicrophoneRecorder stub
+                               #   NoOpMicrophoneRecorder stub, AudioDurationReader
   Json/                        # JsonRepository (file-backed), JsonSettingsRepository,
                                #   JsonPromptSettingsRepository, migration
-  Llm/                         # OpenAiLlmProvider, WhisperTranscriber, NoOp stubs
+  Llm/                         # OpenAiLlmProvider (gpt-5.6-luna), WhisperTranscriber
+                               #   (gpt-transcribe), NoOp stubs
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
 Platee.Johann.UI/              # WPF presentation layer (depends on all)
@@ -128,17 +131,55 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 <!-- AUTO-MANAGED: patterns -->
 ## Detected Patterns
 
+**Models (v1.4.0)**: `ModelNames` (Application/Processing/) holds both OpenAI model ids in one
+place — `gpt-transcribe` for speech-to-text, `gpt-5.6-luna` for every generated section. Choosing
+a model is an application decision, calling the SDK with it is infrastructure, so the constants
+live in Application: that lets the status bar name the models without a view model reaching into
+`Infrastructure`, and keeps the id from being written twice. `ModelSelectionTests` pins both — a
+silently reverted model would fail nothing, the app would just get worse and more expensive.
+#71 turns `Summaries` into a per-user setting.
+
+**Audio duration is measured locally**: `whisper-1` reported it in its Verbose response;
+`gpt-transcribe` answers with plain `json` and carries neither duration nor timestamps.
+`AudioDurationReader` (Infrastructure/Audio/) reads it from the file via NAudio, falls back to
+MediaFoundation for containers `Mp3FileReader` rejects, and **never throws** — a duration is
+decoration next to an entry and in the PDF header; losing it must not cost a transcribed
+dictation. Validated against 20 archived recordings including a 5:17 one: largest deviation from
+the value Whisper had reported was 0.009 s. Only `ProcessAudioAsync` writes `DurationSeconds`,
+so reprocessing an old entry preserves it.
+
+**No forced transcription language**: `WhisperTranscriber.ForcedLanguage` is `null`. While it was
+pinned to `"de"`, a non-German dictation could not be transcribed at all. The model detects the
+language itself; the system prompt keeps the *output* German. The transcript deliberately stays
+in the spoken language — it is the record of what was said.
+
+**Markdown rendering**: `MarkdownFlowDocumentConverter` (UI/Converters/) renders every generated
+section; only the transcript stays raw, because it is the literal transcription and must stay
+editable. It keeps per-bullet indentation and compares indents relatively, so two- and four-space
+markdown both nest — until v1.4.0 it detected bullets on the trimmed line and flattened every
+outline into one level. That only became visible with a model strong enough to nest.
+
+⚠ **Prompts must not name their own section.** The app already renders the heading; a prompt that
+tells the model to "create a Gesprächsnotiz" gets one titled that way, and it then appears twice
+in the detail view, the PDF and the mail. Every section prompt now says so explicitly.
+
 **Repository pattern**: `IEntryRepository` / `ISettingsRepository` / `IPromptSettingsRepository` interfaces in Application; `JsonRepository` / `JsonSettingsRepository` / `JsonPromptSettingsRepository` in Infrastructure. Business logic never touches file I/O directly.
 
 **No-Op stubs**: `NoOpLlmProvider`, `NoOpAudioTranscriber`, and `NoOpMicrophoneRecorder` in Infrastructure allow the app to run without an API key or audio hardware configured. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) returns `false` for `IsMicrophoneAvailable` and throws `InvalidOperationException` on `StartAsync`.
 
-**In-app dictation (microphone recording)**: `IMicrophoneRecorder` interface (Application/Interfaces/) with `IsMicrophoneAvailable`, `StartAsync(string outputFilePath, CancellationToken)`, `StopAsync()`. `WindowsMicrophoneRecorder` (Infrastructure/Audio/) is the concrete implementation using NAudio 2.2.1 `WasapiCapture` + `WaveFileWriter` to capture WASAPI PCM into a temporary `.tmp.wav` file (`Path.ChangeExtension(outputFilePath, ".tmp.wav")`). `StopAsync()` is truly async: wires a `TaskCompletionSource<bool>` to `WasapiCapture.RecordingStopped`, awaits it, flushes/disposes the writer, then on a background thread encodes the temp WAV to MP3 at `outputFilePath` via `MediaFoundationEncoder.EncodeToMp3` (NAudio MediaFoundation) and deletes the temp WAV. The caller always receives an MP3, never a raw WAV. `Dispose()` cleans up capture/writer and deletes the temp WAV if present. `IsMicrophoneAvailable` gracefully returns `false` on any exception (no hardware). `StartAsync` throws `InvalidOperationException("Recording is already in progress.")` on double-start. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) is the offline stub injected in tests. `MainViewModel` exposes `IsRecording` (`[ObservableProperty]`), `RecordingDuration` (live `mm:ss` string updated via `DispatcherTimer`), `StartDictationCommand` (CanExecute = `!IsRecording`; checks `processor.CanProcess` and `microphoneRecorder.IsMicrophoneAvailable`; sets `tempRecordingPath` to an `.mp3` path in `Path.GetTempPath()`), and `StopDictationCommand` (CanExecute = `IsRecording` property directly; stops timer + recorder — recorder internally converts WAV→MP3 — then pipes the MP3 through `processor.ProcessAudioAsync`). Flow: microphone → temp WAV (internal) → MP3 at temp path → `ProcessAudioAsync` → `RefreshAfterEntryAsync`. Tested in `MicrophoneRecordingViewModelTests.cs`. UI: bottom bar of the entry list pane is dual-state — idle shows "+ Neues Element" and "🎙 Diktieren" buttons (visibility via `InverseBoolToVis`); recording shows a pulsing red ellipse (WPF Storyboard, Opacity 1→0.15, 0.8 s, AutoReverse, Forever), "REC" label in `AccentBrush`, `RecordingDuration` timer in `MonoFamily`, and "■ Stop" button docked right (visibility via `BoolToVis`).
+**In-app dictation (microphone recording)**: `IMicrophoneRecorder` interface (Application/Interfaces/) with `IsMicrophoneAvailable`, `StartAsync(string outputFilePath, CancellationToken)`, `StopAsync()`. `WindowsMicrophoneRecorder` (Infrastructure/Audio/) is the concrete implementation using NAudio 2.2.1 `WasapiCapture` + `WaveFileWriter` to capture WASAPI PCM into a temporary `.tmp.wav` file (`Path.ChangeExtension(outputFilePath, ".tmp.wav")`). `StopAsync()` is truly async: wires a `TaskCompletionSource<bool>` to `WasapiCapture.RecordingStopped`, awaits it, flushes/disposes the writer, then on a background thread encodes the temp WAV to MP3 at `outputFilePath` via `MediaFoundationEncoder.EncodeToMp3` (NAudio MediaFoundation) and deletes the temp WAV. The caller always receives an MP3, never a raw WAV. `Dispose()` cleans up capture/writer and deletes the temp WAV if present. `IsMicrophoneAvailable` gracefully returns `false` on any exception (no hardware). `StartAsync` throws `InvalidOperationException("Recording is already in progress.")` on double-start. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) is the offline stub injected in tests. `MainViewModel` exposes `IsRecording` (`[ObservableProperty]`), `RecordingDuration` (live `mm:ss` string updated via `DispatcherTimer`), `StartDictationCommand` (CanExecute = `!IsRecording`; checks `processor.CanProcess` and `microphoneRecorder.IsMicrophoneAvailable`; sets `tempRecordingPath` to an `.mp3` path in `Path.GetTempPath()`), and `StopDictationCommand` (CanExecute = `IsRecording` property directly; stops timer + recorder — recorder internally converts WAV→MP3 — then pipes the MP3 through `processor.ProcessAudioAsync`). Flow: microphone → temp WAV (internal) → MP3 at temp path → `ProcessAudioAsync` → `RefreshAfterEntryAsync`. Tested in `MicrophoneRecordingViewModelTests.cs`. UI: bottom bar of the entry list pane is dual-state — idle shows a full-width "🎙 Diktieren" button (visibility via `InverseBoolToVis`; "+ Neues Element" and `NewEntryView` were removed in v1.4.0); recording shows a pulsing red ellipse (WPF Storyboard, Opacity 1→0.15, 0.8 s, AutoReverse, Forever), "REC" label in `AccentBrush`, `RecordingDuration` timer in `MonoFamily`, and "■ Stop" button docked right (visibility via `BoolToVis`).
 
 **Schema versioning**: `Entry.SchemaVersion` (currently **4**) + `JsonMigrator` handle forward migration of persisted JSON files. v2→v3 added `EditedTranscript`; v3→v4 added `CustomSections` and `CustomSectionNames`. `EntryDto` carries `[JsonExtensionData]` so unknown fields survive a round-trip. **`EntryDto`/`EntryMapper`, `SettingsDto` and `PromptDto` are hand-written mappers — every new field must be added to the DTO *and* both mapping directions. This has silently eaten a field three times (`CustomCategories`, `SectionModes`, `CustomSections`); always add a round-trip test.**
 
 **Settings split**: `AppSettings` holds user preferences (name, company, directories); `PromptSettings` holds all LLM prompt templates. Persisted separately as `settings.json` and `prompts.json`. `SettingsHolder` wraps both for live propagation to `SummaryGenerator`. Internally uses a `volatile` immutable `SettingsState` record so `Snapshot()` always reads a consistent pair. `Update(AppSettings, PromptSettings)` atomically swaps both values; individual `Current`/`Prompts` setters preserved for backward compatibility.
 
-**Settings migration**: `PromptDefaultsMigration` uses a revision integer to apply one-time prompt migrations without overwriting user customisations. `SettingsSplitMigration.MigrateIfNeeded` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local `prompts.json` and strip any remaining prompt keys from `settings.json` (best-effort, silent on failure).
+**Prompt text: the team file is the single source of truth.** The team's `prompts.json` (`AppSettings.GlobalPromptFilePath`, typically `Z:\12_Tools\Peano\Johann\prompts.json`) owns the wording of all nine prompts. It always wins at runtime — `JsonPromptSettingsRepository` maps every field as `dto.X ?? defaults.X`, and `ToDto` writes all nine back on every save, so once a file exists its text is authoritative forever. The `SummaryPrompts` constants are **only** the seed for fresh installs and the fallback when the share is unreachable.
+
+Changing prompt wording therefore means changing **both**: edit the team file *and* update the matching constant. `TeamPromptDriftTests` guards this — it compares all nine constants against the team file and silently passes when the share is unreachable (CI, no VPN), so it never turns red for the wrong reason. Set `JOHANN_TEAM_PROMPTS` to point it elsewhere.
+
+⚠ **Never make a client rewrite the team file automatically.** `PromptDefaultsMigration` was exactly that idea — a revision integer that bulk-replaced prompts — and it was deleted in v1.4.0: it was never wired up, would never have fired (`PromptDefaultsRevision` defaults to the current revision, so the guard always short-circuits), and had it worked it would have overwritten curated team wording from whichever machine happened to load the file first. That is the same failure mode as a v1.3.2 client stripping `customCategories`. `PromptSettings.PromptDefaultsRevision` survives only so the JSON key round-trips instead of being stripped on the next save.
+
+**Settings migration**: `SettingsSplitMigration.MigrateIfNeeded` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local `prompts.json` and strip any remaining prompt keys from `settings.json` (best-effort, silent on failure).
 
 **Startup path resolution**: `StartupPathResolver` (UI/StartupPathResolver.cs) validates configured directories (Quellverzeichnis, Ausgabeverzeichnis, Archivverzeichnis) at startup, falling back to safe defaults when a path is missing, empty, or uncreateable. Returns `StartupPathResolution` (sealed record) with both `PersistedSettings` (unchanged) and `EffectiveSettings` (with fallback paths applied) plus `IReadOnlyList<StartupPathIssue> Issues` for user-visible warning messages. `App.xaml.cs` creates two `SettingsHolder` instances — `persistedSettingsHolder` (raw stored paths) and `runtimeSettingsHolder` (effective/fallback paths) — so that persisted user settings are never silently overwritten by runtime fallbacks. If issues exist, a warning MessageBox lists each affected path with its configured value, fallback, and reason.
 
@@ -227,6 +268,17 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 ## Git Insights
 
+- **v1.4.0** (2026-09-10, released): the first release since v1.3.2. Renumbered from the
+  unreleased v1.3.3 under the new rule — minor for anything users see, patch for developer
+  intermediates — so the category rework shipped inside it rather than getting its own release.
+  Contains #63 (days vanished from the sidebar when a day was fully done), #62 ("+ Neues Element"
+  and `NewEntryView` deleted), #66 (Aufgaben prompt: summary then checkable tasks), #59
+  ("Kategorien" renamed to "Vorlagen" in the UI), #67 (`gpt-transcribe` + `gpt-5.6-luna`,
+  duration measured locally) and #58 (foreign-language dictations yield German entries).
+  Three display bugs surfaced only because the stronger model produced real structure:
+  flattened nested lists, raw Markdown in the prose summary and abstract, and prompts that
+  repeated the section heading the app already renders.
+
 - **Category rework, v1.3.3** (`v1.3.3-dev` tag, merged to `main` 2026-09-09, **not released**):
   #50–#53 — custom categories, auto vs. on-demand, password gate removed, section visibility,
   tombstones. A full manual test pass found twelve defects, all fixed with tests; the notable ones
@@ -257,7 +309,7 @@ which half was rescued — prompt text is team-owned and survives only for the s
 - **WindowsMicrophoneRecorder** (`252680b`): Concrete NAudio implementation of `IMicrophoneRecorder` in Infrastructure/Audio/. Uses `WasapiCapture` + `WaveFileWriter` for WASAPI PCM capture to a temp WAV, then encodes to MP3 via `MediaFoundationEncoder.EncodeToMp3` in `StopAsync()`. `IsMicrophoneAvailable` uses `MMDeviceEnumerator` with graceful fallback. Implements `IDisposable` for safe cleanup.
 - **MainViewModel dictation integration** (`7f4b35e`): `StartDictationCommand` / `StopDictationCommand` wired into `MainViewModel` with `IsRecording` + `RecordingDuration` observable state. Guard checks for API key and microphone availability before starting. `IMicrophoneRecorder` injected via constructor; `WindowsMicrophoneRecorder` used when API key present, `NoOpMicrophoneRecorder` otherwise. Test project extended with Compile + Page links for `MainViewModel.cs`, `ToastsViewModel.cs`, `SortMode.cs`, and WPF views (`SettingsView`, `NewEntryView`, `AdminPasswordDialog`). Covered by `MicrophoneRecordingViewModelTests` (8 xUnit tests using `NoOpMicrophoneRecorder`).
 - **IMicrophoneRecorder DI wiring fix** (`12d0bbb`): `App.xaml.cs` `OnStartup` replaced simple `apiKey`-based ternary for `IMicrophoneRecorder` with try/catch + `IsMicrophoneAvailable` check — instantiates `WindowsMicrophoneRecorder`, uses it only if `IsMicrophoneAvailable` is true, falls back to `NoOpMicrophoneRecorder` on exception or unavailability regardless of API key presence.
-- **Diktieren recording UI** (`816a277`): entry list pane bottom bar extended to dual-state XAML — idle shows "+ Neues Element" + "🎙 Diktieren" buttons; recording state shows pulsing red ellipse (WPF Storyboard), "REC" label, live timer, and "■ Stop" button. Binds to existing `IsRecording`, `RecordingDuration`, `StartDictationCommand`, `StopDictationCommand` properties via `BoolToVis` / `InverseBoolToVis` converters.
+- **Diktieren recording UI** (`816a277`): entry list pane bottom bar extended to dual-state XAML — idle showed "+ Neues Element" + "🎙 Diktieren" buttons (the former removed in v1.4.0); recording state shows pulsing red ellipse (WPF Storyboard), "REC" label, live timer, and "■ Stop" button. Binds to existing `IsRecording`, `RecordingDuration`, `StartDictationCommand`, `StopDictationCommand` properties via `BoolToVis` / `InverseBoolToVis` converters.
 - **WindowsMicrophoneRecorder dispose fix** (`65db67a`): `App.xaml.cs` now calls `realRecorder.Dispose()` before assigning `NoOpMicrophoneRecorder` when `IsMicrophoneAvailable` returns false, preventing a resource leak when microphone hardware is present but unavailable.
 - **WindowsMicrophoneRecorder robustness** (`1784c09`): `StartAsync` now throws `InvalidOperationException` on double-start. `StopAsync` made truly async — uses `TaskCompletionSource` wired to `RecordingStopped` event and awaits it before flushing/disposing the WAV writer, guaranteeing the file is complete before the caller proceeds.
 - **v1.3.0 documentation** (`ce30ade`): `RELEASE_NOTES.md` updated with in-app dictation feature notes for end users.

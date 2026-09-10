@@ -51,6 +51,17 @@ public sealed record AppSettings
     /// <summary>Gets a value indicating whether the one-time v1.4.0 mode prompt has been answered.</summary>
     public bool SectionModesMigrationDone { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether the hint about sections that exist but were never
+    /// generated has been dismissed for good.
+    /// <para>
+    /// Ticking such a section in the sidebar shows nothing, because the list controls
+    /// visibility and not generation. Until #65 makes that visible in the entry itself,
+    /// a one-off hint explains it and names the workaround.
+    /// </para>
+    /// </summary>
+    public bool HideEmptySectionHint { get; init; }
+
     /// <summary>Gets a fresh instance with all default values.</summary>
     public static AppSettings Default => new();
 }

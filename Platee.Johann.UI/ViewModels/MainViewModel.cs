@@ -68,6 +68,19 @@ public sealed partial class MainViewModel : ObservableObject
     // Filter & Sort
     [ObservableProperty]
     private bool showOnlyPending = false;
+
+    // How many days the "Nur unerledigte" filter is currently hiding. Surfaced in the
+    // sidebar so a shortened date list reads as filtered rather than as lost data.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasHiddenDates))]
+    [NotifyPropertyChangedFor(nameof(HiddenDatesLabel))]
+    private int hiddenDateCount;
+
+    public bool HasHiddenDates => this.HiddenDateCount > 0;
+
+    public string HiddenDatesLabel => this.HiddenDateCount == 1
+        ? "1 erledigter Tag ausgeblendet"
+        : $"{this.HiddenDateCount} erledigte Tage ausgeblendet";
     [ObservableProperty]
     private SortMode currentSort = SortMode.ById;
     [ObservableProperty]
@@ -87,6 +100,63 @@ public sealed partial class MainViewModel : ObservableObject
     private string recordingDuration = "00:00";
 
     public SectionVisibilityViewModel Sections { get; } = new();
+
+    /// <summary>
+    /// Gets or sets the hook that shows the "this template was never generated" hint.
+    /// Returns <c>true</c> when the user asked never to see it again.
+    /// <para>
+    /// A settable hook rather than a constructor parameter so the view models stay
+    /// dialog-free in tests; <c>App.xaml.cs</c> wires the real window.
+    /// </para>
+    /// </summary>
+    public Func<bool>? EmptySectionHintPrompt { get; set; }
+
+    /// <summary>Maps a visibility flag on <see cref="Sections"/> to the entry field it shows.</summary>
+    private static string? SectionKeyFor(string? propertyName) => propertyName switch
+    {
+        nameof(SectionVisibilityViewModel.ShowLongSummary) => nameof(Entry.LongSummary),
+        nameof(SectionVisibilityViewModel.ShowProseSummary) => nameof(Entry.ProseSummary),
+        nameof(SectionVisibilityViewModel.ShowTaskList) => nameof(Entry.TaskList),
+        nameof(SectionVisibilityViewModel.ShowConversationNote) => nameof(Entry.ConversationNote),
+        nameof(SectionVisibilityViewModel.ShowEmailText) => nameof(Entry.EmailText),
+        nameof(SectionVisibilityViewModel.ShowStundenzettelText) => nameof(Entry.StundenzettelText),
+        nameof(SectionVisibilityViewModel.ShowAnalogText) => nameof(Entry.AnalogText),
+        _ => null,
+    };
+
+    /// <summary>
+    /// Explains a checkbox that appears to do nothing: the sidebar controls visibility, not
+    /// generation, so ticking a template the entry never had generated shows nothing.
+    /// Suppressed while no entry is selected, and permanently once the user says so.
+    /// </summary>
+    private void OnSectionVisibilityChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (this.EmptySectionHintPrompt is null || this.SelectedEntry is null)
+        {
+            return;
+        }
+
+        var key = SectionKeyFor(e.PropertyName);
+        if (key is null)
+        {
+            return;
+        }
+
+        var content = EmptySectionHint.ContentFor(this.SelectedEntry.Entry, key);
+        if (!EmptySectionHint.ShouldShow(content, this.persistedSettingsHolder.Current.HideEmptySectionHint))
+        {
+            return;
+        }
+
+        if (this.EmptySectionHintPrompt.Invoke())
+        {
+            var dismissed = this.persistedSettingsHolder.Current with { HideEmptySectionHint = true };
+            this.persistedSettingsHolder.Current = dismissed;
+            this.runtimeSettingsHolder.Current =
+                this.runtimeSettingsHolder.Current with { HideEmptySectionHint = true };
+            _ = this.settingsRepo.SaveAsync(dismissed);
+        }
+    }
 
     public bool IsSortById => this.CurrentSort == SortMode.ById;
 
@@ -122,7 +192,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string OutputPathDisplay => this.outputRoot;
 
-    public string WhisperVersion => "Whisper whisper-1";
+    public string WhisperVersion => ModelNames.StatusBarLabel;
 
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
                          string outputRoot, IEntryProcessor processor,
@@ -163,6 +233,8 @@ public sealed partial class MainViewModel : ObservableObject
             var row = this.Entries.FirstOrDefault(r => r.JobId == updated.JobId);
             row?.UpdateEntry(updated);
         };
+
+        this.Sections.PropertyChanged += this.OnSectionVisibilityChanged;
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)
@@ -236,6 +308,14 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshAvailableDatesView();
         _ = LoadEntriesAsync(SelectedDateItem?.Date);
     }
+
+    /// <summary>
+    /// Clears the "Nur unerledigte" filter so the hidden days come back. Bound to the
+    /// hint under the date list, which is the only affordance telling the user why the
+    /// list got shorter.
+    /// </summary>
+    [RelayCommand]
+    private void ShowAllDates() => this.ShowOnlyPending = false;
 
     partial void OnCurrentSortChanged(SortMode value)
     {
@@ -430,45 +510,7 @@ public sealed partial class MainViewModel : ObservableObject
         this.ResetSectionsToDefaults(this.SelectedEntry?.Entry.Type);
     }
 
-    [RelayCommand]
-    private async Task AddEntry()
-    {
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        var nextSeq = await this.repository.GetNextSequenceNumberAsync(today);
 
-        var dialogVm = new NewEntryViewModel(nextSeq);
-        var dialog = new NewEntryView(dialogVm)
-        {
-            Owner = System.Windows.Application.Current.MainWindow,
-        };
-
-        if (dialog.ShowDialog() != true || dialogVm.CreatedEntry is null)
-        {
-            return;
-        }
-
-        var entry = dialogVm.CreatedEntry;
-
-        // Persist first so the entry is visible even if AI fails
-        await this.repository.SaveAsync(entry);
-
-        // If AI is available and the user entered content, auto-generate summaries
-        if (this.processor.CanProcess && !string.IsNullOrWhiteSpace(entry.Transcript))
-        {
-            try
-            {
-                this.ErrorMessage = "Generiere KI-Zusammenfassungen…";
-                entry = await this.processor.ReprocessAsync(entry);
-                this.ErrorMessage = string.Empty;
-            }
-            catch (Exception ex)
-            {
-                this.ErrorMessage = $"KI-Fehler: {ex.Message}";
-            }
-        }
-
-        await this.RefreshAfterEntryAsync(entry);
-    }
 
     [RelayCommand]
     private async Task AddAudio()
@@ -748,16 +790,15 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             var selectedDate = this.SelectedDateItem?.Date;
-            var visibleDates = this.allDates
-                .Where(d => !this.ShowOnlyPending || d.PendingCount > 0)
-                .OrderByDescending(d => d.Date)
-                .ToList();
+            var selection = DateListFilter.SelectVisible(this.allDates, this.ShowOnlyPending, selectedDate);
 
             this.AvailableDates.Clear();
-            foreach (var item in visibleDates)
+            foreach (var item in selection.Visible)
             {
                 this.AvailableDates.Add(item);
             }
+
+            this.HiddenDateCount = selection.HiddenCount;
 
             if (selectedDate is not null)
             {

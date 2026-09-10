@@ -582,6 +582,20 @@
                                 Margin="0,6,0,0"/>
                     </StackPanel>
                 </Border>
+                <!-- Explains a shortened date list. Without it, finishing a day just makes
+                     the day vanish and the sidebar looks as if entries were lost (#63). -->
+                <Border DockPanel.Dock="Bottom"
+                        Padding="14,6"
+                        Visibility="{Binding HasHiddenDates, Converter={StaticResource BoolToVis}}"
+                        BorderThickness="0,1,0,0"
+                        BorderBrush="#E0E0E0">
+                    <Button Command="{Binding ShowAllDatesCommand}"
+                            Style="{StaticResource LinkButtonStyle}"
+                            FontSize="11"
+                            ToolTip="Filter „Nur unerledigte“ aufheben und alle Tage zeigen">
+                        <TextBlock Text="{Binding HiddenDatesLabel}" TextWrapping="Wrap"/>
+                    </Button>
+                </Border>
                 <ListBox ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
                          SelectedItem="{Binding SelectedDateItem}"
                          BorderThickness="0" Background="Transparent"
@@ -739,16 +753,13 @@
                 <Border DockPanel.Dock="Bottom" Padding="8" BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0">
                     <Grid>
-                        <!-- Idle state: Neues Element + Diktieren buttons -->
-                        <StackPanel Orientation="Horizontal"
-                                    Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVis}}">
-                            <Button Content="+ Neues Element" Command="{Binding AddEntryCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    ToolTip="Neuen Eintrag anlegen"/>
-                            <Button Content="🎙 Diktieren" Command="{Binding StartDictationCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    ToolTip="Mikrofon-Aufnahme starten"/>
-                        </StackPanel>
+                        <!-- Idle state: Diktieren across the full width -->
+                        <Button Content="🎙 Diktieren" Command="{Binding StartDictationCommand}"
+                                Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVis}}"
+                                Style="{StaticResource ActionButtonStyle}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                ToolTip="Mikrofon-Aufnahme starten"/>
 
                         <!-- Recording state: pulsing dot + REC + timer + Stop -->
                         <DockPanel Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}">
@@ -1019,8 +1030,18 @@
                             </Border>
                             <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="0,0,0,2"
                                     CornerRadius="2" Padding="12,10">
-                                <TextBox Text="{Binding Detail.DisplayAbstract, Mode=OneWay}"
-                                         Style="{StaticResource ContentTextStyle}"/>
+                                <!-- Ebenfalls Markdown: das Modell setzt hier Fettungen,
+                                     die vorher als rohe Sternchen zu sehen waren. -->
+                                <FlowDocumentScrollViewer
+                                    Document="{Binding Detail.DisplayAbstract, Converter={StaticResource MdToDoc}}"
+                                    VerticalScrollBarVisibility="Disabled"
+                                    HorizontalScrollBarVisibility="Disabled"
+                                    IsSelectionEnabled="True"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    FontFamily="Segoe UI, Arial"
+                                    FontSize="13"/>
                             </Border>
                         </StackPanel>
 
@@ -1048,9 +1069,20 @@
                             <Border Style="{StaticResource SectionHeaderBorderStyle}">
                                 <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
                             </Border>
-                            <TextBox Text="{Binding Detail.DisplayProseSummary, Mode=OneWay}"
-                                     Style="{StaticResource ContentTextStyle}"
-                                     TextWrapping="Wrap"/>
+                            <!-- Wie alle anderen erzeugten Abschnitte als Markdown gerendert.
+                                 Stand hier bis v1.4.0 als roher TextBox: mit den schwaecheren
+                                 Modellen kam ohnehin Fliesstext, mit gpt-5.6-luna standen
+                                 ploetzlich "##"-Ueberschriften unformatiert in der Ansicht. -->
+                            <FlowDocumentScrollViewer
+                                Document="{Binding Detail.DisplayProseSummary, Converter={StaticResource MdToDoc}}"
+                                VerticalScrollBarVisibility="Disabled"
+                                HorizontalScrollBarVisibility="Disabled"
+                                IsSelectionEnabled="True"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                FontFamily="Segoe UI, Arial"
+                                FontSize="13"/>
                         </StackPanel>
 
                         <!-- Task list -->
@@ -1143,7 +1175,7 @@
                                 FontSize="13"/>
                         </StackPanel>
 
-                        <!-- Eigene Kategorien und Abschnitte auf Knopfdruck.
+                        <!-- Eigene Vorlagen und Abschnitte auf Knopfdruck.
                              Above the transcript, which always stays last: one row per configured
                              custom category, plus read-only rows for text whose category
                              was deleted. This is where #38's Markdown rendering lands. -->
@@ -1159,7 +1191,7 @@
                                                 <TextBlock Text=" · Nicht mehr konfiguriert"
                                                            FontSize="11" Foreground="#999" FontStyle="Italic"
                                                            VerticalAlignment="Bottom" Margin="6,0,0,1"
-                                                           ToolTip="Diese Kategorie wurde entfernt. Der erzeugte Text bleibt erhalten."
+                                                           ToolTip="Diese Vorlage wurde entfernt. Der erzeugte Text bleibt erhalten."
                                                            Visibility="{Binding IsOrphaned, Converter={StaticResource BoolToVis}}"/>
                                             </StackPanel>
                                         </Border>

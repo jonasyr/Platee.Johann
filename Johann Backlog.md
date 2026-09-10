@@ -69,7 +69,7 @@
 
 ---
 
-## 📌 Aktueller Stand (2026-09-09)
+## 📌 Aktueller Stand (2026-09-10)
 
 **v1.3.3 liegt in `main`, getaggt als `v1.3.3-dev`, ist aber NICHT veröffentlicht.**
 Kein Installer gebaut, kein GitHub-Release — Nutzer laufen weiter auf v1.3.2.
@@ -81,18 +81,33 @@ mit Gruppierung, Namensgrabsteine für gelöschte Kategorien. 453 Tests grün.
 Der Testplan (`TESTPLAN-v1.3.3.md`) ist bis auf die Rollback-Abschnitte durch;
 zwölf dabei gefundene Fehler wurden behoben.
 
-**Nächste Schritte:** #55 (Löschen), #56 (Kopiersymbole), #57 (Outlook), #61 (Diktat-Profil).
-Vor einem Release: Installer bauen, Auto-Update gegen ein installiertes v1.3.2 prüfen.
+> [!IMPORTANT]
+> **Source of Truth sind die [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues).**
+> Diese Datei ist ein gepflegter Spiegel für die Abstimmung mit dem Chef.
+> Bei Abweichung gilt GitHub. Die veraltete Zweitkopie `docs/Johann Backlog.md`
+> wurde am 2026-09-10 gelöscht — sie stammte von vor der GitHub-Migration und
+> zeigte 13 längst erledigte Punkte fälschlich als offen.
 
-**Kopplung beachten:** #62 (Textentry entfernen) darf nur zusammen mit #58 (Übersetzung)
-ausgeliefert werden — sonst gibt es keinen Weg mehr, einen Eintrag zu tippen.
+### Neu aufgenommen (Sprachnachrichten 260909_004 und 260909_007)
+
+Nach dem Meeting vom 2026-09-09 sind sechs Issues dazugekommen (#63–#68) und
+sechs bestehende wurden umgeschrieben. Die Einzelheiten stehen unten unter
+„Priorisierung & Reihenfolge".
+
+**Kopplung aufgelöst:** #62 (Textentry entfernen) war angeblich an #58
+(Übersetzung) gekoppelt. Das ist **falsch** — #58 arbeitet mit Diktaten in der
+jeweiligen Sprache bzw. übersetzt bestehende Einträge und braucht keine
+Tastatureingabe. #62 ist frei.
+
+**Weiterhin gültig:** keine globalen Kategorien auf `Z:`, solange nicht das
+ganze Team auf 1.3.3+ läuft — ein v1.3.2-Client entfernt `customCategories`
+beim Speichern aus der Team-Datei.
 
 ---
 
-
 ## 🔗 GitHub-Issue-Zuordnung
 
-Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues) (Stand: 2026-09-04).
+Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues) (Stand: 2026-09-10).
 
 | Issue | Titel | GH-Status | Backlog-Eintrag |
 | ----- | ----- | --------- | --------------- |
@@ -113,9 +128,9 @@ Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/is
 | [#20](https://github.com/jonasyr/Platee.Johann/issues/20) | Edit transcript and re-generate | geschlossen | ✅ Transkriptionstext bearbeiten |
 | [#21](https://github.com/jonasyr/Platee.Johann/issues/21) | In-app dictation | geschlossen | ✅ Neue Einträge direkt in Johann diktieren |
 | [#29](https://github.com/jonasyr/Platee.Johann/issues/29) | SettingsHolder.Snapshot() not atomic | geschlossen | ✅ (Teil von „Inkonsistente Generierung") |
-| [#34](https://github.com/jonasyr/Platee.Johann/issues/34) | User-definable categories, no password gate | **offen (umgeplant)** | → zerlegt in #50–#53 |
-| [#35](https://github.com/jonasyr/Platee.Johann/issues/35) | Auto vs. on-demand generation per category | **offen (ersetzt)** | → #52 |
-| [#36](https://github.com/jonasyr/Platee.Johann/issues/36) | Live dictation mode with category checkboxes | **offen** | ☐ Live-Diktat-Modus |
+| [#34](https://github.com/jonasyr/Platee.Johann/issues/34) | User-definable categories, no password gate | geschlossen | → zerlegt in #50–#53 |
+| [#35](https://github.com/jonasyr/Platee.Johann/issues/35) | Auto vs. on-demand generation per category | geschlossen | → #52 |
+| [#36](https://github.com/jonasyr/Platee.Johann/issues/36) | Diktier-Popup (2026-09-10 neu gefasst) | **offen** | ☐ Diktier-Popup |
 | [#37](https://github.com/jonasyr/Platee.Johann/issues/37) | Move „Erledigt" button top-left and pin it | geschlossen (v1.3.0) | ✅ „Erledigt"-Button verdeckt & scrollt weg |
 | [#38](https://github.com/jonasyr/Platee.Johann/issues/38) | End-to-end Markdown | **offen** | ☐ Markdown durchgängig |
 | [#39](https://github.com/jonasyr/Platee.Johann/issues/39) | Epic: Live dictation & user-definable categories | **offen** | (Klammer um #34/#35/#36) |
@@ -216,48 +231,110 @@ ein v1.3.2-Client löscht `customCategories` beim Speichern wieder
 
 ---
 
-## 🎯 Priorisierung & Reihenfolge
+## 🔢 Versionierung
 
-Alle offenen Issues sind auf GitHub mit `priority:`, `size:` und `area:` Labels sowie
-Milestones versehen. Epic [#39](https://github.com/jonasyr/Platee.Johann/issues/39)
-bündelt die Kategorien-Umbau-Arbeit als Sub-Issues.
+**Entschieden 2026-09-10.**
 
-| # | Titel | Prio | Größe | Milestone | Abhängig von |
-| - | ----- | ---- | ----- | --------- | ------------ |
-| [#50](https://github.com/jonasyr/Platee.Johann/issues/50) | Admin-Passwort entfernen | P1 | S (2–4 h) | v1.4.0 | — |
-| [#51](https://github.com/jonasyr/Platee.Johann/issues/51) | Kategorien-Modell + Persistenz | P1 | M (1–2 T) | v1.4.0 | — |
-| [#52](https://github.com/jonasyr/Platee.Johann/issues/52) | Auto vs. Knopfdruck + Dispatch | P1 | M (1–2 T) | v1.4.0 | #51 |
-| [#53](https://github.com/jonasyr/Platee.Johann/issues/53) | Kategorien-UI + On-Demand-Zeilen | P1 | M (1–2 T) | v1.4.0 | #51, #52 |
-| [#36](https://github.com/jonasyr/Platee.Johann/issues/36) | Live-Diktat-Modus | P1 | M (1–2 T) | v1.4.1 | #51, #52, #53 |
-| [#38](https://github.com/jonasyr/Platee.Johann/issues/38) | Markdown durchgängig | P1 | L (2–3 T) | v1.5.0 | #34 (weich) |
-| [#8](https://github.com/jonasyr/Platee.Johann/issues/8) | FileSystemWatcher verliert Events | P2 | M (1–2 T) | v1.5.0 | — |
-| [#10](https://github.com/jonasyr/Platee.Johann/issues/10) | API Key per DPAPI verschlüsseln | P2 | M (1–2 T) | v1.5.0 | — |
-| [#18](https://github.com/jonasyr/Platee.Johann/issues/18) | Parallel Processing | P3 | S (2–4 h) | v1.5.0 | #6 ✅ |
+| Stelle | Bedeutung |
+| ------ | --------- |
+| `x.X.x` **Minor** | Alles, was beim Nutzer ankommt. Jeder Release an den Chef und das Team ist ein Minor. |
+| `x.x.X` **Patch** | Nur Entwickler-Zwischenstände, nichts davon wird ausgeliefert. |
 
-**Gesamtaufwand offener Issues: ca. 9–13 Arbeitstage.** v1.4.0 (#50–#53): ca. 4–6 Tage.
+Deshalb wurde v1.3.3 zu **v1.4.0**: der Kategorien-Umbau war nie beim Nutzer und
+bekommt keinen eigenen Release, sondern geht in v1.4.0 auf.
 
-> #34 und #35 wurden am 2026-09-07 umgeplant und durch #50–#53 ersetzt.
-> Entwurf: `docs/v1.4.0 Categories Design.md`. Kernentscheidung: **additiv** —
-> die acht eingebauten Abschnitte bleiben feste Felder, benutzerdefinierte
-> Kategorien kommen daneben. Das vermeidet ~290 Referenzen in 21 Dateien und
-> entschärft den Datenverlust-Pfad bei gemischten Client-Versionen.
+---
 
-### Empfohlene Reihenfolge
+## 🎯 Release-Plan
 
-1. ~~v1.3.0 veröffentlichen~~ ✅ erledigt (03.09.2026), Auto-Update-Hotfix v1.3.1 hinterher.
-2. ~~#15 als Sicherheitsnetz vor dem Umbau von `EntryProcessingService`~~ ✅ erledigt.
-3. ~~v1.3.2 veröffentlichen (#45)~~ ✅ erledigt (04.09.2026). Auto-Update gegen die
-   installierte v1.3.1 verifiziert: die Update-Meldung erscheint wieder.
-4. **v1.4.0: #50 → #51 → #52 → #53** (Epic #39). #50 und #51 sind risikoarm und
-   einzeln auslieferbar; #52 und #53 brauchen die Review-Aufmerksamkeit und
-   müssen ggf. zusammen gemergt werden.
-5. **#36** (Live-Diktat) als v1.4.1, sobald das Kategorien-Modell steht.
-6. **#38** direkt danach, solange das Section-`DataTemplate` frisch ist.
-7. **#8 → #10 → #18** als abschließende Härtungs-Runde.
+Stand 2026-09-10.
 
-### Vor dem v1.4.0-Release zu klären
+### v1.4.0 — ausgeliefert · fertig
 
-- Tatsächliches `Ausgabeverzeichnis` des Teams prüfen: liegen Einträge auf `Z:`?
-  Wenn ja, muss die Flotte updaten, bevor eigene Kategorien genutzt werden.
-- Neue Auto-Defaults (4 statt 8 Abschnitte) still ausrollen oder mit Hinweis
-  beim ersten Start? Sichtbare Verhaltensänderung → Release Notes zwingend.
+Enthält **rückwirkend den nie ausgelieferten Kategorien-Umbau** (#34, #35, #50–#53).
+
+| # | Titel | Status |
+| - | ----- | ------ |
+| [#63](https://github.com/jonasyr/Platee.Johann/issues/63) | Tage verschwanden bei „alles erledigt" | ✅ |
+| [#62](https://github.com/jonasyr/Platee.Johann/issues/62) | „+ Neues Element" entfernt, Diktieren volle Breite | ✅ |
+| [#66](https://github.com/jonasyr/Platee.Johann/issues/66) | Aufgaben-Prompt: Zusammenfassung + abhakbare Aufgaben | ✅ |
+| [#59](https://github.com/jonasyr/Platee.Johann/issues/59) | Abschnitte heißen „Vorlagen" | ✅ |
+| [#67](https://github.com/jonasyr/Platee.Johann/issues/67) | `gpt-transcribe` + `gpt-5.6-luna` | ✅ |
+| [#58](https://github.com/jonasyr/Platee.Johann/issues/58) | Fremdsprachige Diktate ergeben deutsche Einträge | ✅ |
+
+**Auf Wunsch des Chefs gestrafft:** #56 und #55 wurden nach v1.5.0 verschoben, damit die
+neuen Modelle schnell beim Team sind. #55 (Löschen) bewusst nicht unter Zeitdruck — es ist
+ein unwiderruflicher Pfad, bei dem wiederverwendete Sequenznummern Einträge überschreiben
+könnten.
+
+### v1.5.0 — E-Mail, Modellwahl, Feinschliff
+
+[#57](https://github.com/jonasyr/Platee.Johann/issues/57) Outlook-Knöpfe ·
+[#56](https://github.com/jonasyr/Platee.Johann/issues/56) Kopiersymbol je Abschnitt ·
+[#55](https://github.com/jonasyr/Platee.Johann/issues/55) Einträge löschen ·
+[#71](https://github.com/jonasyr/Platee.Johann/issues/71) Modell in den Einstellungen wählbar ·
+[#73](https://github.com/jonasyr/Platee.Johann/issues/73) Prompts für GPT-5.6 überarbeiten ·
+[#77](https://github.com/jonasyr/Platee.Johann/issues/77) `gpt-transcribe` besser ausnutzen ·
+[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf ·
+[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen
+
+### v1.6.0 — Diktieren
+
+Reihenfolge zwingend: [#64](https://github.com/jonasyr/Platee.Johann/issues/64) Schema v5
+→ [#36](https://github.com/jonasyr/Platee.Johann/issues/36) Diktier-Popup
+(+ [#61](https://github.com/jonasyr/Platee.Johann/issues/61))
+→ [#65](https://github.com/jonasyr/Platee.Johann/issues/65) „nicht umgesetzt"
+→ [#18](https://github.com/jonasyr/Platee.Johann/issues/18) paralleles Diktieren.
+
+⚠ **Startet erst, wenn der Chef #36 in der neuen Form bestätigt hat.**
+
+### v1.7.0 — Zusammenführen
+
+[#54](https://github.com/jonasyr/Platee.Johann/issues/54) Einträge zusammenführen.
+
+### v1.8.0 — Härtung
+
+[#8](https://github.com/jonasyr/Platee.Johann/issues/8) FileSystemWatcher ·
+[#10](https://github.com/jonasyr/Platee.Johann/issues/10) API-Key per DPAPI ·
+[#38](https://github.com/jonasyr/Platee.Johann/issues/38) Markdown durchgängig.
+
+### Ohne Termin
+
+[#60](https://github.com/jonasyr/Platee.Johann/issues/60) Ariadne-Integration (Epic).
+
+---
+
+## 🧠 Prompts: die Team-Datei ist die Wahrheit
+
+`Z:
+_Tools\Peano\Johann\prompts.json` besitzt den Wortlaut aller neun Prompts und
+gewinnt zur Laufzeit immer. Die `SummaryPrompts`-Konstanten sind nur Startwert für
+Neuinstallationen und Rückfall ohne Share.
+
+➡ **Jede Prompt-Änderung geht in beide.** `TeamPromptDriftTests` bewacht das und
+überspringt sich still, wenn der Share fehlt.
+
+⚠ Kein Client darf die Team-Datei automatisch umschreiben. `PromptDefaultsMigration` war
+genau das und wurde in v1.4.0 gelöscht.
+
+---
+
+## ❓ Offene Fragen an den Chef
+
+1. **Ist #36 richtig verstanden?** Vorlagen-Auswahl im Aufnahme-Fenster statt nachträglich
+   neben dem Transkript. *(blockiert v1.6.0)*
+
+## ✅ Entschieden (2026-09-10)
+
+- **Option A** für die Abschnitts-Auswahl: am Eintrag speichern (#64)
+- **`EntryType` bei Diktaten immer `Projekt`**, Typ-Autoerkennung nur für den Watch-Folder
+- **PDF nur an der internen Aufgaben-Mail**, nicht an der externen
+- **Kostenanzeige verworfen** — Issue gelöscht
+- **Transkript bleibt in der gesprochenen Sprache**, alle generierten Abschnitte deutsch
+- **Zentraler „Kopieren"-Knopf bleibt**, Abschnitts-Symbole kommen daneben
+
+## 🚦 Vor jedem Release
+
+- Installer bauen: `.uild-installer.ps1 -Version 1.x.0`
+- Auto-Update gegen die zuletzt ausgelieferte Version prüfen
+- Sichtbare Verhaltensänderungen gehören in die Release Notes

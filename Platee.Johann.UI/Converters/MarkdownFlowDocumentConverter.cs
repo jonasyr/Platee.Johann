@@ -44,7 +44,9 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
             return doc;
         }
 
-        var bulletBuffer = new List<string>();
+        // Indentation is kept per bullet so nested lists survive. Detecting bullets on the
+        // trimmed line alone used to flatten every outline into a single level.
+        var bulletBuffer = new List<(int Indent, string Text)>();
 
         void FlushBullets()
         {
@@ -53,24 +55,52 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
                 return;
             }
 
-            var list = new List
+            var root = CreateList();
+            doc.Blocks.Add(root);
+
+            // One entry per open nesting level, outermost first. Indents are compared
+            // relatively, so two-space and four-space markdown both nest correctly.
+            var open = new List<(int Indent, List List)> { (bulletBuffer[0].Indent, root) };
+
+            foreach (var (indent, text) in bulletBuffer)
             {
-                MarkerStyle = TextMarkerStyle.Disc,
-                Margin = new Thickness(16, 0, 0, 4),
-                Padding = new Thickness(4, 0, 0, 0),
-            };
-            foreach (var item in bulletBuffer)
-            {
+                while (open.Count > 1 && indent < open[^1].Indent)
+                {
+                    open.RemoveAt(open.Count - 1);
+                }
+
+                List target;
+                if (indent > open[^1].Indent)
+                {
+                    var parent = open[^1].List;
+                    var host = parent.ListItems.LastOrDefault();
+                    if (host is null)
+                    {
+                        // Indented without a parent bullet above it — keep the text rather
+                        // than dropping it.
+                        host = new ListItem();
+                        parent.ListItems.Add(host);
+                    }
+
+                    var child = CreateList();
+                    host.Blocks.Add(child);
+                    open.Add((indent, child));
+                    target = child;
+                }
+                else
+                {
+                    target = open[^1].List;
+                }
+
                 var para = new Paragraph { Margin = new Thickness(0), Padding = new Thickness(0) };
-                foreach (var inline in ParseInlines(item))
+                foreach (var inline in ParseInlines(text))
                 {
                     para.Inlines.Add(inline);
                 }
 
-                list.ListItems.Add(new ListItem(para));
+                target.ListItems.Add(new ListItem(para));
             }
 
-            doc.Blocks.Add(list);
             bulletBuffer.Clear();
         }
 
@@ -121,13 +151,13 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
             else if (trimmed.StartsWith("- ", StringComparison.Ordinal) ||
                      trimmed.StartsWith("* ", StringComparison.Ordinal))
             {
-                bulletBuffer.Add(trimmed[2..]);
+                bulletBuffer.Add((IndentWidth(line), trimmed[2..]));
             }
             else if (NumberedItemRx.IsMatch(trimmed))
             {
-                // Numbered list item — add to same bullet buffer (visual distinction not critical)
+                // Numbered list item — same buffer, the marker style is not critical.
                 var text = NumberedItemRx.Replace(trimmed, string.Empty);
-                bulletBuffer.Add(text);
+                bulletBuffer.Add((IndentWidth(line), text));
             }
             else if (string.IsNullOrEmpty(line))
             {
@@ -149,6 +179,39 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
 
         FlushBullets();
         return doc;
+    }
+
+    private static List CreateList() => new()
+    {
+        MarkerStyle = TextMarkerStyle.Disc,
+        Margin = new Thickness(16, 0, 0, 4),
+        Padding = new Thickness(4, 0, 0, 0),
+    };
+
+    /// <summary>
+    /// Leading whitespace measured in columns, with a tab counting as two. Only relative
+    /// differences matter, so the exact width never needs to match an editor's setting.
+    /// </summary>
+    private static int IndentWidth(string line)
+    {
+        var width = 0;
+        foreach (var ch in line)
+        {
+            if (ch == ' ')
+            {
+                width++;
+            }
+            else if (ch == '\t')
+            {
+                width += 2;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        return width;
     }
 
     /// <summary>

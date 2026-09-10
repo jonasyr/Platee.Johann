@@ -104,6 +104,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
                 ? new Dictionary<string, GenerationMode>(dto.SectionModes, StringComparer.Ordinal)
                 : defaultSettings.SectionModes,
             SectionModesMigrationDone = dto.SectionModesMigrationDone,
+            HideEmptySectionHint = dto.HideEmptySectionHint,
         };
     }
 
@@ -121,6 +122,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
             .ToList(),
         SectionModes = new Dictionary<string, GenerationMode>(s.SectionModes, StringComparer.Ordinal),
         SectionModesMigrationDone = s.SectionModesMigrationDone,
+        HideEmptySectionHint = s.HideEmptySectionHint,
     };
 
     // Separate DTO to decouple JSON shape from the domain record
@@ -145,6 +147,8 @@ public sealed class JsonSettingsRepository : ISettingsRepository
 
         /// <summary>Gets or sets a value indicating whether the first-run mode prompt was answered.</summary>
         public bool SectionModesMigrationDone { get; set; }
+
+        public bool HideEmptySectionHint { get; set; }
 
         /// <summary>
         /// Backing field plus a "was it in the JSON at all" flag. System.Text.Json
