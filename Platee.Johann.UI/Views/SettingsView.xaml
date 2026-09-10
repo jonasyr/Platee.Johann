@@ -295,7 +295,7 @@
                                   Visibility="{Binding IsKategorienSelected, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel>
                             <TextBlock Style="{StaticResource HintStyle}"
-                                       Text="Eigene Kategorien erzeugen zusätzliche Abschnitte aus dem Transkript. Pro Abschnitt legen Sie fest, ob er automatisch nach jeder Aufnahme entsteht oder erst auf Knopfdruck im Eintrag."/>
+                                       Text="Eigene Vorlagen erzeugen zusätzliche Abschnitte aus dem Transkript. Pro Abschnitt legen Sie fest, ob er automatisch nach jeder Aufnahme entsteht oder erst auf Knopfdruck im Eintrag."/>
 
                             <TextBlock Style="{StaticResource LabelStyle}" Text="Feste Abschnitte"/>
                             <TextBlock Style="{StaticResource HintStyle}"
@@ -321,7 +321,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
 
-                            <TextBlock Style="{StaticResource LabelStyle}" Text="Eigene Kategorien"/>
+                            <TextBlock Style="{StaticResource LabelStyle}" Text="Eigene Vorlagen"/>
                             <Border BorderBrush="#DADADA" BorderThickness="1" Padding="0" Margin="0,0,0,6">
                                 <ListBox ItemsSource="{Binding Categories}"
                                          SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
@@ -352,7 +352,7 @@
                             </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                <Button Content="+ Kategorie" Padding="10,5" FontSize="12"
+                                <Button Content="+ Vorlage" Padding="10,5" FontSize="12"
                                         Command="{Binding AddCategoryCommand}"/>
                                 <Button Content="Duplizieren" Padding="10,5" FontSize="12" Margin="6,0,0,0"
                                         Command="{Binding DuplicateCategoryCommand}"
@@ -388,7 +388,7 @@
                                           FontSize="12" Margin="0,2,0,0"
                                           IsChecked="{Binding IsGlobal, Mode=TwoWay}"/>
                                 <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
-                                           Text="Globale Kategorien werden nur geschrieben, wenn unten „Speichern nach: Global (Team)“ gewählt ist."/>
+                                           Text="Globale Vorlagen werden nur geschrieben, wenn unten „Speichern nach: Global (Team)“ gewählt ist."/>
 
                                 <TextBlock Style="{StaticResource LabelStyle}" Text="Prompt"/>
                                 <TextBlock FontSize="11" Foreground="#C0392B" Background="#FDF1F0"

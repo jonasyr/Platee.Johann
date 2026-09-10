@@ -165,7 +165,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private async Task SaveAsync()
     {
         // A category added in this session still carries the placeholder id minted from
-        // „Neue Kategorie". Re-mint it from the name the user actually typed, once, here —
+        // „Neue Vorlage". Re-mint it from the name the user actually typed, once, here —
         // before SectionModes are collected, because those are keyed by category id.
         this.FinalizeNewCategoryIds();
 
@@ -316,7 +316,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             this.SaveTarget = CategoryScope.Personal;
 
             var rescued = hadPersonalCategories
-                ? "Eigene Kategorien wurden persönlich gespeichert; Prompt-Änderungen"
+                ? "Eigene Vorlagen wurden persönlich gespeichert; Prompt-Änderungen"
                 : "Prompt-Änderungen";
 
             this.StatusMessage =
@@ -443,10 +443,17 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// processing, and must never land in the team file without the user saying so.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Gets the placeholder name a freshly added template carries until the user renames it.
+    /// The id is minted from the name on first save, so this string ends up in the id of
+    /// anyone who never renames their template.
+    /// </summary>
+    public const string NewCategoryDefaultName = "Neue Vorlage";
+
     [RelayCommand]
     private void AddCategory()
     {
-        this.AppendCategory("Neue Kategorie", CategoryEditorViewModel.DefaultPrompt);
+        this.AppendCategory(NewCategoryDefaultName, CategoryEditorViewModel.DefaultPrompt);
     }
 
     /// <summary>
@@ -688,7 +695,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             new(SectionPaths, "Verzeichnisse", "GRUNDDATEN"),
             new(SectionTeam, "Team-Prompts", "GRUNDDATEN"),
             new(SectionKorrekturliste, "Korrekturliste", "GRUNDDATEN"),
-            new(SectionKategorien, "Kategorien", "GRUNDDATEN"),
+            new(SectionKategorien, "Vorlagen", "GRUNDDATEN"),
             new(SectionSystemMessage, "System-Nachricht", "GLOBALE PROMPTS"),
             new(SectionAbstract, "Kurzfassung", "GLOBALE PROMPTS"),
             new(SectionStructured, "Zusammenfassung", "GLOBALE PROMPTS"),
