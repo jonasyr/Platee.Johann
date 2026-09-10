@@ -430,45 +430,7 @@ public sealed partial class MainViewModel : ObservableObject
         this.ResetSectionsToDefaults(this.SelectedEntry?.Entry.Type);
     }
 
-    [RelayCommand]
-    private async Task AddEntry()
-    {
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        var nextSeq = await this.repository.GetNextSequenceNumberAsync(today);
 
-        var dialogVm = new NewEntryViewModel(nextSeq);
-        var dialog = new NewEntryView(dialogVm)
-        {
-            Owner = System.Windows.Application.Current.MainWindow,
-        };
-
-        if (dialog.ShowDialog() != true || dialogVm.CreatedEntry is null)
-        {
-            return;
-        }
-
-        var entry = dialogVm.CreatedEntry;
-
-        // Persist first so the entry is visible even if AI fails
-        await this.repository.SaveAsync(entry);
-
-        // If AI is available and the user entered content, auto-generate summaries
-        if (this.processor.CanProcess && !string.IsNullOrWhiteSpace(entry.Transcript))
-        {
-            try
-            {
-                this.ErrorMessage = "Generiere KI-Zusammenfassungen…";
-                entry = await this.processor.ReprocessAsync(entry);
-                this.ErrorMessage = string.Empty;
-            }
-            catch (Exception ex)
-            {
-                this.ErrorMessage = $"KI-Fehler: {ex.Message}";
-            }
-        }
-
-        await this.RefreshAfterEntryAsync(entry);
-    }
 
     [RelayCommand]
     private async Task AddAudio()

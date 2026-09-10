@@ -739,16 +739,13 @@
                 <Border DockPanel.Dock="Bottom" Padding="8" BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0">
                     <Grid>
-                        <!-- Idle state: Neues Element + Diktieren buttons -->
-                        <StackPanel Orientation="Horizontal"
-                                    Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVis}}">
-                            <Button Content="+ Neues Element" Command="{Binding AddEntryCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    ToolTip="Neuen Eintrag anlegen"/>
-                            <Button Content="🎙 Diktieren" Command="{Binding StartDictationCommand}"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    ToolTip="Mikrofon-Aufnahme starten"/>
-                        </StackPanel>
+                        <!-- Idle state: Diktieren across the full width -->
+                        <Button Content="🎙 Diktieren" Command="{Binding StartDictationCommand}"
+                                Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVis}}"
+                                Style="{StaticResource ActionButtonStyle}"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                ToolTip="Mikrofon-Aufnahme starten"/>
 
                         <!-- Recording state: pulsing dot + REC + timer + Stop -->
                         <DockPanel Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}">
