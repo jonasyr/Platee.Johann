@@ -126,26 +126,39 @@ public static class SummaryPrompts
 
     public const string Aufgabe =
         "Du erhältst das Transkript eines Sprach-Diktats.\n\n" +
-        "## Auftrag\n\n" +
-        "Erzeuge genau zwei Abschnitte in dieser Reihenfolge.\n\n" +
-        "### Zusammenfassung\n\n" +
-        "Zwei bis vier Sätze Fließtext: worum es geht, wer beteiligt ist und in welchem " +
-        "Zusammenhang die Aufgaben stehen. Keine Aufzählung, und nimm die Aufgabenliste " +
-        "hier nicht vorweg.\n\n" +
-        "### Aufgaben\n\n" +
-        "Je Aufgabe ein Stichpunkt.\n\n" +
-        "- Fasse zusammengehörige Handlungen zu einer Aufgabe zusammen\n" +
-        "- Nenne die Frist, sofern eine genannt wurde\n" +
-        "- Nenne die zuständige Person, sofern eine genannt wurde\n" +
+        "Die folgenden Überschriften gliedern diese Anweisung. Deine Antwort selbst " +
+        "enthält keine Überschriften.\n\n" +
+        "## Aufbau der Antwort\n\n" +
+        "Gib genau zwei Dinge aus, direkt hintereinander:\n\n" +
+        "1. Einen Absatz Fließtext aus zwei bis vier Sätzen: worum es geht, wer beteiligt " +
+        "ist und in welchem Zusammenhang die Aufgaben stehen. Nimm die Aufgaben hier " +
+        "nicht vorweg.\n" +
+        "2. Nach einer Leerzeile die Aufgabenliste als Markdown-Aufzählung. Jede Zeile " +
+        "beginnt mit einem Bindestrich und einem Leerzeichen; der Aufgabentext steht " +
+        "nach dem Bindestrich.\n\n" +
+        "## Die Aufgabenliste\n\n" +
+        "- Eine Zeile je Aufgabe, höchstens 20 Wörter\n" +
+        "- Formuliere jede Aufgabe so, wie man sie auf eine To-do-Liste schreibt: als " +
+        "knappe Handlungsanweisung in natürlichem Deutsch. Beispiel: „PDF je " +
+        "Sprachnachricht erzeugen\"\n" +
+        "- Fasse zusammengehörige Handlungen zu einer Aufgabe zusammen. Nenne " +
+        "höchstens acht Aufgaben; lieber eine Aufgabe mehr zusammenfassen als eine " +
+        "Selbstverständlichkeit einzeln aufführen\n" +
+        "- Frist und zuständige Person nur nennen, wenn sie im Transkript vorkommen, " +
+        "dann am Zeilenende in Klammern\n" +
         "- Behalte die chronologische Abfolge des Diktats bei\n\n" +
-        "Nennt das Transkript keine Aufgaben, schreibe unter „Aufgaben\" genau diesen " +
-        "Satz und sonst nichts: Keine Aufgaben genannt.\n\n" +
+        "Nennt das Transkript keine Aufgaben, schreibe statt der Liste genau diesen Satz " +
+        "und sonst nichts: Keine Aufgaben genannt.\n\n" +
+        "## Das darfst du nicht\n\n" +
+        "- Keine Überschriften und keine Zwischenüberschriften, auch nicht die Wörter " +
+        "„Zusammenfassung\" oder „Aufgaben\" als eigene Zeile\n" +
+        "- Keine eigene Nummerierung wie „Aufgabe 1:\" vor den Stichpunkten\n" +
+        "- Keine Einleitung, kein Schlusssatz, keine Rückfrage\n" +
+        "- Nichts ergänzen, was nicht im Transkript steht\n\n" +
         "## Regeln\n\n" +
         "- Nutze ausschließlich Informationen, die explizit im Transkript stehen\n" +
-        "- Keine Ergänzungen, keine Annahmen, keine Dopplungen\n" +
-        "- Formuliere kurz und präzise\n" +
-        "- Korrigiere offensichtliche Transkriptions- und Spracherkennungsfehler stillschweigend\n" +
-        "- Gib ausschließlich die beiden Abschnitte aus, ohne Einleitung und ohne Schlusssatz\n\n" +
+        "- Formuliere kurz und präzise, keine Dopplungen\n" +
+        "- Korrigiere offensichtliche Transkriptions- und Spracherkennungsfehler stillschweigend\n\n" +
         "## Transkript\n\n" +
         "{transcript}";
 
