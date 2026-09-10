@@ -104,7 +104,7 @@ Kein `Titel … Ende`? Dann generiert GPT den Titel automatisch aus dem Inhalt.
 **Automatisch** (läuft bei jedem Eintrag mit) oder **Auf Knopfdruck** (wird erst erzeugt, wenn du
 im Eintrag auf „Generieren“ klickst). Standardmäßig sind vier der eingebauten Abschnitte
 automatisch — das halbiert die Wartezeit pro Eintrag. Die Modi stellst du in den Einstellungen
-unter **Kategorien** ein; sie gelten nur für dich.
+unter **Vorlagen** ein; sie gelten nur für dich.
 
 Die Checkbox-Vorauswahl links richtet sich nach dem Typ und kann jederzeit angepasst werden.
 
@@ -119,7 +119,7 @@ Die Checkbox-Vorauswahl links richtet sich nach dem Typ und kann jederzeit angep
 | **Stundenzettel** | Zeiterfassung | Typ „Stundenzettel" |
 | **Analog** | Freitext-Abschnitt | Typ „Analog" |
 | **Transkript** | Vollständiger Originaltext (ausklappbar) | Alle Typen |
-| **Eigene Kategorien** | Frei definierbar, siehe unten | Nach Konfiguration |
+| **Eigene Vorlagen** | Frei definierbar, siehe unten | Nach Konfiguration |
 
 ### Aktions-Buttons
 
@@ -210,29 +210,29 @@ angezeigt, was tatsächlich gespeichert werden konnte.
 
 ---
 
-## Eigene Kategorien
+## Eigene Vorlagen
 
-Neben den eingebauten Abschnitten kannst du unter **Einstellungen → Kategorien** eigene
-Kategorien anlegen: ein Name und ein Prompt, der `{transcript}` enthalten muss — dort wird
+Neben den eingebauten Abschnitten kannst du unter **Einstellungen → Vorlagen** eigene
+Vorlagen anlegen: ein Name und ein Prompt, der `{transcript}` enthalten muss — dort wird
 der Text des Eintrags eingesetzt.
 
-**Persönlich oder global.** Eine persönliche Kategorie sieht nur du. Eine globale Kategorie
+**Persönlich oder global.** Eine persönliche Vorlage sieht nur du. Eine globale Vorlage
 liegt in der Team-Datei und steht allen zur Verfügung. Umschalten über **Speicherort** in der
-Kategorie und **Speichern nach** unten im Fenster.
+Vorlage und **Speichern nach** unten im Fenster.
 
-> ⚠ **Globale Kategorien erst anlegen, wenn alle auf der neuen Version sind.** Ältere
+> ⚠ **Globale Vorlagen erst anlegen, wenn alle auf der neuen Version sind.** Ältere
 > Versionen kennen das Feld nicht und entfernen es beim nächsten Speichern wieder aus der
-> Team-Datei. Persönliche Kategorien sind davon nie betroffen.
+> Team-Datei. Persönliche Vorlagen sind davon nie betroffen.
 
-**Umbenennen ist gefahrlos.** Jede Kategorie bekommt beim ersten Speichern eine feste,
+**Umbenennen ist gefahrlos.** Jede Vorlage bekommt beim ersten Speichern eine feste,
 unsichtbare Kennung. Bereits erzeugte Texte hängen an dieser Kennung, nicht am Namen.
 
-**Gelöschte Kategorien.** Wird eine Kategorie gelöscht, bleibt bereits erzeugter Text
+**Gelöschte Vorlagen.** Wird eine Vorlage gelöscht, bleibt bereits erzeugter Text
 erhalten und erscheint unter seinem ursprünglichen Namen mit dem Hinweis
-„Nicht mehr konfiguriert“. Über die Liste links lässt er sich ausblenden. Eine neue Kategorie
+„Nicht mehr konfiguriert“. Über die Liste links lässt er sich ausblenden. Eine neue Vorlage
 mit demselben Namen übernimmt diesen Text **nicht**.
 
-**Abschnitte ein- und ausblenden.** Die Liste links gruppiert die Kategorien nach *Eigene*,
+**Abschnitte ein- und ausblenden.** Die Liste links gruppiert die Vorlagen nach *Eigene*,
 *Team* und *Nicht mehr konfiguriert*. Was abgewählt ist, fehlt in der Ansicht, im PDF, im
 HTML und beim Kopieren.
 

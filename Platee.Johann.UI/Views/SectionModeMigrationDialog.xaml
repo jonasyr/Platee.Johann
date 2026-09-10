@@ -38,7 +38,7 @@
         </Border>
 
         <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#777" Margin="0,0,0,16">
-            Sie können das jederzeit ändern: Einstellungen → Kategorien → Automatisch / Auf Knopfdruck.
+            Sie können das jederzeit ändern: Einstellungen → Vorlagen → Automatisch / Auf Knopfdruck.
         </TextBlock>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

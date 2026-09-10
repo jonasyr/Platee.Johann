@@ -70,10 +70,10 @@ public sealed partial class SectionVisibilityViewModel : ObservableObject
     private bool isOrphanedExpanded;
 
     /// <summary>Group heading for a user's own categories.</summary>
-    public const string PersonalGroup = "Eigene Kategorien";
+    public const string PersonalGroup = "Eigene Vorlagen";
 
     /// <summary>Group heading for categories from the shared team file.</summary>
-    public const string GlobalGroup = "Team-Kategorien";
+    public const string GlobalGroup = "Team-Vorlagen";
 
     /// <summary>Group heading for text whose category has been deleted.</summary>
     public const string OrphanGroup = "Nicht mehr konfiguriert";

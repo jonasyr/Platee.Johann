@@ -2,11 +2,11 @@
 
 ## Version 1.3.3
 
-**Eigene Kategorien.**
+**Eigene Vorlagen.**
 
-- Neben den acht eingebauten Abschnitten lassen sich jetzt eigene Kategorien anlegen —
+- Neben den acht eingebauten Abschnitten lassen sich jetzt eigene Vorlagen anlegen —
   persönlich (nur für dich) oder global für das ganze Team.
-- Jede Kategorie läuft entweder **automatisch** bei jedem Eintrag mit oder erst **auf
+- Jede Vorlage läuft entweder **automatisch** bei jedem Eintrag mit oder erst **auf
   Knopfdruck**. Standardmäßig sind nur vier der eingebauten Abschnitte automatisch,
   statt bisher acht — ein Eintrag ist dadurch spürbar schneller fertig.
 - Beim ersten Start fragt Johann einmalig, ob die neue Aufteilung übernommen werden soll.
@@ -19,10 +19,10 @@
 
 **Abschnitte ein- und ausblenden.**
 
-- Die Liste links steuert jetzt auch eigene Kategorien — getrennt nach eigenen,
-  Team- und gelöschten Kategorien. Was abgewählt ist, fehlt in der Ansicht, im PDF,
+- Die Liste links steuert jetzt auch eigene Vorlagen — getrennt nach eigenen,
+  Team- und gelöschten Vorlagen. Was abgewählt ist, fehlt in der Ansicht, im PDF,
   im HTML und beim Kopieren.
-- Text einer gelöschten Kategorie geht nicht verloren: er bleibt unter seinem
+- Text einer gelöschten Vorlage geht nicht verloren: er bleibt unter seinem
   ursprünglichen Namen sichtbar und lässt sich ausblenden.
 
 ---

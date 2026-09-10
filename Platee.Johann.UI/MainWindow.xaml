@@ -1154,7 +1154,7 @@
                                 FontSize="13"/>
                         </StackPanel>
 
-                        <!-- Eigene Kategorien und Abschnitte auf Knopfdruck.
+                        <!-- Eigene Vorlagen und Abschnitte auf Knopfdruck.
                              Above the transcript, which always stays last: one row per configured
                              custom category, plus read-only rows for text whose category
                              was deleted. This is where #38's Markdown rendering lands. -->
@@ -1170,7 +1170,7 @@
                                                 <TextBlock Text=" · Nicht mehr konfiguriert"
                                                            FontSize="11" Foreground="#999" FontStyle="Italic"
                                                            VerticalAlignment="Bottom" Margin="6,0,0,1"
-                                                           ToolTip="Diese Kategorie wurde entfernt. Der erzeugte Text bleibt erhalten."
+                                                           ToolTip="Diese Vorlage wurde entfernt. Der erzeugte Text bleibt erhalten."
                                                            Visibility="{Binding IsOrphaned, Converter={StaticResource BoolToVis}}"/>
                                             </StackPanel>
                                         </Border>

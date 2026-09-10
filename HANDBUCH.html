@@ -363,7 +363,7 @@
 
     <h3>Abschnitte</h3>
     <p>Die Checkboxen links steuern, welche Abschnitte sichtbar sind – und was bei PDF, HTML und Kopieren enthalten wird.</p>
-    <p><strong>Nicht mehr jeder Abschnitt wird automatisch erzeugt.</strong> Jeder Abschnitt hat einen Modus: <strong>Automatisch</strong> läuft bei jedem Eintrag mit, <strong>Auf Knopfdruck</strong> wird erst erzeugt, wenn Sie im Eintrag auf „Generieren“ klicken. Standardmäßig sind vier der eingebauten Abschnitte automatisch – das halbiert die Wartezeit pro Eintrag. Die Modi stellen Sie unter <strong>Einstellungen → Kategorien</strong> ein; sie gelten nur für Sie.</p>
+    <p><strong>Nicht mehr jeder Abschnitt wird automatisch erzeugt.</strong> Jeder Abschnitt hat einen Modus: <strong>Automatisch</strong> läuft bei jedem Eintrag mit, <strong>Auf Knopfdruck</strong> wird erst erzeugt, wenn Sie im Eintrag auf „Generieren“ klicken. Standardmäßig sind vier der eingebauten Abschnitte automatisch – das halbiert die Wartezeit pro Eintrag. Die Modi stellen Sie unter <strong>Einstellungen → Vorlagen</strong> ein; sie gelten nur für Sie.</p>
     <p>Die Checkbox-Vorauswahl links richtet sich nach dem Eintragstyp und kann jederzeit angepasst werden.</p>
 
     <div class="table-wrap">
@@ -379,7 +379,7 @@
           <tr><td>Stundenzettel</td><td>Zeiterfassung</td><td>Typ „Stundenzettel"</td></tr>
           <tr><td>Analog</td><td>Freitext-Abschnitt</td><td>Typ „Analog"</td></tr>
           <tr><td>Transkript</td><td>Vollständiger Originaltext (ausklappbar)</td><td>Alle Typen</td></tr>
-          <tr><td>Eigene Kategorien</td><td>Frei definierbar – siehe Abschnitt „Eigene Kategorien“</td><td>Nach Konfiguration</td></tr>
+          <tr><td>Eigene Vorlagen</td><td>Frei definierbar – siehe Abschnitt „Eigene Vorlagen“</td><td>Nach Konfiguration</td></tr>
         </tbody>
       </table>
     </div>
@@ -556,19 +556,19 @@
 
     <p>Ist das Netzlaufwerk nicht erreichbar, wird auf die persönliche Datei ausgewichen. Die Statuszeile sagt, was tatsächlich gespeichert werden konnte.</p>
 
-    <h3 id="eigene-kategorien">Eigene Kategorien</h3>
-    <p>Unter <strong>Einstellungen → Kategorien</strong> legen Sie eigene Abschnitte an: ein Name und ein Prompt, der <code>{transcript}</code> enthalten muss – dort wird der Text des Eintrags eingesetzt.</p>
+    <h3 id="eigene-vorlagen">Eigene Vorlagen</h3>
+    <p>Unter <strong>Einstellungen → Vorlagen</strong> legen Sie eigene Abschnitte an: ein Name und ein Prompt, der <code>{transcript}</code> enthalten muss – dort wird der Text des Eintrags eingesetzt.</p>
 
     <ul>
-      <li><strong>Persönlich oder global.</strong> Eine persönliche Kategorie sehen nur Sie; eine globale liegt in der Team-Datei und steht allen zur Verfügung.</li>
-      <li><strong>Umbenennen ist gefahrlos.</strong> Jede Kategorie erhält beim ersten Speichern eine feste, unsichtbare Kennung. Bereits erzeugte Texte hängen an dieser Kennung, nicht am Namen.</li>
-      <li><strong>Gelöschte Kategorien.</strong> Bereits erzeugter Text bleibt erhalten und erscheint unter seinem ursprünglichen Namen mit dem Hinweis „Nicht mehr konfiguriert“. Über die Liste links lässt er sich ausblenden. Eine neue Kategorie mit demselben Namen übernimmt diesen Text <strong>nicht</strong>.</li>
+      <li><strong>Persönlich oder global.</strong> Eine persönliche Vorlage sehen nur Sie; eine globale liegt in der Team-Datei und steht allen zur Verfügung.</li>
+      <li><strong>Umbenennen ist gefahrlos.</strong> Jede Vorlage erhält beim ersten Speichern eine feste, unsichtbare Kennung. Bereits erzeugte Texte hängen an dieser Kennung, nicht am Namen.</li>
+      <li><strong>Gelöschte Vorlagen.</strong> Bereits erzeugter Text bleibt erhalten und erscheint unter seinem ursprünglichen Namen mit dem Hinweis „Nicht mehr konfiguriert“. Über die Liste links lässt er sich ausblenden. Eine neue Vorlage mit demselben Namen übernimmt diesen Text <strong>nicht</strong>.</li>
       <li><strong>Ein- und ausblenden.</strong> Die Liste links gruppiert nach <em>Eigene</em>, <em>Team</em> und <em>Nicht mehr konfiguriert</em>. Was abgewählt ist, fehlt in der Ansicht, im PDF, im HTML und beim Kopieren.</li>
     </ul>
 
     <div class="warn">
       <span class="icon">⚠️</span>
-      <p><strong>Globale Kategorien erst anlegen, wenn alle Mitarbeiter auf der neuen Version sind.</strong> Ältere Versionen kennen das Feld nicht und entfernen es beim nächsten Speichern wieder aus der Team-Datei. Persönliche Kategorien sind davon nie betroffen.</p>
+      <p><strong>Globale Vorlagen erst anlegen, wenn alle Mitarbeiter auf der neuen Version sind.</strong> Ältere Versionen kennen das Feld nicht und entfernen es beim nächsten Speichern wieder aus der Team-Datei. Persönliche Vorlagen sind davon nie betroffen.</p>
     </div>
 
     <div class="tip">
@@ -634,7 +634,7 @@
     <ol class="steps">
       <li><p>Beim Start lädt Johann die Prompts von <code>Z:\12_Tools\Peano\Johann\prompts.json</code>.</p></li>
       <li><p>Ist das Netzlaufwerk nicht erreichbar, wird die zuletzt geladene Team-Fassung aus dem lokalen Zwischenspeicher verwendet – erst danach die eingebauten Standard-Prompts.</p></li>
-      <li><p>Ihre eigenen Kategorien liegen immer lokal und sind von einer Netzwerkstörung nie betroffen.</p></li>
+      <li><p>Ihre eigenen Vorlagen liegen immer lokal und sind von einer Netzwerkstörung nie betroffen.</p></li>
     </ol>
 
     <h3>Speichern nach: Persönlich oder Global</h3>
@@ -643,7 +643,7 @@
     <ol class="steps">
       <li><p><strong>Persönlich</strong> – gilt nur für Sie und bleibt nach dem Neustart erhalten.</p></li>
       <li><p><strong>Global (Team)</strong> – schreibt in die Datei auf dem Netzlaufwerk.</p></li>
-      <li><p>Prompt oder Kategorie bearbeiten und <strong>Speichern</strong> klicken. Die Statuszeile bestätigt, wohin gespeichert wurde.</p></li>
+      <li><p>Prompt oder Vorlage bearbeiten und <strong>Speichern</strong> klicken. Die Statuszeile bestätigt, wohin gespeichert wurde.</p></li>
     </ol>
 
     <div class="warn">
