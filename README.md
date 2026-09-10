@@ -1,6 +1,6 @@
 # Platé.Johann – Benutzerhandbuch
 
-**Johann** ist ein KI-gestütztes Diktat-Werkzeug für Windows. Du sprichst ein Diktat auf dein Smartphone, legst die MP3-Datei in den Eingangsordner – und Johann erledigt den Rest: Transkription via OpenAI Whisper, automatische Zusammenfassung, strukturierte Ablage als HTML und PDF.
+**Johann** ist ein KI-gestütztes Diktat-Werkzeug für Windows. Du sprichst ein Diktat auf dein Smartphone, legst die MP3-Datei in den Eingangsordner – und Johann erledigt den Rest: Transkription via OpenAI, automatische Zusammenfassung, strukturierte Ablage als HTML und PDF.
 
 ---
 
@@ -140,7 +140,7 @@ Das Transkript kann direkt in der Detailansicht korrigiert werden:
 2. Fehler korrigieren (z. B. falsch erkannte Namen, fehlende Satzzeichen, versehentlich aufgenommene Passagen entfernen).
 3. **Neu generieren** klicken → alle KI-Abschnitte werden aus dem korrigierten Text neu erstellt.
 
-Der korrigierte Text wird sofort angezeigt und bleibt auch nach einem Neustart erhalten. Das Original-Transkript von Whisper wird intern als Referenz aufbewahrt. Bearbeitete Transkripte sind mit „(bearbeitet)" gekennzeichnet. PDF, HTML und Kopieren verwenden automatisch den korrigierten Text.
+Der korrigierte Text wird sofort angezeigt und bleibt auch nach einem Neustart erhalten. Das Original-Transkript wird intern als Referenz aufbewahrt. Bearbeitete Transkripte sind mit „(bearbeitet)" gekennzeichnet. PDF, HTML und Kopieren verwenden automatisch den korrigierten Text.
 
 Mit **Abbrechen** wird die Bearbeitung verworfen und der zuletzt gespeicherte Text wiederhergestellt.
 

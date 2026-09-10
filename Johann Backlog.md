@@ -274,7 +274,9 @@ könnten.
 [#55](https://github.com/jonasyr/Platee.Johann/issues/55) Einträge löschen ·
 [#71](https://github.com/jonasyr/Platee.Johann/issues/71) Modell in den Einstellungen wählbar ·
 [#73](https://github.com/jonasyr/Platee.Johann/issues/73) Prompts für GPT-5.6 überarbeiten ·
-[#77](https://github.com/jonasyr/Platee.Johann/issues/77) `gpt-transcribe` besser ausnutzen
+[#77](https://github.com/jonasyr/Platee.Johann/issues/77) `gpt-transcribe` besser ausnutzen ·
+[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf ·
+[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen
 
 ### v1.6.0 — Diktieren
 
