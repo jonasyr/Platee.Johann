@@ -1059,9 +1059,20 @@
                             <Border Style="{StaticResource SectionHeaderBorderStyle}">
                                 <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
                             </Border>
-                            <TextBox Text="{Binding Detail.DisplayProseSummary, Mode=OneWay}"
-                                     Style="{StaticResource ContentTextStyle}"
-                                     TextWrapping="Wrap"/>
+                            <!-- Wie alle anderen erzeugten Abschnitte als Markdown gerendert.
+                                 Stand hier bis v1.4.0 als roher TextBox: mit den schwaecheren
+                                 Modellen kam ohnehin Fliesstext, mit gpt-5.6-luna standen
+                                 ploetzlich "##"-Ueberschriften unformatiert in der Ansicht. -->
+                            <FlowDocumentScrollViewer
+                                Document="{Binding Detail.DisplayProseSummary, Converter={StaticResource MdToDoc}}"
+                                VerticalScrollBarVisibility="Disabled"
+                                HorizontalScrollBarVisibility="Disabled"
+                                IsSelectionEnabled="True"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="0"
+                                FontFamily="Segoe UI, Arial"
+                                FontSize="13"/>
                         </StackPanel>
 
                         <!-- Task list -->
