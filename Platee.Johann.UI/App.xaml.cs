@@ -228,6 +228,17 @@ public partial class App : System.Windows.Application
                                            runtimeSettingsHolder, microphoneRecorder,
                                            pathResolution.Issues);
 
+        // Wired here rather than injected so the view models stay dialog-free in tests.
+        viewModel.EmptySectionHintPrompt = () =>
+        {
+            var dialog = new Views.EmptySectionHintDialog
+            {
+                Owner = System.Windows.Application.Current.MainWindow,
+            };
+            dialog.ShowDialog();
+            return dialog.Suppress;
+        };
+
         // Track per-file log items for the watcher
         var watcherLogs = new System.Collections.Concurrent.ConcurrentDictionary<string, ProcessLogItem>();
 

@@ -72,10 +72,11 @@ Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
 
 Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Domain)
   Audio/                       # WindowsMicrophoneRecorder (NAudio 2.2.1 WasapiCapture → temp WAV → MP3),
-                               #   NoOpMicrophoneRecorder stub
+                               #   NoOpMicrophoneRecorder stub, AudioDurationReader
   Json/                        # JsonRepository (file-backed), JsonSettingsRepository,
                                #   JsonPromptSettingsRepository, migration
-  Llm/                         # OpenAiLlmProvider, WhisperTranscriber, NoOp stubs
+  Llm/                         # OpenAiLlmProvider (gpt-5.6-luna), WhisperTranscriber
+                               #   (gpt-transcribe), NoOp stubs
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
 Platee.Johann.UI/              # WPF presentation layer (depends on all)
@@ -127,6 +128,38 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 <!-- AUTO-MANAGED: patterns -->
 ## Detected Patterns
+
+**Models (v1.4.0)**: `ModelNames` (Application/Processing/) holds both OpenAI model ids in one
+place — `gpt-transcribe` for speech-to-text, `gpt-5.6-luna` for every generated section. Choosing
+a model is an application decision, calling the SDK with it is infrastructure, so the constants
+live in Application: that lets the status bar name the models without a view model reaching into
+`Infrastructure`, and keeps the id from being written twice. `ModelSelectionTests` pins both — a
+silently reverted model would fail nothing, the app would just get worse and more expensive.
+#71 turns `Summaries` into a per-user setting.
+
+**Audio duration is measured locally**: `whisper-1` reported it in its Verbose response;
+`gpt-transcribe` answers with plain `json` and carries neither duration nor timestamps.
+`AudioDurationReader` (Infrastructure/Audio/) reads it from the file via NAudio, falls back to
+MediaFoundation for containers `Mp3FileReader` rejects, and **never throws** — a duration is
+decoration next to an entry and in the PDF header; losing it must not cost a transcribed
+dictation. Validated against 20 archived recordings including a 5:17 one: largest deviation from
+the value Whisper had reported was 0.009 s. Only `ProcessAudioAsync` writes `DurationSeconds`,
+so reprocessing an old entry preserves it.
+
+**No forced transcription language**: `WhisperTranscriber.ForcedLanguage` is `null`. While it was
+pinned to `"de"`, a non-German dictation could not be transcribed at all. The model detects the
+language itself; the system prompt keeps the *output* German. The transcript deliberately stays
+in the spoken language — it is the record of what was said.
+
+**Markdown rendering**: `MarkdownFlowDocumentConverter` (UI/Converters/) renders every generated
+section; only the transcript stays raw, because it is the literal transcription and must stay
+editable. It keeps per-bullet indentation and compares indents relatively, so two- and four-space
+markdown both nest — until v1.4.0 it detected bullets on the trimmed line and flattened every
+outline into one level. That only became visible with a model strong enough to nest.
+
+⚠ **Prompts must not name their own section.** The app already renders the heading; a prompt that
+tells the model to "create a Gesprächsnotiz" gets one titled that way, and it then appears twice
+in the detail view, the PDF and the mail. Every section prompt now says so explicitly.
 
 **Repository pattern**: `IEntryRepository` / `ISettingsRepository` / `IPromptSettingsRepository` interfaces in Application; `JsonRepository` / `JsonSettingsRepository` / `JsonPromptSettingsRepository` in Infrastructure. Business logic never touches file I/O directly.
 

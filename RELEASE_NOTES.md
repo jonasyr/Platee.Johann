@@ -16,6 +16,16 @@
 - Der Aufgaben-Abschnitt beginnt mit einer kurzen Zusammenfassung und listet darunter
   die Aufgaben — je eine Zeile, kurz und abhakbar statt als Textblock.
 
+**Die Darstellung stimmt wieder.**
+
+- Verschachtelte Aufzählungen wurden bisher flachgeklopft: Unterpunkte standen auf
+  derselben Ebene wie ihre Oberpunkte, die Gliederung ging verloren. Sie wird jetzt
+  korrekt eingerückt dargestellt.
+- Die ausführliche Zusammenfassung und das Abstract zeigten Formatierungszeichen wie
+  `**` und `##` im Klartext an. Beide werden jetzt richtig dargestellt.
+- Kein Abschnitt wiederholt mehr seine eigene Überschrift. Bisher stand etwa über der
+  Gesprächsnotiz zweimal „Gesprächsnotiz".
+
 **Behobener Fehler: verschwundene Tage.**
 
 - Wurden alle Einträge eines Tages abgehakt, verschwand der Tag aus der Liste links —

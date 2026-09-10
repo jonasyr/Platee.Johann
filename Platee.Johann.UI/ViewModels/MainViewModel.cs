@@ -101,6 +101,63 @@ public sealed partial class MainViewModel : ObservableObject
 
     public SectionVisibilityViewModel Sections { get; } = new();
 
+    /// <summary>
+    /// Gets or sets the hook that shows the "this template was never generated" hint.
+    /// Returns <c>true</c> when the user asked never to see it again.
+    /// <para>
+    /// A settable hook rather than a constructor parameter so the view models stay
+    /// dialog-free in tests; <c>App.xaml.cs</c> wires the real window.
+    /// </para>
+    /// </summary>
+    public Func<bool>? EmptySectionHintPrompt { get; set; }
+
+    /// <summary>Maps a visibility flag on <see cref="Sections"/> to the entry field it shows.</summary>
+    private static string? SectionKeyFor(string? propertyName) => propertyName switch
+    {
+        nameof(SectionVisibilityViewModel.ShowLongSummary) => nameof(Entry.LongSummary),
+        nameof(SectionVisibilityViewModel.ShowProseSummary) => nameof(Entry.ProseSummary),
+        nameof(SectionVisibilityViewModel.ShowTaskList) => nameof(Entry.TaskList),
+        nameof(SectionVisibilityViewModel.ShowConversationNote) => nameof(Entry.ConversationNote),
+        nameof(SectionVisibilityViewModel.ShowEmailText) => nameof(Entry.EmailText),
+        nameof(SectionVisibilityViewModel.ShowStundenzettelText) => nameof(Entry.StundenzettelText),
+        nameof(SectionVisibilityViewModel.ShowAnalogText) => nameof(Entry.AnalogText),
+        _ => null,
+    };
+
+    /// <summary>
+    /// Explains a checkbox that appears to do nothing: the sidebar controls visibility, not
+    /// generation, so ticking a template the entry never had generated shows nothing.
+    /// Suppressed while no entry is selected, and permanently once the user says so.
+    /// </summary>
+    private void OnSectionVisibilityChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (this.EmptySectionHintPrompt is null || this.SelectedEntry is null)
+        {
+            return;
+        }
+
+        var key = SectionKeyFor(e.PropertyName);
+        if (key is null)
+        {
+            return;
+        }
+
+        var content = EmptySectionHint.ContentFor(this.SelectedEntry.Entry, key);
+        if (!EmptySectionHint.ShouldShow(content, this.persistedSettingsHolder.Current.HideEmptySectionHint))
+        {
+            return;
+        }
+
+        if (this.EmptySectionHintPrompt.Invoke())
+        {
+            var dismissed = this.persistedSettingsHolder.Current with { HideEmptySectionHint = true };
+            this.persistedSettingsHolder.Current = dismissed;
+            this.runtimeSettingsHolder.Current =
+                this.runtimeSettingsHolder.Current with { HideEmptySectionHint = true };
+            _ = this.settingsRepo.SaveAsync(dismissed);
+        }
+    }
+
     public bool IsSortById => this.CurrentSort == SortMode.ById;
 
     public bool IsSortByProject => this.CurrentSort == SortMode.ByProjectThenId;
@@ -176,6 +233,8 @@ public sealed partial class MainViewModel : ObservableObject
             var row = this.Entries.FirstOrDefault(r => r.JobId == updated.JobId);
             row?.UpdateEntry(updated);
         };
+
+        this.Sections.PropertyChanged += this.OnSectionVisibilityChanged;
     }
 
     public async Task InitializeAsync(CancellationToken ct = default)

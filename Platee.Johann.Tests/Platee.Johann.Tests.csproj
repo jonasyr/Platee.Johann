@@ -33,6 +33,7 @@
     <Compile Include="..\Platee.Johann.UI\ViewModels\DateItemViewModel.cs" Link="ViewModels/DateItemViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\Finding04State.cs" Link="ViewModels/Finding04State.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\DateListFilter.cs" Link="ViewModels/DateListFilter.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\EmptySectionHint.cs" Link="ViewModels/EmptySectionHint.cs" />
     <Compile Include="..\Platee.Johann.UI\Converters\MarkdownFlowDocumentConverter.cs" Link="Converters/MarkdownFlowDocumentConverter.cs" />
     <Compile Include="..\Platee.Johann.UI\StartupPathResolver.cs" Link="StartupPathResolver.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\EntryRowViewModel.cs" Link="ViewModels/EntryRowViewModel.cs" />
