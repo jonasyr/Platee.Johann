@@ -1030,8 +1030,18 @@
                             </Border>
                             <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="0,0,0,2"
                                     CornerRadius="2" Padding="12,10">
-                                <TextBox Text="{Binding Detail.DisplayAbstract, Mode=OneWay}"
-                                         Style="{StaticResource ContentTextStyle}"/>
+                                <!-- Ebenfalls Markdown: das Modell setzt hier Fettungen,
+                                     die vorher als rohe Sternchen zu sehen waren. -->
+                                <FlowDocumentScrollViewer
+                                    Document="{Binding Detail.DisplayAbstract, Converter={StaticResource MdToDoc}}"
+                                    VerticalScrollBarVisibility="Disabled"
+                                    HorizontalScrollBarVisibility="Disabled"
+                                    IsSelectionEnabled="True"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    FontFamily="Segoe UI, Arial"
+                                    FontSize="13"/>
                             </Border>
                         </StackPanel>
 
