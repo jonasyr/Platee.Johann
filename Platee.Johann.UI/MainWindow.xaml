@@ -582,6 +582,20 @@
                                 Margin="0,6,0,0"/>
                     </StackPanel>
                 </Border>
+                <!-- Explains a shortened date list. Without it, finishing a day just makes
+                     the day vanish and the sidebar looks as if entries were lost (#63). -->
+                <Border DockPanel.Dock="Bottom"
+                        Padding="14,6"
+                        Visibility="{Binding HasHiddenDates, Converter={StaticResource BoolToVis}}"
+                        BorderThickness="0,1,0,0"
+                        BorderBrush="#E0E0E0">
+                    <Button Command="{Binding ShowAllDatesCommand}"
+                            Style="{StaticResource LinkButtonStyle}"
+                            FontSize="11"
+                            ToolTip="Filter „Nur unerledigte“ aufheben und alle Tage zeigen">
+                        <TextBlock Text="{Binding HiddenDatesLabel}" TextWrapping="Wrap"/>
+                    </Button>
+                </Border>
                 <ListBox ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
                          SelectedItem="{Binding SelectedDateItem}"
                          BorderThickness="0" Background="Transparent"
