@@ -26,7 +26,7 @@
 │ 15.03.   │ 002 Iris            │  17.03.2026 · 1:12                       │
 │          │   ich weiß gar…     │  ────────────────────────────────────    │
 │          │                     │  Kurzfassung / Zusammenfassung / …       │
-│          │ [+ Neues Element]   │  [HTML] [PDF] [E-Mail] [Kopieren]        │
+│          │ [   Diktieren   ]   │  [HTML] [PDF] [E-Mail] [Kopieren]        │
 └──────────┴─────────────────────┴──────────────────────────────────────────┘
 ```
 
@@ -50,10 +50,6 @@ MP3 in `Dokumente\Johann\Eingang` legen – Johann erkennt die Datei automatisch
 ### Direkt diktieren (Mikrofon)
 
 **🎙 Diktieren**-Button in der Eintrags-Liste klicken, sprechen, dann **■ Stop** klicken. Johann transkribiert und erstellt die Zusammenfassung wie gewohnt. Erfordert ein angeschlossenes Mikrofon und einen konfigurierten API-Schlüssel.
-
-### Manuellen Eintrag anlegen
-
-**+ Neues Element** öffnet einen Dialog: Typ und Projekt wählen, Text eingeben. Mit API-Schlüssel werden KI-Abschnitte sofort generiert.
 
 ### Fortschritt verfolgen
 
