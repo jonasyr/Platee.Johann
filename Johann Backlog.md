@@ -241,43 +241,42 @@ ein v1.3.2-Client löscht `customCategories` beim Speichern wieder
 | `x.x.X` **Patch** | Nur Entwickler-Zwischenstände, nichts davon wird ausgeliefert. |
 
 Deshalb wurde v1.3.3 zu **v1.4.0**: der Kategorien-Umbau war nie beim Nutzer und
-bekommt keinen eigenen Release, sondern geht in v1.4.0 auf. Der Tag `v1.3.3-dev`
-bleibt als Entwicklungsmarke liegen.
+bekommt keinen eigenen Release, sondern geht in v1.4.0 auf.
 
 ---
 
 ## 🎯 Release-Plan
 
-Stand 2026-09-10. Milestones sind auf GitHub gesetzt.
+Stand 2026-09-10.
 
-### v1.4.0 — Kategorien & sichtbare Verbesserungen · ~1 Tag
+### v1.4.0 — ausgeliefert · fertig
 
-Enthält **rückwirkend den nie ausgelieferten Kategorien-Umbau** (#34, #35, #50–#53):
-eigene Kategorien, Auto/Auf-Abruf, Abschnitts-Sichtbarkeit, Admin-Passwort entfernt.
+Enthält **rückwirkend den nie ausgelieferten Kategorien-Umbau** (#34, #35, #50–#53).
 
-| # | Titel | Größe |
-| - | ----- | ----- |
-| [#63](https://github.com/jonasyr/Platee.Johann/issues/63) | Tage verschwinden bei „alles erledigt" | S |
-| [#62](https://github.com/jonasyr/Platee.Johann/issues/62) | „+ Neues Element" raus, Diktieren volle Breite | XS |
-| [#66](https://github.com/jonasyr/Platee.Johann/issues/66) | Aufgaben-Prompt: Zusammenfassung + Aufgaben | S |
-| [#59](https://github.com/jonasyr/Platee.Johann/issues/59) | Abschnitte heißen „Vorlagen" | S |
-| [#56](https://github.com/jonasyr/Platee.Johann/issues/56) | Kopiersymbol je Abschnitt, zentraler Knopf bleibt | S–M |
-| [#55](https://github.com/jonasyr/Platee.Johann/issues/55) | Einträge löschen | M |
-| [#67](https://github.com/jonasyr/Platee.Johann/issues/67) | Aktuelle OpenAI-Modelle | M |
-| [#58](https://github.com/jonasyr/Platee.Johann/issues/58) | Fremdsprachige Diktate ergeben deutsche Einträge | XS |
+| # | Titel | Status |
+| - | ----- | ------ |
+| [#63](https://github.com/jonasyr/Platee.Johann/issues/63) | Tage verschwanden bei „alles erledigt" | ✅ |
+| [#62](https://github.com/jonasyr/Platee.Johann/issues/62) | „+ Neues Element" entfernt, Diktieren volle Breite | ✅ |
+| [#66](https://github.com/jonasyr/Platee.Johann/issues/66) | Aufgaben-Prompt: Zusammenfassung + abhakbare Aufgaben | ✅ |
+| [#59](https://github.com/jonasyr/Platee.Johann/issues/59) | Abschnitte heißen „Vorlagen" | ✅ |
+| [#67](https://github.com/jonasyr/Platee.Johann/issues/67) | `gpt-transcribe` + `gpt-5.6-luna` | ✅ |
+| [#58](https://github.com/jonasyr/Platee.Johann/issues/58) | Fremdsprachige Diktate ergeben deutsche Einträge | ✅ |
 
-Nebenarbeiten: `Platee.Johann.UI.csproj` auf 1.4.0, `RELEASE_NOTES.md` den
-1.3.3-Abschnitt in 1.4.0 einschmelzen.
+**Auf Wunsch des Chefs gestrafft:** #56 und #55 wurden nach v1.5.0 verschoben, damit die
+neuen Modelle schnell beim Team sind. #55 (Löschen) bewusst nicht unter Zeitdruck — es ist
+ein unwiderruflicher Pfad, bei dem wiederverwendete Sequenznummern Einträge überschreiben
+könnten.
 
-### v1.5.0 — E-Mail direkt aus Johann · ~2 Tage
+### v1.5.0 — E-Mail, Modellwahl, Feinschliff
 
-[#57](https://github.com/jonasyr/Platee.Johann/issues/57) — Aufgaben- und E-Mail-Knopf
-öffnen Outlook, PDF im Anhang, Signatur.
+[#57](https://github.com/jonasyr/Platee.Johann/issues/57) Outlook-Knöpfe ·
+[#56](https://github.com/jonasyr/Platee.Johann/issues/56) Kopiersymbol je Abschnitt ·
+[#55](https://github.com/jonasyr/Platee.Johann/issues/55) Einträge löschen ·
+[#71](https://github.com/jonasyr/Platee.Johann/issues/71) Modell in den Einstellungen wählbar ·
+[#73](https://github.com/jonasyr/Platee.Johann/issues/73) Prompts für GPT-5.6 überarbeiten ·
+[#77](https://github.com/jonasyr/Platee.Johann/issues/77) `gpt-transcribe` besser ausnutzen
 
-Eigener Release, weil Outlook-COM eine neue Abhängigkeit ist: klemmt das bei jemandem,
-will man nicht gleichzeitig ein neues Diktier-Fenster debuggen.
-
-### v1.6.0 — Diktieren · ~7 Tage
+### v1.6.0 — Diktieren
 
 Reihenfolge zwingend: [#64](https://github.com/jonasyr/Platee.Johann/issues/64) Schema v5
 → [#36](https://github.com/jonasyr/Platee.Johann/issues/36) Diktier-Popup
@@ -285,56 +284,52 @@ Reihenfolge zwingend: [#64](https://github.com/jonasyr/Platee.Johann/issues/64) 
 → [#65](https://github.com/jonasyr/Platee.Johann/issues/65) „nicht umgesetzt"
 → [#18](https://github.com/jonasyr/Platee.Johann/issues/18) paralleles Diktieren.
 
-⚠ **Startet erst, wenn der Chef #36 in der neuen Form bestätigt hat.** Stellt er es sich
-anders vor, kippt der Zuschnitt von #64 mit.
+⚠ **Startet erst, wenn der Chef #36 in der neuen Form bestätigt hat.**
 
-### v1.7.0 — Zusammenführen · ~3 Tage
+### v1.7.0 — Zusammenführen
 
-[#54](https://github.com/jonasyr/Platee.Johann/issues/54) Einträge zusammenführen,
-indem man einen auf den anderen zieht.
+[#54](https://github.com/jonasyr/Platee.Johann/issues/54) Einträge zusammenführen.
 
-> **#58 ist nach v1.4.0 gewandert.** Es schrumpfte von M auf XS und gehört sachlich zu
-> #67, wo `WhisperTranscriber` ohnehin angefasst wird. Johann bleibt **einsprachig
-> deutsch** — es geht allein darum, dass ein arabisches oder ukrainisches Diktat einen
-> deutschen Eintrag ergibt. Das **Transkript bleibt in der gesprochenen Sprache**, alle
-> generierten Abschnitte sind deutsch.
-
-### v1.8.0 — Härtung · ~5 Tage
+### v1.8.0 — Härtung
 
 [#8](https://github.com/jonasyr/Platee.Johann/issues/8) FileSystemWatcher ·
 [#10](https://github.com/jonasyr/Platee.Johann/issues/10) API-Key per DPAPI ·
 [#38](https://github.com/jonasyr/Platee.Johann/issues/38) Markdown durchgängig.
 
-Kein Nutzerdruck — die aufgelaufene Schuld aus dem Audit.
-
 ### Ohne Termin
 
-[#60](https://github.com/jonasyr/Platee.Johann/issues/60) Ariadne-Integration (Epic, noch
-nicht geschnitten) · [#68](https://github.com/jonasyr/Platee.Johann/issues/68)
-Kostentelemetrie (Entwurf, wartet auf Entscheidung des Chefs).
+[#60](https://github.com/jonasyr/Platee.Johann/issues/60) Ariadne-Integration (Epic).
 
-**Gesamt bis v1.8.0: ca. 19 Arbeitstage.**
+---
+
+## 🧠 Prompts: die Team-Datei ist die Wahrheit
+
+`Z:
+_Tools\Peano\Johann\prompts.json` besitzt den Wortlaut aller neun Prompts und
+gewinnt zur Laufzeit immer. Die `SummaryPrompts`-Konstanten sind nur Startwert für
+Neuinstallationen und Rückfall ohne Share.
+
+➡ **Jede Prompt-Änderung geht in beide.** `TeamPromptDriftTests` bewacht das und
+überspringt sich still, wenn der Share fehlt.
+
+⚠ Kein Client darf die Team-Datei automatisch umschreiben. `PromptDefaultsMigration` war
+genau das und wurde in v1.4.0 gelöscht.
 
 ---
 
 ## ❓ Offene Fragen an den Chef
 
-1. **PDF beim externen E-Mail-Knopf** ja oder nein. Bis zur Klärung ohne bauen, aber so,
-   dass das Nachrüsten billig bleibt. *(blockiert v1.5.0 nicht)*
-2. **Kostenanzeige** (#68) — dauerhaft in der App oder reicht das OpenAI-Dashboard?
-   Der Verbrauch der 100 € ist nur dort einsehbar, nicht aus dem Repo.
-3. **Ist #36 richtig verstanden?** Vorlagen-Auswahl im Aufnahme-Fenster statt nachträglich
+1. **Ist #36 richtig verstanden?** Vorlagen-Auswahl im Aufnahme-Fenster statt nachträglich
    neben dem Transkript. *(blockiert v1.6.0)*
 
-## ✅ Bereits entschieden (2026-09-10)
+## ✅ Entschieden (2026-09-10)
 
-- **Option A** für die Abschnitts-Auswahl: am Eintrag speichern, drei Checkbox-Ebenen auf
-  eine reduzieren (#64).
-- **`EntryType` bei Diktaten ist immer `Projekt`.** Typ-Autoerkennung nur noch für den
-  Watch-Folder.
-- **Zentraler „Kopieren"-Knopf bleibt** und kopiert weiter alles Sichtbare; die
-  Abschnitts-Symbole kommen daneben (#56).
-- **Kopplung #62 ↔ #58 aufgelöst** — #58 braucht keine Tastatureingabe.
+- **Option A** für die Abschnitts-Auswahl: am Eintrag speichern (#64)
+- **`EntryType` bei Diktaten immer `Projekt`**, Typ-Autoerkennung nur für den Watch-Folder
+- **PDF nur an der internen Aufgaben-Mail**, nicht an der externen
+- **Kostenanzeige verworfen** — Issue gelöscht
+- **Transkript bleibt in der gesprochenen Sprache**, alle generierten Abschnitte deutsch
+- **Zentraler „Kopieren"-Knopf bleibt**, Abschnitts-Symbole kommen daneben
 
 ## 🚦 Vor jedem Release
 
