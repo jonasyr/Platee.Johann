@@ -263,7 +263,8 @@ eigene Kategorien, Auto/Auf-Abruf, Abschnitts-Sichtbarkeit, Admin-Passwort entfe
 | [#59](https://github.com/jonasyr/Platee.Johann/issues/59) | Abschnitte heißen „Vorlagen" | S |
 | [#56](https://github.com/jonasyr/Platee.Johann/issues/56) | Kopiersymbol je Abschnitt, zentraler Knopf bleibt | S–M |
 | [#55](https://github.com/jonasyr/Platee.Johann/issues/55) | Einträge löschen | M |
-| [#67](https://github.com/jonasyr/Platee.Johann/issues/67) | Aktuelle OpenAI-Modelle | S–M |
+| [#67](https://github.com/jonasyr/Platee.Johann/issues/67) | Aktuelle OpenAI-Modelle | M |
+| [#58](https://github.com/jonasyr/Platee.Johann/issues/58) | Fremdsprachige Diktate ergeben deutsche Einträge | XS |
 
 Nebenarbeiten: `Platee.Johann.UI.csproj` auf 1.4.0, `RELEASE_NOTES.md` den
 1.3.3-Abschnitt in 1.4.0 einschmelzen.
@@ -287,13 +288,16 @@ Reihenfolge zwingend: [#64](https://github.com/jonasyr/Platee.Johann/issues/64) 
 ⚠ **Startet erst, wenn der Chef #36 in der neuen Form bestätigt hat.** Stellt er es sich
 anders vor, kippt der Zuschnitt von #64 mit.
 
-### v1.7.0 — Übersetzung & Zusammenführen · ~4 Tage
+### v1.7.0 — Zusammenführen · ~3 Tage
 
-[#58](https://github.com/jonasyr/Platee.Johann/issues/58) Arabisch/Ukrainisch ·
-[#54](https://github.com/jonasyr/Platee.Johann/issues/54) Einträge zusammenführen.
+[#54](https://github.com/jonasyr/Platee.Johann/issues/54) Einträge zusammenführen,
+indem man einen auf den anderen zieht.
 
-#58 profitiert direkt von #67 aus v1.4.0 — `gpt-transcribe` ist bei beiden Sprachen
-deutlich stärker als `whisper-1`.
+> **#58 ist nach v1.4.0 gewandert.** Es schrumpfte von M auf XS und gehört sachlich zu
+> #67, wo `WhisperTranscriber` ohnehin angefasst wird. Johann bleibt **einsprachig
+> deutsch** — es geht allein darum, dass ein arabisches oder ukrainisches Diktat einen
+> deutschen Eintrag ergibt. Das **Transkript bleibt in der gesprochenen Sprache**, alle
+> generierten Abschnitte sind deutsch.
 
 ### v1.8.0 — Härtung · ~5 Tage
 
