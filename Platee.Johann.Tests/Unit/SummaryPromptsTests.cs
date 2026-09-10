@@ -107,6 +107,34 @@ public sealed class SummaryPromptsTests
     }
 
     [Fact]
+    public void Aufgabe_ShowsAWorkedExampleInsteadOfDictatingWordOrder()
+    {
+        // „Beginne jede Zeile mit einem Verb im Infinitiv" erzeugte kaputtes Deutsch:
+        // „verschriftlichen Diktate automatisch in OneDrive speichern". Im Deutschen steht
+        // der Infinitiv am Satzende. Ein Beispiel zeigt die Form, ohne die Wortstellung
+        // vorzuschreiben — genau das empfiehlt der OpenAI-Leitfaden.
+        SummaryPrompts.Aufgabe.Should().Contain("Beispiel");
+        SummaryPrompts.Aufgabe.Should().NotContain("Verb im Infinitiv");
+    }
+
+    [Fact]
+    public void Aufgabe_SeparatesTheListMarkerFromTheTaskText()
+    {
+        // Codex-Review zu #75: „jede Zeile beginnt mit einem Bindestrich" und „beginne
+        // jede Zeile mit einem Verb" sind woertlich gelesen unerfuellbar. Ein schwaches
+        // Modell loest das womoeglich, indem es den Listenmarker weglaesst.
+        SummaryPrompts.Aufgabe.Should().Contain("nach dem Bindestrich");
+    }
+
+    [Fact]
+    public void Aufgabe_LimitsHowManyTasksAreProduced()
+    {
+        // gpt-5-nano zerlegte ein Diktat in 15 Einzeiler, darunter „auswerten durch
+        // ChatGPT" — das ist keine eigene Aufgabe.
+        SummaryPrompts.Aufgabe.Should().Contain("höchstens acht Aufgaben");
+    }
+
+    [Fact]
     public void Aufgabe_CapsTheLengthOfASingleTask()
     {
         // Ohne Obergrenze liefert das Modell ganze Absaetze statt abhakbarer Aufgaben.

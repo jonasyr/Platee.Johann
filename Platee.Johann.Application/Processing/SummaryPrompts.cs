@@ -134,11 +134,16 @@ public static class SummaryPrompts
         "ist und in welchem Zusammenhang die Aufgaben stehen. Nimm die Aufgaben hier " +
         "nicht vorweg.\n" +
         "2. Nach einer Leerzeile die Aufgabenliste als Markdown-Aufzählung. Jede Zeile " +
-        "beginnt mit einem Bindestrich und einem Leerzeichen.\n\n" +
+        "beginnt mit einem Bindestrich und einem Leerzeichen; der Aufgabentext steht " +
+        "nach dem Bindestrich.\n\n" +
         "## Die Aufgabenliste\n\n" +
         "- Eine Zeile je Aufgabe, höchstens 20 Wörter\n" +
-        "- Beginne jede Zeile mit einem Verb im Infinitiv\n" +
-        "- Fasse zusammengehörige Handlungen zu einer Aufgabe zusammen\n" +
+        "- Formuliere jede Aufgabe so, wie man sie auf eine To-do-Liste schreibt: als " +
+        "knappe Handlungsanweisung in natürlichem Deutsch. Beispiel: „PDF je " +
+        "Sprachnachricht erzeugen\"\n" +
+        "- Fasse zusammengehörige Handlungen zu einer Aufgabe zusammen. Nenne " +
+        "höchstens acht Aufgaben; lieber eine Aufgabe mehr zusammenfassen als eine " +
+        "Selbstverständlichkeit einzeln aufführen\n" +
         "- Frist und zuständige Person nur nennen, wenn sie im Transkript vorkommen, " +
         "dann am Zeilenende in Klammern\n" +
         "- Behalte die chronologische Abfolge des Diktats bei\n\n" +
