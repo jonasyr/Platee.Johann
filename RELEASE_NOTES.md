@@ -1,6 +1,34 @@
 # Was ist neu?
 
-## Version 1.3.3
+## Version 1.4.0
+
+**Bessere und schnellere Transkripte.**
+
+- Johann nutzt jetzt die aktuellen OpenAI-Modelle. Die Spracherkennung ist deutlich
+  genauer und pro Minute sogar günstiger als bisher, die Zusammenfassungen laufen auf
+  einem spürbar stärkeren Modell.
+- Diktate in einer anderen Sprache werden korrekt erkannt und ergeben trotzdem einen
+  deutschen Eintrag. Das Transkript bleibt in der gesprochenen Sprache, alles andere
+  ist deutsch. Vorher war Johann fest auf Deutsch eingestellt.
+
+**Aufgaben lesen sich jetzt wie Aufgaben.**
+
+- Der Aufgaben-Abschnitt beginnt mit einer kurzen Zusammenfassung und listet darunter
+  die Aufgaben — je eine Zeile, kurz und abhakbar statt als Textblock.
+
+**Behobener Fehler: verschwundene Tage.**
+
+- Wurden alle Einträge eines Tages abgehakt, verschwand der Tag aus der Liste links —
+  bei mehreren Tagen sah es aus, als wären Einträge verloren. Der Filter blendet
+  erledigte Tage weiterhin aus, aber der gerade geöffnete Tag bleibt immer sichtbar,
+  und unter der Liste steht, wie viele Tage ausgeblendet sind.
+
+**Aufgeräumte Oberfläche.**
+
+- „+ Neues Element" ist entfallen, „🎙 Diktieren" nimmt jetzt die volle Breite ein.
+- Was bisher „Kategorien" hieß, heißt jetzt durchgängig **Vorlagen**. „Typ" bezeichnet
+  weiterhin die Art des Eintrags. Vorher meinten beide Wörter dasselbe und
+  Verschiedenes zugleich.
 
 **Eigene Vorlagen.**
 
