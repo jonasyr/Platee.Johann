@@ -66,7 +66,7 @@ Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
                                #   SectionCatalog (SectionDescriptor)
   Services/                    # PromptSettingsLoader (local/global fallback)
   Settings/                    # AppSettings, PromptSettings, SettingsHolder,
-                               #   PromptDefaultsMigration, SettingsSplitMigration,
+                               #   SettingsSplitMigration,
                                #   CategoryDefinition, BuiltInSections, CategoryIdFactory,
                                #   SectionModeDefaults, SectionModeMigration
 
@@ -138,7 +138,13 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 
 **Settings split**: `AppSettings` holds user preferences (name, company, directories); `PromptSettings` holds all LLM prompt templates. Persisted separately as `settings.json` and `prompts.json`. `SettingsHolder` wraps both for live propagation to `SummaryGenerator`. Internally uses a `volatile` immutable `SettingsState` record so `Snapshot()` always reads a consistent pair. `Update(AppSettings, PromptSettings)` atomically swaps both values; individual `Current`/`Prompts` setters preserved for backward compatibility.
 
-**Settings migration**: `PromptDefaultsMigration` uses a revision integer to apply one-time prompt migrations without overwriting user customisations. `SettingsSplitMigration.MigrateIfNeeded` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local `prompts.json` and strip any remaining prompt keys from `settings.json` (best-effort, silent on failure).
+**Prompt text: the team file is the single source of truth.** The team's `prompts.json` (`AppSettings.GlobalPromptFilePath`, typically `Z:\12_Tools\Peano\Johann\prompts.json`) owns the wording of all nine prompts. It always wins at runtime — `JsonPromptSettingsRepository` maps every field as `dto.X ?? defaults.X`, and `ToDto` writes all nine back on every save, so once a file exists its text is authoritative forever. The `SummaryPrompts` constants are **only** the seed for fresh installs and the fallback when the share is unreachable.
+
+Changing prompt wording therefore means changing **both**: edit the team file *and* update the matching constant. `TeamPromptDriftTests` guards this — it compares all nine constants against the team file and silently passes when the share is unreachable (CI, no VPN), so it never turns red for the wrong reason. Set `JOHANN_TEAM_PROMPTS` to point it elsewhere.
+
+⚠ **Never make a client rewrite the team file automatically.** `PromptDefaultsMigration` was exactly that idea — a revision integer that bulk-replaced prompts — and it was deleted in v1.4.0: it was never wired up, would never have fired (`PromptDefaultsRevision` defaults to the current revision, so the guard always short-circuits), and had it worked it would have overwritten curated team wording from whichever machine happened to load the file first. That is the same failure mode as a v1.3.2 client stripping `customCategories`. `PromptSettings.PromptDefaultsRevision` survives only so the JSON key round-trips instead of being stripped on the next save.
+
+**Settings migration**: `SettingsSplitMigration.MigrateIfNeeded` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local `prompts.json` and strip any remaining prompt keys from `settings.json` (best-effort, silent on failure).
 
 **Startup path resolution**: `StartupPathResolver` (UI/StartupPathResolver.cs) validates configured directories (Quellverzeichnis, Ausgabeverzeichnis, Archivverzeichnis) at startup, falling back to safe defaults when a path is missing, empty, or uncreateable. Returns `StartupPathResolution` (sealed record) with both `PersistedSettings` (unchanged) and `EffectiveSettings` (with fallback paths applied) plus `IReadOnlyList<StartupPathIssue> Issues` for user-visible warning messages. `App.xaml.cs` creates two `SettingsHolder` instances — `persistedSettingsHolder` (raw stored paths) and `runtimeSettingsHolder` (effective/fallback paths) — so that persisted user settings are never silently overwritten by runtime fallbacks. If issues exist, a warning MessageBox lists each affected path with its configured value, fallback, and reason.
 

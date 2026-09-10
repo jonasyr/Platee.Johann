@@ -20,7 +20,7 @@ public class PromptSettingsTests
         ps.GespraechsnotizPrompt.Should().Be(SummaryPrompts.Gespraechsnotiz);
         ps.StundenzettelPrompt.Should().Be(SummaryPrompts.Stundenzettel);
         ps.AnalogPrompt.Should().Be(SummaryPrompts.Analog);
-        ps.PromptDefaultsRevision.Should().Be(PromptDefaultsMigration.CurrentRevision);
+        ps.PromptDefaultsRevision.Should().Be(PromptSettings.LegacyDefaultsRevision);
     }
 
     [Fact]
