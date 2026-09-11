@@ -19,9 +19,9 @@ public sealed class SummaryModelSettingsViewModelTests
     [Fact]
     public void The_selected_model_mirrors_the_stored_setting()
     {
-        var (vm, _) = CreateSut(AppSettings.Default with { SummaryModel = "gpt-5-nano" });
+        var (vm, _) = CreateSut(AppSettings.Default with { SummaryModel = "gpt-5.6-sol" });
 
-        vm.SelectedModel.Id.Should().Be("gpt-5-nano");
+        vm.SelectedModel.Id.Should().Be("gpt-5.6-sol");
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class SummaryModelSettingsViewModelTests
     {
         var (vm, _) = CreateSut(AppSettings.Default);
 
-        vm.AvailableModels.Should().HaveCount(4);
+        vm.AvailableModels.Should().HaveCount(3);
     }
 
     [Fact]

@@ -18,9 +18,9 @@ public sealed class SummaryModelResolverTests
     public void A_known_model_passes_through_without_an_issue()
     {
         var result = SummaryModelResolver.Resolve(
-            AppSettings.Default with { SummaryModel = "gpt-5-nano" });
+            AppSettings.Default with { SummaryModel = "gpt-5.6-sol" });
 
-        result.EffectiveModelId.Should().Be("gpt-5-nano");
+        result.EffectiveModelId.Should().Be("gpt-5.6-sol");
         result.Issue.Should().BeNull();
     }
 
