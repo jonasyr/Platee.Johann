@@ -197,11 +197,17 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
-    /// <summary>Gets die Denkleistung als gefüllte und leere Punkte.</summary>
-    public string ModelReasoningDots => Meter(this.SelectedModel.Reasoning);
+    /// <summary>Gets die gefüllten Punkte der Denkleistung.</summary>
+    public string ModelReasoningFilled => Filled(this.SelectedModel.Reasoning);
 
-    /// <summary>Gets das Tempo als Blitze.</summary>
-    public string ModelSpeedBolts => new('⚡', this.SelectedModel.Speed);
+    /// <summary>Gets die leeren Punkte der Denkleistung.</summary>
+    public string ModelReasoningEmpty => Empty(this.SelectedModel.Reasoning);
+
+    /// <summary>Gets die gefüllten Punkte des Tempos.</summary>
+    public string ModelSpeedFilled => Filled(this.SelectedModel.Speed);
+
+    /// <summary>Gets die leeren Punkte des Tempos.</summary>
+    public string ModelSpeedEmpty => Empty(this.SelectedModel.Speed);
 
     /// <summary>Gets a value indicating whether a category is selected for editing.</summary>
     public bool HasSelectedCategory => this.SelectedCategory is not null;
@@ -705,8 +711,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// Collects the per-section modes from both toggle sources — the built-in rows and each
     /// category's own toggle — into the single map persisted in the local settings file.
     /// </summary>
-    private static string Meter(int filled) =>
-        new string('●', Math.Clamp(filled, 0, 4)) + new string('○', Math.Max(0, 4 - filled));
+    /// <summary>
+    /// Die Skalen für Denkleistung und Tempo teilen sich bewusst dieselbe Punktform.
+    /// Zwei verschiedene Zeichen — etwa Punkte gegen Blitze — lesen sich als zwei
+    /// verschiedene Maßstäbe, und ein Emoji-Glyph rendert je nach Schrift anders.
+    /// Gefüllt und leer werden im XAML über getrennte <c>Run</c>-Elemente eingefärbt.
+    /// </summary>
+    private const int MeterSteps = 4;
+
+    private static string Filled(int value) => new('●', Math.Clamp(value, 0, MeterSteps));
+
+    private static string Empty(int value) =>
+        new('●', Math.Max(0, MeterSteps - Math.Clamp(value, 0, MeterSteps)));
 
     private CostEstimate CurrentEstimate() => this.EstimateFor(this.SelectedModel);
 
@@ -759,8 +775,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnSelectedModelChanged(SummaryModel value)
     {
         this.NotifyCostChanged();
-        this.OnPropertyChanged(nameof(this.ModelReasoningDots));
-        this.OnPropertyChanged(nameof(this.ModelSpeedBolts));
+        this.OnPropertyChanged(nameof(this.ModelReasoningFilled));
+        this.OnPropertyChanged(nameof(this.ModelReasoningEmpty));
+        this.OnPropertyChanged(nameof(this.ModelSpeedFilled));
+        this.OnPropertyChanged(nameof(this.ModelSpeedEmpty));
     }
 
     partial void OnSelectedSectionChanged(SettingsSectionItem? value)

@@ -85,14 +85,32 @@ public sealed class SummaryModelSettingsViewModelTests
     }
 
     [Fact]
-    public void The_dots_and_bolts_match_the_catalog()
+    public void The_meters_match_the_catalog_and_always_add_up_to_four()
     {
         var (vm, _) = CreateSut(AppSettings.Default);
 
-        vm.SelectedModel = SummaryModelCatalog.Default;
+        vm.SelectedModel = SummaryModelCatalog.Default;   // Denkleistung 3, Tempo 4
 
-        vm.ModelReasoningDots.Should().Be("●●●○");
-        vm.ModelSpeedBolts.Should().Be("⚡⚡⚡⚡");
+        vm.ModelReasoningFilled.Should().Be("●●●");
+        vm.ModelReasoningEmpty.Should().Be("●");
+        vm.ModelSpeedFilled.Should().Be("●●●●");
+        vm.ModelSpeedEmpty.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Both_meters_use_the_same_glyph_so_they_read_as_one_scale()
+    {
+        // Punkte gegen Blitze lasen sich als zwei verschiedene Massstaebe, und das
+        // Emoji-Glyph rendert je nach Schrift anders.
+        var (vm, _) = CreateSut(AppSettings.Default);
+
+        foreach (var model in SummaryModelCatalog.All)
+        {
+            vm.SelectedModel = model;
+
+            (vm.ModelReasoningFilled + vm.ModelReasoningEmpty).Should().Be("●●●●");
+            (vm.ModelSpeedFilled + vm.ModelSpeedEmpty).Should().Be("●●●●");
+        }
     }
 
     [Fact]
