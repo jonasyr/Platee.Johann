@@ -30,3 +30,5 @@ Platee.Johann.UI/Assets/RELEASE_NOTES.md
 
 # Log
 build-output.log
+# Prompt-Auswertung: Laufergebnisse liegen unter Documents\Johann\prompt-sandbox\eval
+tools/prompt-eval/**/eval-output/
