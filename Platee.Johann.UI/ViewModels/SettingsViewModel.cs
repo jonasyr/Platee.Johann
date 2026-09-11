@@ -3,6 +3,7 @@ namespace Platee.Johann.UI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -151,6 +152,57 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>Gets die Modelle, unter denen der Nutzer waehlen darf.</summary>
     public IReadOnlyList<SummaryModel> AvailableModels { get; } = SummaryModelCatalog.All;
 
+    /// <summary>
+    /// Gets die Kostenangabe zum gewählten Modell, z. B. „ungefähr 2,7 Cent für 10 Diktate".
+    /// <para>
+    /// Bewusst auf zehn Diktate hochgerechnet statt je Diktat: Luna liegt bei 0,27 Cent, und
+    /// mit einer Nachkommastelle stünde dort „0,3 Cent", egal ob der Nutzer vier oder sechs
+    /// Abschnitte automatisch erzeugen lässt — die Rundung verschlucke genau den
+    /// Zusammenhang, den die Karte zeigen soll. Zehn Diktate lösen das auf und sind
+    /// obendrein die greifbarere Größe: Bruchteile eines Cents sagen niemandem etwas.
+    /// </para>
+    /// </summary>
+    public string ModelCostText =>
+        $"ungefähr {(this.CurrentEstimate().Cents * 10).ToString("0.0", CultureInfo.CurrentCulture)} Cent für 10 Diktate";
+
+    /// <summary>
+    /// Gets die Einordnung darunter: worauf sich die Zahl bezieht und wie das Modell zum
+    /// günstigsten steht.
+    /// <para>
+    /// Der Vergleich trägt die Auswahl — „18× teurer" sagt mehr als jede absolute Zahl,
+    /// wenn es darum geht, ob jemand dauerhaft auf Sol stehen bleiben will.
+    /// </para>
+    /// </summary>
+    public string ModelComparisonText
+    {
+        get
+        {
+            var mine = this.CurrentEstimate();
+            var basis = $"bei Ihren {mine.AutoSectionCount} automatischen Abschnitten "
+                      + "und einer Minute Aufnahme";
+
+            var cheapest = SummaryModelCatalog.All
+                .OrderBy(m => this.EstimateFor(m).Cents)
+                .First();
+
+            if (string.Equals(cheapest.Id, this.SelectedModel.Id, StringComparison.Ordinal))
+            {
+                return basis + " · günstigste Option";
+            }
+
+            var cheapestCents = this.EstimateFor(cheapest).Cents;
+            var factor = cheapestCents > 0 ? mine.Cents / cheapestCents : 0;
+
+            return basis + $" · rund {factor:0}× teurer als {cheapest.DisplayName}";
+        }
+    }
+
+    /// <summary>Gets die Denkleistung als gefüllte und leere Punkte.</summary>
+    public string ModelReasoningDots => Meter(this.SelectedModel.Reasoning);
+
+    /// <summary>Gets das Tempo als Blitze.</summary>
+    public string ModelSpeedBolts => new('⚡', this.SelectedModel.Speed);
+
     /// <summary>Gets a value indicating whether a category is selected for editing.</summary>
     public bool HasSelectedCategory => this.SelectedCategory is not null;
 
@@ -169,6 +221,18 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.runtimeHolder = runtimeHolder ?? persistedHolder;
         this.Sections = BuildSections();
         this.BuiltInSectionModes = BuildBuiltInSectionModes(persistedHolder.Current.SectionModes);
+
+        // Die Kostenangabe haengt an der Abschnitts-Auswahl, nicht nur am Modell.
+        foreach (var row in this.BuiltInSectionModes)
+        {
+            row.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(SectionModeRowViewModel.Mode))
+                {
+                    this.NotifyCostChanged();
+                }
+            };
+        }
         this.LoadFromHolder();
         if (startupPathIssues is { Count: > 0 })
         {
@@ -641,6 +705,31 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// Collects the per-section modes from both toggle sources — the built-in rows and each
     /// category's own toggle — into the single map persisted in the local settings file.
     /// </summary>
+    private static string Meter(int filled) =>
+        new string('●', Math.Clamp(filled, 0, 4)) + new string('○', Math.Max(0, 4 - filled));
+
+    private CostEstimate CurrentEstimate() => this.EstimateFor(this.SelectedModel);
+
+    private CostEstimate EstimateFor(SummaryModel model) =>
+        DictationCostEstimator.Estimate(
+            model,
+            this.runtimeHolder.Prompts,
+            this.persistedHolder.Current with { SectionModes = this.CollectSectionModes() },
+            DictationCostEstimator.TokensPerSpeechMinute);
+
+    /// <summary>
+    /// Meldet die von der Abschnitts-Auswahl abhängigen Anzeigen neu.
+    /// <para>
+    /// Ohne das bliebe die Kostenangabe stehen, während der Nutzer im Abschnitt „Vorlagen"
+    /// Häkchen umlegt — gerade der Zusammenhang, den die Karte sichtbar machen soll.
+    /// </para>
+    /// </summary>
+    private void NotifyCostChanged()
+    {
+        this.OnPropertyChanged(nameof(this.ModelCostText));
+        this.OnPropertyChanged(nameof(this.ModelComparisonText));
+    }
+
     private Dictionary<string, GenerationMode> CollectSectionModes()
     {
         var modes = new Dictionary<string, GenerationMode>(StringComparer.Ordinal);
@@ -665,6 +754,13 @@ public sealed partial class SettingsViewModel : ObservableObject
             InitialDirectory = Directory.Exists(initialDir) ? initialDir : string.Empty,
         };
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
+    }
+
+    partial void OnSelectedModelChanged(SummaryModel value)
+    {
+        this.NotifyCostChanged();
+        this.OnPropertyChanged(nameof(this.ModelReasoningDots));
+        this.OnPropertyChanged(nameof(this.ModelSpeedBolts));
     }
 
     partial void OnSelectedSectionChanged(SettingsSectionItem? value)

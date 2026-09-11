@@ -250,8 +250,30 @@
                                       HorizontalAlignment="Left"
                                       MinWidth="260"/>
 
+                            <Border Margin="0,14,0,0" Padding="14" CornerRadius="3"
+                                    Background="#F7F7F7" BorderBrush="#E3E3E3" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding SelectedModel.DisplayName}"
+                                               FontWeight="SemiBold" FontSize="15"/>
+                                    <TextBlock Text="{Binding SelectedModel.OneLiner}"
+                                               TextWrapping="Wrap" Margin="0,4,0,12"/>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <TextBlock Text="Denkleistung " Opacity="0.65"/>
+                                        <TextBlock Text="{Binding ModelReasoningDots}"/>
+                                        <TextBlock Text="     Tempo " Opacity="0.65"/>
+                                        <TextBlock Text="{Binding ModelSpeedBolts}"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="{Binding ModelCostText}"
+                                               FontWeight="SemiBold" FontSize="15"/>
+                                    <TextBlock Text="{Binding ModelComparisonText}"
+                                               TextWrapping="Wrap" Opacity="0.65" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+
                             <TextBlock Style="{StaticResource HintStyle}"
-                                       Margin="0,10,0,0"
+                                       Margin="0,14,0,0"
                                        Text="Die Änderung gilt ab der nächsten Verarbeitung. Ein laufender Vorgang wird nicht umgestellt."/>
                         </StackPanel>
                     </ScrollViewer>
