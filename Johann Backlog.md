@@ -130,7 +130,7 @@ Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/is
 | [#29](https://github.com/jonasyr/Platee.Johann/issues/29) | SettingsHolder.Snapshot() not atomic | geschlossen | ✅ (Teil von „Inkonsistente Generierung") |
 | [#34](https://github.com/jonasyr/Platee.Johann/issues/34) | User-definable categories, no password gate | geschlossen | → zerlegt in #50–#53 |
 | [#35](https://github.com/jonasyr/Platee.Johann/issues/35) | Auto vs. on-demand generation per category | geschlossen | → #52 |
-| [#36](https://github.com/jonasyr/Platee.Johann/issues/36) | Diktier-Popup (2026-09-10 neu gefasst) | **offen** | ☐ Diktier-Popup |
+| [#36](https://github.com/jonasyr/Platee.Johann/issues/36) | Diktier-Popup (2026-09-10 neu gefasst, 2026-09-11 Halte-Knopf ergänzt) | **offen** | ☐ Diktier-Popup |
 | [#37](https://github.com/jonasyr/Platee.Johann/issues/37) | Move „Erledigt" button top-left and pin it | geschlossen (v1.3.0) | ✅ „Erledigt"-Button verdeckt & scrollt weg |
 | [#38](https://github.com/jonasyr/Platee.Johann/issues/38) | End-to-end Markdown | **offen** | ☐ Markdown durchgängig |
 | [#39](https://github.com/jonasyr/Platee.Johann/issues/39) | Epic: Live dictation & user-definable categories | **offen** | (Klammer um #34/#35/#36) |
@@ -287,6 +287,11 @@ Reihenfolge zwingend: [#64](https://github.com/jonasyr/Platee.Johann/issues/64) 
 → [#18](https://github.com/jonasyr/Platee.Johann/issues/18) paralleles Diktieren.
 
 ⚠ **Startet erst, wenn der Chef #36 in der neuen Form bestätigt hat.**
+
+**#36 enthält seit 2026-09-11 den Halte-Knopf** neben Stopp: Pause während des Diktierens,
+um kurz nachzuschlagen. Recorder-seitig nur ein Flag im `DataAvailable`-Handler — `WasapiCapture`
+läuft weiter, ein einziger `WaveFileWriter` über die ganze Aufnahme. Der `RecordingDuration`-Timer
+muss mitpausieren, sonst laufen angezeigte und gemessene Dauer auseinander.
 
 ### v1.7.0 — Zusammenführen
 
