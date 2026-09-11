@@ -42,31 +42,128 @@ Begründung: Beide entfernten Zeilen luden zum Ausschmücken ein. Laut OpenAI (2
 ein Widerspruch Denk-Token; laut Leitfaden §11 senkt mehr internes Denken die Treue.
 
 **V2 — A erzeugt leicht weniger Ausgabe-Token als die Referenz.**
-Begründung: Wegfallende Widerspruchsauflösung. Erwartete Größenordnung: wenige Prozent, also
-womöglich im Rauschen.
 
 **V3 — B ist bei Treue und Klarheit mindestens so gut wie A.**
-Begründung: Meincke et al. (2025), OpenAI (2026a, 2026e) — vorgeschriebene Zwischenschritte
-bringen Reasoning-Modellen nichts.
+Begründung: Meincke et al. (2025), OpenAI (2026a, 2026e).
 
-**V4 — B ist deutlich günstiger.** −332 Token Eingabe je Aufruf, also rund −18 % der
-Gesamteingabe je Aufruf bei diesem Abschnitt.
+**V4 — B ist deutlich günstiger.**
 
-### Gegenhypothese, die ernst genommen wird
+### Gegenhypothese, die ernst genommen wurde
 
-**G1 — B verliert bei der Vollständigkeit.**
-Thelwall (2024) fand, dass kürzere Anweisungen bei komplexen Textbewertungen **schlechtere**
-Ergebnisse lieferten. Der Denkprozess-Block enthält mit „FILTERE irrelevante oder redundante
-Inhalte" und „PRIORISIERE Informationen nach Relevanz" Anteile, die eher Bewertungsvorschrift
-als Gerüst sind. Wenn G1 eintritt, ist das ein belastbarer Beleg **gegen** das pauschale
-Ausdünnen — und der Denkprozess-Block müsste teilweise erhalten bleiben.
+**G1 — B verliert bei der Vollständigkeit.** Thelwall (2024) fand, dass kürzere Anweisungen bei
+komplexen Textbewertungen **schlechtere** Ergebnisse lieferten.
 
 ### Abbruchkriterium
 
-Steigt bei einer Variante die Zahl der objektiven Vertragsverletzungen gegenüber der Referenz,
-gilt sie unabhängig von den Bewertungsnoten als **nicht übernehmbar**.
+Mehr objektive Vertragsverletzungen als die Referenz ⇒ Variante nicht übernehmbar.
 
-## Ergebnis
+---
 
-*(wird nach dem Lauf ergänzt — Berichte:
-`Documents\Johann\prompt-sandbox\eval\rang1_systemnachricht.html` und `.md`)*
+# Ergebnis
+
+540 Erzeugungen, 180 Bewertungen, Kosten rund 1,30 $. Berichte:
+`prompt-sandbox/eval/rang1_systemnachricht.html` und `.md`.
+
+## Zuerst: ein Fehler im Messinstrument
+
+Der erste Auswertungsdurchlauf meldete **6 / 3 / 2** objektive Vertragsverletzungen und legte
+damit nahe, B sei formal sauberer. **Das war ein Artefakt.**
+
+Alle elf Treffer entfielen auf die Prüfung „Ausgabe wirkt nicht deutsch", und alle elf waren
+Fehlalarme — kurze, völlig korrekte Sätze wie:
+
+> „Es wurden keine inhaltlich relevanten Aussagen, Entscheidungen oder To-dos übermittelt."
+
+Sie enthielten schlicht keines der 15 Stoppwörter, auf die geprüft wurde. Der Detektor prüfte
+auf **Vorhandensein von Deutsch** statt auf **Fremdsprachigkeit** — bei kurzen Ausgaben
+unbrauchbar.
+
+Korrigiert (Prüfung auf fremdsprachige Marker im Übergewicht) und die gespeicherten Ausgaben
+ohne neue API-Aufrufe neu bewertet: **0 Fehler bei allen drei Varianten.** Bei den objektiven
+Prüfungen gibt es also **keinen Unterschied**.
+
+## Bewertungen, paarweiser Vorzeichentest je Diktat
+
+| Vergleich | Merkmal | besser | schlechter | gleich | p |
+|---|---|---:|---:|---:|---:|
+| A gegen Referenz | Treue | 4 | 6 | 50 | 0,754 |
+| **B gegen Referenz** | **Treue** | **12** | **3** | 45 | **0,035** |
+| **B gegen A** | **Treue** | **13** | **2** | 45 | **0,007** |
+| A gegen Referenz | Vollständigkeit | 3 | 6 | 51 | 0,508 |
+| B gegen Referenz | Vollständigkeit | 4 | 4 | 52 | 1,000 |
+| B gegen A | Vollständigkeit | 5 | 2 | 53 | 0,453 |
+| alle | Klarheit | ≤2 | ≤3 | ≥55 | 1,000 |
+
+Verteilung der Treue-Noten (Anzahl Diktate):
+
+| Variante | Note 3 | Note 4 | Note 5 |
+|---|---:|---:|---:|
+| Referenz | 1 | 16 | 43 |
+| A | 1 | 18 | 41 |
+| **B** | **0** | **8** | **52** |
+
+B halbiert die Zahl der Diktate mit kleinen Treue-Abzügen.
+
+## Token je Aufruf (Median)
+
+| Variante | Eingabe | Ausgabe | davon Denken |
+|---|---:|---:|---:|
+| Referenz | 1.386 | 166 | 73 |
+| A | 1.335 | 162 | 72 |
+| **B** | **1.054 (−24 %)** | **152 (−8 %)** | 66 |
+
+## Bewertung der Vorhersagen
+
+| | Vorhersage | Ergebnis |
+|---|---|---|
+| **V1** | A verbessert die Treue | **nicht bestätigt** — 4 besser gegen 6 schlechter, p = 0,754 |
+| **V2** | A erzeugt weniger Ausgabe-Token | **nicht bestätigt** — 4 Token Median, im Rauschen |
+| **V3** | B mindestens so gut wie A | **bestätigt und übertroffen** |
+| **V4** | B deutlich günstiger | **bestätigt** — −24 % Eingabe |
+| **G1** | B verliert an Vollständigkeit | **nicht eingetreten** — 4 besser gegen 4 schlechter |
+
+## Was daraus wirklich folgt
+
+**Die beiden Widersprüche zu beseitigen hat für sich genommen nichts gebracht.** Das ist der
+überraschende Teil. OpenAI (2025a) schreibt, Widersprüche kosteten Denk-Token — hier waren es
+im Median 72 gegen 73, also nichts. Die Widersprüche sind real und gehören trotzdem beseitigt,
+weil sie einen Prompt für **Menschen** unwartbar machen; messbar besser wird das Ergebnis davon
+aber nicht.
+
+**Der gesamte Gewinn stammt aus dem Streichen des Denkprozess-Blocks.** B ist gegenüber A bei
+der Treue signifikant besser (p = 0,007), während A sich von der Referenz nicht unterscheidet.
+Das passt zu Leitfaden §11: weniger vorgeschriebenes Denken, weniger kreatives Lückenfüllen.
+
+**Thelwalls Gegenbefund trat nicht ein.** Der Block enthielt zwar Anteile, die wie
+Bewertungsvorschrift aussehen („FILTERE irrelevante Inhalte", „PRIORISIERE nach Relevanz"),
+aber deren Wegfall kostete keine Vollständigkeit. Erklärung: `structuredPrompt` trägt diese
+Kriterien bereits selbst und ausführlicher. Die Substanz war **doppelt** vorhanden — im System
+als Prozessschritt, im Abschnitt als Kriterium. Gestrichen wurde die schwächere Kopie.
+
+Das schärft die Regel aus dem Leitfaden: Nicht „kürzen ist gut", sondern **Dubletten über
+Prompt-Grenzen hinweg sind teuer**. Wer nur den System-Prompt liest, sieht sie nicht.
+
+## Einschränkungen
+
+1. **Mehrfachvergleich.** Neun Tests gerechnet. Bei Bonferroni-Korrektur läge die Schwelle bei
+   0,0056; der beste Wert (p = 0,007) liegt knapp darüber. **Streng genommen ist damit kein
+   Einzelergebnis gesichert.** Für die Entscheidung spricht, dass die Richtung in beiden
+   B-Vergleichen gleich ist, kein Merkmal schlechter wird und die Kostenersparnis unabhängig
+   von der Signifikanz real ist.
+2. **Der Richter ist selbst ein Sprachmodell.** Terra bewertet Lunas Ausgabe. Ein anderes
+   Modell zu nehmen mildert die Zirkularität, hebt sie nicht auf.
+3. **Ein Abschnitt, eine Modellstufe.** Gemessen wurde `zusammenfassung` auf Luna. Ob der
+   Befund für `ausfuehrlich` oder `aufgaben` ebenso gilt, ist offen.
+4. **Das Archiv dominiert den Korpus.** 30 der 60 Elemente sind Archiv-Diktate mit Median
+   21 Token. Bei so kurzen Eingaben unterscheiden sich Varianten naturgemäß wenig — der Effekt
+   bei den 14 echten Aufnahmen dürfte deutlicher sein, als der Gesamtwert zeigt.
+
+## Empfehlung
+
+**Variante B übernehmen** — nicht wegen der Signifikanz, die den strengen Test nicht besteht,
+sondern weil sie in jeder gemessenen Hinsicht mindestens gleichauf und in zwei Hinsichten
+besser ist: konsistent bessere Treue und 24 % weniger Eingabe-Token, bei unveränderter
+Vollständigkeit und Klarheit und null Vertragsverletzungen.
+
+**Vor der Übernahme lesend gegenprüfen** (`rang1_systemnachricht.html`), weil die
+Qualitätsentscheidung laut Leitfaden §10 beim Menschen liegt und nicht beim Richter-Modell.
