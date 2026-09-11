@@ -63,9 +63,11 @@ Platee.Johann.Domain/          # Core entities, no external deps
 Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
   Interfaces/                  # IEntryRepository (incl. MigrateJobIdsAsync),
                                #   ILlmProvider, IAudioTranscriber, IPromptSettingsRepository,
-                               #   IMicrophoneRecorder
+                               #   IMicrophoneRecorder, IModelAvailabilityProbe
   Processing/                  # EntryProcessingService, SummaryGenerator, AudioWatcherService,
-                               #   SectionCatalog (SectionDescriptor)
+                               #   SectionCatalog (SectionDescriptor), ModelNames,
+                               #   SummaryModelCatalog, SummaryModelResolver,
+                               #   DictationCostEstimator
   Services/                    # PromptSettingsLoader (local/global fallback)
   Settings/                    # AppSettings, PromptSettings, SettingsHolder,
                                #   SettingsSplitMigration,
@@ -77,8 +79,9 @@ Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Dom
                                #   NoOpMicrophoneRecorder stub, AudioDurationReader
   Json/                        # JsonRepository (file-backed), JsonSettingsRepository,
                                #   JsonPromptSettingsRepository, migration
-  Llm/                         # OpenAiLlmProvider (gpt-5.6-luna), WhisperTranscriber
-                               #   (gpt-transcribe), NoOp stubs
+  Llm/                         # OpenAiLlmProvider (ChatClient per model id),
+                               #   WhisperTranscriber (gpt-transcribe), ApiKeyProvider,
+                               #   OpenAiModelAvailabilityProbe, NoOp stubs
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
 Platee.Johann.UI/              # WPF presentation layer (depends on all)
@@ -131,13 +134,24 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 <!-- AUTO-MANAGED: patterns -->
 ## Detected Patterns
 
-**Models (v1.4.0)**: `ModelNames` (Application/Processing/) holds both OpenAI model ids in one
-place — `gpt-transcribe` for speech-to-text, `gpt-5.6-luna` for every generated section. Choosing
-a model is an application decision, calling the SDK with it is infrastructure, so the constants
-live in Application: that lets the status bar name the models without a view model reaching into
-`Infrastructure`, and keeps the id from being written twice. `ModelSelectionTests` pins both — a
-silently reverted model would fail nothing, the app would just get worse and more expensive.
-#71 turns `Summaries` into a per-user setting.
+**Models (v1.5.0, #71)**: `ModelNames` holds the transcription id (`gpt-transcribe`);
+`SummaryModelCatalog` (Application/Processing/) owns the **three** summary models the user may
+pick from — `gpt-5.6-luna` (default), `gpt-5.6-terra`, `gpt-5.6-sol`. Choosing a model is an
+application decision, calling the SDK with it is infrastructure, so both live in Application.
+The chosen id travels per call in `LlmOptions.Model`; `OpenAiLlmProvider` caches one `ChatClient`
+per id, because `ChatClient` binds the model in its constructor. `SummaryGenerator.Options()` is
+the single place that injects it, so `WithSnapshot()` freezes the model per run for free.
+
+⚠ **Per token ≠ per dictation.** `gpt-5-nano` was in the catalog as "the cheap option" and was
+removed on 2026-09-11 after measurement: it burns 2 496 reasoning tokens to produce 514 visible
+ones and therefore costs **more per dictation than Luna**, at lower quality. `gpt-5-mini` (59 %
+reasoning) and `gpt-5.4-mini` (3.5× Luna) are dominated too — hence three models, not four.
+
+Each catalog entry carries two **measured** constants (`OutputBase`, `OutputSlope`) from which
+`DictationCostEstimator` computes the cost shown in the settings card. Everything else is counted
+locally, which is why **custom categories need no special handling** — their prompt text is right
+there in `prompts.json`. ⚠ The constants were measured **without** a `reasoning_effort`; setting
+one (#73) invalidates them.
 
 **Audio duration is measured locally**: `whisper-1` reported it in its Verbose response;
 `gpt-transcribe` answers with plain `json` and carries neither duration nor timestamps.

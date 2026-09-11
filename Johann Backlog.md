@@ -272,7 +272,7 @@ könnten.
 [#57](https://github.com/jonasyr/Platee.Johann/issues/57) Outlook-Knöpfe ·
 [#56](https://github.com/jonasyr/Platee.Johann/issues/56) Kopiersymbol je Abschnitt ·
 [#55](https://github.com/jonasyr/Platee.Johann/issues/55) Einträge löschen ·
-[#71](https://github.com/jonasyr/Platee.Johann/issues/71) Modell in den Einstellungen wählbar ·
+~~[#71](https://github.com/jonasyr/Platee.Johann/issues/71) Modell in den Einstellungen wählbar~~ **erledigt** ·
 [#73](https://github.com/jonasyr/Platee.Johann/issues/73) Prompts für GPT-5.6 überarbeiten ·
 [#77](https://github.com/jonasyr/Platee.Johann/issues/77) `gpt-transcribe` besser ausnutzen ·
 [#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf ·
