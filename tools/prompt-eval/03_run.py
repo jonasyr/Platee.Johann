@@ -33,8 +33,16 @@ SECTIONS = {
     'analog':         ('analogPrompt',          False, None),
 }
 
+# Sprachpruefung: Der reale Fehlerfall ist "Ausgabe in der Sprache des Diktats statt
+# deutsch". Ein Test auf VORHANDENE deutsche Stoppwoerter schlaegt dagegen bei kurzen,
+# voellig korrekten Saetzen fehl — gemessen am 11.09.2026 waren alle 11 Treffer
+# Fehlalarme wie „Es wurden keine relevanten Aussagen uebermittelt." Deshalb wird auf
+# FREMDSPRACHIGKEIT geprueft, nicht auf Deutschsein.
+FOREIGN_MARKERS = re.compile(
+    r'\b(the|and|of|is|are|was|were|this|that|with|from|have|has|will|would|should)\b', re.I)
 GERMAN_MARKERS = re.compile(
-    r'\b(der|die|das|und|ist|nicht|mit|für|von|ein|eine|wird|wurde|sich|auch|dass)\b', re.I)
+    r'\b(der|die|das|und|ist|sind|nicht|kein|keine|keinen|mit|für|von|vom|zum|zur|ein|eine|'
+    r'einen|wird|wurde|wurden|sich|auch|dass|es|im|am|auf|bei|oder|als|wie|noch|nur)\b', re.I)
 
 
 def api_key():
@@ -78,8 +86,14 @@ def checks(text, transcript, expects_heading, word_limit):
         out['fehler'].append('leere Ausgabe')
         return out
 
-    if not GERMAN_MARKERS.search(text):
-        out['fehler'].append('Ausgabe wirkt nicht deutsch')
+    de = len(GERMAN_MARKERS.findall(text))
+    en = len(FOREIGN_MARKERS.findall(text))
+    if en > de and en >= 3:
+        out['fehler'].append(f'Ausgabe wirkt fremdsprachig ({en} fremde gegen {de} deutsche Marker)')
+    elif de == 0 and len(re.findall(r'\S+', text)) >= 25:
+        # Laengerer Text voellig ohne deutsche Funktionswoerter ist verdaechtig,
+        # ein kurzer Satz dagegen nicht.
+        out['hinweise'].append('keine deutschen Funktionswoerter gefunden')
 
     for ph in ('{transcript}', '{word_limit}', '{prose_summary}'):
         if ph in text:
