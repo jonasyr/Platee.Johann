@@ -100,6 +100,16 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public IReadOnlyList<SettingsSectionItem> Sections { get; }
 
+    /// <summary>
+    /// Raised after the settings have been written and both holders updated.
+    /// <para>
+    /// Die Einstellungsansicht ist nicht modal, der Nutzer kann also speichern und das
+    /// Fenster offen lassen. Ohne dieses Signal zeigte die Statusleiste im Hauptfenster
+    /// bis zum naechsten Neustart das alte Modell.
+    /// </para>
+    /// </summary>
+    public event Action? SettingsSaved;
+
     /// <summary>Gets a value indicating whether edits are written to the shared team file.</summary>
     public bool IsGlobalTarget => this.SaveTarget == CategoryScope.Global;
 
@@ -228,6 +238,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         this.PathStatusMessage = string.Empty;
         this.OnPropertyChanged(nameof(this.HasPathStatusMessage));
+
+        this.SettingsSaved?.Invoke();
     }
 
     /// <summary>

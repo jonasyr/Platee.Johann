@@ -192,7 +192,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     public string OutputPathDisplay => this.outputRoot;
 
-    public string WhisperVersion => ModelNames.StatusBarLabel;
+    public string WhisperVersion => ModelNames.StatusBarLabelFor(this.runtimeSettingsHolder.Current.SummaryModel);
 
     public MainViewModel(IEntryRepository repository, IEnumerable<IEntryRenderer> renderers,
                          string outputRoot, IEntryProcessor processor,
@@ -689,12 +689,19 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        this.settingsViewModel ??= new SettingsViewModel(
-            this.settingsRepo,
-            this.promptRepo,
-            this.persistedSettingsHolder,
-            this.runtimeSettingsHolder,
-            this.startupPathIssues);
+        if (this.settingsViewModel is null)
+        {
+            this.settingsViewModel = new SettingsViewModel(
+                this.settingsRepo,
+                this.promptRepo,
+                this.persistedSettingsHolder,
+                this.runtimeSettingsHolder,
+                this.startupPathIssues);
+
+            // Die Statusleiste nennt seit #71 das gewaehlte Modell. Das Fenster ist nicht
+            // modal, also muss sie beim Speichern nachziehen und nicht erst beim Neustart.
+            this.settingsViewModel.SettingsSaved += () => this.OnPropertyChanged(nameof(this.WhisperVersion));
+        }
         this.settingsWindow = new SettingsView(this.settingsViewModel)
         {
             Owner = System.Windows.Application.Current.MainWindow,

@@ -123,7 +123,14 @@ public partial class App : System.Windows.Application
             ResolveDefaultInputRoot,
             ResolveDefaultOutputRoot);
 
-        var effectiveSettings = pathResolution.EffectiveSettings;
+        // #71: ein abgekuendigtes Modell wuerde sonst jedes Diktat scheitern lassen. Die
+        // gespeicherte Wahl bleibt unangetastet, sie wird nur zur Laufzeit ueberstimmt —
+        // genau wie ein unerreichbares Verzeichnis.
+        var modelResolution = SummaryModelResolver.Resolve(persistedSettings);
+        var effectiveSettings = pathResolution.EffectiveSettings with
+        {
+            SummaryModel = modelResolution.EffectiveModelId,
+        };
         var outputRoot = effectiveSettings.Ausgabeverzeichnis;
 
 
@@ -141,6 +148,17 @@ public partial class App : System.Windows.Application
             MessageBox.Show(
                 BuildSettingsFaultMessage(startupFaults),
                 "Platé.Johann – Einstellungen konnten nicht geladen werden",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+
+        if (modelResolution.Issue is { } modelIssue)
+        {
+            crashLogger.WriteCrashLog("MODELL", modelIssue);
+
+            MessageBox.Show(
+                modelIssue,
+                "Platé.Johann – Modell angepasst",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
