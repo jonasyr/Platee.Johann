@@ -105,6 +105,13 @@ public sealed class JsonSettingsRepository : ISettingsRepository
                 : defaultSettings.SectionModes,
             SectionModesMigrationDone = dto.SectionModesMigrationDone,
             HideEmptySectionHint = dto.HideEmptySectionHint,
+
+            // Leer heisst "nie gewaehlt" und faellt auf den Standard zurueck. Eine unbekannte
+            // Id wird roh durchgereicht — repariert wird beim Start im SummaryModelResolver,
+            // damit die gespeicherte Wahl nicht still ueberschrieben wird.
+            SummaryModel = string.IsNullOrWhiteSpace(dto.SummaryModel)
+                ? defaultSettings.SummaryModel
+                : dto.SummaryModel,
         };
     }
 
@@ -123,6 +130,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         SectionModes = new Dictionary<string, GenerationMode>(s.SectionModes, StringComparer.Ordinal),
         SectionModesMigrationDone = s.SectionModesMigrationDone,
         HideEmptySectionHint = s.HideEmptySectionHint,
+        SummaryModel = s.SummaryModel,
     };
 
     // Separate DTO to decouple JSON shape from the domain record
@@ -149,6 +157,13 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         public bool SectionModesMigrationDone { get; set; }
 
         public bool HideEmptySectionHint { get; set; }
+
+        /// <summary>
+        /// Gets or sets die Modell-Id fuer die Zusammenfassungen. Fehlt in Dateien vor #71;
+        /// ein leerer Wert faellt auf den Standard zurueck, ein unbekannter wird roh
+        /// durchgereicht.
+        /// </summary>
+        public string? SummaryModel { get; set; }
 
         /// <summary>
         /// Backing field plus a "was it in the JSON at all" flag. System.Text.Json

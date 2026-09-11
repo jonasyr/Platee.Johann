@@ -1,45 +1,38 @@
 namespace Platee.Johann.Infrastructure.Llm;
 
+using System.Collections.Concurrent;
 using OpenAI.Chat;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
 
 /// <summary>
 /// OpenAI chat completion provider, used for every generated section.
-/// Runs on <see cref="ModelNames.Summaries"/> with max_completion_tokens.
+/// <para>
+/// Das Modell kommt seit #71 je Aufruf aus <see cref="LlmOptions.Model"/> — der Nutzer
+/// waehlt es in den Einstellungen. Ohne Angabe gilt <see cref="SummaryModelCatalog.Default"/>.
+/// </para>
 /// </summary>
 public sealed class OpenAiLlmProvider : ILlmProvider
 {
-    /// <summary>
-    /// The model that writes the summaries.
-    /// <para>
-    /// OpenAI positions Luna explicitly for "summarization, drafting, classification",
-    /// which is exactly this application's job. It costs 0.20/1.20 $ per 1M tokens against
-    /// 0.05/0.40 for the previous <c>gpt-5-nano</c> — four times the token price, but #61
-    /// cuts a dictation from eight calls to two, so the change is roughly cost-neutral for
-    /// a markedly better result.
-    /// </para>
-    /// <para>
-    /// Public so the choice is covered by a test: a silently reverted model would not fail
-    /// anything, the app would just get worse and more expensive. #71 will make this
-    /// user-selectable; until then it is the single fixed default.
-    /// </para>
-    /// </summary>
-    public const string ModelName = ModelNames.Summaries;
-
     // Deliberately not IDisposable. ChatClient (OpenAI 2.2.0) implements no
     // interfaces at all, so casting it to IDisposable is always null — an earlier
     // attempt to dispose it that way was a guaranteed no-op. The SDK's
-    // System.ClientModel pipeline owns its transport, and exactly one provider is
-    // created for the process lifetime, so there is nothing here to release.
-    private readonly ChatClient client;
+    // System.ClientModel pipeline owns its transport, and the handful of clients
+    // here live for the process, so there is nothing to release.
+    //
+    // Je Modell-Id ein Client: ChatClient bindet das Modell im Konstruktor, ein Wechsel
+    // zur Laufzeit braucht also einen zweiten. Der Katalog hat vier Eintraege, die Map
+    // wird nicht gross.
+    private readonly ConcurrentDictionary<string, ChatClient> clients = new(StringComparer.Ordinal);
 
-    public bool IsAvailable => true;
+    private readonly string apiKey;
 
     public OpenAiLlmProvider(string apiKey)
     {
-        this.client = new ChatClient(ModelName, apiKey);
+        this.apiKey = apiKey;
     }
+
+    public bool IsAvailable => true;
 
     public async Task<string> GenerateAsync(
         string systemPrompt,
@@ -58,7 +51,19 @@ public sealed class OpenAiLlmProvider : ILlmProvider
             MaxOutputTokenCount = options.MaxTokens,
         };
 
-        var response = await this.client.CompleteChatAsync(messages, chatOptions, ct);
+        var client = this.ResolveClient(options.Model);
+
+        var response = await client.CompleteChatAsync(messages, chatOptions, ct);
         return response.Value.Content.FirstOrDefault()?.Text ?? string.Empty;
     }
+
+    /// <summary>
+    /// Liefert den Client für die Modell-Id und legt ihn beim ersten Mal an.
+    /// </summary>
+    /// <param name="model">Die gewünschte Modell-Id, oder <c>null</c> für den Standard.</param>
+    /// <returns>Ein auf dieses Modell gebundener <see cref="ChatClient"/>.</returns>
+    private ChatClient ResolveClient(string? model) =>
+        this.clients.GetOrAdd(
+            model ?? SummaryModelCatalog.Default.Id,
+            id => new ChatClient(id, this.apiKey));
 }

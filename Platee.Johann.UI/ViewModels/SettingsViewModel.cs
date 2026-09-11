@@ -86,6 +86,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string pathStatusMessage = string.Empty;
     [ObservableProperty]
     private SettingsSectionItem? selectedSection;
+    [ObservableProperty]
+    private SummaryModel selectedModel = SummaryModelCatalog.Default;
 
     /// <summary>
     /// Gets or sets where a prompt or category edit is written. Replaces the former admin
@@ -97,6 +99,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     private CategoryScope saveTarget = CategoryScope.Personal;
 
     public IReadOnlyList<SettingsSectionItem> Sections { get; }
+
+    /// <summary>
+    /// Raised after the settings have been written and both holders updated.
+    /// <para>
+    /// Die Einstellungsansicht ist nicht modal, der Nutzer kann also speichern und das
+    /// Fenster offen lassen. Ohne dieses Signal zeigte die Statusleiste im Hauptfenster
+    /// bis zum naechsten Neustart das alte Modell.
+    /// </para>
+    /// </summary>
+    public event Action? SettingsSaved;
 
     /// <summary>Gets a value indicating whether edits are written to the shared team file.</summary>
     public bool IsGlobalTarget => this.SaveTarget == CategoryScope.Global;
@@ -133,6 +145,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool IsKorrekturlisteSelected => this.IsSelected(SectionKorrekturliste);
 
     public bool IsKategorienSelected => this.IsSelected(SectionKategorien);
+
+    public bool IsKiModellSelected => this.IsSelected(SectionKiModell);
+
+    /// <summary>Gets die Modelle, unter denen der Nutzer waehlen darf.</summary>
+    public IReadOnlyList<SummaryModel> AvailableModels { get; } = SummaryModelCatalog.All;
 
     /// <summary>Gets a value indicating whether a category is selected for editing.</summary>
     public bool HasSelectedCategory => this.SelectedCategory is not null;
@@ -186,6 +203,9 @@ public sealed partial class SettingsViewModel : ObservableObject
             // Modes are always personal, whatever SaveTarget says: category definitions may
             // be shared, but nobody may change a colleague's waiting time.
             SectionModes = this.CollectSectionModes(),
+
+            // Ebenfalls immer persoenlich: welches Modell jemand bezahlt, entscheidet er selbst.
+            SummaryModel = this.SelectedModel.Id,
         };
 
         var updatedPrompts = this.runtimeHolder.Prompts with
@@ -218,6 +238,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         this.PathStatusMessage = string.Empty;
         this.OnPropertyChanged(nameof(this.HasPathStatusMessage));
+
+        this.SettingsSaved?.Invoke();
     }
 
     /// <summary>
@@ -587,6 +609,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.StundenzettelPrompt = p.StundenzettelPrompt;
         this.AnalogPrompt = p.AnalogPrompt;
 
+        // Eine Id, die der Katalog nicht kennt, darf die Auswahlliste nicht leer lassen —
+        // der Nutzer kaeme sonst nicht mehr an ein gueltiges Modell heran.
+        this.SelectedModel = SummaryModelCatalog.TryFind(s.SummaryModel) ?? SummaryModelCatalog.Default;
+
         this.Korrekturen.Clear();
         foreach (var c in s.Korrekturliste)
         {
@@ -658,6 +684,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsAnalogSelected));
         OnPropertyChanged(nameof(IsKorrekturlisteSelected));
         OnPropertyChanged(nameof(IsKategorienSelected));
+        OnPropertyChanged(nameof(IsKiModellSelected));
     }
 
     partial void OnSelectedCategoryChanged(CategoryEditorViewModel? value) =>
@@ -696,6 +723,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             new(SectionTeam, "Team-Prompts", "GRUNDDATEN"),
             new(SectionKorrekturliste, "Korrekturliste", "GRUNDDATEN"),
             new(SectionKategorien, "Vorlagen", "GRUNDDATEN"),
+            new(SectionKiModell, "KI-Modell", "GRUNDDATEN"),
             new(SectionSystemMessage, "System-Nachricht", "GLOBALE PROMPTS"),
             new(SectionAbstract, "Kurzfassung", "GLOBALE PROMPTS"),
             new(SectionStructured, "Zusammenfassung", "GLOBALE PROMPTS"),
@@ -741,6 +769,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private const string SectionAnalog = "analog";
     private const string SectionKorrekturliste = "korrekturliste";
     private const string SectionKategorien = "kategorien";
+    private const string SectionKiModell = "ki-modell";
 }
 
 public sealed record SettingsSectionItem(string Key, string Label, string Group);
