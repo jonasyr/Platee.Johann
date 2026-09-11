@@ -23,6 +23,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IPromptSettingsRepository promptRepo;
         private readonly SettingsHolder persistedSettingsHolder;
     private readonly SettingsHolder runtimeSettingsHolder;
+    private readonly IModelAvailabilityProbe? modelProbe;
     private readonly IReadOnlyList<StartupPathIssue> startupPathIssues;
     private readonly List<DateItemViewModel> allDates = [];
     private bool suppressDateSelectionChanged;
@@ -201,8 +202,10 @@ public sealed partial class MainViewModel : ObservableObject
                          SettingsHolder persistedSettingsHolder,
                          SettingsHolder runtimeSettingsHolder,
                          IMicrophoneRecorder microphoneRecorder,
-                         IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
+                         IReadOnlyList<StartupPathIssue>? startupPathIssues = null,
+                         IModelAvailabilityProbe? modelProbe = null)
     {
+        this.modelProbe = modelProbe;
         this.repository = repository;
         this.renderers = renderers;
         this.outputRoot = outputRoot;
@@ -696,7 +699,8 @@ public sealed partial class MainViewModel : ObservableObject
                 this.promptRepo,
                 this.persistedSettingsHolder,
                 this.runtimeSettingsHolder,
-                this.startupPathIssues);
+                this.startupPathIssues,
+                this.modelProbe);
 
             // Die Statusleiste nennt seit #71 das gewaehlte Modell. Das Fenster ist nicht
             // modal, also muss sie beim Speichern nachziehen und nicht erst beim Neustart.

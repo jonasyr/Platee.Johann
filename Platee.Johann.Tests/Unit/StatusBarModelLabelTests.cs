@@ -16,8 +16,8 @@ public sealed class StatusBarModelLabelTests
     [Fact]
     public void The_label_names_the_chosen_model_by_its_display_name()
     {
-        ModelNames.StatusBarLabelFor("gpt-5-nano")
-            .Should().Be("gpt-transcribe · GPT-5 Nano");
+        ModelNames.StatusBarLabelFor("gpt-5.6-terra")
+            .Should().Be("gpt-transcribe · GPT-5.6 Terra");
     }
 
     [Fact]

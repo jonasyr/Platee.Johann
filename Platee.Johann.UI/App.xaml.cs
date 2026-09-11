@@ -241,10 +241,15 @@ public partial class App : System.Windows.Application
         }
 
         // ── Window ────────────────────────────────────────────────────────────
+        // Ohne Schluessel ist keine Pruefung moeglich; der Stub meldet das, statt zu scheitern.
+        IModelAvailabilityProbe modelProbe = string.IsNullOrWhiteSpace(apiKey)
+            ? new NoOpModelAvailabilityProbe()
+            : new OpenAiModelAvailabilityProbe(apiKey);
+
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
                                            settingsRepo, personalPromptRepo, persistedSettingsHolder,
                                            runtimeSettingsHolder, microphoneRecorder,
-                                           pathResolution.Issues);
+                                           pathResolution.Issues, modelProbe);
 
         // Wired here rather than injected so the view models stay dialog-free in tests.
         viewModel.EmptySectionHintPrompt = () =>

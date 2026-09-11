@@ -3,6 +3,7 @@ namespace Platee.Johann.UI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -89,6 +90,33 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private SummaryModel selectedModel = SummaryModelCatalog.Default;
 
+    private readonly IModelAvailabilityProbe? probe;
+    private CancellationTokenSource? probeCts;
+    private Task probeTask = Task.CompletedTask;
+    private ProbeState modelStatus = ProbeState.Unchecked;
+
+    /// <summary>Der Anzeigezustand der Modellprüfung.</summary>
+    private enum ProbeState
+    {
+        /// <summary>Noch nichts geprüft — die Anzeige bleibt leer.</summary>
+        Unchecked,
+
+        /// <summary>Prüfung läuft.</summary>
+        Checking,
+
+        /// <summary>Modell ist erreichbar.</summary>
+        Available,
+
+        /// <summary>Modell existiert nicht mehr.</summary>
+        NotFound,
+
+        /// <summary>Prüfung war nicht möglich.</summary>
+        NetworkError,
+
+        /// <summary>Ohne Schlüssel nicht prüfbar.</summary>
+        NoApiKey,
+    }
+
     /// <summary>
     /// Gets or sets where a prompt or category edit is written. Replaces the former admin
     /// password gate, which doubled as an implicit — and invisible — write-target switch.
@@ -151,6 +179,89 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>Gets die Modelle, unter denen der Nutzer waehlen darf.</summary>
     public IReadOnlyList<SummaryModel> AvailableModels { get; } = SummaryModelCatalog.All;
 
+    /// <summary>
+    /// Gets die Kostenangabe zum gewählten Modell, z. B. „ungefähr 2,7 Cent für 10 Diktate".
+    /// <para>
+    /// Bewusst auf zehn Diktate hochgerechnet statt je Diktat: Luna liegt bei 0,27 Cent, und
+    /// mit einer Nachkommastelle stünde dort „0,3 Cent", egal ob der Nutzer vier oder sechs
+    /// Abschnitte automatisch erzeugen lässt — die Rundung verschlucke genau den
+    /// Zusammenhang, den die Karte zeigen soll. Zehn Diktate lösen das auf und sind
+    /// obendrein die greifbarere Größe: Bruchteile eines Cents sagen niemandem etwas.
+    /// </para>
+    /// </summary>
+    public string ModelCostText =>
+        $"ungefähr {(this.CurrentEstimate().Cents * 10).ToString("0.0", CultureInfo.CurrentCulture)} Cent für 10 Diktate";
+
+    /// <summary>
+    /// Gets die Einordnung darunter: worauf sich die Zahl bezieht und wie das Modell zum
+    /// günstigsten steht.
+    /// <para>
+    /// Der Vergleich trägt die Auswahl — „18× teurer" sagt mehr als jede absolute Zahl,
+    /// wenn es darum geht, ob jemand dauerhaft auf Sol stehen bleiben will.
+    /// </para>
+    /// </summary>
+    public string ModelComparisonText
+    {
+        get
+        {
+            var mine = this.CurrentEstimate();
+            var basis = $"bei Ihren {mine.AutoSectionCount} automatischen Abschnitten "
+                      + "und einer Minute Aufnahme";
+
+            var cheapest = SummaryModelCatalog.All
+                .OrderBy(m => this.EstimateFor(m).Cents)
+                .First();
+
+            if (string.Equals(cheapest.Id, this.SelectedModel.Id, StringComparison.Ordinal))
+            {
+                return basis + " · günstigste Option";
+            }
+
+            var cheapestCents = this.EstimateFor(cheapest).Cents;
+            var factor = cheapestCents > 0 ? mine.Cents / cheapestCents : 0;
+
+            return basis + $" · rund {factor:0}× teurer als {cheapest.DisplayName}";
+        }
+    }
+
+    /// <summary>
+    /// Gets der Klartext neben der Auswahlliste: läuft die Prüfung, ist das Modell da,
+    /// oder war die Prüfung nicht möglich.
+    /// </summary>
+    public string ModelStatusText => this.modelStatus switch
+    {
+        ProbeState.Checking => "wird geprüft…",
+        ProbeState.Available => "✓ verfügbar",
+        ProbeState.NotFound => "✗ nicht verfügbar — bitte ein anderes Modell wählen",
+        ProbeState.NetworkError => "konnte gerade nicht geprüft werden",
+        ProbeState.NoApiKey => "ohne API-Schlüssel nicht prüfbar",
+        _ => string.Empty,
+    };
+
+    /// <summary>
+    /// Gets a value indicating whether das Speichern gesperrt ist.
+    /// <para>
+    /// Nur zwei Zustände sperren: eine laufende Prüfung und ein nachweislich fehlendes
+    /// Modell. Ein Netzwerkfehler oder ein fehlender Schlüssel <b>nicht</b> — beide sagen
+    /// nichts darüber aus, ob das Modell existiert, und wer ohne Verbindung die
+    /// Einstellungen öffnet, muss trotzdem speichern können.
+    /// </para>
+    /// </summary>
+    public bool IsSaveBlocked =>
+        this.modelStatus is ProbeState.Checking or ProbeState.NotFound;
+
+    /// <summary>Gets die gefüllten Punkte der Denkleistung.</summary>
+    public string ModelReasoningFilled => Filled(this.SelectedModel.Reasoning);
+
+    /// <summary>Gets die leeren Punkte der Denkleistung.</summary>
+    public string ModelReasoningEmpty => Empty(this.SelectedModel.Reasoning);
+
+    /// <summary>Gets die gefüllten Punkte des Tempos.</summary>
+    public string ModelSpeedFilled => Filled(this.SelectedModel.Speed);
+
+    /// <summary>Gets die leeren Punkte des Tempos.</summary>
+    public string ModelSpeedEmpty => Empty(this.SelectedModel.Speed);
+
     /// <summary>Gets a value indicating whether a category is selected for editing.</summary>
     public bool HasSelectedCategory => this.SelectedCategory is not null;
 
@@ -161,14 +272,28 @@ public sealed partial class SettingsViewModel : ObservableObject
         IPromptSettingsRepository promptRepository,
         SettingsHolder persistedHolder,
         SettingsHolder? runtimeHolder = null,
-        IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
+        IReadOnlyList<StartupPathIssue>? startupPathIssues = null,
+        IModelAvailabilityProbe? probe = null)
     {
         this.repository = repository;
         this.promptRepository = promptRepository;
         this.persistedHolder = persistedHolder;
         this.runtimeHolder = runtimeHolder ?? persistedHolder;
+        this.probe = probe;
         this.Sections = BuildSections();
         this.BuiltInSectionModes = BuildBuiltInSectionModes(persistedHolder.Current.SectionModes);
+
+        // Die Kostenangabe haengt an der Abschnitts-Auswahl, nicht nur am Modell.
+        foreach (var row in this.BuiltInSectionModes)
+        {
+            row.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(SectionModeRowViewModel.Mode))
+                {
+                    this.NotifyCostChanged();
+                }
+            };
+        }
         this.LoadFromHolder();
         if (startupPathIssues is { Count: > 0 })
         {
@@ -178,7 +303,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.SelectedSection = this.Sections[0];
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
         // A category added in this session still carries the placeholder id minted from
@@ -641,6 +766,41 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// Collects the per-section modes from both toggle sources — the built-in rows and each
     /// category's own toggle — into the single map persisted in the local settings file.
     /// </summary>
+    /// <summary>
+    /// Die Skalen für Denkleistung und Tempo teilen sich bewusst dieselbe Punktform.
+    /// Zwei verschiedene Zeichen — etwa Punkte gegen Blitze — lesen sich als zwei
+    /// verschiedene Maßstäbe, und ein Emoji-Glyph rendert je nach Schrift anders.
+    /// Gefüllt und leer werden im XAML über getrennte <c>Run</c>-Elemente eingefärbt.
+    /// </summary>
+    private const int MeterSteps = 4;
+
+    private static string Filled(int value) => new('●', Math.Clamp(value, 0, MeterSteps));
+
+    private static string Empty(int value) =>
+        new('●', Math.Max(0, MeterSteps - Math.Clamp(value, 0, MeterSteps)));
+
+    private CostEstimate CurrentEstimate() => this.EstimateFor(this.SelectedModel);
+
+    private CostEstimate EstimateFor(SummaryModel model) =>
+        DictationCostEstimator.Estimate(
+            model,
+            this.runtimeHolder.Prompts,
+            this.persistedHolder.Current with { SectionModes = this.CollectSectionModes() },
+            DictationCostEstimator.TokensPerSpeechMinute);
+
+    /// <summary>
+    /// Meldet die von der Abschnitts-Auswahl abhängigen Anzeigen neu.
+    /// <para>
+    /// Ohne das bliebe die Kostenangabe stehen, während der Nutzer im Abschnitt „Vorlagen"
+    /// Häkchen umlegt — gerade der Zusammenhang, den die Karte sichtbar machen soll.
+    /// </para>
+    /// </summary>
+    private void NotifyCostChanged()
+    {
+        this.OnPropertyChanged(nameof(this.ModelCostText));
+        this.OnPropertyChanged(nameof(this.ModelComparisonText));
+    }
+
     private Dictionary<string, GenerationMode> CollectSectionModes()
     {
         var modes = new Dictionary<string, GenerationMode>(StringComparer.Ordinal);
@@ -665,6 +825,73 @@ public sealed partial class SettingsViewModel : ObservableObject
             InitialDirectory = Directory.Exists(initialDir) ? initialDir : string.Empty,
         };
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
+    }
+
+    partial void OnSelectedModelChanged(SummaryModel value)
+    {
+        this.NotifyCostChanged();
+        this.OnPropertyChanged(nameof(this.ModelReasoningFilled));
+        this.OnPropertyChanged(nameof(this.ModelReasoningEmpty));
+        this.OnPropertyChanged(nameof(this.ModelSpeedFilled));
+        this.OnPropertyChanged(nameof(this.ModelSpeedEmpty));
+
+        if (this.probe is null)
+        {
+            return;
+        }
+
+        this.probeCts?.Cancel();
+        this.probeCts?.Dispose();
+        this.probeCts = new CancellationTokenSource();
+        this.probeTask = this.RunProbeAsync(value, this.probeCts.Token);
+    }
+
+    /// <summary>
+    /// Testhaken: die laufende Prüfung, damit Tests nicht auf Zeit warten müssen.
+    /// <para>
+    /// Ohne ihn wären die Tests zeitabhängig und würden flackern. <c>internal</c> genügt,
+    /// weil das Testprojekt diese Datei per <c>Compile Include ... Link</c> einbindet.
+    /// </para>
+    /// </summary>
+    /// <returns>Die laufende oder zuletzt abgeschlossene Prüfung.</returns>
+    internal Task WaitForProbeAsync() => this.probeTask;
+
+    private async Task RunProbeAsync(SummaryModel model, CancellationToken ct)
+    {
+        this.SetProbeState(ProbeState.Checking);
+
+        try
+        {
+            var result = await this.probe!.ProbeAsync(model.Id, ct);
+
+            // Eine späte Antwort zu einem inzwischen abgewählten Modell verwerfen: sonst
+            // stünde „nicht verfügbar" an einem Modell, das in Ordnung ist.
+            if (!ct.IsCancellationRequested &&
+                string.Equals(this.SelectedModel.Id, model.Id, StringComparison.Ordinal))
+            {
+                this.SetProbeState(result switch
+                {
+                    ModelProbeResult.Available => ProbeState.Available,
+                    ModelProbeResult.NotFound => ProbeState.NotFound,
+                    ModelProbeResult.NoApiKey => ProbeState.NoApiKey,
+                    _ => ProbeState.NetworkError,
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Modellwechsel während der Prüfung: erwartet, der neue Lauf setzt den Zustand.
+        }
+    }
+
+    private bool CanSave() => !this.IsSaveBlocked;
+
+    private void SetProbeState(ProbeState state)
+    {
+        this.modelStatus = state;
+        this.OnPropertyChanged(nameof(this.ModelStatusText));
+        this.OnPropertyChanged(nameof(this.IsSaveBlocked));
+        this.SaveCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnSelectedSectionChanged(SettingsSectionItem? value)

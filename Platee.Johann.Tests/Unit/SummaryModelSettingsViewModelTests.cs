@@ -19,9 +19,9 @@ public sealed class SummaryModelSettingsViewModelTests
     [Fact]
     public void The_selected_model_mirrors_the_stored_setting()
     {
-        var (vm, _) = CreateSut(AppSettings.Default with { SummaryModel = "gpt-5-nano" });
+        var (vm, _) = CreateSut(AppSettings.Default with { SummaryModel = "gpt-5.6-sol" });
 
-        vm.SelectedModel.Id.Should().Be("gpt-5-nano");
+        vm.SelectedModel.Id.Should().Be("gpt-5.6-sol");
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed class SummaryModelSettingsViewModelTests
     {
         var (vm, _) = CreateSut(AppSettings.Default);
 
-        vm.AvailableModels.Should().HaveCount(4);
+        vm.AvailableModels.Should().HaveCount(3);
     }
 
     [Fact]
@@ -50,6 +50,83 @@ public sealed class SummaryModelSettingsViewModelTests
 
         await repo.Received(1).SaveAsync(
             Arg.Is<AppSettings>(s => s.SummaryModel == "gpt-5.6-terra"));
+    }
+
+    [Fact]
+    public void The_card_names_a_price_and_the_section_count()
+    {
+        var (vm, _) = CreateSut(AppSettings.Default with
+        {
+            SectionModes = SectionModeDefaults.Recommended,
+        });
+
+        vm.ModelCostText.Should().Contain("Cent").And.Contain("ungefähr").And.Contain("10 Diktate");
+        vm.ModelComparisonText.Should().Contain("6");   // sechs automatische Abschnitte
+    }
+
+    [Fact]
+    public void The_cheapest_model_is_labelled_as_such_instead_of_compared()
+    {
+        var (vm, _) = CreateSut(AppSettings.Default);
+
+        vm.SelectedModel = SummaryModelCatalog.Default;
+
+        vm.ModelComparisonText.Should().Contain("günstigste");
+    }
+
+    [Fact]
+    public void A_dearer_model_is_compared_against_the_cheapest()
+    {
+        var (vm, _) = CreateSut(AppSettings.Default);
+
+        vm.SelectedModel = SummaryModelCatalog.All.Single(m => m.Id == "gpt-5.6-sol");
+
+        vm.ModelComparisonText.Should().Contain("teurer").And.Contain("GPT-5.6 Luna");
+    }
+
+    [Fact]
+    public void The_meters_match_the_catalog_and_always_add_up_to_four()
+    {
+        var (vm, _) = CreateSut(AppSettings.Default);
+
+        vm.SelectedModel = SummaryModelCatalog.Default;   // Denkleistung 3, Tempo 4
+
+        vm.ModelReasoningFilled.Should().Be("●●●");
+        vm.ModelReasoningEmpty.Should().Be("●");
+        vm.ModelSpeedFilled.Should().Be("●●●●");
+        vm.ModelSpeedEmpty.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Both_meters_use_the_same_glyph_so_they_read_as_one_scale()
+    {
+        // Punkte gegen Blitze lasen sich als zwei verschiedene Massstaebe, und das
+        // Emoji-Glyph rendert je nach Schrift anders.
+        var (vm, _) = CreateSut(AppSettings.Default);
+
+        foreach (var model in SummaryModelCatalog.All)
+        {
+            vm.SelectedModel = model;
+
+            (vm.ModelReasoningFilled + vm.ModelReasoningEmpty).Should().Be("●●●●");
+            (vm.ModelSpeedFilled + vm.ModelSpeedEmpty).Should().Be("●●●●");
+        }
+    }
+
+    [Fact]
+    public void Switching_a_template_to_automatic_changes_the_cost_text()
+    {
+        // Der Zusammenhang soll sichtbar werden: mehr automatische Abschnitte, mehr Kosten.
+        var (vm, _) = CreateSut(AppSettings.Default with
+        {
+            SectionModes = SectionModeDefaults.Recommended,
+        });
+        var before = vm.ModelCostText;
+
+        var offRow = vm.BuiltInSectionModes.First(r => !r.IsAuto);
+        offRow.IsAuto = true;
+
+        vm.ModelCostText.Should().NotBe(before);
     }
 
     private static (SettingsViewModel Vm, ISettingsRepository Repo) CreateSut(AppSettings settings)
