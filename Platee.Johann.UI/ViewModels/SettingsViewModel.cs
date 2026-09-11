@@ -90,6 +90,33 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private SummaryModel selectedModel = SummaryModelCatalog.Default;
 
+    private readonly IModelAvailabilityProbe? probe;
+    private CancellationTokenSource? probeCts;
+    private Task probeTask = Task.CompletedTask;
+    private ProbeState modelStatus = ProbeState.Unchecked;
+
+    /// <summary>Der Anzeigezustand der Modellprüfung.</summary>
+    private enum ProbeState
+    {
+        /// <summary>Noch nichts geprüft — die Anzeige bleibt leer.</summary>
+        Unchecked,
+
+        /// <summary>Prüfung läuft.</summary>
+        Checking,
+
+        /// <summary>Modell ist erreichbar.</summary>
+        Available,
+
+        /// <summary>Modell existiert nicht mehr.</summary>
+        NotFound,
+
+        /// <summary>Prüfung war nicht möglich.</summary>
+        NetworkError,
+
+        /// <summary>Ohne Schlüssel nicht prüfbar.</summary>
+        NoApiKey,
+    }
+
     /// <summary>
     /// Gets or sets where a prompt or category edit is written. Replaces the former admin
     /// password gate, which doubled as an implicit — and invisible — write-target switch.
@@ -197,6 +224,32 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Gets der Klartext neben der Auswahlliste: läuft die Prüfung, ist das Modell da,
+    /// oder war die Prüfung nicht möglich.
+    /// </summary>
+    public string ModelStatusText => this.modelStatus switch
+    {
+        ProbeState.Checking => "wird geprüft…",
+        ProbeState.Available => "✓ verfügbar",
+        ProbeState.NotFound => "✗ nicht verfügbar — bitte ein anderes Modell wählen",
+        ProbeState.NetworkError => "konnte gerade nicht geprüft werden",
+        ProbeState.NoApiKey => "ohne API-Schlüssel nicht prüfbar",
+        _ => string.Empty,
+    };
+
+    /// <summary>
+    /// Gets a value indicating whether das Speichern gesperrt ist.
+    /// <para>
+    /// Nur zwei Zustände sperren: eine laufende Prüfung und ein nachweislich fehlendes
+    /// Modell. Ein Netzwerkfehler oder ein fehlender Schlüssel <b>nicht</b> — beide sagen
+    /// nichts darüber aus, ob das Modell existiert, und wer ohne Verbindung die
+    /// Einstellungen öffnet, muss trotzdem speichern können.
+    /// </para>
+    /// </summary>
+    public bool IsSaveBlocked =>
+        this.modelStatus is ProbeState.Checking or ProbeState.NotFound;
+
     /// <summary>Gets die gefüllten Punkte der Denkleistung.</summary>
     public string ModelReasoningFilled => Filled(this.SelectedModel.Reasoning);
 
@@ -219,12 +272,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         IPromptSettingsRepository promptRepository,
         SettingsHolder persistedHolder,
         SettingsHolder? runtimeHolder = null,
-        IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
+        IReadOnlyList<StartupPathIssue>? startupPathIssues = null,
+        IModelAvailabilityProbe? probe = null)
     {
         this.repository = repository;
         this.promptRepository = promptRepository;
         this.persistedHolder = persistedHolder;
         this.runtimeHolder = runtimeHolder ?? persistedHolder;
+        this.probe = probe;
         this.Sections = BuildSections();
         this.BuiltInSectionModes = BuildBuiltInSectionModes(persistedHolder.Current.SectionModes);
 
@@ -248,7 +303,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.SelectedSection = this.Sections[0];
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
         // A category added in this session still carries the placeholder id minted from
@@ -779,6 +834,64 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.OnPropertyChanged(nameof(this.ModelReasoningEmpty));
         this.OnPropertyChanged(nameof(this.ModelSpeedFilled));
         this.OnPropertyChanged(nameof(this.ModelSpeedEmpty));
+
+        if (this.probe is null)
+        {
+            return;
+        }
+
+        this.probeCts?.Cancel();
+        this.probeCts?.Dispose();
+        this.probeCts = new CancellationTokenSource();
+        this.probeTask = this.RunProbeAsync(value, this.probeCts.Token);
+    }
+
+    /// <summary>
+    /// Testhaken: die laufende Prüfung, damit Tests nicht auf Zeit warten müssen.
+    /// <para>
+    /// Ohne ihn wären die Tests zeitabhängig und würden flackern. <c>internal</c> genügt,
+    /// weil das Testprojekt diese Datei per <c>Compile Include ... Link</c> einbindet.
+    /// </para>
+    /// </summary>
+    /// <returns>Die laufende oder zuletzt abgeschlossene Prüfung.</returns>
+    internal Task WaitForProbeAsync() => this.probeTask;
+
+    private async Task RunProbeAsync(SummaryModel model, CancellationToken ct)
+    {
+        this.SetProbeState(ProbeState.Checking);
+
+        try
+        {
+            var result = await this.probe!.ProbeAsync(model.Id, ct);
+
+            // Eine späte Antwort zu einem inzwischen abgewählten Modell verwerfen: sonst
+            // stünde „nicht verfügbar" an einem Modell, das in Ordnung ist.
+            if (!ct.IsCancellationRequested &&
+                string.Equals(this.SelectedModel.Id, model.Id, StringComparison.Ordinal))
+            {
+                this.SetProbeState(result switch
+                {
+                    ModelProbeResult.Available => ProbeState.Available,
+                    ModelProbeResult.NotFound => ProbeState.NotFound,
+                    ModelProbeResult.NoApiKey => ProbeState.NoApiKey,
+                    _ => ProbeState.NetworkError,
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Modellwechsel während der Prüfung: erwartet, der neue Lauf setzt den Zustand.
+        }
+    }
+
+    private bool CanSave() => !this.IsSaveBlocked;
+
+    private void SetProbeState(ProbeState state)
+    {
+        this.modelStatus = state;
+        this.OnPropertyChanged(nameof(this.ModelStatusText));
+        this.OnPropertyChanged(nameof(this.IsSaveBlocked));
+        this.SaveCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnSelectedSectionChanged(SettingsSectionItem? value)
