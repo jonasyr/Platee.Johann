@@ -426,14 +426,19 @@ def main(argv: list[str] | None = None) -> int:
     for dim, v in variance.items():
         mark = "  <-- primaer" if dim == PRIMARY else ""
         print(f"   {dim:<18}{v['tau2']:>9}{v['sigma2']:>10}{v['verhaeltnis']:>15}{mark}")
-    ratio = variance[PRIMARY]["verhaeltnis"]
-    if isinstance(ratio, float) and not math.isnan(ratio):
-        hint = (
-            "mehr Diktate, weniger Wiederholungen"
-            if ratio > 0.01
-            else "Wiederholungen lohnen sich relativ mehr"
+    primary = variance[PRIMARY]
+    if not math.isnan(primary["tau2"]) and not math.isnan(primary["sigma2"]):
+        print("\n1b. WAS WIEDERHOLUNGEN NOCH BRINGEN  (Korpus ist auf 60 Diktate begrenzt)")
+        print(f"   {'K':>3}{'Varianz je Zelle':>20}{'gegenueber K=1':>18}")
+        base = primary["tau2"] + primary["sigma2"]
+        for k in (1, 2, 3, 4, 6, 8):
+            var = primary["tau2"] + primary["sigma2"] / k
+            print(f"   {k:>3}{var:>20.4f}{100 * var / base:>17.0f}%")
+        print(f"   Untergrenze bei unendlich vielen Wiederholungen: {primary['tau2']:.4f}")
+        print(
+            "   Die Untergrenze ist tau^2 -- sie ist durch Wiederholungen nicht zu "
+            "unterbieten,\n   nur durch mehr Diktate."
         )
-        print(f"   Folgerung fuer die Budgetaufteilung: {hint}")
 
     print("\n2. SELBSTKONSISTENZ DES RICHTERS")
     print(f"   {'Dimension':<18}{'ICC(3,1)':>10}{'gleiches Urteil':>18}{'n':>6}")
