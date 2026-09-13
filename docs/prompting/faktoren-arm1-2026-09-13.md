@@ -157,7 +157,62 @@ werden erst ausgewertet, wenn der primäre Endpunkt hält.
 
 ---
 
-## 6. Was als Nächstes ansteht
+## 6. Was der Hauptlauf beantwortet — und was nicht
+
+### 6.1 Pro Faktor: ja, mit Intervall
+
+Das ist die Hauptlieferung. Für jeden der sieben Faktoren kommt heraus, wie stark er wirkt und
+wie sicher das ist — nicht „S1 ist besser", sondern „der Denkprozess-Block kostet X Punkte
+Treue, 95-%-Intervall von a bis b".
+
+**Aber die Genauigkeit ist nicht überall gleich, und das ist eingebaut, nicht behebbar.**
+Systemnachricht-Faktoren (S1–S4) werden gegen den Whole-Plot-Fehler getestet und tragen die
+Streuung *beider* Ebenen; Abschnitts-Faktoren (A1–A3) leben im Subplot-Stratum, wo die
+Präzision hoch ist.
+
+> Praktisch heißt das: ein kleiner Effekt bei **A1** wird sauber aufgelöst, derselbe kleine
+> Effekt bei **S2** kann im Rauschen bleiben. Ein nicht signifikanter Systemnachricht-Faktor
+> ist deshalb **kein Beleg für Wirkungslosigkeit** — dafür braucht es den Äquivalenztest gegen
+> den im Pilotlauf gemessenen Rauschboden.
+
+### 6.2 Wechselwirkungen: ja, zwischen den Ebenen
+
+Alle zwölf Kombinationen Systemnachricht × Abschnitt sind im Modell. Fragen wie „wirkt der
+Denkprozess-Block nur, wenn der Ausgabevertrag dünn ist?" sind damit beantwortbar.
+
+Wechselwirkungen *innerhalb* der Systemnachricht sind es nicht — sie wären nur mit der Zahl der
+Whole Plots schätzbar, und davon gibt es zwölf. Ob Großschreibung und Verbotsform sich
+gegenseitig verstärken, bleibt offen. Das ist bewusst eingetauscht.
+
+### 6.3 Die beste Kombination: ja, aber als Vorhersage
+
+Der Plan deckt 48 der 128 möglichen Kombinationen ab. Die beste ist deshalb eine **Vorhersage
+aus dem Modell**, keine gemessene Zelle — und sie kann eine sein, die nie gelaufen ist.
+
+Das ist normal und in Ordnung, verlangt aber einen Schritt, der sonst gern vergessen wird:
+
+> **Bestätigungslauf.** Die vorhergesagte beste Kombination wird erzeugt und gegen die heutige
+> Referenz über den *ganzen* Korpus gestellt, gepaart. Fällt sie schlechter aus als
+> vorhergesagt, war das Modell zu einfach — und das ist ein Befund, kein Betriebsunfall.
+> Kosten: zwei Zellen über 60 Diktate, also ein Bruchteil des Hauptlaufs.
+
+### 6.4 „Besser" ist zweidimensional
+
+Qualität allein reicht nicht. Wegen der Cache-Schwelle aus §1 kann ein Faktor die Treue
+verbessern **und** die Kosten erhöhen. Jeder Faktor bekommt deshalb zwei Zahlen: Wirkung auf
+die Treue und Wirkung auf die Kosten *mit* Cache.
+
+Erst beides zusammen ergibt eine Empfehlung. Ein Faktor, der 0,1 Notenpunkte bringt und die
+Kosten verdoppelt, wird nicht übernommen.
+
+### 6.5 Entschieden wird am Ende lesend
+
+Der Richter sortiert vor, er entscheidet nicht. Vor der Übernahme in die Team-Datei werden die
+Ausgaben der empfohlenen Fassung gegen die heutige gelesen. Fällt die Kalibrierung im Pilotlauf
+schlecht aus, verschiebt sich das Gewicht weiter zum Lesen — dann ist die automatische
+Bewertung nur noch ein Filter für die Frage, *welche* Beispiele man liest.
+
+## 7. Was als Nächstes ansteht
 
 1. Die sieben Faktoren in konkrete Prompt-Varianten übersetzen, je Stufe eine Datei in der
    Sandbox (`Documents\Johann\prompt-sandbox\`).
