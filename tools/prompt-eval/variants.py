@@ -479,23 +479,36 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     base = json.loads(args.base.read_text(encoding="utf-8"))
     snippets = json.loads(args.snippets.read_text(encoding="utf-8"))
-    cells = (
-        [Factors(**row) for row in json.loads(args.design.read_text(encoding="utf-8"))]
-        if args.design
-        else [Factors()]
+    # Felder mit fuehrendem Unterstrich sind Planmetadaten (z. B. die Whole-Plot-Nummer) und
+    # gehoeren nicht in den Faktorvektor. Sie wandern unveraendert in das Manifest, weil die
+    # Auswertung die Whole-Plot-Zugehoerigkeit als Clusterschluessel braucht.
+    design_rows: list[dict] = (
+        json.loads(args.design.read_text(encoding="utf-8")) if args.design else [{}]
     )
+    cells = [Factors(**{k: v for k, v in row.items() if not k.startswith("_")}) for row in design_rows]
 
     args.out.mkdir(parents=True, exist_ok=True)
     manifest: list[dict] = []
-    for factors in cells:
+    for index, (factors, row) in enumerate(zip(cells, design_rows)):
         prompts = build(base, snippets, factors)
         merged = {**base, **prompts}
-        target = args.out / f"prompts.{factors.cell_id}.json"
+        # Die Laufnummer gehoert in den Dateinamen: ein Plan darf dieselbe Faktorkombination
+        # mehrfach enthalten (Wiederholungen sind erwuenscht), und ohne Nummer wuerde die
+        # zweite die erste ueberschreiben.
+        target = args.out / f"prompts.{index:03d}.{factors.cell_id}.json"
         target.write_text(
             json.dumps(merged, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         report = prefix_report(prompts)
-        manifest.append({"cell_id": factors.cell_id, "factors": asdict(factors), "prefix": report})
+        manifest.append(
+            {
+                "run": index,
+                "cell_id": factors.cell_id,
+                "factors": asdict(factors),
+                "plan": {k: v for k, v in row.items() if k.startswith("_")},
+                "prefix": report,
+            }
+        )
         blocked = [k for k, v in report.items() if k != "systemMessage" and not v["cacheable"]]
         flag = f"  ⚠ unter der Cache-Schwelle: {', '.join(blocked)}" if blocked else ""
         print(f"{target.name}  System {report['systemMessage']['tokens']} Token{flag}")
