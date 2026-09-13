@@ -27,7 +27,15 @@ from pathlib import Path
 
 import numpy as np
 
-DIMENSIONS = ("treue", "vollstaendigkeit", "klarheit")
+#: Rubrik v1. Bleibt, damit der erste Pilotlauf weiter auswertbar ist.
+DIMENSIONS_V1 = ("treue", "vollstaendigkeit", "klarheit")
+
+#: Rubrik v2. "Klarheit" ist raus -- sie bekam in 306 von 306 Bewertungen eine 5 und trug
+#: damit null Information. An ihrer Stelle steht "Nacharbeit".
+DIMENSIONS_V2 = ("treue", "vollstaendigkeit", "nacharbeit")
+
+#: Wird beim Laden aus den Daten bestimmt, damit beide Faelle ohne Schalter laufen.
+DIMENSIONS: tuple[str, ...] = DIMENSIONS_V2
 SCALE = (1, 2, 3, 4, 5)
 
 #: Die Dimension, an der der Hauptlauf haengt. Fuer ein Diktat-Archiv ist Treue der eigentliche
@@ -166,6 +174,59 @@ def gwet_ac2(a: list[int], b: list[int], categories: tuple[int, ...] = SCALE) ->
 # --------------------------------------------------------------------------- Auswertung
 
 
+def attach_ratings(payload: dict, urteile: Path | None) -> tuple[list[dict], tuple[str, ...]]:
+    """Haengt die Richternoten an die Ausgaben und bestimmt die Rubrik aus den Daten.
+
+    Zwei Quellen sind moeglich: die im Pilotlauf mitgeschriebenen Urteile (Rubrik v1) oder eine
+    Nachbewertung aus `rescore.py` (Rubrik v2). Welche Dimensionen gelten, wird am ersten
+    gueltigen Urteil abgelesen statt ueber einen Schalter gesetzt -- ein Schalter waere eine
+    weitere Stelle, an der die Auswertung und die Daten auseinanderlaufen koennen.
+    """
+    rows = payload["zeilen"]
+    if urteile is None:
+        first = next(
+            (r for row in rows for r in row.get("ratings", []) if r.get("scores")), None
+        )
+        dims = DIMENSIONS_V1
+        if first and "nacharbeit" in first["scores"]:
+            dims = DIMENSIONS_V2
+        return rows, dims
+
+    records = [json.loads(l) for l in urteile.read_text(encoding="utf-8").splitlines() if l.strip()]
+    by_key: dict[str, list[dict]] = defaultdict(list)
+    for record in records:
+        if record.get("scores"):
+            by_key[record["key"]].append(
+                {"judge_rep": record.get("rep", 0), "scores": record["scores"]}
+            )
+    for row in rows:
+        key = f"{row['item_id']}|{row['variant_id']}|{row['run_index']}"
+        row["ratings"] = by_key.get(key, [])
+
+    sample = next((r for row in rows for r in row["ratings"]), None)
+    dims = (
+        DIMENSIONS_V2
+        if sample and "nacharbeit" in sample["scores"]
+        else DIMENSIONS_V1
+    )
+    return rows, dims
+
+
+def drop_empty(payload: dict, rows: list[dict]) -> list[dict]:
+    """Wirft Ausgaben zu leeren Transkripten raus.
+
+    Ein Diktat ohne Inhalt misst nichts ueber Prompts. Im ersten Pilotlauf war eines dabei, und
+    die sechs Ausgaben dazu hoben tau^2 bei der Treue von 0,46 auf 0,90 -- fast aufs Doppelte.
+    """
+    empty = {k for k, v in payload["transkripte"].items() if len((v or "").strip()) < 20}
+    if not empty:
+        return rows
+    kept = [r for r in rows if r["item_id"] not in empty]
+    print(f"⚠ {len(empty)} Diktat(e) ohne Transkript ausgeschlossen, "
+          f"{len(rows) - len(kept)} Ausgaben betroffen")
+    return kept
+
+
 def mean_scores(row: dict) -> dict[str, float] | None:
     """Mittelt die Richter-Wiederholungen einer Ausgabe.
 
@@ -176,7 +237,11 @@ def mean_scores(row: dict) -> dict[str, float] | None:
     valid = [r["scores"] for r in row.get("ratings", []) if r.get("scores")]
     if not valid:
         return None
-    return {dim: statistics.fmean(float(s[dim]) for s in valid) for dim in DIMENSIONS}
+    # Nur ueber Dimensionen mitteln, die in den Daten auch vorkommen. Sonst waere die
+    # Auswertung an eine Rubrikfassung genagelt und bräche, sobald sich die Rubrik aendert --
+    # und genau das ist hier zweimal passiert.
+    present = [dim for dim in DIMENSIONS if all(dim in s for s in valid)]
+    return {dim: statistics.fmean(float(s[dim]) for s in valid) for dim in present}
 
 
 def judge_consistency(rows: list[dict]) -> dict[str, dict]:
@@ -289,11 +354,15 @@ RATING_PAGE = """<!doctype html>
 <p>Reihenfolge zufällig, Modellnoten nicht sichtbar. Bewerte nach derselben Vorschrift wie der
 Richter. <b>Nicht</b> nachschlagen, was das Modell vergeben hat — sonst misst der Vergleich
 Ankerwirkung statt Urteil.</p>
-<ol style="background:#fff;border:1px solid #d8dedd;padding:18px 18px 18px 38px">
-<li><b>Treue</b> — 5 = jede Aussage im Transkript belegt · 3 = eine Aussage geht darüber hinaus · 1 = mehrere erfunden</li>
-<li><b>Vollständigkeit</b> — 5 = alles Wesentliche da · 3 = ein wesentlicher Punkt fehlt · 1 = mehrere fehlen</li>
-<li><b>Klarheit</b> — 5 = durchgehend klar · 3 = eine Stelle unklar · 1 = mehrere unverständlich</li>
-</ol>
+<div style="background:#fff;border:1px solid #d8dedd;padding:18px">
+<p style="margin:0 0 12px"><b>Sei streng.</b> Die 5 ist für fehlerfreie Arbeit reserviert, nicht für brauchbare.</p>
+<p style="margin:0 0 6px"><b>Treue</b> — stimmt alles, bis in die Nuance?</p>
+<p style="margin:0 0 12px;color:#3d4a47;font-size:14px">5 = keine Abweichung; auch Zahlen, Fristen, Namen und der Sicherheitsgrad stimmen („wir prüfen" wird nicht zu „wir machen") · 4 = eine Nuance verschoben, keine Tatsache falsch · 3 = eine Tatsache ergänzt, umgedeutet oder sinnentstellend weggelassen · 2 = mehrere solche Stellen · 1 = zentrale Aussage erfunden</p>
+<p style="margin:0 0 6px"><b>Vollständigkeit</b> — ist alles Handlungsrelevante da?</p>
+<p style="margin:0 0 12px;color:#3d4a47;font-size:14px">5 = jede Entscheidung, Aufgabe, Zahl, Frist und namentliche Zuordnung · 4 = eine Nebeninformation fehlt · 3 = eine handlungsrelevante Information fehlt · 2 = mehrere · 1 = der Kern fehlt</p>
+<p style="margin:0 0 6px"><b>Nacharbeit</b> — wie viel müsstest du anfassen, bevor du das so verschickst?</p>
+<p style="margin:0;color:#3d4a47;font-size:14px">5 = nichts · 4 = ein Wort oder eine Formulierung · 3 = ein Satz umschreiben · 2 = mehrere Stellen · 1 = neu schreiben</p>
+</div>
 <div id="liste"></div>
 <div id="fertig"><button onclick="speichern()">Noten als JSON speichern</button></div>
 <script>
@@ -306,7 +375,7 @@ DATEN.forEach((d, i) => {{
     + '<div class="quelle">' + d.transkript + '</div>'
     + '<p style="color:#6b7774;font-size:13px;margin:14px 0 4px">Erzeugte Zusammenfassung</p>'
     + '<div class="ausgabe">' + d.ausgabe + '</div>'
-    + ['treue','vollstaendigkeit','klarheit'].map(dim =>
+    + ['treue','vollstaendigkeit','nacharbeit'].map(dim =>
         '<div class="dim"><b>' + dim + '</b>' + [1,2,3,4,5].map(v =>
           '<label><input type="radio" name="' + d.id + '_' + dim + '" value="' + v + '">' + v + '</label>'
         ).join('') + '</div>').join('');
@@ -317,7 +386,7 @@ function speichern() {{
   let fehlend = 0;
   DATEN.forEach(d => {{
     const eintrag = {{id: d.id}};
-    ['treue','vollstaendigkeit','klarheit'].forEach(dim => {{
+    ['treue','vollstaendigkeit','nacharbeit'].forEach(dim => {{
       const gewaehlt = document.querySelector('input[name="' + d.id + '_' + dim + '"]:checked');
       if (gewaehlt) eintrag[dim] = Number(gewaehlt.value); else fehlend++;
     }});
@@ -334,14 +403,14 @@ function speichern() {{
 """
 
 
-def build_rating_page(payload: dict, sample: int, seed: int, target: Path) -> int:
+def build_rating_page(payload: dict, rows: list[dict], sample: int, seed: int, target: Path) -> int:
     """Erzeugt die blinde Bewertungsseite aus einer echten Zufallsstichprobe.
 
     Die Stichprobe muss i.i.d. gezogen sein. Waehlte man stattdessen die schwierigen oder
     strittigen Faelle, waere die spaetere PPI-Korrektur ungueltig -- das Verfahren setzt eine
     Zufallsauswahl voraus.
     """
-    rows = [r for r in payload["zeilen"] if r.get("output")]
+    rows = [r for r in rows if r.get("output")]
     rng = random.Random(seed)
     picked = rng.sample(rows, min(sample, len(rows)))
     rng.shuffle(picked)
@@ -361,11 +430,11 @@ def build_rating_page(payload: dict, sample: int, seed: int, target: Path) -> in
     return len(daten)
 
 
-def compare_with_human(payload: dict, notes_path: Path) -> dict:
+def compare_with_human(payload: dict, rows: list[dict], notes_path: Path) -> dict:
     """Vergleicht menschliche Noten mit den Richternoten derselben Ausgaben."""
     notes = {n["id"]: n for n in json.loads(notes_path.read_text(encoding="utf-8"))}
     index = {
-        f"{r['item_id']}|{r['variant_id']}|{r['run_index']}": r for r in payload["zeilen"]
+        f"{r['item_id']}|{r['variant_id']}|{r['run_index']}": r for r in rows
     }
 
     result: dict[str, dict] = {}
@@ -399,6 +468,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--roh", type=Path, default=base / "pilot_raw.json")
     parser.add_argument("--noten", type=Path, help="pilot_noten.json aus der Bewertungsseite")
+    parser.add_argument(
+        "--urteile",
+        type=Path,
+        help="Nachbewertung aus rescore.py (Rubrik v2). Ohne Angabe gelten die im "
+        "Pilotlauf mitgeschriebenen Urteile der Rubrik v1.",
+    )
     parser.add_argument("--stichprobe", type=int, default=30, help="Ausgaben zum Bewerten")
     parser.add_argument("--seed", type=int, default=20260913)
     parser.add_argument("--out", type=Path, default=base / "pilot_kennzahlen.json")
@@ -407,7 +482,11 @@ def main(argv: list[str] | None = None) -> int:
     if not args.roh.exists():
         raise SystemExit(f"Rohdaten fehlen: {args.roh}\nZuerst pilot.py laufen lassen.")
     payload = json.loads(args.roh.read_text(encoding="utf-8"))
-    rows = payload["zeilen"]
+    global DIMENSIONS
+    rows, DIMENSIONS = attach_ratings(payload, args.urteile)
+    rows = drop_empty(payload, rows)
+    rubrik = "v2" if "nacharbeit" in DIMENSIONS else "v1"
+    print(f"Rubrik: {rubrik}  ({', '.join(DIMENSIONS)})\n")
 
     consistency = judge_consistency(rows)
     variance = generation_variance(rows)
@@ -478,7 +557,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print("\n5. KALIBRIERUNG GEGEN DEN MENSCHEN")
     if args.noten and args.noten.exists():
-        human = compare_with_human(payload, args.noten)
+        human = compare_with_human(payload, rows, args.noten)
         report["kalibrierung"] = human
         for dim, v in human.items():
             if "hinweis" in v:
@@ -500,7 +579,7 @@ def main(argv: list[str] | None = None) -> int:
         print("   Randverteilungen systematisch zu niedrig ausfaellt.")
     else:
         target = args.roh.parent / "pilot_bewertung.html"
-        count = build_rating_page(payload, args.stichprobe, args.seed, target)
+        count = build_rating_page(payload, rows, args.stichprobe, args.seed, target)
         print(f"   Noch keine Noten. Bewertungsseite erzeugt: {count} Ausgaben")
         print(f"   {target}")
         print("   Im Browser oeffnen, blind bewerten, JSON speichern, dann:")

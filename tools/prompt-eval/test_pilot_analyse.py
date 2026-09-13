@@ -156,3 +156,17 @@ def test_konfidenzintervall_wird_mit_n_enger() -> None:
     schmal = pa.correlation_interval(0.6, 300)
     breit = pa.correlation_interval(0.6, 20)
     assert (schmal[1] - schmal[0]) < (breit[1] - breit[0])
+
+
+def test_mean_scores_vertraegt_beide_rubrikfassungen() -> None:
+    """Die Auswertung darf nicht an eine Rubrikfassung genagelt sein.
+
+    Waehrend des Pilotlaufs hat sich die Rubrik zweimal geaendert -- Klarheit raus, Nacharbeit
+    rein. Eine Auswertung, die starr drei feste Namen verlangt, bricht dann an alten Daten.
+    """
+    v1 = {"ratings": [{"scores": {"treue": 4, "vollstaendigkeit": 5, "klarheit": 5}}]}
+    v2 = {"ratings": [{"scores": {"treue": 4, "vollstaendigkeit": 5, "nacharbeit": 3}}]}
+    for row in (v1, v2):
+        means = pa.mean_scores(row)
+        assert means is not None
+        assert means["treue"] == pytest.approx(4.0)
