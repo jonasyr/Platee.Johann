@@ -259,6 +259,42 @@ def rate(row: dict, transcripts: dict[str, str], judge_rep: int) -> dict:
     }
 
 
+def append_jsonl(path: Path, record: dict) -> None:
+    """Haengt einen Datensatz an und schreibt ihn sofort auf die Platte.
+
+    ⚠ Warum nicht am Ende alles auf einmal: Der erste Anlauf dieses Pilotlaufs wurde vom System
+    wegen Arbeitsspeichermangel abgebrochen -- und weil erst zum Schluss geschrieben wurde, war
+    jede bis dahin bezahlte Antwort verloren. Bei einem Lauf, der Geld kostet, ist das nicht
+    hinnehmbar. Jeder Datensatz geht deshalb einzeln raus, und ein Neustart setzt dort an, wo
+    der Abbruch war.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def read_jsonl(path: Path) -> list[dict]:
+    """Liest zurueck, was schon da ist. Unvollstaendige letzte Zeile wird verworfen."""
+    if not path.exists():
+        return []
+    records: list[dict] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            break  # abgeschnittene Zeile am Ende eines Abbruchs
+    return records
+
+
+def gen_key(task: dict) -> str:
+    return f"{task['item_id']}|{task['variant_id']}|{task['run_index']}"
+
+
 def estimate_cost(n_generations: int, n_ratings: int) -> str:
     """Grobe Schaetzung aus den Messwerten des Vorversuchs. Groessenordnung, keine Zusage."""
     gen = n_generations * 0.0005
@@ -271,7 +307,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--items", type=int, default=20, help="Diktate in der Stichprobe")
     parser.add_argument("--repeats", type=int, default=3, help="Erzeugungen je Zelle (K)")
     parser.add_argument("--judge-reps", type=int, default=3, help="Bewertungen je Ausgabe (R)")
-    parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=3,
+        help="Parallele Aufrufe. Bewusst niedrig: der erste Anlauf wurde vom System wegen "
+        "Arbeitsspeichermangel abgebrochen.",
+    )
     parser.add_argument("--seed", type=int, default=20260913)
     parser.add_argument(
         "--variants",
@@ -310,24 +352,54 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     transcripts = {item["id"]: item["text"] for item in items}
+    gen_path = args.out.with_name("pilot_gen.jsonl")
+    rate_path = args.out.with_name("pilot_rate.jsonl")
+
+    # Was schon bezahlt wurde, wird nicht noch einmal bezahlt.
+    done_gen = {gen_key(r): r for r in read_jsonl(gen_path)}
+    open_tasks = [t for t in tasks if gen_key(t) not in done_gen]
+    if done_gen:
+        print(f"\nbereits vorhanden: {len(done_gen)} Erzeugungen -- werden uebersprungen")
 
     started = time.time()
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        rows = list(pool.map(generate, tasks))
-    print(f"\nErzeugung fertig in {time.time() - started:.0f} s")
+        for row in pool.map(generate, open_tasks):
+            append_jsonl(gen_path, row)
+            done_gen[gen_key(row)] = row
+    if open_tasks:
+        print(f"Erzeugung fertig in {time.time() - started:.0f} s")
+
+    rows = [done_gen[gen_key(t)] for t in tasks if gen_key(t) in done_gen]
+
+    done_rate = {
+        f"{r['key']}|{r['judge_rep']}": r for r in read_jsonl(rate_path) if "key" in r
+    }
+    jobs = [
+        (row, rep)
+        for row in rows
+        for rep in range(args.judge_reps)
+        if f"{gen_key(row)}|{rep}" not in done_rate
+    ]
+    if done_rate:
+        print(f"bereits vorhanden: {len(done_rate)} Bewertungen -- werden uebersprungen")
 
     started = time.time()
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        ratings = list(
-            pool.map(
-                lambda pair: rate(pair[0], transcripts, pair[1]),
-                [(row, rep) for row in rows for rep in range(args.judge_reps)],
-            )
-        )
-    print(f"Bewertung fertig in {time.time() - started:.0f} s")
+        for record in pool.map(
+            lambda pair: {**rate(pair[0], transcripts, pair[1]), "key": gen_key(pair[0])}, jobs
+        ):
+            append_jsonl(rate_path, record)
+            done_rate[f"{record['key']}|{record['judge_rep']}"] = record
+    if jobs:
+        print(f"Bewertung fertig in {time.time() - started:.0f} s")
 
-    for index, row in enumerate(rows):
-        row["ratings"] = ratings[index * args.judge_reps : (index + 1) * args.judge_reps]
+    for row in rows:
+        key = gen_key(row)
+        row["ratings"] = [
+            done_rate[f"{key}|{rep}"]
+            for rep in range(args.judge_reps)
+            if f"{key}|{rep}" in done_rate
+        ]
 
     payload = {
         "erzeugt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
