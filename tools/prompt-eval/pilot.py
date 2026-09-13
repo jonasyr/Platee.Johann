@@ -185,6 +185,20 @@ def load_corpus(limit: int, seed: int) -> list[dict]:
     """
     corpus = json.loads((EVAL / "corpus.json").read_text(encoding="utf-8"))
     items = corpus["items"] if isinstance(corpus, dict) else corpus
+
+    # ⚠ Leere oder fast leere Transkripte fliegen raus, bevor sie Schaden anrichten.
+    # Der erste Pilotlauf enthielt eines (eine MP3 von 1 MB, die zu 0 Zeichen transkribiert
+    # wurde). Das Modell antwortet darauf verstaendlicherweise mit der Bitte, ein Transkript
+    # einzufuegen -- und der Richter vergibt dafuer dreimal die 1. Diese sechs Ausreisser
+    # allein hoben tau^2 bei der Treue von 0,46 auf 0,90, also fast aufs Doppelte, und haetten
+    # die gesamte Budgetaufteilung des Hauptlaufs verzerrt. Ein Item, das keinen Inhalt hat,
+    # misst nichts ueber Prompts.
+    usable = [item for item in items if len((item.get("text") or "").strip()) >= 20]
+    dropped = len(items) - len(usable)
+    if dropped:
+        print(f"⚠ {dropped} Korpuselement(e) ohne brauchbares Transkript uebersprungen")
+    items = usable
+
     buckets: dict[str, list[dict]] = {}
     for item in items:
         buckets.setdefault(item.get("bucket", "?"), []).append(item)
