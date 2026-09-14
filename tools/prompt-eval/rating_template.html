@@ -1,0 +1,499 @@
+<title>Blindbewertung Diktate</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --paper:#F5F7F6; --surface:#FFFFFF; --sunk:#ECEFEE; --ink:#111C1A; --ink-2:#3B4846;
+  --ink-3:#6A7674; --rule:#C7CFCD; --rule-2:#E0E5E4; --accent:#0E5C55; --accent-ink:#FFFFFF;
+  --accent-soft:#DCEAE7; --warn:#9A5B12; --good:#2C6A38;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0E1514; --surface:#151E1C; --sunk:#1A2523; --ink:#E7EEEC; --ink-2:#B2BFBC;
+  --ink-3:#82908E; --rule:#2E3C39; --rule-2:#222E2C; --accent:#5FC3B6; --accent-ink:#06201D;
+  --accent-soft:#1A2F2D; --warn:#D9A15C; --good:#7DBE87;
+}}
+:root[data-theme="dark"]{
+  --paper:#0E1514; --surface:#151E1C; --sunk:#1A2523; --ink:#E7EEEC; --ink-2:#B2BFBC;
+  --ink-3:#82908E; --rule:#2E3C39; --rule-2:#222E2C; --accent:#5FC3B6; --accent-ink:#06201D;
+  --accent-soft:#1A2F2D; --warn:#D9A15C; --good:#7DBE87;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;
+  line-height:1.5;overscroll-behavior-y:contain}
+button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+
+/* ============================================================ gemeinsam */
+.kopf{position:sticky;top:0;z-index:20;background:var(--paper);
+  padding:calc(10px + var(--safe-t)) 16px 9px;border-bottom:1px solid var(--rule-2)}
+.kopf-zeile{display:flex;align-items:center;gap:14px;max-width:1680px;margin:0 auto}
+.zaehler{font-family:var(--mono);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.zaehler small{color:var(--ink-3);font-weight:500}
+.balken{flex:1;height:6px;background:var(--sunk);border-radius:3px;overflow:hidden}
+.balken i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s ease}
+.knopf-klein{background:var(--surface);border:1px solid var(--rule);border-radius:8px;
+  padding:7px 12px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+.knopf-klein:hover{border-color:var(--ink-3)}
+
+.spalte-kopf{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;margin-bottom:8px}
+.spalte-kopf .klapp{font-family:var(--sans);letter-spacing:0;text-transform:none;font-size:13px;
+  border:0;background:none;padding:0;color:var(--accent);font-weight:600;cursor:pointer}
+
+.text{background:var(--surface);border:1px solid var(--rule-2);border-radius:10px;padding:16px 18px}
+.text.quelle{background:var(--sunk);color:var(--ink-2);font-family:var(--serif);
+  white-space:pre-wrap;font-size:16px;line-height:1.66}
+.text.ausgabe{border-left:3px solid var(--accent);font-size:16px;line-height:1.6}
+.verborgen{display:none!important}
+
+/* gerendertes Markdown der Zusammenfassung */
+.md h4{font-family:var(--sans);font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--accent);margin:18px 0 6px;font-weight:600}
+.md h4:first-child{margin-top:0}
+.md p{margin:0 0 10px}
+.md ul{margin:0 0 10px;padding-left:20px}
+.md li{margin-bottom:5px}
+.md li li{margin-top:4px}
+.md strong{font-weight:600}
+
+/* Bewertung */
+.dim{margin-bottom:16px}
+.dim-kopf{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:7px}
+.dim-name{font-weight:600;font-size:15px;background:none;border:0;padding:0;cursor:pointer;
+  border-bottom:1px dotted var(--rule);text-align:left}
+.dim.aktiv .dim-name{color:var(--accent)}
+.dim-hilfe{font-size:12.5px;color:var(--ink-3);text-align:right;flex:1;min-height:1.2em}
+.skala{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.skala button{min-height:54px;border:1.5px solid var(--rule);background:var(--surface);
+  border-radius:10px;font-size:18px;font-weight:600;color:var(--ink-2);cursor:pointer;
+  transition:transform .08s ease,background .12s,border-color .12s,color .12s}
+.skala button:hover{border-color:var(--accent)}
+.skala button:active{transform:scale(.94)}
+.skala button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.skala button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.nav-zeile{display:flex;gap:10px}
+.nav{min-width:52px;min-height:48px;border:1px solid var(--rule);background:var(--surface);
+  border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;padding:0 14px}
+.nav:hover:not(:disabled){border-color:var(--ink-3)}
+.nav:disabled{opacity:.35;cursor:default}
+.nav.weiter{flex:1}
+.nav.weiter.bereit{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.zustand{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);text-align:center;padding-top:8px}
+.zustand.ok{color:var(--good)}
+.zustand.warn{color:var(--warn);font-weight:600}
+.tasten{font-size:12px;color:var(--ink-3);margin-top:12px;line-height:1.7}
+.tasten kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--rule);border-bottom-width:2px;
+  border-radius:4px;padding:0 5px;background:var(--surface);color:var(--ink-2)}
+
+/* ============================================================ schmal: gestapelt */
+.buehne{max-width:760px;margin:0 auto;padding:14px 16px 0}
+.feld{margin-bottom:14px}
+.leiste{position:sticky;bottom:0;z-index:20;background:var(--paper);border-top:1px solid var(--rule-2);
+  padding:10px 16px calc(10px + var(--safe-b))}
+.leiste .nav-zeile{max-width:760px;margin:0 auto}
+.leiste .tasten{display:none}
+.leitfaden{display:none}
+.bewertung .nav-zeile, .bewertung .zustand, .bewertung .tasten{display:none}
+
+/* ============================================================ breit: drei Spalten */
+@media (min-width:1100px){
+  body{overflow:hidden}
+  .app{height:100dvh;display:flex;flex-direction:column}
+  .kopf{position:static}
+  .buehne{
+    flex:1;min-height:0;max-width:1680px;width:100%;margin:0 auto;padding:16px 20px;
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr) 370px;gap:18px;
+  }
+  .feld{margin:0;min-height:0;display:flex;flex-direction:column}
+  .feld .text{flex:1;min-height:0;overflow:auto}
+  .feld.quelle-feld .text.verborgen{display:block!important;visibility:visible}
+  .spalte-kopf .klapp{display:none}
+  .bewertung{min-height:0;overflow:auto;background:var(--surface);border:1px solid var(--rule-2);
+    border-radius:12px;padding:18px 18px 16px;display:flex;flex-direction:column}
+  .bewertung .noten{flex:1}
+  .bewertung .nav-zeile, .bewertung .zustand, .bewertung .tasten{display:flex}
+  .bewertung .zustand, .bewertung .tasten{display:block}
+  .bewertung .nav-zeile{margin-top:8px}
+  .skala button{min-height:46px;font-size:17px}
+  .leiste{display:none}
+  .bewertung .noten{flex:0 0 auto}
+  .leitfaden{display:block;flex:1;min-height:0;overflow:auto;margin:4px 0 12px;
+    border-top:1px solid var(--rule-2);padding-top:12px}
+  .lf-titel{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:600;margin-bottom:8px}
+  .lf-zeile{display:flex;gap:10px;padding:6px 0;font-size:13px;line-height:1.4;
+    border-bottom:1px dashed var(--rule-2)}
+  .lf-zeile:last-child{border-bottom:0}
+  .lf-stufe{font-family:var(--mono);font-weight:600;color:var(--accent);width:14px;flex:0 0 auto}
+  .lf-bsp{color:var(--ink-2);display:block}
+  .lf-kurz{color:var(--ink-3);font-size:12px;display:block}
+}
+
+/* ============================================================ Maßstab */
+dialog{border:0;border-radius:14px;padding:0;max-width:640px;width:calc(100% - 28px);
+  background:var(--surface);color:var(--ink);box-shadow:0 18px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(10,20,18,.55)}
+.dlg-kopf{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;
+  border-bottom:1px solid var(--rule-2)}
+.dlg-kopf h2{margin:0;font-size:17px}
+.dlg-inhalt{padding:16px 18px 20px;font-size:14.5px;color:var(--ink-2);max-height:72dvh;
+  overflow:auto;-webkit-overflow-scrolling:touch}
+.dlg-inhalt h3{font-size:14.5px;color:var(--ink);margin:18px 0 6px}
+.dlg-inhalt h3:first-child{margin-top:0}
+.dlg-inhalt p{margin:0 0 6px}
+.dlg-inhalt b{color:var(--ink)}
+.bsp{border-collapse:collapse;width:100%;margin:4px 0;font-size:13.5px}
+.bsp td{padding:7px 8px;border-top:1px solid var(--rule-2);vertical-align:top}
+.bsp td:first-child{width:26px;font-family:var(--mono);font-weight:600;color:var(--accent);text-align:center}
+.bsp i{font-style:normal;color:var(--ink);background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+.bsp em{display:block;color:var(--ink-3);font-style:normal;font-size:12.5px;margin-top:3px}
+
+.ende{text-align:center;padding:48px 16px;grid-column:1/-1}
+.ende h2{font-size:22px;margin:0 0 10px}
+.ende p{color:var(--ink-2);max-width:44ch;margin:0 auto}
+.ende .zahl{font-family:var(--mono);font-size:44px;font-weight:600;color:var(--accent);display:block}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <div class="kopf">
+    <div class="kopf-zeile">
+      <span class="zaehler" id="zaehler">– <small>/ __N__</small></span>
+      <span class="balken"><i id="balken"></i></span>
+      <button class="knopf-klein" id="btn-massstab" type="button">Maßstab &amp; Beispiele</button>
+    </div>
+  </div>
+
+  <div class="buehne" id="buehne"></div>
+
+  <div class="leiste">
+    <div class="nav-zeile">
+      <button class="nav" data-nav="-1" type="button" aria-label="Zurück">‹</button>
+      <button class="nav weiter" data-nav="1" type="button">Weiter ›</button>
+    </div>
+    <div class="zustand" data-zustand>wird geladen …</div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <div class="dlg-kopf">
+    <h2>Bewertungsmaßstab</h2>
+    <button class="knopf-klein" id="dlg-zu" type="button">Schließen</button>
+  </div>
+  <div class="dlg-inhalt">
+    <p style="margin-bottom:14px"><b>Sei streng.</b> Die 5 ist für fehlerfreie Arbeit reserviert,
+    nicht für brauchbare. <b>Wenn du schwankst, nimm die niedrigere Note.</b></p>
+
+    <h3 id="s-treue">Treue — stimmt alles, bis in die Nuance?</h3>
+    <table class="bsp">
+      <tr><td>5</td><td>„Frist ist Ende des Monats" → <i>„Frist: Ende des Monats"</i><em>nichts hinzugefügt, nichts verschoben</em></td></tr>
+      <tr><td>4</td><td>„ich glaube das war so" → <i>„das war so"</i><em>die Unsicherheit fällt weg — kein Fehler, aber verschoben</em></td></tr>
+      <tr><td>3</td><td>„der Kollege wollte sich melden" → <i>„der Kollege meldet sich morgen"</i><em>ein Termin ist dazuerfunden</em></td></tr>
+      <tr><td>2</td><td>erfundener Termin <b>und</b> falscher Name</td></tr>
+      <tr><td>1</td><td>„wir haben über das Projekt gesprochen" → <i>„Es wurde beschlossen, das Projekt zu beenden"</i><em>eine Entscheidung, die nie gefallen ist</em></td></tr>
+    </table>
+
+    <h3 id="s-vollstaendigkeit">Vollständigkeit — ist alles Handlungsrelevante da?</h3>
+    <table class="bsp">
+      <tr><td>5</td><td>jede Entscheidung, Aufgabe, Zahl, Frist und namentliche Zuordnung kommt vor</td></tr>
+      <tr><td>4</td><td>„…und bring bitte den Schlüssel mit" fehlt<em>Nebensache, ärgerlich aber folgenlos</em></td></tr>
+      <tr><td>3</td><td>„Abgabe ist Freitag" fehlt<em>ohne die Frist handelt jemand falsch</em></td></tr>
+      <tr><td>2</td><td>Frist <b>und</b> Zuständigkeit fehlen</td></tr>
+      <tr><td>1</td><td>Diktat über einen Wasserschaden → Zusammenfassung erwähnt nur ein Telefonat</td></tr>
+    </table>
+
+    <h3 id="s-nacharbeit">Nacharbeit — wie viel müsstest du anfassen, bevor du das verschickst?</h3>
+    <table class="bsp">
+      <tr><td>5</td><td>so abschicken, ohne hinzusehen</td></tr>
+      <tr><td>4</td><td>„der Mieter" muss „die Mieterin" heißen<em>ein Wort</em></td></tr>
+      <tr><td>3</td><td>„Bezüglich der besprochenen Thematik wurde vereinbart, dass…"<em>ein Satz, den so niemand schreibt</em></td></tr>
+      <tr><td>2</td><td>drei solche Stellen, dazu eine falsche Gliederung</td></tr>
+      <tr><td>1</td><td>schneller selbst geschrieben als korrigiert</td></tr>
+    </table>
+
+    <h3>Faustregel zwischen 4 und 3</h3>
+    <p>4 ist kosmetisch, 3 hat Folgen. Eine verschobene Nuance ändert keine Fakten; ein
+    erfundener Termin schon.</p>
+  </div>
+</dialog>
+
+<script>
+const DATEN = __DATEN__;
+const SPEICHER = "__SPEICHERSCHLUESSEL__";
+const PRAEFIX = "__PRAEFIX__";
+const DIMS = [
+  ["treue", "Treue", ["zentrale Aussage erfunden","mehrere Abweichungen","eine Tatsache verändert","eine Nuance verschoben","stimmt bis in die Nuance"]],
+  ["vollstaendigkeit", "Vollständigkeit", ["der Kern fehlt","mehrere Punkte fehlen","eine wichtige Angabe fehlt","eine Nebeninfo fehlt","alles Relevante da"]],
+  ["nacharbeit", "Nacharbeit", ["neu schreiben","mehrere Stellen","ein Satz umschreiben","ein Wort ändern","nichts anfassen"]]
+];
+const BEISPIELE = {
+  treue: [
+    ["„wir haben über das Projekt gesprochen“ → „Es wurde beschlossen, das Projekt zu beenden“", "eine Entscheidung, die nie fiel"],
+    ["erfundener Termin und falscher Name", "mehrere Stellen"],
+    ["„der Kollege wollte sich melden“ → „meldet sich morgen“", "ein Termin dazuerfunden"],
+    ["„ich glaube das war so“ → „das war so“", "Unsicherheit fällt weg"],
+    ["„Frist ist Ende des Monats“ → „Frist: Ende des Monats“", "nichts verschoben"]
+  ],
+  vollstaendigkeit: [
+    ["Wasserschaden-Diktat → nur das Telefonat erwähnt", "der Kern fehlt"],
+    ["Frist und Zuständigkeit fehlen", "mehrere Punkte"],
+    ["„Abgabe ist Freitag“ fehlt", "jemand handelt falsch"],
+    ["„bring bitte den Schlüssel mit“ fehlt", "Nebensache, folgenlos"],
+    ["jede Entscheidung, Frist, Zahl und Zuordnung da", "vollständig"]
+  ],
+  nacharbeit: [
+    ["schneller selbst geschrieben als korrigiert", "neu schreiben"],
+    ["drei steife Sätze und eine falsche Gliederung", "mehrere Stellen"],
+    ["„Bezüglich der besprochenen Thematik wurde vereinbart…“", "ein Satz umschreiben"],
+    ["„der Mieter“ statt „die Mieterin“", "ein Wort"],
+    ["so abschicken, ohne hinzusehen", "nichts anfassen"]
+  ]
+};
+const breit = () => window.matchMedia("(min-width:1100px)").matches;
+
+function leitfadenHtml(dim){
+  const eintrag = DIMS.find(x => x[0] === dim);
+  if (!eintrag) return "";
+  const zeilen = BEISPIELE[dim].map((z, i) => ({stufe: i + 1, bsp: z[0], kurz: z[1]})).reverse();
+  return '<div class="lf-titel">Beispiele · ' + eintrag[1] + '</div>' + zeilen.map(z =>
+    '<div class="lf-zeile"><span class="lf-stufe">' + z.stufe + '</span><span><span class="lf-bsp">' +
+    z.bsp + '</span><span class="lf-kurz">' + z.kurz + '</span></span></div>').join("");
+}
+
+let noten = {}, index = 0, db = null, transkriptOffen = false, offen = 0, letzterZustand = ["wird geladen …", ""];
+
+/* ------------------------------------------------ Speicher: lokal + Server */
+function lokalLesen(){ try { return JSON.parse(localStorage.getItem(SPEICHER) || "{}"); } catch(e){ return {}; } }
+function lokalSchreiben(){ try { localStorage.setItem(SPEICHER, JSON.stringify(noten)); } catch(e){} }
+
+function zustand(text, klasse){
+  letzterZustand = [text, klasse || ""];
+  document.querySelectorAll("[data-zustand]").forEach(el => {
+    el.textContent = text; el.className = "zustand" + (klasse ? " " + klasse : "");
+  });
+}
+const fertig = id => !!noten[id] && DIMS.every(([k]) => noten[id][k]);
+const anzahlFertig = () => DATEN.filter(d => fertig(d.docId)).length;
+
+/* ------------------------------------------------ Markdown, sicher
+   Die Texte kommen bereits HTML-maskiert aus Python. Hier werden nur noch die wenigen
+   Markdown-Muster in Struktur uebersetzt, die die Zusammenfassungen verwenden --
+   so sieht der Mensch den Text wie in der Anwendung, nicht mit Rauten und Sternchen. */
+function markdown(escaped){
+  const inline = s => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  const zeilen = escaped.split("\n");
+  let html = "", listeTiefe = -1;
+  const schliessen = bis => { while (listeTiefe > bis) { html += "</ul>"; listeTiefe--; } };
+  for (const roh of zeilen) {
+    const zeile = roh.replace(/\s+$/, "");
+    const liste = zeile.match(/^(\s*)[-*]\s+(.*)$/);
+    const kopf = zeile.match(/^#{1,6}\s+(.*)$/);
+    if (liste) {
+      const tiefe = Math.floor(liste[1].replace(/\t/g, "  ").length / 2);
+      if (tiefe > listeTiefe) { while (listeTiefe < tiefe) { html += "<ul>"; listeTiefe++; } }
+      else schliessen(tiefe);
+      html += "<li>" + inline(liste[2]) + "</li>";
+    } else {
+      schliessen(-1);
+      if (kopf) html += "<h4>" + inline(kopf[1]) + "</h4>";
+      else if (zeile.trim()) html += "<p>" + inline(zeile) + "</p>";
+    }
+  }
+  schliessen(-1);
+  return html;
+}
+
+/* ------------------------------------------------ Darstellung */
+function bewertungHtml(d){
+  const n = noten[d.docId] || {};
+  const naechste = (DIMS.find(([k]) => !n[k]) || [null])[0];
+  return '<div class="noten">' + DIMS.map(([key, label, hin]) =>
+    '<div class="dim' + (key === naechste ? " aktiv" : "") + '"><div class="dim-kopf">' +
+    '<button class="dim-name" type="button" data-sprung="' + key + '">' + label + '</button>' +
+    '<span class="dim-hilfe" data-hilfe="' + key + '">' + (n[key] ? hin[n[key]-1] : "") + '</span></div>' +
+    '<div class="skala">' + [1,2,3,4,5].map(v =>
+      '<button type="button" data-dim="' + key + '" data-wert="' + v + '" aria-pressed="' +
+      (n[key] === v) + '" aria-label="' + label + " " + v + ' von 5">' + v + '</button>').join("") +
+    '</div></div>').join("") + '</div>' +
+    '<div class="leitfaden" data-leitfaden>' + leitfadenHtml(naechste || DIMS[DIMS.length-1][0]) + '</div>' +
+    '<div class="nav-zeile"><button class="nav" data-nav="-1" type="button" aria-label="Zurück">‹ Zurück</button>' +
+    '<button class="nav weiter" data-nav="1" type="button">Weiter ›</button></div>' +
+    '<div class="zustand" data-zustand></div>' +
+    '<div class="tasten"><kbd>1</kbd>–<kbd>5</kbd> bewertet die markierte Dimension · ' +
+    '<kbd>←</kbd> <kbd>→</kbd> blättern · <kbd>T</kbd> Transkript</div>';
+}
+
+function navAktualisieren(){
+  const d = DATEN[index];
+  document.querySelectorAll('[data-nav="-1"]').forEach(b => b.disabled = index === 0);
+  document.querySelectorAll('[data-nav="1"]').forEach(b => {
+    if (!d) { b.disabled = true; return; }
+    b.disabled = false;
+    const ok = fertig(d.docId);
+    b.classList.toggle("bereit", ok);
+    b.textContent = ok ? (index === DATEN.length - 1 ? "Abschließen ›" : "Weiter ›") : "Überspringen ›";
+  });
+  document.getElementById("balken").style.width = (100 * anzahlFertig() / DATEN.length) + "%";
+}
+
+function zeichne(){
+  const buehne = document.getElementById("buehne");
+  if (index >= DATEN.length) {
+    const f = anzahlFertig();
+    document.getElementById("zaehler").innerHTML = "fertig";
+    buehne.innerHTML = '<div class="ende"><span class="zahl">' + f + ' / ' + DATEN.length + '</span><h2>' +
+      (f === DATEN.length ? "Alle bewertet" : "Zwischenstand") + '</h2><p>' +
+      (f === DATEN.length ? "Danke. Die Noten sind gespeichert und können ausgewertet werden."
+                          : "Noch " + (DATEN.length - f) + " offen. Mit ‹ zurückblättern.") + '</p></div>';
+    navAktualisieren(); zustand(letzterZustand[0], letzterZustand[1]);
+    return;
+  }
+  const d = DATEN[index];
+  document.getElementById("zaehler").innerHTML = (index + 1) + " <small>/ " + DATEN.length + "</small>";
+  const quelleVerborgen = !breit() && !transkriptOffen;
+  buehne.innerHTML =
+    '<section class="feld quelle-feld"><div class="spalte-kopf"><span>Transkript · ' + d.woerter + ' Wörter</span>' +
+      '<button class="klapp" data-klapp type="button">' + (quelleVerborgen ? "einblenden" : "ausblenden") + '</button></div>' +
+      '<div class="text quelle' + (quelleVerborgen ? " verborgen" : "") + '">' + d.transkript + '</div></section>' +
+    '<section class="feld"><div class="spalte-kopf"><span>Erzeugte Zusammenfassung</span></div>' +
+      '<div class="text ausgabe md">' + markdown(d.ausgabe) + '</div></section>' +
+    '<section class="bewertung">' + bewertungHtml(d) + '</section>';
+  // Auf schmalen Bildschirmen steht die Bewertung unter den Texten; die Seitenleiste
+  // wird dort nur fuer die Noten genutzt, Navigation sitzt in der Fussleiste.
+  buehne.querySelectorAll(".text").forEach(t => t.scrollTop = 0);
+  navAktualisieren(); zustand(letzterZustand[0], letzterZustand[1]);
+}
+
+function markiereAktiv(){
+  const d = DATEN[index]; if (!d) return;
+  const n = noten[d.docId] || {};
+  const naechste = (DIMS.find(([k]) => !n[k]) || [null])[0];
+  document.querySelectorAll(".dim").forEach((el, i) => el.classList.toggle("aktiv", DIMS[i][0] === naechste));
+  const lf = document.querySelector("[data-leitfaden]");
+  if (lf) lf.innerHTML = leitfadenHtml(naechste || DIMS[DIMS.length-1][0]);
+}
+
+/* ------------------------------------------------ Bewerten */
+function waehle(dim, wert){
+  const d = DATEN[index]; if (!d) return;
+  const warFertig = fertig(d.docId);
+  noten[d.docId] = Object.assign({}, noten[d.docId], {[dim]: wert, stand: new Date().toISOString()});
+  lokalSchreiben();
+  document.querySelectorAll('button[data-dim="' + dim + '"]').forEach(b =>
+    b.setAttribute("aria-pressed", String(Number(b.dataset.wert) === wert)));
+  const eintrag = DIMS.find(x => x[0] === dim);
+  document.querySelectorAll('[data-hilfe="' + dim + '"]').forEach(h => h.textContent = eintrag[2][wert-1]);
+  markiereAktiv(); navAktualisieren();
+  sichern(d);
+  if (!warFertig && fertig(d.docId)) {
+    setTimeout(() => { if (DATEN[index] === d && fertig(d.docId)) { index++; zeichne(); if (!breit()) window.scrollTo(0,0); } }, 480);
+  }
+}
+
+async function sichern(d){
+  if (!db) { zustand("nur auf diesem Gerät gespeichert", "warn"); return; }
+  offen++; zustand("speichert …");
+  try {
+    const n = noten[d.docId];
+    await db.doc("noten/" + d.docId).set({ schluessel: d.schluessel, stand: n.stand,
+      treue: n.treue || null, vollstaendigkeit: n.vollstaendigkeit || null, nacharbeit: n.nacharbeit || null });
+    offen--;
+    if (offen === 0) zustand(anzahlFertig() + " von " + DATEN.length + " gespeichert", "ok");
+  } catch (e) {
+    offen--; zustand("Speichern fehlgeschlagen (" + ((e && e.code) || "?") + ") — lokal gesichert", "warn");
+  }
+}
+
+function blaettern(schritt){
+  index = Math.max(0, Math.min(DATEN.length, index + schritt));
+  zeichne(); if (!breit()) window.scrollTo(0, 0);
+}
+
+/* ------------------------------------------------ Ereignisse */
+const dlg = document.getElementById("dlg");
+document.getElementById("btn-massstab").onclick = () => dlg.showModal();
+document.getElementById("dlg-zu").onclick = () => dlg.close();
+dlg.addEventListener("click", ev => { if (ev.target === dlg) dlg.close(); });
+
+document.addEventListener("click", ev => {
+  const nav = ev.target.closest("[data-nav]");
+  if (nav && !nav.disabled) { blaettern(Number(nav.dataset.nav)); return; }
+  const sprung = ev.target.closest("[data-sprung]");
+  if (sprung) { dlg.showModal(); const z = document.getElementById("s-" + sprung.dataset.sprung); if (z) z.scrollIntoView({block:"start"}); return; }
+  const klapp = ev.target.closest("[data-klapp]");
+  if (klapp) {
+    transkriptOffen = !transkriptOffen;
+    const q = document.querySelector(".text.quelle");
+    if (q) q.classList.toggle("verborgen", !transkriptOffen);
+    klapp.textContent = transkriptOffen ? "ausblenden" : "einblenden";
+    return;
+  }
+  const b = ev.target.closest("button[data-dim]");
+  if (b) waehle(b.dataset.dim, Number(b.dataset.wert));
+});
+
+document.addEventListener("keydown", ev => {
+  if (dlg.open || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.key >= "1" && ev.key <= "5") {
+    const d = DATEN[index]; if (!d) return;
+    const n = noten[d.docId] || {};
+    const ziel = DIMS.find(([k]) => !n[k]) || DIMS[DIMS.length - 1];
+    waehle(ziel[0], Number(ev.key)); ev.preventDefault();
+  } else if (ev.key === "ArrowRight") { blaettern(1); ev.preventDefault(); }
+  else if (ev.key === "ArrowLeft") { blaettern(-1); ev.preventDefault(); }
+  else if (ev.key === "t" || ev.key === "T") { const k = document.querySelector("[data-klapp]"); if (k) k.click(); }
+});
+
+let tx = 0, ty = 0;
+document.addEventListener("touchstart", ev => { tx = ev.changedTouches[0].clientX; ty = ev.changedTouches[0].clientY; }, {passive:true});
+document.addEventListener("touchend", ev => {
+  if (breit()) return;
+  const dx = ev.changedTouches[0].clientX - tx, dy = ev.changedTouches[0].clientY - ty;
+  if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) blaettern(dx < 0 ? 1 : -1);
+}, {passive:true});
+
+let warBreit = breit();
+window.addEventListener("resize", () => { if (breit() !== warBreit) { warBreit = breit(); zeichne(); } });
+
+/* ------------------------------------------------ Start */
+async function start(){
+  noten = lokalLesen();
+  zeichne();
+  zustand(Object.keys(noten).length ? "lokal wiederhergestellt — verbinde …" : "verbinde …");
+  db = await (window.claude && window.claude.use ? window.claude.use("db").catch(() => null) : Promise.resolve(null));
+  if (!db) {
+    zustand("kein Serverspeicher — Noten bleiben auf diesem Gerät", "warn");
+  } else {
+    try {
+      const snap = await db.collection("noten").get();
+      const liste = (snap && (snap.docs || snap)) || [];
+      liste.forEach(doc => {
+        const id = doc.id;
+        const data = (typeof doc.data === "function" ? doc.data() : doc.data) || {};
+        if (!id || !id.startsWith(PRAEFIX)) return;
+        const fern = {}; DIMS.forEach(([k]) => { if (data[k]) fern[k] = data[k]; });
+        if (!Object.keys(fern).length) return;
+        fern.stand = data.stand || "";
+        const hier = noten[id];
+        if (!hier || (fern.stand || "") >= (hier.stand || "")) noten[id] = fern;
+      });
+      lokalSchreiben();
+      zustand(anzahlFertig() + " von " + DATEN.length + " gespeichert", "ok");
+    } catch (e) {
+      zustand("Laden fehlgeschlagen (" + ((e && e.code) || "?") + ") — lokal wird genutzt", "warn");
+    }
+  }
+  const naechste = DATEN.findIndex(d => !fertig(d.docId));
+  index = naechste === -1 ? DATEN.length : naechste;
+  zeichne();
+}
+start();
+</script>

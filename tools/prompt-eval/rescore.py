@@ -47,27 +47,35 @@ JUDGE_SYSTEM = (
 #: wirklich zaehlt -- wie viel muss ich noch anfassen, bevor ich das verschicke?
 ABSOLUTE_TEMPLATE = """Bewerte die Zusammenfassung gegen das Transkript. Drei Dimensionen, je 1 bis 5.
 
+Die Hoechstnote ist fuer fehlerfreie Arbeit reserviert, nicht fuer brauchbare.
+Wenn du schwankst, nimm die NIEDRIGERE Note.
+
 TREUE — stimmt alles, bis in die Nuance?
-  5 = keine Abweichung; auch Zahlen, Fristen, Namen, Zuschreibungen und der Sicherheitsgrad
-      einer Aussage stimmen ("wir pruefen" wird nicht zu "wir machen")
-  4 = eine Nuance verschoben, aber keine Tatsache falsch
-  3 = eine Tatsache ergaenzt, umgedeutet oder sinnentstellend weggelassen
-  2 = mehrere solche Stellen
-  1 = eine zentrale Aussage ist erfunden
+  5 = keine Abweichung. Beispiel: "Frist ist Ende des Monats" -> "Frist: Ende des Monats"
+  4 = eine Nuance verschoben, keine Tatsache falsch.
+      Beispiel: "ich glaube das war so" -> "das war so" (die Unsicherheit faellt weg)
+  3 = eine Tatsache ergaenzt, umgedeutet oder sinnentstellend weggelassen.
+      Beispiel: "der Kollege wollte sich melden" -> "der Kollege meldet sich morgen"
+  2 = mehrere solche Stellen, etwa ein erfundener Termin UND ein falscher Name
+  1 = eine zentrale Aussage ist erfunden. Beispiel: "wir haben ueber das Projekt
+      gesprochen" -> "Es wurde beschlossen, das Projekt zu beenden"
 
 VOLLSTAENDIGKEIT — ist alles Handlungsrelevante da?
   5 = jede Entscheidung, Aufgabe, Zahl, Frist und namentliche Zuordnung kommt vor
-  4 = eine Nebeninformation fehlt
-  3 = eine handlungsrelevante Information fehlt (Frist, Zustaendigkeit, Betrag)
-  2 = mehrere handlungsrelevante Informationen fehlen
-  1 = der Kern des Diktats fehlt
+  4 = eine Nebeninformation fehlt. Beispiel: "und bring bitte den Schluessel mit" fehlt
+  3 = eine handlungsrelevante Information fehlt. Beispiel: "Abgabe ist Freitag" fehlt --
+      ohne die Frist handelt jemand falsch
+  2 = mehrere handlungsrelevante Informationen fehlen, etwa Frist UND Zustaendigkeit
+  1 = der Kern des Diktats fehlt. Beispiel: Diktat ueber einen Wasserschaden, die
+      Zusammenfassung erwaehnt nur ein Telefonat
 
-NACHARBEIT — wie viel muesstest du anfassen, bevor du das so verschickst?
-  5 = nichts
-  4 = ein einzelnes Wort oder eine Formulierung
-  3 = ein Satz muss umgeschrieben werden
-  2 = mehrere Stellen
-  1 = neu schreiben
+NACHARBEIT — wie viel muesste ein Mensch anfassen, bevor er das so verschickt?
+  5 = nichts, so abschicken
+  4 = ein einzelnes Wort. Beispiel: "der Mieter" muss "die Mieterin" heissen
+  3 = ein Satz muss umgeschrieben werden. Beispiel: "Bezueglich der besprochenen
+      Thematik wurde vereinbart, dass..." -- so schreibt das niemand
+  2 = mehrere solche Stellen, dazu eine unpassende Gliederung
+  1 = schneller selbst geschrieben als korrigiert
 
 Antworte genau so:
 {{"treue": <1-5>, "vollstaendigkeit": <1-5>, "nacharbeit": <1-5>, "begruendung": "<ein Satz>"}}
@@ -243,14 +251,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--reps", type=int, default=2, help="Wiederholungen je Urteil")
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--roh", type=Path, default=pilot.EVAL / "pilot_raw.json")
+    parser.add_argument(
+        "--rubrik",
+        default="v2b",
+        help="Kennung des Rubrikstands; landet im Dateinamen. v2b = v2 mit Minibeispielen.",
+    )
     args = parser.parse_args(argv)
 
     payload = json.loads(args.roh.read_text(encoding="utf-8"))
     rows = [r for r in payload["zeilen"] if r.get("output")]
     transcripts = payload["transkripte"]
 
-    abs_path = pilot.EVAL / "rescore_absolut.jsonl"
-    pair_path = pilot.EVAL / "rescore_paarweise.jsonl"
+    # Ausgabedateien haengen an Rohdaten UND Rubrikstand. Feste Namen haben schon einmal zwei
+    # Laeufe in einer Datei vermischt; hier kaeme hinzu, dass bereits vorhandene Urteile als
+    # "erledigt" uebersprungen wuerden -- eine geaenderte Rubrik liefe dann gar nicht neu.
+    stem = args.roh.stem
+    abs_path = args.roh.with_name(f"{stem}_absolut_{args.rubrik}.jsonl")
+    pair_path = args.roh.with_name(f"{stem}_paarweise.jsonl")
+    if stem == "pilot_raw" and args.rubrik == "v2":
+        abs_path = pilot.EVAL / "rescore_absolut.jsonl"  # Altbestand des ersten Pilotlaufs
+        pair_path = pilot.EVAL / "rescore_paarweise.jsonl"
 
     if args.vergleich:
         absolute = pilot.read_jsonl(abs_path)

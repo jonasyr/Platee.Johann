@@ -175,7 +175,7 @@ def parse_scores(text: str) -> dict | None:
     return value
 
 
-def load_corpus(limit: int, seed: int) -> list[dict]:
+def load_corpus(limit: int, seed: int, quelle: Path | None = None) -> list[dict]:
     """Zieht eine nach Laenge geschichtete Stichprobe.
 
     Geschichtet, weil sich Prompt-Varianten bei kurzen und langen Diktaten unterschiedlich
@@ -183,7 +183,7 @@ def load_corpus(limit: int, seed: int) -> list[dict]:
     Archiv-Diktate dominieren, wuerde das Verhalten bei langen Diktaten kaum abbilden -- genau
     diese Schwaeche hatte der Vorversuch.
     """
-    corpus = json.loads((EVAL / "corpus.json").read_text(encoding="utf-8"))
+    corpus = json.loads((quelle or EVAL / "corpus.json").read_text(encoding="utf-8"))
     items = corpus["items"] if isinstance(corpus, dict) else corpus
 
     # ⚠ Leere oder fast leere Transkripte fliegen raus, bevor sie Schaden anrichten.
@@ -209,6 +209,17 @@ def load_corpus(limit: int, seed: int) -> list[dict]:
     for name in sorted(buckets):
         pool = buckets[name]
         picked.extend(rng.sample(pool, min(per_bucket, len(pool))))
+
+    # Auffuellen. Ohne diesen Schritt liefert die Schichtung weniger Elemente als verlangt,
+    # sobald die Klassen ungleich besetzt sind: kleine Klassen erschoepfen sich, ihr Rest
+    # verfaellt, und bei 46 Elementen kamen so nur 37 heraus. Aufgefuellt wird aus dem
+    # Ueberhang der grossen Klassen, in zufaelliger Reihenfolge.
+    if len(picked) < limit:
+        genommen = {id(item) for item in picked}
+        rest = [item for item in items if id(item) not in genommen]
+        rng.shuffle(rest)
+        picked.extend(rest[: limit - len(picked)])
+
     rng.shuffle(picked)
     return picked[:limit]
 
@@ -319,6 +330,12 @@ def estimate_cost(n_generations: int, n_ratings: int) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--items", type=int, default=20, help="Diktate in der Stichprobe")
+    parser.add_argument(
+        "--korpus",
+        type=Path,
+        help="Korpusdatei. Ohne Angabe corpus.json; fuer den bereinigten Bestand "
+        "corpus.v2.json angeben.",
+    )
     parser.add_argument("--repeats", type=int, default=3, help="Erzeugungen je Zelle (K)")
     parser.add_argument("--judge-reps", type=int, default=3, help="Bewertungen je Ausgabe (R)")
     parser.add_argument(
@@ -346,7 +363,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
-    items = load_corpus(args.items, args.seed)
+    items = load_corpus(args.items, args.seed, args.korpus)
     variants: dict[str, dict] = {}
     for path in args.variants:
         if not path.exists():
@@ -366,8 +383,14 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     transcripts = {item["id"]: item["text"] for item in items}
-    gen_path = args.out.with_name("pilot_gen.jsonl")
-    rate_path = args.out.with_name("pilot_rate.jsonl")
+    # ⚠ Die Zwischendateien haengen am Namen der Zieldatei, nicht an einem festen Namen.
+    # Vorher hiessen sie immer "pilot_gen.jsonl" und "pilot_rate.jsonl" -- ein zweiter Lauf mit
+    # anderem --out schrieb damit in die Dateien des ersten und vermischte zwei Versuche in
+    # einem Protokoll. Aufgefallen ist es, weil die Zeilenzahl von 102 auf 118 sprang, waehrend
+    # ein voellig anderer Korpus lief.
+    stem = args.out.stem
+    gen_path = args.out.with_name(f"{stem}_gen.jsonl")
+    rate_path = args.out.with_name(f"{stem}_rate.jsonl")
 
     # Was schon bezahlt wurde, wird nicht noch einmal bezahlt.
     done_gen = {gen_key(r): r for r in read_jsonl(gen_path)}
