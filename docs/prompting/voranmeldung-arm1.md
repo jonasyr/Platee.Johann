@@ -1,5 +1,10 @@
 # Vorab-Registrierung — Arm 1, Prompt-Überarbeitung (#73)
 
+> **⚠ Zurückgestellt am 15.09.2026.** Der Qualitätsversuch mit 48 Zellen entfällt für Arm 1 —
+> die Ausgaben liegen an der Messdecke (Begründung und schlanker Ersatzplan:
+> `stand-73-2026-09-15.md` §5–§6). Dieses Dokument bleibt als Vorlage für die
+> Vorab-Registrierung von Arm 2 in PromptLab.
+>
 > **Status: Entwurf.** Die mit `‹…›` markierten Stellen füllt der Pilotlauf. Registriert wird
 > erst, wenn alle Lücken geschlossen sind — und **bevor** ein einziger Lauf des Hauptversuchs
 > startet. Danach ist dieses Dokument eingefroren; Abweichungen werden im Bericht als
@@ -133,7 +138,11 @@ Ergebnisse vorliegen, und danach nicht mehr angefasst.
 - **Bedingte Regel:** Prediction-Powered Inference wird eingesetzt, **wenn** die untere Grenze
   des 95-%-Konfidenzintervalls der Richter-Mensch-Korrelation über 1/√(n−2) liegt. Liegt nur
   der Punktschätzer darüber, gilt das als unsicher, und es werden weitere Noten vergeben statt
-  das Verfahren zu starten. Ergebnis des Pilotlaufs: ‹…›
+  das Verfahren zu starten. Ergebnis der Kalibrierung (15.09.2026, n = 30, Rubrik v2b):
+  Treue r = 0,12 [−0,25; 0,46] und Vollständigkeit r = 0,10 → **PPI schadet**; Nacharbeit
+  r = 0,24 [−0,13; 0,55] → unsicher. ⚠ Damit ist der Richter als primäres Messgerät nicht
+  validiert — **nicht einfrieren**, bevor die offene Entscheidung in
+  `stand-73-2026-09-15.md` §5 gefallen ist.
 - Übereinstimmungsmaß: **Gwets AC2**, Krippendorffs α als Robustheitsprüfung, gewichtetes
   Kappa zusätzlich mit ausdrücklichem Hinweis auf das Kappa-Paradox
 
