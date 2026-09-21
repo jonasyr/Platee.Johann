@@ -1,11 +1,11 @@
 namespace Platee.Johann.Infrastructure.Mail;
 
-using System.Text.RegularExpressions;
+using Platee.Johann.Domain.Services;
 
 /// <summary>
 /// Plain text and URI for the <c>mailto:</c> fallback, which knows neither HTML nor attachments.
 /// </summary>
-public static partial class MailtoText
+public static class MailtoText
 {
     /// <summary>
     /// Longest URI handed to the shell. Outlook and the Windows URL handler cut or reject
@@ -18,12 +18,7 @@ public static partial class MailtoText
     /// <summary>Drops headings, bold and italic markers; list dashes stay readable as text.</summary>
     /// <param name="markdown">Body markdown.</param>
     /// <returns>Plain text.</returns>
-    public static string ToPlainText(string markdown)
-    {
-        var text = Heading().Replace(markdown.ReplaceLineEndings("\n"), string.Empty);
-        text = Bold().Replace(text, "$1");
-        return Italic().Replace(text, "$1");
-    }
+    public static string ToPlainText(string markdown) => InlineMarkdown.ToPlainText(markdown);
 
     /// <summary>Builds a <c>mailto:</c> URI, shortening the body to stay below <see cref="MaxUriLength"/>.</summary>
     /// <param name="subject">Subject.</param>
@@ -52,12 +47,4 @@ public static partial class MailtoText
         return prefix + escaped + Uri.EscapeDataString(ShortenedNote);
     }
 
-    [GeneratedRegex("^#{1,6}\\s+", RegexOptions.Multiline)]
-    private static partial Regex Heading();
-
-    [GeneratedRegex("\\*\\*(.+?)\\*\\*")]
-    private static partial Regex Bold();
-
-    [GeneratedRegex("(?<![*\\w])\\*(?!\\s)(.+?)(?<!\\s)\\*(?![*\\w])")]
-    private static partial Regex Italic();
 }

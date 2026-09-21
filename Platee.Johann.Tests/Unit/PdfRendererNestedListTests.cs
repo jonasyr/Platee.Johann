@@ -52,6 +52,12 @@ public sealed class PdfRendererNestedListTests
         SourceType = "audio",
         Status = new ProcessingStatus(true, true, false, false, false),
         Transcript = "Ein Transkript.",
-        LongSummary = NestedSummary,
+        LongSummary = NestedSummary + "\nFrist ist **Freitag**, *ungefähr* 14 Uhr.",
+
+        // Seit der zentralen Markdown-Regel (#73) tragen auch diese Abschnitte Fettdruck; sie
+        // wurden früher als Rohtext gedruckt, mit Sternchen.
+        TaskList = "Kurz zum Stand.\n\n- **Angebot** schicken\n  - Anlage prüfen",
+        ConversationNote = "Teilnehmer:\n- Herr **Vogel**",
+        EmailText = "Betreff: Angebot\n\nGuten Tag,\n\ndas Angebot kommt **Freitag**.",
     };
 }

@@ -320,7 +320,9 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         var text = !string.IsNullOrWhiteSpace(this.Entry.EmailText)
             ? this.Entry.EmailText
             : BuildBasicEmailText(this.Entry);
-        System.Windows.Clipboard.SetText(text);
+
+        // The mail text is markdown (#73); pasted as plain text it would show literal asterisks.
+        System.Windows.Clipboard.SetText(InlineMarkdown.ToPlainText(text));
         this.addLog?.Invoke("✓ E-Mail in Zwischenablage kopiert!", false);
     }
 

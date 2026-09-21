@@ -48,7 +48,8 @@ public sealed class EmailRenderer : IEntryRenderer
         // If there's an explicit emailText field, use it as body
         if (!string.IsNullOrWhiteSpace(entry.EmailText))
         {
-            sb.AppendLine(entry.EmailText);
+            // Plain-text file: the markdown of the mail text (#73) would show as asterisks.
+            sb.AppendLine(InlineMarkdown.ToPlainText(entry.EmailText));
             sb.AppendLine();
             sb.AppendLine(new string('-', 60));
             sb.AppendLine($"[Automatisch generiert am {entry.CreatedAt:dd.MM.yyyy} · {entry.ProjectName}]");
