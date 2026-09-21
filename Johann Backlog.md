@@ -269,11 +269,14 @@ könnten.
 
 ### v1.5.0 — E-Mail, Modellwahl, Feinschliff
 
-[#57](https://github.com/jonasyr/Platee.Johann/issues/57) Outlook-Knöpfe ·
+~~[#57](https://github.com/jonasyr/Platee.Johann/issues/57) Outlook-Knöpfe~~ **erledigt** (PR #87, #90, #91) ·
 [#56](https://github.com/jonasyr/Platee.Johann/issues/56) Kopiersymbol je Abschnitt ·
 [#55](https://github.com/jonasyr/Platee.Johann/issues/55) Einträge löschen ·
 ~~[#71](https://github.com/jonasyr/Platee.Johann/issues/71) Modell in den Einstellungen wählbar~~ **erledigt** ·
-[#73](https://github.com/jonasyr/Platee.Johann/issues/73) Prompts für GPT-5.6 überarbeiten ·
+~~[#73](https://github.com/jonasyr/Platee.Johann/issues/73) Prompts für GPT-5.6 überarbeiten~~ **erledigt** (PR #85, #91) ·
+~~[#83](https://github.com/jonasyr/Platee.Johann/issues/83) PDF: verschachtelte Listen~~ **erledigt** (PR #86) ·
+~~[#88](https://github.com/jonasyr/Platee.Johann/issues/88) Codex-Befunde~~ **erledigt** (PR #89) ·
+[#84](https://github.com/jonasyr/Platee.Johann/issues/84) Live-Test der Katalogmodelle flackert ·
 [#77](https://github.com/jonasyr/Platee.Johann/issues/77) `gpt-transcribe` besser ausnutzen ·
 [#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf ·
 [#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen
