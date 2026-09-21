@@ -81,6 +81,34 @@ public sealed class EmlDraftTests
         eml.Should().EndWith("--\r\n");
     }
 
+
+    [Fact]
+    public void The_channel_writes_the_draft_with_its_attachment_and_clears_old_drafts()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "JohannEmlTest-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var old = Path.Combine(dir, "Johann-alt.eml");
+            File.WriteAllText(old, "x");
+            File.SetLastWriteTimeUtc(old, DateTime.UtcNow.AddDays(-2));
+            var pdf = Path.Combine(dir, "Eintrag.pdf");
+            File.WriteAllBytes(pdf, "%PDF-1.4"u8.ToArray());
+
+            var path = new NewOutlookChannel(draftDirectory: dir)
+                .WriteDraft(new Platee.Johann.Application.Mail.MailDraft("Aufgaben", "**fett**", [pdf]));
+
+            File.Exists(old).Should().BeFalse("Entwürfe älter als ein Tag werden weggeräumt");
+            var eml = File.ReadAllText(path);
+            eml.Should().StartWith("X-Unsent: 1").And.Contain("filename*=utf-8''Eintrag.pdf");
+            DecodedPart(eml, "text/html").Should().Contain("<strong>fett</strong>");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     private static string Build(
         string subject = "Betreff", string html = "<p>Text</p>", (string Name, byte[] Content)[]? attachments = null)
         => EmlDraft.Build(subject, html, attachments ?? [], Now, Id);

@@ -12,8 +12,9 @@
   Ihrer Signatur und ohne Anhang. Fett gedruckte Stellen und Listen kommen als solche an.
   Den Text nur kopieren geht weiter per Rechtsklick.
 - Fehlt der Aufgaben- oder E-Mail-Abschnitt noch, erzeugt Johann ihn beim Klick zuerst.
-- Mit dem neuen Outlook für Windows öffnet Johann die Mail vorerst ohne Anhang und zeigt
-  das PDF im Explorer an, von wo Sie es in die Mail ziehen können.
+- Das funktioniert im klassischen wie im neuen Outlook für Windows – jeweils mit Anhang und
+  Signatur. Nur wenn gar kein Outlook bereitsteht, öffnet Johann die Mail ohne Anhang und
+  zeigt das PDF im Explorer an, von wo Sie es in die Mail ziehen können.
 
 **Überarbeitete Vorlagen für das neue Modell.**
 
