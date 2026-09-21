@@ -248,11 +248,12 @@ public partial class App : System.Windows.Application
             : new OpenAiModelAvailabilityProbe(apiKey);
 
         // ── Mail (#57) ────────────────────────────────────────────────────────
-        // Klassisches Outlook per COM, sonst mailto mit dem PDF im Explorer. Warum COM scheiterte,
-        // steht im Log — der Nutzer bekommt trotzdem eine Mail.
+        // Klassisches Outlook per COM, neues Outlook per .eml-Entwurf, sonst mailto mit dem PDF im
+        // Explorer. Warum ein Weg scheiterte, steht im Log — der Nutzer bekommt trotzdem eine Mail.
         IMailComposer mailComposer = new OutlookMailComposer(
             new OutlookEnvironment(),
             new ClassicOutlookChannel(),
+            new NewOutlookChannel(),
             new MailtoChannel(),
             logWarning: message => crashLogger.WriteCrashLog("MAIL", new InvalidOperationException(message)));
 

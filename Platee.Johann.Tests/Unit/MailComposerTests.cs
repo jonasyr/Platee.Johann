@@ -116,6 +116,58 @@ public sealed class MailComposerTests
         mailto.Calls.Should().Be(0);
     }
 
+
+    // ── Neues Outlook (.eml-Entwurf) ─────────────────────────────────────────
+    [Fact]
+    public async Task With_the_new_outlook_active_and_installed_the_eml_draft_is_used()
+    {
+        var (composer, classic, newOutlook, mailto) = ComposerWithNewOutlook(
+            classicAvailable: true, newOutlookActive: true, newOutlookInstalled: true);
+
+        var result = await composer.ComposeAsync(Draft);
+
+        result.Should().Be(new MailComposeResult(MailChannel.Outlook, AttachmentsIncluded: true));
+        (classic.Calls, newOutlook.Calls, mailto.Calls).Should().Be((0, 1, 0));
+    }
+
+    [Fact]
+    public async Task A_machine_with_only_the_new_outlook_uses_it_even_without_the_registry_switch()
+    {
+        // Ohne klassisches Office setzt niemand UseNewOutlook – das neue Outlook ist dann das einzige.
+        var (composer, _, newOutlook, _) = ComposerWithNewOutlook(
+            classicAvailable: false, newOutlookActive: false, newOutlookInstalled: true);
+
+        await composer.ComposeAsync(Draft);
+
+        newOutlook.Calls.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Classic_users_with_the_new_outlook_merely_installed_stay_on_classic()
+    {
+        // Wie auf diesem Rechner: beide installiert, klassisch in Gebrauch.
+        var (composer, classic, newOutlook, _) = ComposerWithNewOutlook(
+            classicAvailable: true, newOutlookActive: false, newOutlookInstalled: true);
+
+        await composer.ComposeAsync(Draft);
+
+        (classic.Calls, newOutlook.Calls).Should().Be((1, 0));
+    }
+
+    [Fact]
+    public async Task A_failing_eml_draft_falls_back_to_mailto_and_is_logged()
+    {
+        var logged = new List<string>();
+        var (composer, _, _, mailto) = ComposerWithNewOutlook(
+            classicAvailable: false, newOutlookActive: true, newOutlookInstalled: true, newOutlookThrows: true, log: logged.Add);
+
+        var result = await composer.ComposeAsync(Draft);
+
+        result.Channel.Should().Be(MailChannel.Mailto);
+        mailto.Calls.Should().Be(1);
+        logged.Should().ContainSingle().Which.Should().Contain("neues Outlook");
+    }
+
     // ── Registry ─────────────────────────────────────────────────────────────
     [Theory]
     [InlineData(1, true)]
@@ -128,10 +180,26 @@ public sealed class MailComposerTests
     private static (OutlookMailComposer Composer, FakeChannel Classic, FakeChannel Mailto) Composer(
         bool classicAvailable, bool newOutlookActive, bool classicThrows = false, Action<string>? log = null)
     {
-        var environment = new OutlookEnvironment(() => newOutlookActive ? 1 : 0, () => classicAvailable);
+        var (composer, classic, _, mailto) = ComposerWithNewOutlook(
+            classicAvailable, newOutlookActive, newOutlookInstalled: false, classicThrows: classicThrows, log: log);
+        return (composer, classic, mailto);
+    }
+
+    private static (OutlookMailComposer Composer, FakeChannel Classic, FakeChannel NewOutlook, FakeChannel Mailto)
+        ComposerWithNewOutlook(
+            bool classicAvailable,
+            bool newOutlookActive,
+            bool newOutlookInstalled,
+            bool classicThrows = false,
+            bool newOutlookThrows = false,
+            Action<string>? log = null)
+    {
+        var environment = new OutlookEnvironment(
+            () => newOutlookActive ? 1 : 0, () => classicAvailable, () => newOutlookInstalled);
         var classic = new FakeChannel(classicThrows);
+        var newOutlook = new FakeChannel(newOutlookThrows);
         var mailto = new FakeChannel(throws: false);
-        return (new OutlookMailComposer(environment, classic, mailto, log), classic, mailto);
+        return (new OutlookMailComposer(environment, classic, newOutlook, mailto, log), classic, newOutlook, mailto);
     }
 
     private sealed class FakeChannel(bool throws) : IMailChannel

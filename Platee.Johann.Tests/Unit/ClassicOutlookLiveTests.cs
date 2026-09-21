@@ -29,4 +29,24 @@ public sealed class ClassicOutlookLiveTests
 
         await act.Should().NotThrowAsync();
     }
+
+
+    [SkippableFact]
+    public async Task Opens_an_eml_draft_in_the_new_outlook()
+    {
+        Skip.IfNot(Environment.GetEnvironmentVariable("JOHANN_OUTLOOK_LIVE") == "1",
+            "Setze JOHANN_OUTLOOK_LIVE=1, um einen echten Entwurf im neuen Outlook zu öffnen.");
+        Skip.IfNot(File.Exists(NewOutlookChannel.DefaultLauncherPath), "Neues Outlook ist hier nicht installiert.");
+
+        var pdf = Path.Combine(Path.GetTempPath(), "Johann-Livetest-57.pdf");
+        await File.WriteAllBytesAsync(pdf, "%PDF-1.4\n%%EOF\n"u8.ToArray());
+        var draft = new MailDraft(
+            "Johann-Livetest #57 (neues Outlook) – bitte nicht senden",
+            "Hallo zusammen,\n\nanbei die Aufgaben zu **Johann**.\n\n- Erste Aufgabe\n  - Unterpunkt\n- Zweite Aufgabe",
+            [pdf]);
+
+        var act = () => new NewOutlookChannel().ComposeAsync(draft, CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+    }
 }
