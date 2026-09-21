@@ -127,6 +127,16 @@ def parse_renew(specs: list[str], candidates: set[str]) -> set[tuple[str, str]]:
     return renew
 
 
+def _completed(row: dict) -> bool:
+    """Eine Antwort gilt nur als erledigt, wenn der Aufruf nicht gescheitert ist."""
+    return not (row.get("gen") or {}).get("error")
+
+
+def completed_rows(rows: list[dict]) -> dict[str, dict]:
+    """Zwischenstand ohne gescheiterte Aufrufe -- die werden beim Fortsetzen wiederholt."""
+    return {row["key"]: row for row in rows if _completed(row)}
+
+
 def seed_from_basis(basis: list[dict], candidates: set[str], renew: set[tuple[str, str]]) -> dict[str, dict]:
     """Antworten eines frueheren Laufs uebernehmen, ausser denen, die neu erzeugt werden sollen.
 
@@ -137,7 +147,9 @@ def seed_from_basis(basis: list[dict], candidates: set[str], renew: set[tuple[st
     return {
         row["key"]: row
         for row in basis
-        if row["candidate"] in candidates and (row["candidate"], row["section"]) not in dropped
+        if row["candidate"] in candidates
+        and (row["candidate"], row["section"]) not in dropped
+        and _completed(row)
     }
 
 
@@ -282,7 +294,7 @@ def main(argv: list[str] | None = None) -> int:
     done = seed_from_basis(basis_rows, set(candidates), renew)
     if done:
         print(f"aus --basis uebernommen: {len(done)} Antworten")
-    resumed = {row["key"]: row for row in read_jsonl(gen_path)}
+    resumed = completed_rows(read_jsonl(gen_path))
     if resumed:
         print(f"Zwischenstand vorhanden: {len(resumed)} Antworten -- werden uebersprungen")
     done.update(resumed)

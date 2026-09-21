@@ -269,3 +269,11 @@ E-Mail auf R-Basis. Kosten je Diktat (6 automatische Aufrufe): **0,390 ¢ gegen 
 - **Offen:** S4 (zentrale Markdown-Regel) erst nach #57. E-Mail und Gesprächsnotiz tragen den
   R-Wortlaut und damit M-02/M-03 (Längenadjektiv, „Grußformel“ doppeldeutig) — bewusst, weil der
   Leser diese Fassung vorzog.
+
+## Nachprüfung nach Codex-Befunden (21.09.2026, #88)
+
+`format_checks.py` zählte einen Leerfall schon, wenn der Satz nur *vorkam*; `messlauf.py` hätte
+gescheiterte Aufrufe beim Fortsetzen nicht wiederholt. Beides ist behoben. Aus den Rohdaten
+neu gerechnet: **0 Abweichungen** in `messlauf73`, `73b`, `73c`, `73d` und `73e` – jeder gezählte
+Leerfall stand allein, und kein Lauf hatte einen gescheiterten Aufruf. Die Ergebnisse oben gelten
+unverändert.

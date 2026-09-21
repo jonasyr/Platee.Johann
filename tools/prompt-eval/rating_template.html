@@ -479,6 +479,10 @@ async function start(){
         const id = doc.id;
         const data = (typeof doc.data === "function" ? doc.data() : doc.data) || {};
         if (!id || !id.startsWith(PRAEFIX)) return;
+        // Nur Noten zum selben Text übernehmen: bei neuem Seed mit gleichem Präfix meint
+        // dieselbe Id eine andere Ausgabe (Codex, PR #85).
+        const erwartet = DATEN.find(x => x.docId === id);
+        if (!erwartet || data.schluessel !== erwartet.schluessel) return;
         const fern = {}; DIMS.forEach(([k]) => { if (data[k]) fern[k] = data[k]; });
         if (!Object.keys(fern).length) return;
         fern.stand = data.stand || "";

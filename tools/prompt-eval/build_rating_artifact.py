@@ -15,6 +15,7 @@ Aufruf:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import os
@@ -108,7 +109,12 @@ def main(argv: list[str] | None = None) -> int:
     page = load_template().replace("__DATEN__", json.dumps(daten, ensure_ascii=False))
     page = page.replace("__N__", str(len(daten)))
     page = page.replace("__PRAEFIX__", args.praefix)
-    page = page.replace("__SPEICHERSCHLUESSEL__", f"johann-noten-{args.praefix}")
+    # Lokaler Zwischenspeicher je Runde: dieselbe docId meint bei anderem Seed einen anderen
+    # Text (Codex, PR #85). Der Serverspeicher prüft dafür den gespeicherten Schlüssel.
+    runde = hashlib.sha256(
+        json.dumps([str(args.roh), args.seed, args.stichprobe, [d["schluessel"] for d in daten]]).encode("utf-8")
+    ).hexdigest()[:12]
+    page = page.replace("__SPEICHERSCHLUESSEL__", f"johann-noten-{args.praefix}-{runde}")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(page, encoding="utf-8")
 

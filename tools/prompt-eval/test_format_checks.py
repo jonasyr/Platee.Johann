@@ -186,6 +186,25 @@ def test_email_counts_a_mention_of_unclear_content_for_reading_only() -> None:
 # ---------------------------------------------------------------------- Stundenzettel
 
 
+@pytest.mark.parametrize(
+    ("section", "output"),
+    [
+        ("stundenzettelPrompt", "Keine Zeiten genannt. Montag waren es aber 3 h."),
+        ("abstractPrompt", "Kein zusammenfassbarer Inhalt. Es ging um das Angebot."),
+        ("gespraechsnotizPrompt", "Kein Gespräch dokumentiert.\n\n- Teilnehmer: Herr Vogel"),
+        ("analogPrompt", "Kein Eintrag erkennbar, außer dem Termin am Freitag."),
+    ],
+)
+def test_the_empty_sentence_only_counts_when_it_stands_alone(section: str, output: str) -> None:
+    # Codex, PR #85: „enthält den Satz" reichte, und die übrigen Prüfungen entfielen.
+    assert check(section, output, TRANSCRIPT).metrics["leerfall"] == 0
+
+
+def test_the_task_empty_case_may_follow_the_summary_paragraph() -> None:
+    output = "Es ging um die Ablage.\n\nKeine Aufgaben genannt."
+    assert check("aufgabePrompt", output, TRANSCRIPT).metrics["leerfall"] == 1
+
+
 def test_timesheet_lines_need_a_duration_or_the_explicit_gap() -> None:
     good = "- ca. 3 h – Ahornweg\n- Dauer nicht genannt – Fotos sortiert\n- 30 min – Telefonat"
     assert v("stundenzettelPrompt", good) == []
