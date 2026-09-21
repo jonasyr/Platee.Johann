@@ -63,6 +63,13 @@ public static class BulletOutline
                 open.RemoveAt(open.Count - 1);
             }
 
+            // Shallower than the first bullet (which was an indented orphan): this one is the
+            // real outermost level, so later indents are measured from here.
+            if (indent < open[0])
+            {
+                open[0] = indent;
+            }
+
             if (indent > open[^1])
             {
                 open.Add(indent);
