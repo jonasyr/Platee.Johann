@@ -2,6 +2,19 @@
 
 ## Version 1.5.0
 
+**Mails direkt aus Johann.**
+
+- Neuer Knopf **„Aufgaben“**: öffnet in Outlook die interne Mail an die Kollegen – oben
+  ein kurzer Begleittext, darunter die Aufgaben, das PDF des Eintrags hängt an und Ihre
+  Signatur steht darunter. Den Begleittext legen Sie unter Einstellungen → Allgemein fest;
+  `{Projekt}` wird dort durch das Projekt ersetzt.
+- **„E-Mail“** öffnet die externe, förmliche Mail jetzt ebenfalls direkt in Outlook, mit
+  Ihrer Signatur und ohne Anhang. Fett gedruckte Stellen und Listen kommen als solche an.
+  Den Text nur kopieren geht weiter per Rechtsklick.
+- Fehlt der Aufgaben- oder E-Mail-Abschnitt noch, erzeugt Johann ihn beim Klick zuerst.
+- Mit dem neuen Outlook für Windows öffnet Johann die Mail vorerst ohne Anhang und zeigt
+  das PDF im Explorer an, von wo Sie es in die Mail ziehen können.
+
 **Überarbeitete Vorlagen für das neue Modell.**
 
 - Alle Vorlagen wurden für das aktuelle Modell neu gefasst und an echten Diktaten

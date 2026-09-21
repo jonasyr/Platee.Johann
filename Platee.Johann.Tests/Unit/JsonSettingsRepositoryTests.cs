@@ -40,6 +40,33 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         loaded.HideEmptySectionHint.Should().BeTrue();
     }
 
+
+    [Fact]
+    public async Task SaveAsync_then_LoadAsync_PreservesTheTaskMailIntro()
+    {
+        // Begleittext der internen Aufgaben-Mail (#57). Handgeschriebener Mapper — ohne
+        // Round-Trip ginge ein geänderter Text beim nächsten Speichern verloren.
+        var settings = AppSettings.Default with { AufgabenMailText = "Moin, hier die Aufgaben zu {Projekt}." };
+
+        await this.sut.SaveAsync(settings);
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.AufgabenMailText.Should().Be("Moin, hier die Aufgaben zu {Projekt}.");
+    }
+
+    [Fact]
+    public async Task A_cleared_task_mail_intro_stays_cleared()
+    {
+        // Leer heißt „kein Begleittext", nicht „Standard wiederherstellen".
+        await this.sut.SaveAsync(AppSettings.Default with { AufgabenMailText = string.Empty });
+
+        (await this.sut.LoadAsync()).AufgabenMailText.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_task_mail_intro_defaults_to_the_builder_text()
+        => AppSettings.Default.AufgabenMailText.Should().Be(Platee.Johann.Application.Mail.MailDraftBuilder.DefaultTaskMailIntro);
+
     [Fact]
     public async Task HideEmptySectionHint_DefaultsToFalse_SoTheHintIsShownOnce()
     {

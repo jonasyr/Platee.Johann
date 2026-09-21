@@ -112,6 +112,9 @@ public sealed class JsonSettingsRepository : ISettingsRepository
             SummaryModel = string.IsNullOrWhiteSpace(dto.SummaryModel)
                 ? defaultSettings.SummaryModel
                 : dto.SummaryModel,
+
+            // Fehlt nur in Dateien vor #57; ein leerer String ist eine bewusste Wahl.
+            AufgabenMailText = dto.AufgabenMailText ?? defaultSettings.AufgabenMailText,
         };
     }
 
@@ -131,6 +134,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         SectionModesMigrationDone = s.SectionModesMigrationDone,
         HideEmptySectionHint = s.HideEmptySectionHint,
         SummaryModel = s.SummaryModel,
+        AufgabenMailText = s.AufgabenMailText,
     };
 
     // Separate DTO to decouple JSON shape from the domain record
@@ -164,6 +168,9 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         /// durchgereicht.
         /// </summary>
         public string? SummaryModel { get; set; }
+
+        /// <summary>Gets or sets den Begleittext der Aufgaben-Mail. Fehlt in Dateien vor #57.</summary>
+        public string? AufgabenMailText { get; set; }
 
         /// <summary>
         /// Backing field plus a "was it in the JSON at all" flag. System.Text.Json
