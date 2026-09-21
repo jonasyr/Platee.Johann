@@ -75,6 +75,29 @@ public sealed class CopyIncludesCustomSectionsTests
             "the transcript is the raw source material and always closes the entry");
     }
 
+
+    [Fact]
+    public void BuildCopyText_DropsMarkdownMarkers_ButKeepsTheTranscriptVerbatim()
+    {
+        // Seit der zentralen Markdown-Regel tragen die Abschnitte Fettdruck; in der Zwischenablage
+        // stünden sonst Sternchen (Codex, PR #91). Das Transkript ist die Aufzeichnung des
+        // Gesagten und bleibt unangetastet.
+        var vm = CreateVm(
+            new Dictionary<string, string> { ["custom.x"] = "Frist **Freitag**" },
+            new SectionVisibilityViewModel { ShowTranscript = true });
+        vm.Entry = vm.Entry! with
+        {
+            LongSummary = "### Kontext\n- **Angebot** bis *Montag*",
+            Transcript = "Sag mal 3 * 4 und **das** hier.",
+        };
+
+        var text = vm.BuildCopyText()!;
+
+        text.Should().Contain("Kontext\n- Angebot bis Montag");
+        text.Should().Contain("Frist Freitag");
+        text.Should().Contain("Sag mal 3 * 4 und **das** hier.");
+    }
+
     private static EntryDetailViewModel CreateVm(
         Dictionary<string, string> customSections,
         SectionVisibilityViewModel? sections = null)

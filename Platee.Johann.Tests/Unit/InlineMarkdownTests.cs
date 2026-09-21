@@ -56,4 +56,31 @@ public sealed class InlineMarkdownTests
 
         text.Should().Contain("Das Angebot kommt Freitag.").And.NotContain("**");
     }
+
+
+    [Fact]
+    public void The_plain_text_mail_fallback_carries_no_asterisks_either()
+    {
+        // Ohne E-Mail-Text setzt der .txt-Export die Mail aus den Abschnitten zusammen (Codex, PR #91).
+        var entry = new Platee.Johann.Domain.Entities.Entry
+        {
+            JobId = "260921_001_abc",
+            SequenceNumber = 1,
+            CreatedAt = new DateTimeOffset(2026, 9, 21, 12, 0, 0, TimeSpan.FromHours(2)),
+            Type = Platee.Johann.Domain.Enums.EntryType.Projekt,
+            ProjectName = "Johann",
+            Title = "Test",
+            SourceType = "audio",
+            Status = Platee.Johann.Domain.ValueObjects.ProcessingStatus.Empty,
+            Abstract = "Es geht um das **Angebot**.",
+            TaskList = "- **Angebot** schicken",
+            ConversationNote = "- Herr **Vogel**",
+            LongSummary = "### Kontext\n- Frist *Freitag*",
+        };
+
+        var text = Platee.Johann.Infrastructure.Renderers.EmailRenderer.BuildEmailText(entry);
+
+        text.Should().Contain("- Angebot schicken").And.Contain("Herr Vogel").And.Contain("Frist Freitag");
+        text.Should().NotContain("**").And.NotContain("###");
+    }
 }
