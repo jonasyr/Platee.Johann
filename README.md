@@ -114,8 +114,8 @@ Die Checkbox-Vorauswahl links richtet sich nach dem Typ und kann jederzeit angep
 | **Zusammenfassung** | Strukturierte Gliederung (Markdown) | Alle Typen |
 | **Kurzfassung** | Ein-Satz-Zusammenfassung | Alle Typen |
 | **Aufgaben** | Aufgabenliste | Typ „Aufgabe" |
-| **Gesprächsnotiz** | Gesprächsprotokoll | Typ „Gesprächsnotiz" |
-| **E-Mail** | Fertiger E-Mail-Text | Typ „E-Mail" |
+| **Gesprächsnotiz** | Gesprächsprotokoll – nur wenn das Diktat ein Gespräch schildert, sonst „Kein Gespräch dokumentiert." | Typ „Gesprächsnotiz" |
+| **E-Mail** | Fertiger E-Mail-Text, immer in der Sie-Form | Typ „E-Mail" |
 | **Stundenzettel** | Zeiterfassung | Typ „Stundenzettel" |
 | **Analog** | Freitext-Abschnitt | Typ „Analog" |
 | **Transkript** | Vollständiger Originaltext (ausklappbar) | Alle Typen |

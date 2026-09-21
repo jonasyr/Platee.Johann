@@ -1,5 +1,23 @@
 # Was ist neu?
 
+## Version 1.5.0
+
+**Überarbeitete Vorlagen für das neue Modell.**
+
+- Alle Vorlagen wurden für das aktuelle Modell neu gefasst und an echten Diktaten
+  nebeneinander gelesen. Übernommen wurde je Vorlage nur, was dabei mindestens so gut
+  abschnitt wie bisher. Ein Diktat kostet dadurch rund ein Fünftel weniger.
+- Die Gesprächsnotiz entsteht nur noch, wenn im Diktat wirklich ein Gespräch geschildert
+  wird — ein Telefonat, eine Besprechung, ein Termin mit anderen. Bei Aufgabenlisten,
+  Bestellungen oder Zeiterfassungen steht dort jetzt „Kein Gespräch dokumentiert.“ statt
+  einer dritten Zusammenfassung desselben Inhalts.
+- Die E-Mail siezt den Empfänger immer, auch wenn das Diktat ihn duzt. Stellen, die im
+  Diktat nicht zu verstehen waren, erscheinen nicht mehr in der Mail, und sie enthält
+  keine Formatierungszeichen mehr.
+- Abstract, Stundenzettel und Analog sagen ausdrücklich, wenn das Diktat für sie nichts
+  hergibt, statt etwas zu erfinden. Der Stundenzettel führt je Tätigkeit eine Zeile mit
+  der Dauer.
+
 ## Version 1.4.0
 
 **Bessere und schnellere Transkripte.**
