@@ -79,6 +79,20 @@ public sealed class MailDraftBuilderTests
         draft.BodyMarkdown.Should().Be("Zeile eins\nZeile zwei");
     }
 
+
+    [Theory]
+    [InlineData("**Betreff: Angebot Sanierung**")]
+    [InlineData("**Betreff:** Angebot Sanierung")]
+    [InlineData("## Betreff: Angebot Sanierung")]
+    public void A_markdown_wrapped_betreff_line_is_still_the_subject(string firstLine)
+    {
+        // Mit der zentralen Markdown-Regel (#73) setzte das Modell den Betreff im Messlauf fett.
+        var draft = MailDraftBuilder.ForExternal(Entry() with { EmailText = $"{firstLine}\n\nGuten Tag,\n\nText." });
+
+        draft.Subject.Should().Be("Angebot Sanierung");
+        draft.BodyMarkdown.Should().Be("Guten Tag,\n\nText.");
+    }
+
     private static Entry Entry() => new()
     {
         JobId = "260921_001_abc",

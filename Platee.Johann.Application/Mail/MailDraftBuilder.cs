@@ -1,6 +1,7 @@
 namespace Platee.Johann.Application.Mail;
 
 using Platee.Johann.Domain.Entities;
+using Platee.Johann.Domain.Services;
 
 /// <summary>
 /// Builds the two mails behind the detail view's mail buttons (#57).
@@ -59,10 +60,9 @@ public static class MailDraftBuilder
     {
         foreach (var line in Normalize(text).Split('\n'))
         {
-            var trimmed = line.Trim();
-            if (trimmed.StartsWith(SubjectPrefix, StringComparison.OrdinalIgnoreCase))
+            if (TrySubject(line, out var subject))
             {
-                return trimmed[SubjectPrefix.Length..].Trim();
+                return subject;
             }
         }
 
@@ -75,7 +75,7 @@ public static class MailDraftBuilder
     public static string StripSubjectLine(string? text)
     {
         var lines = Normalize(text).Split('\n').ToList();
-        var index = lines.FindIndex(l => l.Trim().StartsWith(SubjectPrefix, StringComparison.OrdinalIgnoreCase));
+        var index = lines.FindIndex(l => TrySubject(l, out _));
         if (index >= 0)
         {
             lines.RemoveAt(index);
@@ -86,6 +86,24 @@ public static class MailDraftBuilder
         }
 
         return string.Join('\n', lines).Trim();
+    }
+
+    /// <summary>
+    /// Recognises the subject line also when wrapped in markdown ("**Betreff: …**", "## Betreff:");
+    /// with the central markdown rule the model set it in bold, which would otherwise have lost
+    /// the subject and put a bold line on top of the mail.
+    /// </summary>
+    private static bool TrySubject(string line, out string subject)
+    {
+        var plain = InlineMarkdown.ToPlainText(line).Trim();
+        if (plain.StartsWith(SubjectPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            subject = plain[SubjectPrefix.Length..].Trim();
+            return true;
+        }
+
+        subject = string.Empty;
+        return false;
     }
 
     private static string ProjectOrTitle(Entry entry)
