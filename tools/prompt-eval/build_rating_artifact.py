@@ -15,6 +15,7 @@ Aufruf:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import os
@@ -108,7 +109,14 @@ def main(argv: list[str] | None = None) -> int:
     page = load_template().replace("__DATEN__", json.dumps(daten, ensure_ascii=False))
     page = page.replace("__N__", str(len(daten)))
     page = page.replace("__PRAEFIX__", args.praefix)
-    page = page.replace("__SPEICHERSCHLUESSEL__", f"johann-noten-{args.praefix}")
+    # Kennung der Runde aus dem, was bewertet wird (Transkript und Ausgabe je Dokument), nicht aus
+    # Pfad und Seed: eine am selben Pfad neu erzeugte Rohdatei behielte sonst dieselbe Kennung
+    # für andere Texte (Codex, PR #85/#89). Lokaler Speicher und Serverspeicher prüfen sie beide.
+    runde = hashlib.sha256(
+        json.dumps([args.praefix, daten], sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()[:12]
+    page = page.replace("__SPEICHERSCHLUESSEL__", f"johann-noten-{args.praefix}-{runde}")
+    page = page.replace("__RUNDE__", runde)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(page, encoding="utf-8")
 

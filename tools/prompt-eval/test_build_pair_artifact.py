@@ -14,6 +14,7 @@ from build_pair_artifact import (
     mentions_time,
     origin_rank,
     pairs_from_mapping,
+    round_id,
     select_pairs,
 )
 from format_checks import EMPTY_SENTENCES
@@ -124,6 +125,17 @@ def test_a_follow_up_round_rereads_exactly_the_same_dictations_of_the_named_temp
     ]
     with pytest.raises(ValueError):
         pairs_from_mapping(mapping, {"mailPrompt"})
+
+
+def test_the_round_id_follows_what_the_reader_sees() -> None:
+    # Codex, PR #85/#89: gleiche Ids bei gleichem Präfix meinen sonst andere Texte -- auch wenn
+    # nur die Rohdatei am selben Pfad neu erzeugt wurde.
+    page = [{"docId": "p000", "transkript": "Text", "a": "Fassung eins", "b": "Fassung zwei"}]
+    same = round_id("p", page)
+    assert same == round_id("p", [dict(page[0])])
+    assert same != round_id("p", [{**page[0], "a": "Fassung eins, neu erzeugt"}])
+    assert same != round_id("p", [{**page[0], "a": "Fassung zwei", "b": "Fassung eins"}])
+    assert same != round_id("q", page)
 
 
 def test_page_texts_are_html_escaped() -> None:

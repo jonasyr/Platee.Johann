@@ -47,6 +47,12 @@ public sealed class BulletOutlineTests
     public void An_indent_between_two_open_levels_nests_under_the_shallower_one()
         => Levels(0, 4, 2).Should().Equal(0, 1, 1);
 
+
+    [Fact]
+    public void A_shallower_bullet_after_an_indented_orphan_becomes_the_new_base()
+        // Codex, PR #86: „  - a / - b /   - c" ergab 0/0/0, c gehört aber unter b.
+        => Levels(2, 0, 2).Should().Equal(0, 0, 1);
+
     [Theory]
     [InlineData("- eins", 0, "eins")]
     [InlineData("* eins", 0, "eins")]

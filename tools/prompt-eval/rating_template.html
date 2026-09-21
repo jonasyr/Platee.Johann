@@ -229,6 +229,8 @@ dialog::backdrop{background:rgba(10,20,18,.55)}
 const DATEN = __DATEN__;
 const SPEICHER = "__SPEICHERSCHLUESSEL__";
 const PRAEFIX = "__PRAEFIX__";
+// Kennung dieser Runde aus den bewerteten Texten; gespeicherte Noten gelten nur für sie.
+const RUNDE = "__RUNDE__";
 const DIMS = [
   ["treue", "Treue", ["zentrale Aussage erfunden","mehrere Abweichungen","eine Tatsache verändert","eine Nuance verschoben","stimmt bis in die Nuance"]],
   ["vollstaendigkeit", "Vollständigkeit", ["der Kern fehlt","mehrere Punkte fehlen","eine wichtige Angabe fehlt","eine Nebeninfo fehlt","alles Relevante da"]],
@@ -403,7 +405,7 @@ async function sichern(d){
   offen++; zustand("speichert …");
   try {
     const n = noten[d.docId];
-    await db.doc("noten/" + d.docId).set({ schluessel: d.schluessel, stand: n.stand,
+    await db.doc("noten/" + d.docId).set({ runde: RUNDE, schluessel: d.schluessel, stand: n.stand,
       treue: n.treue || null, vollstaendigkeit: n.vollstaendigkeit || null, nacharbeit: n.nacharbeit || null });
     offen--;
     if (offen === 0) zustand(anzahlFertig() + " von " + DATEN.length + " gespeichert", "ok");
@@ -479,6 +481,10 @@ async function start(){
         const id = doc.id;
         const data = (typeof doc.data === "function" ? doc.data() : doc.data) || {};
         if (!id || !id.startsWith(PRAEFIX)) return;
+        // Nur Noten zum selben Text übernehmen: bei neuem Seed mit gleichem Präfix meint
+        // dieselbe Id eine andere Ausgabe (Codex, PR #85).
+        const erwartet = DATEN.find(x => x.docId === id);
+        if (!erwartet || data.schluessel !== erwartet.schluessel || data.runde !== RUNDE) return;
         const fern = {}; DIMS.forEach(([k]) => { if (data[k]) fern[k] = data[k]; });
         if (!Object.keys(fern).length) return;
         fern.stand = data.stand || "";
