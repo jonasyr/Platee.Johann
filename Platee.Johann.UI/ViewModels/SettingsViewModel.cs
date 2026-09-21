@@ -28,6 +28,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private string firma = string.Empty;
 
+    /// <summary>Begleittext der internen Aufgaben-Mail (#57); {Projekt} wird ersetzt.</summary>
+    [ObservableProperty]
+    private string aufgabenMailText = string.Empty;
+
     // ── Directories ───────────────────────────────────────────────────────────
     [ObservableProperty]
     private string quellverzeichnis = string.Empty;
@@ -316,6 +320,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             Name = this.Name.Trim(),
             Firma = this.Firma.Trim(),
+            AufgabenMailText = this.AufgabenMailText.Trim(),
             Quellverzeichnis = this.Quellverzeichnis.Trim(),
             Archivverzeichnis = this.Archivverzeichnis.Trim(),
             Ausgabeverzeichnis = this.Ausgabeverzeichnis.Trim(),
@@ -511,6 +516,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var d = AppSettings.Default;
         this.Name = d.Name;
         this.Firma = d.Firma;
+        this.AufgabenMailText = d.AufgabenMailText;
         this.Quellverzeichnis = d.Quellverzeichnis;
         this.Archivverzeichnis = d.Archivverzeichnis;
         this.Ausgabeverzeichnis = d.Ausgabeverzeichnis;
@@ -717,6 +723,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var s = this.persistedHolder.Current;
         this.Name = s.Name;
         this.Firma = s.Firma;
+        this.AufgabenMailText = s.AufgabenMailText;
         this.Quellverzeichnis = s.Quellverzeichnis;
         this.Archivverzeichnis = s.Archivverzeichnis;
         this.Ausgabeverzeichnis = s.Ausgabeverzeichnis;

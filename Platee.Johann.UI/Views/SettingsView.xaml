@@ -167,6 +167,16 @@
                             <TextBlock Style="{StaticResource LabelStyle}" Text="Firma"/>
                             <TextBox Style="{StaticResource FieldBox}"
                                      Text="{Binding Firma, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource LabelStyle}" Text="Begleittext der Aufgaben-Mail"/>
+                            <TextBlock Style="{StaticResource HintStyle}"
+                                       Text="Steht über den Aufgaben, wenn Sie „Aufgaben“ in Outlook öffnen. {Projekt} wird durch das Projekt ersetzt. Leer lassen für keinen Begleittext."/>
+                            <TextBox Style="{StaticResource FieldBox}"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     MinHeight="64"
+                                     VerticalContentAlignment="Top"
+                                     Text="{Binding AufgabenMailText, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
                     </ScrollViewer>
 

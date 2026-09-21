@@ -203,7 +203,8 @@ public sealed partial class MainViewModel : ObservableObject
                          SettingsHolder runtimeSettingsHolder,
                          IMicrophoneRecorder microphoneRecorder,
                          IReadOnlyList<StartupPathIssue>? startupPathIssues = null,
-                         IModelAvailabilityProbe? modelProbe = null)
+                         IModelAvailabilityProbe? modelProbe = null,
+                         IMailComposer? mailComposer = null)
     {
         this.modelProbe = modelProbe;
         this.repository = repository;
@@ -221,7 +222,9 @@ public sealed partial class MainViewModel : ObservableObject
             completeLog: this.CompleteProcessLog,
             updateStatus: s => System.Windows.Application.Current.Dispatcher.Invoke(() => this.StatusText = s),
             sectionCatalog: () => SectionCatalog.Build(
-                runtimeSettingsHolder.Prompts, runtimeSettingsHolder.Current.SectionModes));
+                runtimeSettingsHolder.Prompts, runtimeSettingsHolder.Current.SectionModes),
+            mailComposer: mailComposer,
+            taskMailIntro: () => persistedSettingsHolder.Current.AufgabenMailText);
         this.detail.EntryStatusChanged += entry =>
         {
             _ = this.LoadEntriesAsync(this.SelectedDateItem?.Date);

@@ -74,6 +74,15 @@ public sealed record AppSettings
     /// </summary>
     public string SummaryModel { get; init; } = Processing.ModelNames.Summaries;
 
+    /// <summary>
+    /// Gets den Begleittext der internen Aufgaben-Mail (#57); <c>{Projekt}</c> wird ersetzt.
+    /// <para>
+    /// Persoenlich statt im Team-File, weil jeder seine Kollegen anders anschreibt. Ein leerer
+    /// Text ist eine Wahl („kein Begleittext") und wird nicht durch den Standard ersetzt.
+    /// </para>
+    /// </summary>
+    public string AufgabenMailText { get; init; } = Mail.MailDraftBuilder.DefaultTaskMailIntro;
+
     /// <summary>Gets a fresh instance with all default values.</summary>
     public static AppSettings Default => new();
 }

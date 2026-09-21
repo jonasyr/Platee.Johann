@@ -12,6 +12,7 @@ using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Infrastructure.Audio;
 using Platee.Johann.Infrastructure.Json;
 using Platee.Johann.Infrastructure.Llm;
+using Platee.Johann.Infrastructure.Mail;
 using Platee.Johann.Infrastructure.Renderers;
 using Platee.Johann.UI.Helpers;
 using Platee.Johann.UI.ViewModels;
@@ -246,10 +247,19 @@ public partial class App : System.Windows.Application
             ? new NoOpModelAvailabilityProbe()
             : new OpenAiModelAvailabilityProbe(apiKey);
 
+        // ── Mail (#57) ────────────────────────────────────────────────────────
+        // Klassisches Outlook per COM, sonst mailto mit dem PDF im Explorer. Warum COM scheiterte,
+        // steht im Log — der Nutzer bekommt trotzdem eine Mail.
+        IMailComposer mailComposer = new OutlookMailComposer(
+            new OutlookEnvironment(),
+            new ClassicOutlookChannel(),
+            new MailtoChannel(),
+            logWarning: message => crashLogger.WriteCrashLog("MAIL", new InvalidOperationException(message)));
+
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
                                            settingsRepo, personalPromptRepo, persistedSettingsHolder,
                                            runtimeSettingsHolder, microphoneRecorder,
-                                           pathResolution.Issues, modelProbe);
+                                           pathResolution.Issues, modelProbe, mailComposer);
 
         // Wired here rather than injected so the view models stay dialog-free in tests.
         viewModel.EmptySectionHintPrompt = () =>

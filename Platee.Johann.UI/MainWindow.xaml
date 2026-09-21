@@ -887,16 +887,22 @@
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
-                            <Button Content="E-Mail"
-                                    Command="{Binding Detail.CopyEmailCommand}"
+                            <Button Content="Aufgaben"
+                                    Command="{Binding Detail.OpenTaskMailCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
                                     BorderThickness="1,1,0,1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
-                                    Tag="E-Mail-Text in Zwischenablage kopieren">
+                                    Tag="Interne Aufgaben-Mail in Outlook öffnen – mit PDF im Anhang"/>
+                            <Button Content="E-Mail"
+                                    Command="{Binding Detail.OpenEmailCommand}"
+                                    Style="{StaticResource DetailExportActionButtonStyle}"
+                                    BorderThickness="1,1,0,1"
+                                    IsEnabled="{Binding Detail.CanUseDetailActions}"
+                                    Tag="Externe E-Mail in Outlook öffnen – ohne Anhang">
                                 <Button.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="In Outlook öffnen"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.OpenInOutlookCommand,
+                                        <MenuItem Header="E-Mail-Text in Zwischenablage kopieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.CopyEmailCommand,
                                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     </ContextMenu>
                                 </Button.ContextMenu>

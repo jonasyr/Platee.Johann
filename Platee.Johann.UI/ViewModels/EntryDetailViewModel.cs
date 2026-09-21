@@ -5,7 +5,10 @@ using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Platee.Johann.Application.Interfaces;
+using Platee.Johann.Application.Mail;
 using Platee.Johann.Application.Processing;
+using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Services;
 using Platee.Johann.Domain.Entities;
 
@@ -19,6 +22,10 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     private readonly Func<string, bool, ProcessLogItem>? addLog;
     private readonly Action<ProcessLogItem, string>? completeLog;
     private readonly Action<string>? updateStatus;
+    private readonly IMailComposer? mailComposer;
+
+    /// <summary>Reads the task-mail intro at click time, so a changed setting applies at once.</summary>
+    private readonly Func<string> taskMailIntro;
 
     /// <summary>
     /// Resolves the current section catalog. A delegate rather than a snapshot so a
@@ -143,9 +150,13 @@ public sealed partial class EntryDetailViewModel : ObservableObject
                                 Func<string, bool, ProcessLogItem>? addLog = null,
                                 Action<ProcessLogItem, string>? completeLog = null,
                                 Action<string>? updateStatus = null,
-                                Func<IReadOnlyList<SectionDescriptor>>? sectionCatalog = null)
+                                Func<IReadOnlyList<SectionDescriptor>>? sectionCatalog = null,
+                                IMailComposer? mailComposer = null,
+                                Func<string>? taskMailIntro = null)
     {
         this.sectionCatalog = sectionCatalog ?? (static () => []);
+        this.mailComposer = mailComposer;
+        this.taskMailIntro = taskMailIntro ?? (static () => MailDraftBuilder.DefaultTaskMailIntro);
         this.renderers = renderers;
         this.outputRoot = outputRoot;
         this.processor = processor;
@@ -191,7 +202,8 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         GeneratePdfCommand.NotifyCanExecuteChanged();
         GenerateHtmlCommand.NotifyCanExecuteChanged();
         CopyEmailCommand.NotifyCanExecuteChanged();
-        OpenInOutlookCommand.NotifyCanExecuteChanged();
+        OpenEmailCommand.NotifyCanExecuteChanged();
+        OpenTaskMailCommand.NotifyCanExecuteChanged();
         CopyCommand.NotifyCanExecuteChanged();
         ReprocessCommand.NotifyCanExecuteChanged();
         CopyPdfCommand.NotifyCanExecuteChanged();
@@ -316,27 +328,97 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     /// Opens the default mail client (Outlook) with subject and body pre-filled via mailto:.
     /// Subject is extracted from the "Betreff:" line of the email text when present.
     /// </summary>
+    /// <summary>
+    /// Opens the internal task mail (#57): intro from the settings, then the task section, with
+    /// the entry's PDF attached. A missing task section is generated first.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task completing once the mail is open or the reason was reported.</returns>
     [RelayCommand(CanExecute = nameof(HasEntry))]
-    private void OpenInOutlook()
+    private async Task OpenTaskMailAsync(CancellationToken ct)
     {
-        if (this.Entry is null)
+        var entry = await this.EnsureSectionAsync(BuiltInSections.TaskList, e => e.TaskList, ct);
+        if (entry is null)
         {
             return;
         }
 
-        var emailText = !string.IsNullOrWhiteSpace(this.Entry.EmailText) ? this.Entry.EmailText : BuildBasicEmailText(this.Entry);
-        var subject = Uri.EscapeDataString(ExtractBetreff(emailText) ?? $"{this.Entry.ProjectName}: {this.Entry.Title}");
-        var body = Uri.EscapeDataString(StripBetreffLine(emailText));
-        var mailto = $"mailto:?subject={subject}&body={body}";
+        if (string.IsNullOrWhiteSpace(entry.TaskList))
+        {
+            this.addLog?.Invoke("Keine Aufgaben vorhanden – die Aufgaben-Mail wurde nicht geöffnet.", false);
+            return;
+        }
+
+        // Reports its own failure; the mail still opens, just without the PDF.
+        var pdf = await this.RenderPdfForDragAsync(entry, ct);
+        var draft = MailDraftBuilder.ForTasks(entry, this.taskMailIntro(), pdf);
+        await this.ComposeMailAsync(draft, "Aufgaben-Mail", ct);
+    }
+
+    /// <summary>
+    /// Opens the external, formal mail (#57) without attachment. A missing mail text is generated
+    /// first; without a processor a basic text from the summaries stands in.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task completing once the mail is open or the reason was reported.</returns>
+    [RelayCommand(CanExecute = nameof(HasEntry))]
+    private async Task OpenEmailAsync(CancellationToken ct)
+    {
+        var entry = await this.EnsureSectionAsync(BuiltInSections.EmailText, e => e.EmailText, ct);
+        if (entry is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(entry.EmailText))
+        {
+            entry = entry with { EmailText = BuildBasicEmailText(entry) };
+        }
+
+        await this.ComposeMailAsync(MailDraftBuilder.ForExternal(entry), "E-Mail", ct);
+    }
+
+    /// <summary>Generates <paramref name="sectionId"/> if its text is still empty.</summary>
+    private async Task<Entry?> EnsureSectionAsync(string sectionId, Func<Entry, string?> text, CancellationToken ct)
+    {
+        if (this.Entry is null)
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(text(this.Entry)) && this.processor is not null)
+        {
+            // Reports a failure itself and leaves the entry unchanged.
+            await this.GenerateSectionAsync(sectionId, ct);
+        }
+
+        return this.Entry;
+    }
+
+    private async Task ComposeMailAsync(MailDraft draft, string label, CancellationToken ct)
+    {
+        if (this.mailComposer is null)
+        {
+            this.addLog?.Invoke($"Fehler: {label} kann nicht geöffnet werden – kein Mailprogramm angebunden.", false);
+            return;
+        }
+
         try
         {
-            System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(mailto) { UseShellExecute = true });
-            this.addLog?.Invoke("✓ Outlook geöffnet.", false);
+            var result = await this.mailComposer.ComposeAsync(draft, ct);
+            var message = result.Channel == MailChannel.Outlook || draft.Attachments.Count == 0
+                ? $"✓ {label} in Outlook geöffnet."
+                : $"✓ {label} ohne Anhang geöffnet, weil Outlook nicht automatisiert werden kann. " +
+                  "Das PDF ist im Explorer markiert – bitte in die Mail ziehen.";
+            this.addLog?.Invoke(message, false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Closing Johann mid-way is not a failure worth reporting.
         }
         catch (Exception ex)
         {
-            this.addLog?.Invoke($"Fehler: {ex.Message}", false);
+            this.addLog?.Invoke($"Fehler: {label} konnte nicht geöffnet werden: {ex.Message}", false);
         }
     }
 
@@ -899,47 +981,6 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         sb.AppendLine();
         sb.AppendLine($"[{entry.CreatedAt:dd.MM.yyyy} · {entry.ProjectName}]");
         return sb.ToString();
-    }
-
-    /// <summary>Removes the "Betreff: ..." line (and any immediately following blank line) from the body.</summary>
-    private static string StripBetreffLine(string emailText)
-    {
-        var lines = emailText.Split('\n').ToList();
-        var idx = lines.FindIndex(l => l.Trim().StartsWith("Betreff:", StringComparison.OrdinalIgnoreCase));
-        if (idx < 0)
-        {
-            return emailText;
-        }
-
-        lines.RemoveAt(idx);
-
-        // Also remove the blank line that typically follows the Betreff line
-        if (idx < lines.Count && string.IsNullOrWhiteSpace(lines[idx]))
-        {
-            lines.RemoveAt(idx);
-        }
-
-        return string.Join('\n', lines).TrimStart();
-    }
-
-    /// <summary>Returns the text after "Betreff:" from the first matching line, or null.</summary>
-    private static string? ExtractBetreff(string? emailText)
-    {
-        if (string.IsNullOrWhiteSpace(emailText))
-        {
-            return null;
-        }
-
-        foreach (var line in emailText.Split('\n'))
-        {
-            var t = line.Trim();
-            if (t.StartsWith("Betreff:", StringComparison.OrdinalIgnoreCase))
-            {
-                return t["Betreff:".Length..].Trim();
-            }
-        }
-
-        return null;
     }
 
 }
