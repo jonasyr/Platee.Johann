@@ -173,6 +173,28 @@ editable. It keeps per-bullet indentation and compares indents relatively, so tw
 markdown both nest — until v1.4.0 it detected bullets on the trimmed line and flattened every
 outline into one level. That only became visible with a model strong enough to nest.
 
+**Markdown in every output (v1.5.0, #73 S4, PR #91):** the system message asks for markdown where
+it carries meaning, so every way a section leaves Johann must understand it. `InlineMarkdown`
+(Domain/Services/) splits a line into normal/bold/italic runs and yields plain text;
+`BulletOutline` (same folder, #83) assigns list levels by *relative* indentation — the same rule as
+`MarkdownFlowDocumentConverter`, so PDF and detail view nest alike. The **PDF** renders every section
+(also Aufgaben, Gesprächsnotiz, Stundenzettel, Analog, E-Mail — previously raw text) through
+`RenderMarkdown` with real bold/italic; **copy to clipboard** and the `.txt` mail give plain text
+(the transcript stays verbatim); HTML/overview use `MarkdownHelper`. A new output path must do the
+same, or literal asterisks reach the user.
+
+**Mail buttons (v1.5.0, #57):** „Aufgaben“ = internal mail (intro from `AppSettings.AufgabenMailText`
+with `{Projekt}`, then the task section, **PDF attached**); „E-Mail“ = external, formal mail, **no
+attachment**, subject from the „Betreff:“ line (also recognised when wrapped in markdown — the model
+set it bold). `MailDraftBuilder` (Application/Mail/) builds both; `IMailComposer` →
+`OutlookMailComposer` (Infrastructure/Mail/) tries **classic Outlook via late-bound COM** on its own
+STA thread (`Display()` first so Outlook inserts the signature, then content after `<body>`), then
+**new Outlook via an `.eml` draft** (`EmlDraft`: `X-Unsent: 1` + own `Message-ID`, opened with the
+`olk.exe` app alias by ShellExecute — new Outlook has neither COM nor MAPI), then `mailto:` with the
+PDF selected in Explorer. `OutlookEnvironment` reads `UseNewOutlook`; new Outlook is used only if
+active or the only one installed. A missing PDF aborts the internal mail (its intro announces it).
+Live tests: `ClassicOutlookLiveTests` with `JOHANN_OUTLOOK_LIVE=1` (they open real drafts).
+
 ⚠ **Prompts must not name their own section.** The app already renders the heading; a prompt that
 tells the model to "create a Gesprächsnotiz" gets one titled that way, and it then appears twice
 in the detail view, the PDF and the mail. Every section prompt now says so explicitly.
@@ -190,6 +212,14 @@ in the detail view, the PDF and the mail. Every section prompt now says so expli
 **Prompt text: the team file is the single source of truth.** The team's `prompts.json` (`AppSettings.GlobalPromptFilePath`, typically `Z:\12_Tools\Peano\Johann\prompts.json`) owns the wording of all nine prompts. It always wins at runtime — `JsonPromptSettingsRepository` maps every field as `dto.X ?? defaults.X`, and `ToDto` writes all nine back on every save, so once a file exists its text is authoritative forever. The `SummaryPrompts` constants are **only** the seed for fresh installs and the fallback when the share is unreachable.
 
 Changing prompt wording therefore means changing **both**: edit the team file *and* update the matching constant. `TeamPromptDriftTests` guards this — it compares all nine constants against the team file and silently passes when the share is unreachable (CI, no VPN), so it never turns red for the wrong reason. Set `JOHANN_TEAM_PROMPTS` to point it elsewhere.
+
+**Current wording (#73, 2026-09-21):** system message and six sections from the cleaned-up candidate
+K1; Gesprächsnotiz and E-Mail on the previous wording the blind reading preferred, plus decided rules
+(empty case „Kein Gespräch dokumentiert.“, always „Sie“, no unclear-marks, subject line as plain
+text) and the central markdown rule. −20 % cost per dictation. The constants are **generated** from
+the sandbox candidate (`summary_prompts_schreiben.py`), never typed by hand. Evidence and the
+measurement tools (`tools/prompt-eval`: `messlauf.py`, `format_checks.py`, `build_pair_artifact.py`)
+are in `docs/prompting/kandidaten-73.md`; real dictations and prompt text stay in the sandbox.
 
 ⚠ **Never make a client rewrite the team file automatically.** `PromptDefaultsMigration` was exactly that idea — a revision integer that bulk-replaced prompts — and it was deleted in v1.4.0: it was never wired up, would never have fired (`PromptDefaultsRevision` defaults to the current revision, so the guard always short-circuits), and had it worked it would have overwritten curated team wording from whichever machine happened to load the file first. That is the same failure mode as a v1.3.2 client stripping `customCategories`. `PromptSettings.PromptDefaultsRevision` survives only so the JSON key round-trips instead of being stripped on the next save.
 
@@ -281,6 +311,13 @@ global target is unwritable, the save falls back to personal and the status mess
 which half was rescued — prompt text is team-owned and survives only for the session.
 
 ## Git Insights
+
+- **v1.5.0 in progress** (`release/v1.5.0`, 2026-09-21): #73 prompts for GPT-5.6 (PR #85) and the
+  central markdown rule (PR #91); #83 nested lists in the PDF (PR #86); #57 mail buttons for classic
+  and new Outlook (PR #87, #90); #88 Codex findings (PR #89). **Codex reviews every PR** — read its
+  inline comments before merging; it found real bugs in five of six PRs that day (missing PDF
+  announced in the mail, list base level, retry of failed calls, round binding, raw markdown in
+  copies). Open in v1.5.0: #55, #56, #77, #78, #79, #84 (flaky live model test).
 
 - **v1.4.0** (2026-09-10, released): the first release since v1.3.2. Renumbered from the
   unreleased v1.3.3 under the new rule — minor for anything users see, patch for developer
