@@ -33,6 +33,11 @@ public static class SummaryPrompts
         "\n" +
         "- Wie stark du verdichtest, legt die Anweisung des jeweiligen Abschnitts fest. Verlangt sie eine vollständige Aufbereitung, bleibt jede Aussage erhalten. Verlangt sie eine Kurzfassung oder nennt sie eine Längengrenze, wählst du das Wichtigste aus.\n" +
         "\n" +
+        "### Form ###\n" +
+        "\n" +
+        "- Formatiere die Antwort in Markdown, wo es Bedeutung trägt: `-` für Aufzählungen, `**fett**` für Begriffe, die hervorstechen sollen. Überschriften setzt du nur, wenn der Abschnitt sie verlangt; die Überschrift des Abschnitts selbst setzt die Anwendung.\n" +
+        "- Gibt der Abschnitt reinen Text oder eine andere Form vor, gilt seine Vorgabe.\n" +
+        "\n" +
         "---\n" +
         "\n" +
         "**Schlechtes Beispiel:**\n" +
@@ -110,7 +115,7 @@ public static class SummaryPrompts
         "Den Empfänger immer siezen, auch wenn die Zusammenfassung ihn duzt oder beim Vornamen nennt. Das gilt für Pronomen und Aufforderungen gleichermaßen: „Bitte prüfen Sie …“, nicht „Bitte prüfe …“.\n" +
         "\n" +
         "Anforderungen:\n" +
-        "- Betreff: Kurz, Prägnant, aussagekräftig (beginne mit \"Betreff: \")\n" +
+        "- Betreff: Kurz, Prägnant, aussagekräftig (beginne mit \"Betreff: \"; die Betreffzeile steht als reiner Text ohne Markdown in der ersten Zeile)\n" +
         "- Ton: Professionell, persönlich, freundlich, kollegial\n" +
         "- Inhalt: Die wichtigsten Punkte klar und präzise kommunizieren\n" +
         "- Struktur: gut gegliedert, leicht lesbar, verständlich\n" +
@@ -127,7 +132,6 @@ public static class SummaryPrompts
         "- Direkt und klar (keine unnötigen Floskeln)\n" +
         "- Aktive Sprache, kurze und vollständige Sätze\n" +
         "- Fließtext, keine Stichpunkte\n" +
-        "- Reiner Text ohne Markdown: keine Sternchen, Rauten oder Aufzählungszeichen\n" +
         "- Professionelles Deutsch\n" +
         "- positive Sprache\n" +
         "\n" +

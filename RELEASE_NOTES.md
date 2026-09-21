@@ -16,6 +16,13 @@
   Signatur. Nur wenn gar kein Outlook bereitsteht, öffnet Johann die Mail ohne Anhang und
   zeigt das PDF im Explorer an, von wo Sie es in die Mail ziehen können.
 
+**Sauberes PDF.**
+
+- Verschachtelte Aufzählungen erscheinen im PDF jetzt eingerückt als Liste; vorher standen
+  Unterpunkte als Absatz mit Bindestrich da.
+- Aufgaben, Gesprächsnotiz, Stundenzettel, Analog und E-Mail werden im PDF wie die übrigen
+  Abschnitte gesetzt – mit echten Listen und Fettdruck statt Rohtext.
+
 **Überarbeitete Vorlagen für das neue Modell.**
 
 - Alle Vorlagen wurden für das aktuelle Modell neu gefasst und an echten Diktaten
@@ -26,8 +33,10 @@
   Bestellungen oder Zeiterfassungen steht dort jetzt „Kein Gespräch dokumentiert.“ statt
   einer dritten Zusammenfassung desselben Inhalts.
 - Die E-Mail siezt den Empfänger immer, auch wenn das Diktat ihn duzt. Stellen, die im
-  Diktat nicht zu verstehen waren, erscheinen nicht mehr in der Mail, und sie enthält
-  keine Formatierungszeichen mehr.
+  Diktat nicht zu verstehen waren, erscheinen nicht mehr in der Mail.
+- Wichtige Begriffe dürfen in allen Abschnitten fett hervorgehoben sein – in der
+  Detailansicht, im PDF, im HTML und in der Mail erscheint das als echter Fettdruck, nie als
+  Sternchen. Kopierte Texte kommen ohne Formatierungszeichen in der Zwischenablage an.
 - Abstract, Stundenzettel und Analog sagen ausdrücklich, wenn das Diktat für sie nichts
   hergibt, statt etwas zu erfinden. Der Stundenzettel führt je Tätigkeit eine Zeile mit
   der Dauer.

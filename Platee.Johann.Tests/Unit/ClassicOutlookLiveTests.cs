@@ -49,4 +49,35 @@ public sealed class ClassicOutlookLiveTests
 
         await act.Should().NotThrowAsync();
     }
+
+
+    [SkippableFact]
+    public async Task A_markdown_mail_goes_through_the_real_composer()
+    {
+        Skip.IfNot(Environment.GetEnvironmentVariable("JOHANN_OUTLOOK_LIVE") == "1",
+            "Setze JOHANN_OUTLOOK_LIVE=1, um den echten Mailweg der App zu prüfen.");
+
+        // So sah eine Mail aus der zentralen Markdown-Regel (#73) aus, bevor die Betreffzeile
+        // ausdrücklich reiner Text wurde: fetter Betreff, Fettdruck im Text.
+        var entry = new Platee.Johann.Domain.Entities.Entry
+        {
+            JobId = "260921_057_live",
+            SequenceNumber = 57,
+            CreatedAt = DateTimeOffset.Now,
+            Type = Platee.Johann.Domain.Enums.EntryType.Projekt,
+            ProjectName = "Johann",
+            Title = "Livetest",
+            SourceType = "audio",
+            Status = Platee.Johann.Domain.ValueObjects.ProcessingStatus.Empty,
+            EmailText = "**Betreff: Johann-Livetest Markdown – bitte nicht senden**\n\nGuten Tag,\n\n" +
+                        "die Maske **Datenentitäten** ersetzt die Excel-Liste. Der Start ist *voraussichtlich* Freitag.",
+        };
+
+        var composer = new OutlookMailComposer(
+            new OutlookEnvironment(), new ClassicOutlookChannel(), new NewOutlookChannel(), new MailtoChannel());
+
+        var result = await composer.ComposeAsync(Platee.Johann.Application.Mail.MailDraftBuilder.ForExternal(entry));
+
+        result.Channel.Should().Be(Platee.Johann.Application.Interfaces.MailChannel.Outlook);
+    }
 }

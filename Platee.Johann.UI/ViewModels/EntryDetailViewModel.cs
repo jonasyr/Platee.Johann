@@ -320,7 +320,9 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         var text = !string.IsNullOrWhiteSpace(this.Entry.EmailText)
             ? this.Entry.EmailText
             : BuildBasicEmailText(this.Entry);
-        System.Windows.Clipboard.SetText(text);
+
+        // The mail text is markdown (#73); pasted as plain text it would show literal asterisks.
+        System.Windows.Clipboard.SetText(InlineMarkdown.ToPlainText(text));
         this.addLog?.Invoke("✓ E-Mail in Zwischenablage kopiert!", false);
     }
 
@@ -472,7 +474,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(this.Entry.Abstract))
         {
             sb.AppendLine("ABSTRACT");
-            sb.AppendLine(this.Entry.Abstract);
+            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.Abstract));
             sb.AppendLine();
         }
 
@@ -480,7 +482,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(this.Entry.TaskList))
         {
             sb.AppendLine("AUFGABEN");
-            sb.AppendLine(this.Entry.TaskList);
+            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.TaskList));
             sb.AppendLine();
         }
 
@@ -488,7 +490,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(this.Entry.ConversationNote))
         {
             sb.AppendLine("GESPRÄCHSNOTIZ");
-            sb.AppendLine(this.Entry.ConversationNote);
+            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.ConversationNote));
             sb.AppendLine();
         }
 
@@ -496,7 +498,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(this.Entry.LongSummary))
         {
             sb.AppendLine("ZUSAMMENFASSUNG");
-            sb.AppendLine(this.Entry.LongSummary);
+            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.LongSummary));
             sb.AppendLine();
         }
 
@@ -504,7 +506,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(this.Entry.ProseSummary))
         {
             sb.AppendLine("AUSFÜHRLICHE ZUSAMMENFASSUNG");
-            sb.AppendLine(this.Entry.ProseSummary);
+            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.ProseSummary));
             sb.AppendLine();
         }
 
@@ -514,11 +516,12 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         foreach (var (id, text) in this.OrderedCustomSections())
         {
             sb.AppendLine((names.TryGetValue(id, out var name) ? name : id).ToUpperInvariant());
-            sb.AppendLine(text);
+            sb.AppendLine(InlineMarkdown.ToPlainText(text));
             sb.AppendLine();
         }
 
-        // Transcript — only when checkbox is checked
+        // Transcript — only when checkbox is checked; verbatim, it is the record of what was said.
+        // The generated sections above are plain text: they carry markdown since #73 (PR #91).
         if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.EffectiveTranscript))
         {
             sb.AppendLine(this.Entry.EditedTranscript is not null ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT");

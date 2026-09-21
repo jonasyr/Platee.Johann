@@ -152,11 +152,28 @@ public sealed class SummaryPromptsTests
     }
 
     [Fact]
-    public void Email_IsPlainTextUntilOutlookConvertsMarkdown()
+    public void SystemMessage_AsksForMarkdownWhereItCarriesMeaning()
     {
-        // Bis #57 Markdown nach HTML wandelt, landen **Sternchen** sonst beim Kunden.
-        SummaryPrompts.Email.Should().Contain("Reiner Text ohne Markdown");
+        // Zentrale Markdown-Regel (#73, S4): erst seit #57 Markdown in der Mail nach HTML wandelt
+        // und PDF wie Klartext-Kopien Fett und kursiv verstehen.
+        SummaryPrompts.SystemMessage.Should().Contain("Formatiere die Antwort in Markdown");
+        SummaryPrompts.SystemMessage.Should().Contain("Gibt der Abschnitt reinen Text oder eine andere Form vor, gilt seine Vorgabe");
     }
+
+    [Fact]
+    public void Email_NoLongerForbidsMarkdown_ButStaysFlowingText()
+    {
+        // Der Text darf Markdown tragen (#57 wandelt es in HTML) ...
+        SummaryPrompts.Email.Should().NotContain("Reiner Text ohne Markdown");
+        SummaryPrompts.Email.Should().Contain("Fließtext, keine Stichpunkte");
+
+        // ... nur die Betreffzeile nicht: fett gesetzt fand Johann sie im Messlauf nicht mehr.
+        SummaryPrompts.Email.Should().Contain("die Betreffzeile steht als reiner Text ohne Markdown in der ersten Zeile");
+    }
+
+    [Fact]
+    public void Abstract_StaysPlainText_BecauseItShowsBelowTheTitle()
+        => SummaryPrompts.Abstract.Should().Contain("ohne Überschrift, Aufzählung oder Markdown-Zeichen");
 
     [Fact]
     public void Email_ContainsIchPerspektive()

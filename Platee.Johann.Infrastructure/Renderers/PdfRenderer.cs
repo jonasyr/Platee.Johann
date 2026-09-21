@@ -159,69 +159,32 @@ public sealed class PdfRenderer : IEntryRenderer
                 col.Item().Element(c => Section(c, "Kurzfassung", entry.Abstract!, "#FFF5F4", "#FFDBD8"));
             }
 
+            // These sections are markdown too (lists, and bold since the central markdown rule in
+            // #73) and go through the same renderer as the rest; before, they were printed as raw
+            // text with literal dashes and asterisks. Colours and borders stay as they were.
             if (sections.TaskList && !string.IsNullOrWhiteSpace(entry.TaskList))
             {
-                col.Item().Column(inner =>
-                {
-                    inner.Item().Text("Aufgaben").Bold().FontSize(11).FontColor("#555");
-                    inner.Item().PaddingTop(4)
-                         .Border(1).BorderColor("#E63123")
-                         .Background("#FFF8F8")
-                         .Padding(10)
-                         .Text(entry.TaskList!).FontSize(10);
-                });
+                col.Item().Element(c => Section(c, "Aufgaben", entry.TaskList!, "#FFF8F8", "#E63123"));
             }
 
             if (sections.ConversationNote && !string.IsNullOrWhiteSpace(entry.ConversationNote))
             {
-                col.Item().Column(inner =>
-                {
-                    inner.Item().Text("Gesprächsnotiz").Bold().FontSize(11).FontColor("#2980B9");
-                    inner.Item().PaddingTop(4)
-                         .Border(1).BorderColor("#2980B9")
-                         .Background("#F0F8FF")
-                         .Padding(10)
-                         .Text(entry.ConversationNote!).FontSize(10);
-                });
+                col.Item().Element(c => Section(c, "Gesprächsnotiz", entry.ConversationNote!, "#F0F8FF", "#2980B9", "#2980B9"));
             }
 
             if (sections.StundenzettelText && !string.IsNullOrWhiteSpace(entry.StundenzettelText))
             {
-                col.Item().Column(inner =>
-                {
-                    inner.Item().Text("Stundenzettel").Bold().FontSize(11).FontColor("#8E44AD");
-                    inner.Item().PaddingTop(4)
-                         .Border(1).BorderColor("#8E44AD")
-                         .Background("#FAF0FF")
-                         .Padding(10)
-                         .Text(entry.StundenzettelText!).FontSize(10);
-                });
+                col.Item().Element(c => Section(c, "Stundenzettel", entry.StundenzettelText!, "#FAF0FF", "#8E44AD", "#8E44AD"));
             }
 
             if (sections.AnalogText && !string.IsNullOrWhiteSpace(entry.AnalogText))
             {
-                col.Item().Column(inner =>
-                {
-                    inner.Item().Text("Analog").Bold().FontSize(11).FontColor("#555");
-                    inner.Item().PaddingTop(4)
-                         .Border(1).BorderColor("#888888")
-                         .Background("#F8F8F8")
-                         .Padding(10)
-                         .Text(entry.AnalogText!).FontSize(10);
-                });
+                col.Item().Element(c => Section(c, "Analog", entry.AnalogText!, "#F8F8F8", "#888888"));
             }
 
             if (sections.EmailText && !string.IsNullOrWhiteSpace(entry.EmailText))
             {
-                col.Item().Column(inner =>
-                {
-                    inner.Item().Text("E-Mail").Bold().FontSize(11).FontColor("#27AE60");
-                    inner.Item().PaddingTop(4)
-                         .Border(1).BorderColor("#27AE60")
-                         .Background("#F0FFF4")
-                         .Padding(10)
-                         .Text(entry.EmailText!).FontSize(10);
-                });
+                col.Item().Element(c => Section(c, "E-Mail", entry.EmailText!, "#F0FFF4", "#27AE60", "#27AE60"));
             }
 
             if (sections.LongSummary && !string.IsNullOrWhiteSpace(entry.LongSummary))
@@ -251,11 +214,11 @@ public sealed class PdfRenderer : IEntryRenderer
     }
 
     private static void Section(IContainer container, string title,
-                                 string body, string bg, string border)
+                                 string body, string bg, string border, string titleColor = "#555")
     {
         container.Column(col =>
         {
-            col.Item().Text(title).Bold().FontSize(11).FontColor("#555");
+            col.Item().Text(title).Bold().FontSize(11).FontColor(titleColor);
             col.Item().PaddingTop(4)
                .Border(1).BorderColor(border)
                .Background(bg)
@@ -302,14 +265,14 @@ public sealed class PdfRenderer : IEntryRenderer
                     row.ConstantItem(12).AlignTop()
                        .Text(marker).FontSize(10).FontColor("#555");
                     row.RelativeItem()
-                       .Text(captured).FontSize(10);
+                       .Text(t => Inline(t, captured, s => s.FontSize(10)));
                 });
             }
 
             pendingBullets.Clear();
         }
 
-        foreach (var rawLine in text.Split('\n'))
+        foreach (var rawLine in text.ReplaceLineEndings("\n").Split('\n'))
         {
             var line = rawLine.TrimEnd();
 
@@ -317,19 +280,19 @@ public sealed class PdfRenderer : IEntryRenderer
             {
                 FlushBullets();
                 col.Item().PaddingTop(6)
-                   .Text(line[4..]).SemiBold().FontSize(11).FontColor("#333");
+                   .Text(t => Inline(t, line[4..], s => s.SemiBold().FontSize(11).FontColor("#333")));
             }
             else if (line.StartsWith("## ", StringComparison.Ordinal))
             {
                 FlushBullets();
                 col.Item().PaddingTop(6)
-                   .Text(line[3..]).SemiBold().FontSize(12).FontColor("#222");
+                   .Text(t => Inline(t, line[3..], s => s.SemiBold().FontSize(12).FontColor("#222")));
             }
             else if (line.StartsWith("# ", StringComparison.Ordinal))
             {
                 FlushBullets();
                 col.Item().PaddingTop(8)
-                   .Text(line[2..]).Bold().FontSize(13).FontColor("#111");
+                   .Text(t => Inline(t, line[2..], s => s.Bold().FontSize(13).FontColor("#111")));
             }
             else if (BulletOutline.TryParse(line, out var bullet))
             {
@@ -343,10 +306,32 @@ public sealed class PdfRenderer : IEntryRenderer
             else
             {
                 FlushBullets();
-                col.Item().Text(line).FontSize(10);
+                col.Item().Text(t => Inline(t, line, s => s.FontSize(10)));
             }
         }
 
         FlushBullets();
+    }
+
+    /// <summary>
+    /// Writes one line with bold and italic as real type instead of literal asterisks
+    /// (<see cref="InlineMarkdown"/>).
+    /// </summary>
+    private static void Inline(TextDescriptor text, string line, Func<TextStyle, TextStyle> style)
+    {
+        text.DefaultTextStyle(style);
+        foreach (var run in InlineMarkdown.Split(line))
+        {
+            var span = text.Span(run.Text);
+            if (run.Bold)
+            {
+                span.SemiBold();
+            }
+
+            if (run.Italic)
+            {
+                span.Italic();
+            }
+        }
     }
 }

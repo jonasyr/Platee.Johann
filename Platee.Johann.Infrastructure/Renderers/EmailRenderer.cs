@@ -48,45 +48,46 @@ public sealed class EmailRenderer : IEntryRenderer
         // If there's an explicit emailText field, use it as body
         if (!string.IsNullOrWhiteSpace(entry.EmailText))
         {
-            sb.AppendLine(entry.EmailText);
+            // Plain-text file: the markdown of the mail text (#73) would show as asterisks.
+            sb.AppendLine(InlineMarkdown.ToPlainText(entry.EmailText));
             sb.AppendLine();
             sb.AppendLine(new string('-', 60));
             sb.AppendLine($"[Automatisch generiert am {entry.CreatedAt:dd.MM.yyyy} · {entry.ProjectName}]");
             return sb.ToString();
         }
 
-        // Otherwise compose from available content
+        // Otherwise compose from available content -- as plain text too, the sections carry markdown.
         sb.AppendLine($"[{entry.Type} · {entry.ProjectName} · {entry.CreatedAt:dd.MM.yyyy}]");
         sb.AppendLine();
 
         if (!string.IsNullOrWhiteSpace(entry.Abstract))
         {
-            sb.AppendLine(entry.Abstract);
+            sb.AppendLine(InlineMarkdown.ToPlainText(entry.Abstract));
             sb.AppendLine();
         }
 
         if (!string.IsNullOrWhiteSpace(entry.TaskList))
         {
             sb.AppendLine("Aufgaben:");
-            sb.AppendLine(entry.TaskList);
+            sb.AppendLine(InlineMarkdown.ToPlainText(entry.TaskList));
             sb.AppendLine();
         }
 
         if (!string.IsNullOrWhiteSpace(entry.ConversationNote))
         {
             sb.AppendLine("Gesprächsnotiz:");
-            sb.AppendLine(entry.ConversationNote);
+            sb.AppendLine(InlineMarkdown.ToPlainText(entry.ConversationNote));
             sb.AppendLine();
         }
 
         if (!string.IsNullOrWhiteSpace(entry.ProseSummary))
         {
-            sb.AppendLine(entry.ProseSummary);
+            sb.AppendLine(InlineMarkdown.ToPlainText(entry.ProseSummary));
             sb.AppendLine();
         }
         else if (!string.IsNullOrWhiteSpace(entry.LongSummary))
         {
-            sb.AppendLine(entry.LongSummary);
+            sb.AppendLine(InlineMarkdown.ToPlainText(entry.LongSummary));
             sb.AppendLine();
         }
 
