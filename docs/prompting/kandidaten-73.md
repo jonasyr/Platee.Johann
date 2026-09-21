@@ -277,3 +277,31 @@ gescheiterte Aufrufe beim Fortsetzen nicht wiederholt. Beides ist behoben. Aus d
 neu gerechnet: **0 Abweichungen** in `messlauf73`, `73b`, `73c`, `73d` und `73e` – jeder gezählte
 Leerfall stand allein, und kein Lauf hatte einen gescheiterten Aufruf. Die Ergebnisse oben gelten
 unverändert.
+
+# Zentrale Markdown-Regel (S4, 21.09.2026, nach #57)
+
+Voraussetzung aus dem Faktorenplan §4.2 erfüllt: #57 wandelt Markdown in der Mail nach HTML
+(klassisches und neues Outlook). **K1 v6:** Block „Form“ in der Systemnachricht („Formatiere die
+Antwort in Markdown, wo es Bedeutung trägt … Gibt der Abschnitt reinen Text oder eine andere Form
+vor, gilt seine Vorgabe.“), die Klartext-Zeile der E-Mail entfällt. Systemnachricht 408 → 492 Token.
+
+`messlauf73f` (alle K1-Abschnitte, 414 Aufrufe, 0 Fehler) gegen v5:
+
+- **E-Mail:** In 32 von 46 Mails setzte das Modell die **Betreffzeile fett** (`**Betreff: …**`) –
+  Johann hätte den Betreff nicht gefunden und eine fette Zeile oben in die Mail gesetzt.
+  → **K1 v7:** „die Betreffzeile steht als reiner Text ohne Markdown in der ersten Zeile“, und
+  `MailDraftBuilder` erkennt die Zeile auch in Markdown-Hülle. `messlauf73g` (46 Aufrufe):
+  Betreffzeile 46/46 rein, Anrede 46/46, Fettdruck im Text sparsam (4 Mails).
+- Zusammenfassung und Ausführlich nutzen mehr Fettdruck (105 → 231 bzw. 29 → 47 Stellen);
+  Abstract, Aufgaben, Stundenzettel und Analog bleiben praktisch ohne Markdown.
+- Gesprächsnotiz: 12/12 Gespräche erkannt, Notizen ohne Gespräch 5 (v5: 4) – Streuung eines Laufs.
+- Kosten je Diktat unverändert (0,389 ¢ gegen 0,388 ¢).
+
+**Ausgabewege geprüft:** Detailansicht und HTML wandelten schon; das **PDF** druckte Aufgaben,
+Gesprächsnotiz, Stundenzettel, Analog und E-Mail als Rohtext und kannte keinen Fettdruck – jetzt
+einheitlicher Markdown-Pfad mit Fett/kursiv (`InlineMarkdown`), mit PyMuPDF geprüft: keine
+Sternchen. **Kopieren** der E-Mail und die `.txt`-Mail geben Klartext aus. Live im klassischen
+Outlook über den echten Composer: Betreff sauber, `<strong>`/`<em>`, keine Sternchen.
+
+Übernommen in Team-Datei und `SummaryPrompts` (Sicherung
+`Z:\12_Tools\Peano\Johann\prompts.vor-markdown-2026-09-21.json`), `TeamPromptDriftTests` grün.
