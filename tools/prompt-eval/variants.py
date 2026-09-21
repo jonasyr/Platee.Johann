@@ -18,6 +18,7 @@ einen Befund vorgetaeuscht -- siehe `docs/pilot/` im Schwesterprojekt.
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import re
 from dataclasses import dataclass, asdict
@@ -390,6 +391,7 @@ def _tidy(text: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", text).strip() + "\n"
 
 
+@functools.lru_cache(maxsize=4096)
 def count_tokens(text: str) -> int:
     """Zaehlt Token mit tiktoken.
 
@@ -465,19 +467,264 @@ def prefix_report(prompts: dict[str, str]) -> dict[str, dict[str, int | bool]]:
     return report
 
 
+# ------------------------------------------------------------ Kandidaten (#73, schlank)
+#
+# Seit dem 15.09.2026 entscheidet Arm 1 nicht mehr ueber 48 Faktorzellen, sondern ueber
+# hoechstens drei Kandidaten (`docs/prompting/stand-73-2026-09-15.md` §6). K1 ist *je Vorlage*
+# zugeschnitten (`soll-profil-73.md`) und laesst sich deshalb nicht als Kette pauschaler
+# Transformationen ausdruecken. Die Fassungen stehen vollstaendig in der Sandbox; dieses Modul
+# setzt sie ein und prueft, was beim Umschreiben von Hand verloren gehen kann.
+
+#: Platzhalter, die `SummaryGenerator` ersetzt. Fehlt einer, steht die Anweisung ohne Eingabe da.
+PLACEHOLDER = re.compile(r"\{[a-z_]+\}")
+
+#: OpenAI cached den laengsten gemeinsamen Praefix ab 1.024 Token in Schritten von 128.
+CACHE_BLOCK_TOKENS = 128
+
+#: Titel-Prompt aus `SummaryGenerator.GenerateTitleAsync`. Steht im Code, nicht in der
+#: Team-Datei, schickt aber die Systemnachricht mit und zaehlt deshalb zu jedem Diktat.
+TITLE_PROMPT = (
+    "Bitte formuliere einen sehr kurzen, prägnanten Titel (maximal 3-7 Worte) für den "
+    "folgenden Text. Antworte NUR mit dem Titel, ohne Anführungszeichen oder Erklärungen:"
+    "\n\n{transcript}"
+)
+
+#: Aufrufe je Diktat mit `SectionModeDefaults.Recommended`: Titel, Abstract (immer) und die
+#: vier automatischen Abschnitte. E-Mail, Stundenzettel und Analog laufen auf Abruf.
+AUTO_CALLS: tuple[str, ...] = (
+    "title",
+    "abstractPrompt",
+    "structuredPrompt",
+    "prosePrompt",
+    "aufgabePrompt",
+    "gespraechsnotizPrompt",
+)
+
+#: Erlaubte Versalwoerter in einer normal geschriebenen Systemnachricht (Abkuerzungen).
+_ALLOWED_CAPS = frozenset({"PDF", "HTML", "ASCII"})
+
+
+class CandidateError(ValueError):
+    """Ein Kandidat verletzt eine Invariante, die jede Fassung erfuellen muss."""
+
+
+@dataclass(frozen=True)
+class Prices:
+    """Preise je Million Token."""
+
+    input_per_million: float
+    cached_per_million: float
+
+
+def build_candidate(base: dict, overrides: dict[str, str]) -> dict:
+    """Setzt die Fassungen eines Kandidaten in den Basissatz ein und prueft ihn.
+
+    Nicht-Text-Felder des Basissatzes (z. B. `promptDefaultsRevision`) bleiben erhalten, damit
+    die Datei als Team-Datei gueltig bleibt.
+    """
+    unknown = sorted(set(overrides) - set(base))
+    if unknown:
+        raise CandidateError(f"Unbekannte Schluessel: {', '.join(unknown)}")
+    merged = {**base, **overrides}
+    problems = validate_candidate(base, merged)
+    if problems:
+        raise CandidateError("Kandidat ungueltig:\n  - " + "\n  - ".join(problems))
+    return merged
+
+
+def _example_lines(system: str) -> list[str]:
+    """Die zitierten Beispielsaetze unter den Beispiel-Ueberschriften (Befund S-08)."""
+    return re.findall(r"BEISPIEL:\*\*\s*\n(\S[^\n]*)", system, flags=re.IGNORECASE)
+
+
+def validate_candidate(base: dict, prompts: dict) -> list[str]:
+    """Alle Verstoesse eines Kandidaten gegen die Festsetzungen -- leer, wenn er taugt."""
+    problems: list[str] = []
+    for key in ("systemMessage", *SECTION_KEYS):
+        if not isinstance(prompts.get(key), str) or not prompts[key].strip():
+            problems.append(f"{key}: fehlt oder leer")
+            continue
+        expected = sorted(set(PLACEHOLDER.findall(base[key])))
+        actual = sorted(set(PLACEHOLDER.findall(prompts[key])))
+        if expected != actual:
+            problems.append(f"{key}: Platzhalter {actual} statt {expected}")
+
+    for key in SECTION_KEYS:
+        if re.search(r"^[^\n]*Transkript[^\n]*auf Deutsch", prompts.get(key, ""), re.MULTILINE):
+            problems.append(f"{key}: Sprachpraemisse 'auf Deutsch' (B-01)")
+
+    system = prompts.get("systemMessage", "")
+    if re.search(r"CHAIN OF THOUGHT|DENKPROZESS", system, re.IGNORECASE):
+        problems.append("systemMessage: Denkprozess-Block ist noch enthalten (S-02)")
+    shouting = sorted(
+        {w for w in re.findall(r"\b[A-ZÄÖÜ]{4,}\b", system) if w not in _ALLOWED_CAPS}
+    )
+    if shouting:
+        problems.append(f"systemMessage: Grossschreibung {shouting[:5]} (S-01)")
+    for line in _example_lines(base.get("systemMessage", "")):
+        if line not in system:
+            problems.append(f"systemMessage: Beispielsatz veraendert oder entfernt (S-08): {line[:40]}…")
+    return problems
+
+
+def cached_tokens(prefix_tokens: int) -> int:
+    """Wie viele Token eines stabilen Praefixes der Cache hoechstens traegt."""
+    if prefix_tokens < CACHE_THRESHOLD_TOKENS:
+        return 0
+    extra = (prefix_tokens - CACHE_THRESHOLD_TOKENS) // CACHE_BLOCK_TOKENS
+    return CACHE_THRESHOLD_TOKENS + extra * CACHE_BLOCK_TOKENS
+
+
+def _template(prompts: dict, call: str) -> str:
+    return TITLE_PROMPT if call == "title" else prompts[call]
+
+
+def stable_prefix_tokens(system: str, template: str) -> int:
+    """Systemnachricht plus Vorlage bis zum ersten Platzhalter.
+
+    Beim Abstract endet der stabile Teil schon bei `{word_limit}`, weil die Zahl je nach
+    Diktatlaenge wechselt -- alles dahinter ist fuer den Cache ein anderer Text.
+    """
+    head = PLACEHOLDER.split(template, maxsplit=1)[0]
+    return count_tokens(system) + count_tokens(head)
+
+
+def call_cost(
+    system: str, template: str, transcript_tokens: int, prices: Prices, *, hit: bool
+) -> float:
+    """Eingabekosten eines Aufrufs in Dollar. Ausgabe wird in Schritt 2 gemessen, nicht geschaetzt."""
+    total = count_tokens(system) + count_tokens(PLACEHOLDER.sub("", template)) + transcript_tokens
+    cached = min(cached_tokens(stable_prefix_tokens(system, template)), total) if hit else 0
+    return (cached * prices.cached_per_million + (total - cached) * prices.input_per_million) / 1e6
+
+
+def cost_report(prompts: dict, transcript_tokens: list[int], prices: Prices) -> dict:
+    """Praefix, Cache-Faehigkeit und mittlere Eingabekosten je Aufruf und je Diktat.
+
+    Zwei Szenarien, weil keines allein stimmt: *ohne Treffer* ist der Alltag mit wenigen, weit
+    auseinanderliegenden Diktaten (der Cache lebt Minuten); *mit Treffer* ist die Obergrenze,
+    wenn derselbe Abschnitt kurz zuvor schon lief. ⚠ Die E-Mail bekommt die Prosa statt des
+    Transkripts; deren Laenge wird hier durch die Transkriptlaenge angenaehert.
+    """
+    system = prompts["systemMessage"]
+    calls = ("title", *SECTION_KEYS)
+    n = max(len(transcript_tokens), 1)
+    per_call: dict[str, dict] = {}
+    for call in calls:
+        template = _template(prompts, call)
+        prefix = stable_prefix_tokens(system, template)
+        miss = sum(call_cost(system, template, t, prices, hit=False) for t in transcript_tokens)
+        hit = sum(call_cost(system, template, t, prices, hit=True) for t in transcript_tokens)
+        per_call[call] = {
+            "stable_prefix": prefix,
+            "cached_tokens": cached_tokens(prefix),
+            "cacheable": prefix >= CACHE_THRESHOLD_TOKENS,
+            "usd_miss": miss / n,
+            "usd_hit": hit / n,
+        }
+    return {
+        "system_tokens": count_tokens(system),
+        "calls": per_call,
+        "per_dictation_auto": {
+            "usd_miss": sum(per_call[c]["usd_miss"] for c in AUTO_CALLS),
+            "usd_hit": sum(per_call[c]["usd_hit"] for c in AUTO_CALLS),
+        },
+    }
+
+
+def catalog_prices(catalog_source: str, cache_discount: float) -> Prices:
+    """Liest den Eingabepreis des Standardmodells (erster Katalogeintrag) aus dem C#-Quelltext.
+
+    Der Katalog kennt keinen Preis fuer gecachte Token; der Rabatt kommt deshalb als Parameter
+    und steht im Manifest, statt still angenommen zu werden.
+    """
+    match = re.search(r"PriceInPerMillion:\s*([0-9.]+)", catalog_source)
+    if match is None:
+        raise ValueError("PriceInPerMillion nicht im Katalog gefunden -- Quelltext geaendert?")
+    price = float(match.group(1))
+    return Prices(input_per_million=price, cached_per_million=price * (1 - cache_discount))
+
+
+def _run_candidates(args: argparse.Namespace, base: dict) -> int:
+    corpus = json.loads(args.korpus.read_text(encoding="utf-8"))
+    items = corpus["items"] if isinstance(corpus, dict) else corpus
+    tokens = [count_tokens(item["text"]) for item in items]
+    prices = catalog_prices(args.katalog.read_text(encoding="utf-8"), args.cache_rabatt)
+
+    candidates: dict[str, dict] = {"R": base}
+    for spec in args.kandidat:
+        name, _, path = spec.partition("=")
+        if not name or not path or name == "R":
+            raise SystemExit(f"--kandidat erwartet NAME=PFAD (nicht 'R'): {spec}")
+        candidates[name] = build_candidate(base, json.loads(Path(path).read_text(encoding="utf-8")))
+
+    args.out.mkdir(parents=True, exist_ok=True)
+    manifest: dict = {
+        "korpus": str(args.korpus),
+        "diktate": len(items),
+        "preise": asdict(prices),
+        "cache_rabatt": args.cache_rabatt,
+        "kandidaten": {},
+    }
+    print(f"{'Kandidat':<9}{'System':>8}{'je Diktat ohne Cache':>22}{'mit Cache':>12}  nicht cachefaehig")
+    for name, prompts in candidates.items():
+        target = args.out / f"prompts.{name}.json"
+        target.write_text(json.dumps(prompts, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        report = cost_report(prompts, tokens, prices)
+        manifest["kandidaten"][name] = {"datei": target.name, **report}
+        blocked = [c for c, v in report["calls"].items() if not v["cacheable"]]
+        auto = report["per_dictation_auto"]
+        print(
+            f"{name:<9}{report['system_tokens']:>8}"
+            f"{auto['usd_miss'] * 100:>20.4f} ¢{auto['usd_hit'] * 100:>10.4f} ¢  "
+            f"{len(blocked)}/{len(report['calls'])}"
+        )
+
+    manifest_path = args.out / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"\n{len(candidates)} Kandidaten in {args.out}  (Details: {manifest_path.name})")
+    return 0
+
+
 def main(argv: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", type=Path, required=True, help="Basis-prompts.json")
-    parser.add_argument("--snippets", type=Path, required=True, help="Ersatztexte (JSON)")
+    parser.add_argument("--snippets", type=Path, help="Ersatztexte (JSON), nur fuer --design")
     parser.add_argument("--out", type=Path, required=True, help="Zielverzeichnis")
     parser.add_argument(
         "--design",
         type=Path,
         help="JSON-Liste von Faktorvektoren. Fehlt sie, wird nur die Referenz erzeugt.",
     )
+    parser.add_argument(
+        "--kandidat",
+        action="append",
+        default=[],
+        metavar="NAME=PFAD",
+        help="Kandidat aus vollstaendigen Fassungen (JSON). R = Basis wird immer mit erzeugt.",
+    )
+    parser.add_argument("--korpus", type=Path, help="Korpus fuer die Kostenrechnung (--kandidat)")
+    parser.add_argument(
+        "--katalog",
+        type=Path,
+        default=Path(__file__).resolve().parents[2]
+        / "Platee.Johann.Application"
+        / "Processing"
+        / "SummaryModelCatalog.cs",
+        help="SummaryModelCatalog.cs -- Quelle des Eingabepreises",
+    )
+    parser.add_argument(
+        "--cache-rabatt", type=float, default=0.9, help="Rabatt auf gecachte Token (0..1)"
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     base = json.loads(args.base.read_text(encoding="utf-8"))
+    if args.kandidat:
+        if args.korpus is None:
+            parser.error("--kandidat braucht --korpus fuer die Kostenrechnung")
+        return _run_candidates(args, base)
+    if args.snippets is None:
+        parser.error("--snippets ist ohne --kandidat erforderlich")
     snippets = json.loads(args.snippets.read_text(encoding="utf-8"))
     # Felder mit fuehrendem Unterstrich sind Planmetadaten (z. B. die Whole-Plot-Nummer) und
     # gehoeren nicht in den Faktorvektor. Sie wandern unveraendert in das Manifest, weil die
