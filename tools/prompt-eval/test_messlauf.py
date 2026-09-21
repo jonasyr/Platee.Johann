@@ -9,6 +9,7 @@ from messlauf import (
     PHASE_ONE,
     call_cost,
     catalog_prices,
+    completed_rows,
     email_tasks,
     parse_renew,
     phase_one_tasks,
@@ -97,6 +98,14 @@ def test_later_basis_files_override_earlier_ones() -> None:
     newer = {**_row("K1", EMAIL), "output": "neu"}
     seeded = seed_from_basis([older, newer], {"K1"}, set())
     assert seeded["a:1|K1|emailPrompt"]["output"] == "neu"
+
+
+def test_failed_calls_are_not_taken_over_so_they_get_retried() -> None:
+    # Codex, PR #85: eine Zeile mit gen.error galt als erledigt und wurde nie wiederholt.
+    ok = {**_row("K1", EMAIL), "gen": {"error": ""}}
+    failed = {**_row("R", EMAIL), "gen": {"error": "RateLimitError"}}
+    assert set(seed_from_basis([ok, failed], {"R", "K1"}, set())) == {"a:1|K1|emailPrompt"}
+    assert set(completed_rows([ok, failed])) == {"a:1|K1|emailPrompt"}
 
 
 def test_parse_renew_rejects_unknown_candidates_and_sections() -> None:

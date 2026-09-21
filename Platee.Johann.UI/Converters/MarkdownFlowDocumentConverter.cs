@@ -69,6 +69,13 @@ public sealed class MarkdownFlowDocumentConverter : IValueConverter
                     open.RemoveAt(open.Count - 1);
                 }
 
+                // Shallower than an indented orphan that opened the block: this bullet is the
+                // real outermost level (same rule as BulletOutline for the PDF).
+                if (indent < open[0].Indent)
+                {
+                    open[0] = (indent, open[0].List);
+                }
+
                 List target;
                 if (indent > open[^1].Indent)
                 {

@@ -154,12 +154,27 @@ class Result:
         return sorted(name for name, ok in self.checks.items() if ok is False)
 
 
+def _is_empty_case(section: str, text: str, lines: list[str]) -> bool:
+    """Leerfall nur, wenn der vereinbarte Satz allein steht.
+
+    Die Aufgaben dürfen ihm den Zusammenfassungsabsatz voranstellen, dort zählt die letzte
+    Zeile. Ein bloßes „enthält den Satz" ließ Antworten mit Zusatzinhalt als Leerfall durchgehen
+    und schaltete damit die übrigen Prüfungen ab (Codex, PR #85).
+    """
+    sentence = EMPTY_SENTENCES.get(section)
+    if not sentence or not lines:
+        return False
+    if section == "aufgabePrompt":
+        return lines[-1].strip() == sentence
+    return text == sentence
+
+
 def check(section: str, output: str, transcript: str) -> Result:
     text = output.strip()
     lines = _lines(text)
     n_words = len(words(text))
     empty_sentence = EMPTY_SENTENCES.get(section)
-    is_empty_case = bool(empty_sentence) and empty_sentence in text
+    is_empty_case = _is_empty_case(section, text, lines)
     first = lines[0] if lines else ""
 
     checks: dict[str, bool | None] = {
@@ -172,6 +187,8 @@ def check(section: str, output: str, transcript: str) -> Result:
         if first
         else None,
         "markdown_wohlgeformt": markdown_well_formed(text),
+        # Satz plus Zusatzinhalt ist weder Leerfall noch ordentliche Antwort -- sichtbar machen.
+        "leerfall_allein": is_empty_case if empty_sentence and empty_sentence in text else None,
     }
     metrics: dict[str, float | int | str] = {
         "woerter": n_words,
@@ -236,7 +253,6 @@ def _note(text, lines, transcript, empty, checks, metrics) -> None:
     checks["namen_belegt"] = not invented
     checks["laenge_ok"] = None if empty else metrics["woerter"] <= MAX_WORDS["gespraechsnotizPrompt"]
     checks["keine_folgemail"] = not re.search(r"^\s*Betreff:", text, re.MULTILINE)
-    checks["leerfall_allein"] = text == EMPTY_SENTENCES["gespraechsnotizPrompt"] if empty else None
 
 
 def _email(text, lines, transcript, empty, checks, metrics) -> None:

@@ -68,6 +68,20 @@ public sealed class MarkdownNestedListTests
         list.ListItems.Should().ContainSingle();
     }
 
+
+    [Fact]
+    public void A_shallower_bullet_after_an_indented_orphan_becomes_the_new_base()
+    {
+        // Dieselbe Regel wie im PDF (BulletOutline): nach dem verwaisten Punkt muss „darunter"
+        // unter „Wurzel" hängen statt flach daneben (Codex, PR #86).
+        var doc = Convert("  - verwaist\n- Wurzel\n  - darunter");
+
+        var list = doc.Blocks.OfType<List>().Single();
+        list.ListItems.Should().HaveCount(2);
+        list.ListItems.Last().Blocks.OfType<List>().Should().ContainSingle()
+            .Which.ListItems.Should().ContainSingle();
+    }
+
     [Fact]
     public void Tabs_count_as_indentation_too()
     {

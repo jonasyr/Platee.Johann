@@ -28,6 +28,7 @@ Schreibt daneben `<out-stem>.zuordnung.json` (docId -> Diktat, Vorlage, welche F
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 import random
@@ -186,6 +187,17 @@ def build_page_data(
     return data, mapping
 
 
+def round_id(prefix: str, page_data: list[dict]) -> str:
+    """Kennung einer Leserunde aus dem, was der Leser sieht.
+
+    Gebildet aus den dargestellten Seitendaten (Transkripte, beide Fassungen, A/B-Verteilung),
+    nicht aus Pfad und Seed: eine am selben Pfad neu erzeugte Rohdatei ergäbe sonst dieselbe
+    Kennung für andere Texte, und alte Urteile hingen still an neuen (Codex, PR #89).
+    """
+    fingerprint = json.dumps([prefix, page_data], sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:12]
+
+
 def load_template() -> str:
     return (Path(__file__).parent / "pair_template.html").read_text(encoding="utf-8")
 
@@ -231,20 +243,22 @@ def main(argv: list[str] | None = None) -> int:
     else:
         pairs = select_pairs(items, rows, rng)
     data, mapping = build_page_data(pairs, {i["id"]: i for i in items}, rows, args.praefix, rng)
+    runde = round_id(args.praefix, data)
 
     page = (
         load_template()
         .replace("__DATEN__", json.dumps(data, ensure_ascii=False))
         .replace("__N__", str(len(data)))
         .replace("__PRAEFIX__", args.praefix)
-        .replace("__SPEICHERSCHLUESSEL__", f"johann-vergleich-{args.praefix}")
+        .replace("__SPEICHERSCHLUESSEL__", f"johann-vergleich-{args.praefix}-{runde}")
+        .replace("__RUNDE__", runde)
     )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(page, encoding="utf-8")
     mapping_path = args.out.with_name(f"{args.out.stem}.zuordnung.json")
     mapping_path.write_text(
         json.dumps(
-            {"roh": str(args.roh), "seed": args.seed, "praefix": args.praefix, "paare": mapping},
+            {"roh": str(args.roh), "seed": args.seed, "praefix": args.praefix, "runde": runde, "paare": mapping},
             ensure_ascii=False,
             indent=2,
         )
