@@ -349,8 +349,19 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             return;
         }
 
-        // Reports its own failure; the mail still opens, just without the PDF.
+        // The intro announces the PDF, so a mail without it would mislead the recipients.
+        // RenderPdfForDragAsync already reported why it failed (or stayed quiet on cancel).
         var pdf = await this.RenderPdfForDragAsync(entry, ct);
+        if (pdf is null)
+        {
+            if (!ct.IsCancellationRequested)
+            {
+                this.addLog?.Invoke("Aufgaben-Mail nicht geöffnet, weil das PDF fehlt – bitte erneut versuchen.", false);
+            }
+
+            return;
+        }
+
         var draft = MailDraftBuilder.ForTasks(entry, this.taskMailIntro(), pdf);
         await this.ComposeMailAsync(draft, "Aufgaben-Mail", ct);
     }

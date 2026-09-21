@@ -70,6 +70,25 @@ public sealed class EntryDetailMailTests
         this.logged.Should().Contain(m => m.Contains("Aufgaben"));
     }
 
+
+    [Fact]
+    public async Task When_the_pdf_fails_no_task_mail_is_opened()
+    {
+        // Der Begleittext kündigt das PDF an; ohne Anhang wäre die Mail irreführend (Codex, PR #87).
+        var renderer = Substitute.For<IEntryRenderer>();
+        renderer.RendererName.Returns("PDF");
+        renderer.RenderAsync(Arg.Any<Entry>(), Arg.Any<RenderOptions>(), Arg.Any<CancellationToken>())
+            .Returns<RenderResult>(_ => throw new IOException("Ausgabeordner nicht erreichbar"));
+        var vm = this.CreateVm(renderer);
+        vm.Entry = MakeEntry();
+
+        await vm.OpenTaskMailCommand.ExecuteAsync(null);
+
+        this.sent.Should().BeNull();
+        this.logged.Should().Contain(m => m.Contains("Ausgabeordner nicht erreichbar"));
+        this.logged.Should().Contain(m => m.Contains("Aufgaben-Mail") && m.Contains("PDF"));
+    }
+
     [Fact]
     public async Task The_external_mail_has_no_attachment_and_uses_the_betreff_line()
     {
