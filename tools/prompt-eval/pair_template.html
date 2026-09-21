@@ -1,0 +1,400 @@
+<title>Lesevergleich Vorlagen</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --paper:#F5F7F6; --surface:#FFFFFF; --sunk:#ECEFEE; --ink:#111C1A; --ink-2:#3B4846;
+  --ink-3:#6A7674; --rule:#C7CFCD; --rule-2:#E0E5E4; --accent:#0E5C55; --accent-ink:#FFFFFF;
+  --accent-soft:#DCEAE7; --warn:#9A5B12; --good:#2C6A38;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"IBM Plex Serif",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0E1514; --surface:#151E1C; --sunk:#1A2523; --ink:#E7EEEC; --ink-2:#B2BFBC;
+  --ink-3:#82908E; --rule:#2E3C39; --rule-2:#222E2C; --accent:#5FC3B6; --accent-ink:#06201D;
+  --accent-soft:#1A2F2D; --warn:#D9A15C; --good:#7DBE87;
+}}
+:root[data-theme="dark"]{
+  --paper:#0E1514; --surface:#151E1C; --sunk:#1A2523; --ink:#E7EEEC; --ink-2:#B2BFBC;
+  --ink-3:#82908E; --rule:#2E3C39; --rule-2:#222E2C; --accent:#5FC3B6; --accent-ink:#06201D;
+  --accent-soft:#1A2F2D; --warn:#D9A15C; --good:#7DBE87;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;
+  line-height:1.5;margin:0;overscroll-behavior-y:contain}
+button,textarea{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent}
+button{touch-action:manipulation}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* ------------------------------------------------ Kopf */
+.kopf{position:sticky;top:0;z-index:20;background:var(--paper);
+  padding:calc(10px + var(--safe-t)) 16px 10px;border-bottom:1px solid var(--rule-2)}
+.kopf-zeile{display:flex;align-items:center;gap:14px;max-width:1680px;margin:0 auto}
+.zaehler{font-family:var(--mono);font-weight:600;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.zaehler small{color:var(--ink-3);font-weight:500}
+.balken{flex:1;height:6px;background:var(--sunk);border-radius:3px;overflow:hidden}
+.balken i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s ease}
+
+/* ------------------------------------------------ Aufgabe */
+.auftrag{max-width:1680px;margin:0 auto;padding:14px 16px 4px;display:flex;flex-wrap:wrap;
+  align-items:baseline;gap:4px 14px}
+.vorlage{font-size:20px;font-weight:600;margin:0;text-wrap:balance}
+.zweck{color:var(--ink-3);font-size:14px}
+
+.spalte-kopf{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;margin-bottom:8px;min-height:26px}
+.klapp{font-family:var(--sans);letter-spacing:0;text-transform:none;font-size:13px;
+  border:0;background:none;padding:0;color:var(--accent);font-weight:600;cursor:pointer}
+.marke{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:6px;
+  background:var(--ink);color:var(--paper);font-size:13px;letter-spacing:0;margin-right:8px}
+
+.text{background:var(--surface);border:1px solid var(--rule-2);border-radius:10px;padding:16px 18px;
+  font-size:16px;line-height:1.6;overflow-wrap:anywhere}
+.text.quelle{background:var(--sunk);color:var(--ink-2);font-family:var(--serif);white-space:pre-wrap;line-height:1.66}
+.text.klar{white-space:pre-wrap}
+.verborgen{display:none!important}
+
+.md h4{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:18px 0 6px;font-weight:600}
+.md h4:first-child{margin-top:0}
+.md p{margin:0 0 10px}
+.md p:last-child{margin-bottom:0}
+.md ul{margin:0 0 10px;padding-left:20px}
+.md li{margin-bottom:5px}
+.md li li{margin-top:4px}
+.md strong{font-weight:600}
+
+/* ------------------------------------------------ Urteil */
+.urteil{background:var(--surface);border:1px solid var(--rule-2);border-radius:12px;padding:16px}
+.frage{font-weight:600;margin:0 0 10px}
+.wahl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.wahl button{min-height:52px;border:1.5px solid var(--rule);background:var(--surface);border-radius:10px;
+  font-size:15px;font-weight:600;color:var(--ink-2);cursor:pointer;padding:6px 8px;
+  transition:background .12s,border-color .12s,color .12s}
+.wahl button:hover{border-color:var(--accent)}
+.wahl button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.grund{margin-top:12px}
+.grund label{display:block;font-size:14px;color:var(--ink-2);margin-bottom:6px}
+.grund textarea{width:100%;min-height:84px;resize:vertical;border:1.5px solid var(--rule);border-radius:10px;
+  background:var(--paper);padding:10px 12px;font-size:16px;line-height:1.45}
+.grund textarea:focus{border-color:var(--accent);outline:none}
+.hinweis{font-size:13px;color:var(--warn);margin-top:6px;min-height:1.2em}
+
+.nav-zeile{display:flex;gap:10px}
+.nav{min-width:52px;min-height:48px;border:1px solid var(--rule);background:var(--surface);
+  border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;padding:0 14px}
+.nav:hover:not(:disabled){border-color:var(--ink-3)}
+.nav:disabled{opacity:.35;cursor:default}
+.nav.weiter{flex:1}
+.nav.weiter.bereit{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.zustand{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);text-align:center;padding-top:8px}
+.zustand.ok{color:var(--good)}
+.zustand.warn{color:var(--warn);font-weight:600}
+.tasten{font-size:12px;color:var(--ink-3);margin-top:10px;line-height:1.7}
+.tasten kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--rule);border-bottom-width:2px;
+  border-radius:4px;padding:0 5px;background:var(--surface);color:var(--ink-2)}
+
+/* ------------------------------------------------ schmal: gestapelt */
+.buehne{max-width:820px;margin:0 auto;padding:10px 16px 20px;display:flex;flex-direction:column;gap:18px}
+.leiste{position:sticky;bottom:0;z-index:20;background:var(--paper);border-top:1px solid var(--rule-2);
+  padding:10px 16px calc(10px + var(--safe-b))}
+.leiste .nav-zeile{max-width:820px;margin:0 auto}
+.urteil .nav-zeile,.urteil .zustand,.urteil .tasten{display:none}
+
+/* ------------------------------------------------ breit: drei Spalten + Urteil */
+@media (min-width:1100px){
+  body{overflow:hidden}
+  .app{height:100dvh;display:flex;flex-direction:column}
+  .kopf{position:static}
+  .buehne{flex:1;min-height:0;max-width:1680px;width:100%;padding:8px 20px 16px;
+    display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1fr) 340px;gap:18px}
+  .feld{min-height:0;display:flex;flex-direction:column}
+  .feld .text{flex:1;min-height:0;overflow:auto}
+  .feld.quelle-feld .text.verborgen{display:block!important}
+  .klapp{display:none}
+  .urteil{min-height:0;overflow:auto;display:flex;flex-direction:column}
+  .urteil .wahl{grid-template-columns:1fr}
+  .urteil .grund{flex:0 0 auto}
+  .urteil .platz{flex:1}
+  .urteil .nav-zeile{display:flex;margin-top:12px}
+  .urteil .zustand,.urteil .tasten{display:block}
+  .leiste{display:none}
+}
+
+.ende{text-align:center;padding:48px 16px;grid-column:1/-1}
+.ende h2{font-size:22px;margin:0 0 10px}
+.ende p{color:var(--ink-2);max-width:44ch;margin:0 auto}
+.ende .zahl{font-family:var(--mono);font-size:44px;font-weight:600;color:var(--accent);display:block}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <div class="kopf">
+    <div class="kopf-zeile">
+      <span class="zaehler" id="zaehler">– <small>/ __N__</small></span>
+      <span class="balken"><i id="balken"></i></span>
+    </div>
+  </div>
+  <div class="auftrag" id="auftrag"></div>
+  <div class="buehne" id="buehne"></div>
+  <div class="leiste">
+    <div class="nav-zeile">
+      <button class="nav" data-nav="-1" type="button" aria-label="Zurück">‹</button>
+      <button class="nav weiter" data-nav="1" type="button">Weiter ›</button>
+    </div>
+    <div class="zustand" data-zustand>wird geladen …</div>
+  </div>
+</div>
+
+<script>
+const DATEN = __DATEN__;
+const SPEICHER = "__SPEICHERSCHLUESSEL__";
+const PRAEFIX = "__PRAEFIX__";
+const SAMMLUNG = "vergleich";
+const WAHL = [["gleich", "Gleichwertig"], ["a", "A ist schlechter"], ["b", "B ist schlechter"]];
+const breit = () => window.matchMedia("(min-width:1100px)").matches;
+
+let urteile = {}, index = 0, db = null, transkriptOffen = false, letzterZustand = ["wird geladen …", ""];
+const warteschlange = {};   // je Paar höchstens ein Schreibvorgang gleichzeitig
+
+function lokalLesen(){ try { return JSON.parse(localStorage.getItem(SPEICHER) || "{}"); } catch(e){ return {}; } }
+function lokalSchreiben(){ try { localStorage.setItem(SPEICHER, JSON.stringify(urteile)); } catch(e){} }
+
+function zustand(text, klasse){
+  letzterZustand = [text, klasse || ""];
+  document.querySelectorAll("[data-zustand]").forEach(el => {
+    el.textContent = text; el.className = "zustand" + (klasse ? " " + klasse : "");
+  });
+}
+const fertig = id => {
+  const u = urteile[id];
+  return !!u && (u.urteil === "gleich" || ((u.urteil === "a" || u.urteil === "b") && (u.grund || "").trim().length > 0));
+};
+const anzahlFertig = () => DATEN.filter(d => fertig(d.docId)).length;
+
+/* Die Texte kommen HTML-maskiert aus Python; hier werden nur Überschriften, Listen und Fettung
+   in Struktur übersetzt, damit beide Fassungen so erscheinen wie in der Anwendung. */
+function markdown(escaped){
+  const inline = s => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  let html = "", tiefe = -1;
+  const schliessen = bis => { while (tiefe > bis) { html += "</ul>"; tiefe--; } };
+  for (const roh of escaped.split("\n")) {
+    const zeile = roh.replace(/\s+$/, "");
+    const liste = zeile.match(/^(\s*)[-*+]\s+(.*)$/);
+    const kopf = zeile.match(/^#{1,6}\s+(.*)$/);
+    if (liste) {
+      const t = Math.floor(liste[1].replace(/\t/g, "  ").length / 2);
+      if (t > tiefe) { while (tiefe < t) { html += "<ul>"; tiefe++; } } else schliessen(t);
+      html += "<li>" + inline(liste[2]) + "</li>";
+    } else {
+      schliessen(-1);
+      if (kopf) html += "<h4>" + inline(kopf[1]) + "</h4>";
+      else if (zeile.trim()) html += "<p>" + inline(zeile) + "</p>";
+    }
+  }
+  schliessen(-1);
+  return html;
+}
+
+const fassung = (d, seite) => d.klartext
+  ? '<div class="text klar">' + d[seite] + '</div>'
+  : '<div class="text md">' + markdown(d[seite]) + '</div>';
+
+function urteilHtml(d){
+  const u = urteile[d.docId] || {};
+  const schlechter = u.urteil === "a" || u.urteil === "b";
+  return '<p class="frage">Ist eine der beiden Fassungen schlechter?</p>' +
+    '<div class="wahl">' + WAHL.map(([wert, label]) =>
+      '<button type="button" data-wahl="' + wert + '" aria-pressed="' + (u.urteil === wert) + '">' + label + '</button>').join("") +
+    '</div>' +
+    '<div class="grund' + (schlechter ? "" : " verborgen") + '">' +
+      '<label for="grund">Weil …</label>' +
+      '<textarea id="grund" data-grund placeholder="Was genau ist schlechter?"></textarea>' +
+      '<div class="hinweis" data-hinweis></div>' +
+    '</div>' +
+    '<div class="platz"></div>' +
+    '<div class="nav-zeile"><button class="nav" data-nav="-1" type="button" aria-label="Zurück">‹ Zurück</button>' +
+    '<button class="nav weiter" data-nav="1" type="button">Weiter ›</button></div>' +
+    '<div class="zustand" data-zustand></div>' +
+    '<div class="tasten"><kbd>1</kbd> gleichwertig · <kbd>2</kbd> A · <kbd>3</kbd> B schlechter · ' +
+    '<kbd>←</kbd> <kbd>→</kbd> blättern</div>';
+}
+
+function navAktualisieren(){
+  const d = DATEN[index];
+  document.querySelectorAll('[data-nav="-1"]').forEach(b => b.disabled = index === 0);
+  document.querySelectorAll('[data-nav="1"]').forEach(b => {
+    if (!d) { b.disabled = true; return; }
+    b.disabled = false;
+    const ok = fertig(d.docId);
+    b.classList.toggle("bereit", ok);
+    b.textContent = ok ? (index === DATEN.length - 1 ? "Abschließen ›" : "Weiter ›") : "Überspringen ›";
+  });
+  document.getElementById("balken").style.width = (100 * anzahlFertig() / DATEN.length) + "%";
+  const hinweis = document.querySelector("[data-hinweis]");
+  const u = d && urteile[d.docId];
+  if (hinweis) hinweis.textContent = u && (u.urteil === "a" || u.urteil === "b") && !(u.grund || "").trim()
+    ? "Bitte kurz begründen – erst dann zählt das Urteil." : "";
+}
+
+function zeichne(){
+  const buehne = document.getElementById("buehne");
+  const auftrag = document.getElementById("auftrag");
+  if (index >= DATEN.length) {
+    const f = anzahlFertig();
+    document.getElementById("zaehler").textContent = "fertig";
+    auftrag.innerHTML = "";
+    buehne.innerHTML = '<div class="ende"><span class="zahl">' + f + ' / ' + DATEN.length + '</span><h2>' +
+      (f === DATEN.length ? "Alle Paare gelesen" : "Zwischenstand") + '</h2><p>' +
+      (f === DATEN.length ? "Die Urteile sind gespeichert und können ausgewertet werden."
+                          : "Noch " + (DATEN.length - f) + " offen. Mit ‹ zurückblättern.") + '</p></div>';
+    navAktualisieren(); zustand(letzterZustand[0], letzterZustand[1]);
+    return;
+  }
+  const d = DATEN[index];
+  document.getElementById("zaehler").innerHTML = (index + 1) + " <small>/ " + DATEN.length + "</small>";
+  auftrag.innerHTML = '<h1 class="vorlage">' + d.vorlage + '</h1><span class="zweck">' + d.zweck + '</span>';
+  const quelleVerborgen = !breit() && !transkriptOffen;
+  buehne.innerHTML =
+    '<section class="feld quelle-feld"><div class="spalte-kopf"><span>Transkript · ' + d.woerter + ' Wörter</span>' +
+      '<button class="klapp" data-klapp type="button">' + (quelleVerborgen ? "einblenden" : "ausblenden") + '</button></div>' +
+      '<div class="text quelle' + (quelleVerborgen ? " verborgen" : "") + '">' + d.transkript + '</div></section>' +
+    '<section class="feld"><div class="spalte-kopf"><span><span class="marke">A</span>Fassung A</span></div>' + fassung(d, "a") + '</section>' +
+    '<section class="feld"><div class="spalte-kopf"><span><span class="marke">B</span>Fassung B</span></div>' + fassung(d, "b") + '</section>' +
+    '<section class="urteil">' + urteilHtml(d) + '</section>';
+  const feld = buehne.querySelector("[data-grund]");
+  if (feld) feld.value = (urteile[d.docId] || {}).grund || "";
+  buehne.querySelectorAll(".text").forEach(t => t.scrollTop = 0);
+  navAktualisieren(); zustand(letzterZustand[0], letzterZustand[1]);
+}
+
+/* ------------------------------------------------ Urteilen und Speichern */
+function aendere(patch){
+  const d = DATEN[index]; if (!d) return;
+  urteile[d.docId] = Object.assign({}, urteile[d.docId], patch, {stand: new Date().toISOString()});
+  lokalSchreiben();
+  navAktualisieren();
+  sichern(d.docId);
+}
+
+function waehle(wert){
+  const d = DATEN[index]; if (!d) return;
+  aendere({urteil: wert});
+  document.querySelectorAll("[data-wahl]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.wahl === wert)));
+  const grund = document.querySelector(".grund");
+  const schlechter = wert !== "gleich";
+  if (grund) grund.classList.toggle("verborgen", !schlechter);
+  if (schlechter) { const t = document.querySelector("[data-grund]"); if (t && !breit()) t.focus({preventScroll:false}); else if (t) t.focus(); }
+  navAktualisieren();
+}
+
+let tippTimer = null;
+function tippe(text){
+  clearTimeout(tippTimer);
+  const d = DATEN[index]; if (!d) return;
+  urteile[d.docId] = Object.assign({}, urteile[d.docId], {grund: text, stand: new Date().toISOString()});
+  lokalSchreiben(); navAktualisieren();
+  tippTimer = setTimeout(() => sichern(d.docId), 700);
+}
+
+async function sichern(docId){
+  if (!db) { zustand("nur auf diesem Gerät gespeichert", "warn"); return; }
+  const w = warteschlange[docId] || (warteschlange[docId] = {laeuft: false, erneut: false});
+  if (w.laeuft) { w.erneut = true; return; }
+  w.laeuft = true; zustand("speichert …");
+  try {
+    do {
+      w.erneut = false;
+      const u = urteile[docId] || {};
+      await db.doc(SAMMLUNG + "/" + docId).set({urteil: u.urteil || null, grund: u.grund || "", stand: u.stand || ""});
+    } while (w.erneut);
+    zustand(anzahlFertig() + " von " + DATEN.length + " gespeichert", "ok");
+  } catch (e) {
+    zustand("Speichern fehlgeschlagen (" + ((e && e.code) || "?") + ") – auf diesem Gerät gesichert", "warn");
+  } finally {
+    w.laeuft = false;
+  }
+}
+
+function blaettern(schritt){
+  const d = DATEN[index];
+  if (d && tippTimer) { clearTimeout(tippTimer); tippTimer = null; sichern(d.docId); }
+  index = Math.max(0, Math.min(DATEN.length, index + schritt));
+  zeichne(); if (!breit()) window.scrollTo(0, 0);
+}
+
+/* ------------------------------------------------ Ereignisse */
+document.addEventListener("click", ev => {
+  const nav = ev.target.closest("[data-nav]");
+  if (nav && !nav.disabled) { blaettern(Number(nav.dataset.nav)); return; }
+  const klapp = ev.target.closest("[data-klapp]");
+  if (klapp) {
+    transkriptOffen = !transkriptOffen;
+    const q = document.querySelector(".text.quelle");
+    if (q) q.classList.toggle("verborgen", !transkriptOffen);
+    klapp.textContent = transkriptOffen ? "ausblenden" : "einblenden";
+    return;
+  }
+  const w = ev.target.closest("[data-wahl]");
+  if (w) waehle(w.dataset.wahl);
+});
+document.addEventListener("input", ev => { if (ev.target.matches("[data-grund]")) tippe(ev.target.value); });
+document.addEventListener("focusout", ev => {
+  if (ev.target.matches("[data-grund]") && DATEN[index]) { clearTimeout(tippTimer); tippTimer = null; sichern(DATEN[index].docId); }
+});
+document.addEventListener("keydown", ev => {
+  if (ev.target.matches && ev.target.matches("textarea") || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.key === "1") { waehle("gleich"); ev.preventDefault(); }
+  else if (ev.key === "2") { waehle("a"); ev.preventDefault(); }
+  else if (ev.key === "3") { waehle("b"); ev.preventDefault(); }
+  else if (ev.key === "ArrowRight") { blaettern(1); ev.preventDefault(); }
+  else if (ev.key === "ArrowLeft") { blaettern(-1); ev.preventDefault(); }
+});
+
+let warBreit = breit();
+window.addEventListener("resize", () => { if (breit() !== warBreit) { warBreit = breit(); zeichne(); } });
+
+/* ------------------------------------------------ Start */
+async function start(){
+  urteile = lokalLesen();
+  zeichne();
+  zustand(Object.keys(urteile).length ? "auf diesem Gerät wiederhergestellt – verbinde …" : "verbinde …");
+  db = window.claude && window.claude.use ? await window.claude.use("db").catch(() => null) : null;
+  if (!db) {
+    zustand("kein Serverspeicher – Urteile bleiben auf diesem Gerät", "warn");
+  } else {
+    try {
+      const snap = await db.collection(SAMMLUNG).get();
+      const fern = {};
+      (snap.docs || []).forEach(doc => {
+        if (!doc.id || !doc.id.startsWith(PRAEFIX)) return;
+        const data = doc.data() || {};
+        fern[doc.id] = data.stand || "";
+        if (!data.urteil && !data.grund) return;
+        const hier = urteile[doc.id];
+        if (!hier || (data.stand || "") >= (hier.stand || "")) {
+          urteile[doc.id] = {urteil: data.urteil || undefined, grund: data.grund || "", stand: data.stand || ""};
+        }
+      });
+      lokalSchreiben();
+      zustand(anzahlFertig() + " von " + DATEN.length + " gespeichert", "ok");
+      // Was nur auf diesem Gerät neuer ist (offline begonnen), jetzt nachreichen.
+      DATEN.forEach(d => {
+        const hier = urteile[d.docId];
+        if (hier && (hier.stand || "") > (fern[d.docId] || "")) sichern(d.docId);
+      });
+    } catch (e) {
+      zustand("Laden fehlgeschlagen (" + ((e && e.code) || "?") + ") – nutze Stand auf diesem Gerät", "warn");
+    }
+  }
+  const offen = DATEN.findIndex(d => !fertig(d.docId));
+  index = offen === -1 ? DATEN.length : offen;
+  zeichne();
+}
+start();
+</script>
