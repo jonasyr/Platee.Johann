@@ -127,13 +127,15 @@ def test_a_follow_up_round_rereads_exactly_the_same_dictations_of_the_named_temp
         pairs_from_mapping(mapping, {"mailPrompt"})
 
 
-def test_the_round_id_changes_with_seed_and_selection_but_not_by_chance() -> None:
-    # Codex, PR #85: gleiche Ids bei gleichem Präfix meinen sonst in einer neuen Runde andere Texte.
-    mapping = {"p000": {"item_id": "x:1", "section": "emailPrompt", "A": "R", "B": "K1"}}
-    same = round_id("roh.json", 1, "p", mapping)
-    assert same == round_id("roh.json", 1, "p", dict(mapping))
-    assert same != round_id("roh.json", 2, "p", mapping)
-    assert same != round_id("roh.json", 1, "p", {"p000": {**mapping["p000"], "A": "K1", "B": "R"}})
+def test_the_round_id_follows_what_the_reader_sees() -> None:
+    # Codex, PR #85/#89: gleiche Ids bei gleichem Präfix meinen sonst andere Texte -- auch wenn
+    # nur die Rohdatei am selben Pfad neu erzeugt wurde.
+    page = [{"docId": "p000", "transkript": "Text", "a": "Fassung eins", "b": "Fassung zwei"}]
+    same = round_id("p", page)
+    assert same == round_id("p", [dict(page[0])])
+    assert same != round_id("p", [{**page[0], "a": "Fassung eins, neu erzeugt"}])
+    assert same != round_id("p", [{**page[0], "a": "Fassung zwei", "b": "Fassung eins"}])
+    assert same != round_id("q", page)
 
 
 def test_page_texts_are_html_escaped() -> None:

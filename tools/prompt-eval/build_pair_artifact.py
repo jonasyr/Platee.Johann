@@ -187,9 +187,14 @@ def build_page_data(
     return data, mapping
 
 
-def round_id(roh: str, seed: int, prefix: str, mapping: dict[str, dict]) -> str:
-    """Kennung einer Leserunde: dieselbe Id bei gleichem Präfix meint sonst andere Texte."""
-    fingerprint = json.dumps([roh, seed, prefix, mapping], sort_keys=True, ensure_ascii=False)
+def round_id(prefix: str, page_data: list[dict]) -> str:
+    """Kennung einer Leserunde aus dem, was der Leser sieht.
+
+    Gebildet aus den dargestellten Seitendaten (Transkripte, beide Fassungen, A/B-Verteilung),
+    nicht aus Pfad und Seed: eine am selben Pfad neu erzeugte Rohdatei ergäbe sonst dieselbe
+    Kennung für andere Texte, und alte Urteile hingen still an neuen (Codex, PR #89).
+    """
+    fingerprint = json.dumps([prefix, page_data], sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:12]
 
 
@@ -238,7 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         pairs = select_pairs(items, rows, rng)
     data, mapping = build_page_data(pairs, {i["id"]: i for i in items}, rows, args.praefix, rng)
-    runde = round_id(str(args.roh), args.seed, args.praefix, mapping)
+    runde = round_id(args.praefix, data)
 
     page = (
         load_template()
