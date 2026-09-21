@@ -264,9 +264,16 @@ public sealed class PdfRenderer : IEntryRenderer
         });
     }
 
+    /// <summary>Bullet marker per nesting level; deeper levels repeat the last one.</summary>
+    private static readonly string[] BulletMarkers = ["•", "◦", "▪"];
+
+    /// <summary>Horizontal offset per nesting level, in points.</summary>
+    private const float BulletIndentPerLevel = 12;
+
     /// <summary>
     /// Renders a markdown string into QuestPDF column items.
-    /// Handles ### h3, ## h2, # h1, - bullet lists, blank lines, and plain text.
+    /// Handles ### h3, ## h2, # h1, nested bullet lists (see <see cref="BulletOutline"/>),
+    /// blank lines, and plain text.
     /// </summary>
     private static void RenderMarkdown(ColumnDescriptor col, string text)
     {
@@ -275,7 +282,7 @@ public sealed class PdfRenderer : IEntryRenderer
             return;
         }
 
-        var pendingBullets = new List<string>();
+        var pendingBullets = new List<BulletLine>();
 
         void FlushBullets()
         {
@@ -284,13 +291,16 @@ public sealed class PdfRenderer : IEntryRenderer
                 return;
             }
 
-            foreach (var bullet in pendingBullets)
+            var levels = BulletOutline.AssignLevels(pendingBullets.Select(b => b.Indent).ToList());
+            for (var i = 0; i < pendingBullets.Count; i++)
             {
-                var captured = bullet;
-                col.Item().Row(row =>
+                var level = levels[i];
+                var captured = pendingBullets[i].Text;
+                var marker = BulletMarkers[Math.Min(level, BulletMarkers.Length - 1)];
+                col.Item().PaddingLeft(level * BulletIndentPerLevel).Row(row =>
                 {
                     row.ConstantItem(12).AlignTop()
-                       .Text("•").FontSize(10).FontColor("#555");
+                       .Text(marker).FontSize(10).FontColor("#555");
                     row.RelativeItem()
                        .Text(captured).FontSize(10);
                 });
@@ -321,10 +331,9 @@ public sealed class PdfRenderer : IEntryRenderer
                 col.Item().PaddingTop(8)
                    .Text(line[2..]).Bold().FontSize(13).FontColor("#111");
             }
-            else if (line.StartsWith("- ", StringComparison.Ordinal) ||
-                     line.StartsWith("* ", StringComparison.Ordinal))
+            else if (BulletOutline.TryParse(line, out var bullet))
             {
-                pendingBullets.Add(line[2..]);
+                pendingBullets.Add(bullet);
             }
             else if (string.IsNullOrWhiteSpace(line))
             {
