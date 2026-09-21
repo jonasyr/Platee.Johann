@@ -127,7 +127,8 @@ Die Checkbox-Vorauswahl links richtet sich nach dem Typ und kann jederzeit angep
 |---|---|---|
 | **HTML** | HTML-Datei erstellen und im Browser öffnen; aktualisiert Tages-Übersicht | HTML-Inhalt in Zwischenablage kopieren |
 | **PDF** | PDF erstellen und öffnen | PDF-Datei in Zwischenablage kopieren (als Datei, direkt einfügbar) |
-| **E-Mail** | E-Mail-Text in Zwischenablage kopieren | In Outlook öffnen (mailto-Link mit Betreff und Text) |
+| **Aufgaben** | Interne Aufgaben-Mail in Outlook öffnen: Begleittext (Einstellungen → Allgemein), darunter die Aufgaben, PDF im Anhang, Signatur darunter | – |
+| **E-Mail** | Externe, förmliche E-Mail in Outlook öffnen – ohne Anhang, mit Signatur | E-Mail-Text in Zwischenablage kopieren |
 | **Kopieren** | Alle sichtbaren Abschnitte mit Überschriften in Zwischenablage | — |
 | **↻ Neu generieren** | Alle KI-Abschnitte neu generieren | Einzelne Abschnitte wählen (Ausführlich, Zusammenfassung, Aufgaben, …) |
 | **Als erledigt markieren** | Eintrag abschließen – grünes Häkchen in der Liste | — |
