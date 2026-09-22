@@ -480,6 +480,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     private bool CanCopySection(string? sectionId) =>
         sectionId is not null && this.BuildSectionCopyText(sectionId) is not null;
 
+    // The transcript copy follows the edit buffer, so its icon must re-evaluate as it changes.
+    partial void OnIsEditingTranscriptChanged(bool value) => this.CopySectionCommand.NotifyCanExecuteChanged();
+
+    partial void OnEditableTranscriptTextChanged(string value) => this.CopySectionCommand.NotifyCanExecuteChanged();
+
     private string CopyLabelOf(string sectionId) => sectionId switch
     {
         AbstractSectionId => "Abstract",
@@ -578,10 +583,15 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             yield return new CopyPart(id, name.ToUpperInvariant(), InlineMarkdown.ToPlainText(text));
         }
 
-        if ((this.sections.ShowTranscript || !visibleOnly) && !string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
+        // While editing, the view shows the edit buffer — copy what the user sees, not the
+        // stored text (Codex, PR #95).
+        var transcript = this.IsEditingTranscript ? this.EditableTranscriptText : entry.EffectiveTranscript;
+        if ((this.sections.ShowTranscript || !visibleOnly) && !string.IsNullOrWhiteSpace(transcript))
         {
-            var heading = entry.EditedTranscript is not null ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT";
-            yield return new CopyPart(TranscriptSectionId, heading, entry.EffectiveTranscript!);
+            var edited = entry.EditedTranscript is not null
+                || (this.IsEditingTranscript && !string.Equals(transcript, entry.Transcript, StringComparison.Ordinal));
+            var heading = edited ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT";
+            yield return new CopyPart(TranscriptSectionId, heading, transcript!);
         }
     }
 

@@ -90,6 +90,35 @@ public sealed class CopySectionTests
     }
 
     [Fact]
+    public void While_editing_the_transcript_the_visible_edit_buffer_is_copied()
+    {
+        // Codex, PR #95: im Bearbeitungsmodus zeigt die Ansicht den Bearbeitungspuffer; kopiert
+        // wurde aber der gespeicherte Stand — still der falsche Text.
+        var vm = CreateVm(AllShown());
+        vm.EditTranscriptCommand.Execute(null);
+        vm.EditableTranscriptText = "Korrigierter Text.";
+
+        vm.BuildSectionCopyText(EntryDetailViewModel.TranscriptSectionId)
+            .Should().StartWith("TRANSKRIPT (BEARBEITET)").And.Contain("Korrigierter Text.")
+            .And.NotContain("Sag mal");
+        vm.BuildCopyText().Should().Contain("Korrigierter Text.").And.NotContain("Sag mal");
+    }
+
+    [Fact]
+    public void Emptying_the_edit_buffer_withdraws_the_transcript_copy_icon()
+    {
+        var vm = CreateVm();
+        vm.EditTranscriptCommand.Execute(null);
+        var raised = false;
+        vm.CopySectionCommand.CanExecuteChanged += (_, _) => raised = true;
+
+        vm.EditableTranscriptText = "   ";
+
+        raised.Should().BeTrue("the icon has to re-evaluate while the user types");
+        vm.CopySectionCommand.CanExecute(EntryDetailViewModel.TranscriptSectionId).Should().BeFalse();
+    }
+
+    [Fact]
     public void Copy_all_includes_stundenzettel_analog_and_email()
     {
         var vm = CreateVm(AllShown());
