@@ -372,7 +372,9 @@
                                   VerticalScrollBarVisibility="Auto"
                                   Margin="12,10,12,8"
                                   Visibility="{Binding IsKategorienSelected, Converter={StaticResource BoolToVisibility}}">
-                        <StackPanel>
+                        <!-- Rechter Rand: Abstand der „Automatisch“-Spalte zur Bildlaufleiste,
+                             mit und ohne sichtbare Leiste gleich (#79). -->
+                        <StackPanel Margin="0,0,12,0">
                             <TextBlock Style="{StaticResource HintStyle}"
                                        Text="Eigene Vorlagen erzeugen zusätzliche Abschnitte aus dem Transkript. Pro Abschnitt legen Sie fest, ob er automatisch nach jeder Aufnahme entsteht oder erst auf Knopfdruck im Eintrag."/>
 
@@ -409,7 +411,8 @@
                                          HorizontalContentAlignment="Stretch">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid Margin="0,2">
+                                            <!-- Abstand zu Rahmen und eigener Bildlaufleiste der Liste (#79). -->
+                                            <Grid Margin="4,2,8,2">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
