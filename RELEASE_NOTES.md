@@ -16,6 +16,14 @@
   Signatur. Nur wenn gar kein Outlook bereitsteht, öffnet Johann die Mail ohne Anhang und
   zeigt das PDF im Explorer an, von wo Sie es in die Mail ziehen können.
 
+**Einzelne Abschnitte kopieren.**
+
+- Neben jeder Abschnittsüberschrift sitzt ein Kopiersymbol. Es kopiert genau diesen einen
+  Abschnitt samt Überschrift in die Zwischenablage – auch das Transkript.
+- Der Knopf **„Kopieren“** unten kopiert weiterhin alles Sichtbare, jetzt aber wirklich:
+  Stundenzettel, Analog und E-Mail fehlten bisher, und ausgeblendete Abschnitte wurden
+  trotzdem mitkopiert. Die Reihenfolge entspricht nun der Detailansicht.
+
 **Sauberes PDF.**
 
 - Verschachtelte Aufzählungen erscheinen im PDF jetzt eingerückt als Liste; vorher standen

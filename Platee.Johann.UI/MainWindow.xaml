@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Platee.Johann.UI.ViewModels"
+        xmlns:settings="clr-namespace:Platee.Johann.Application.Settings;assembly=Platee.Johann.Application"
         xmlns:conv="clr-namespace:Platee.Johann.UI.Converters"
         xmlns:views="clr-namespace:Platee.Johann.UI.Views"
         mc:Ignorable="d"
@@ -66,6 +67,78 @@
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="Padding" Value="0,0,24,4"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <!-- Kopiersymbol je Abschnitt (#56). Verschwindet, wenn der Abschnitt nichts zu
+             kopieren hat (CopySectionCommand.CanExecute), z. B. „auf Knopfdruck“ noch leer. -->
+        <Style x:Key="SectionCopyButtonStyle" TargetType="Button">
+            <Setter Property="Content" Value="&#xE8C8;"/>
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#999"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ToolTip" Value="Abschnitt kopieren"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Command"
+                    Value="{Binding DataContext.Detail.CopySectionCommand,
+                                    RelativeSource={RelativeSource AncestorType=Window}}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Trigger>
+                <!-- Rückmeldung am geklickten Symbol: kurz ein grüner Haken, dann wieder das
+                     Kopiersymbol. FillBehavior="Stop" stellt den Ausgangszustand her. -->
+                <EventTrigger RoutedEvent="Button.Click">
+                    <BeginStoryboard>
+                        <Storyboard FillBehavior="Stop">
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Content" Duration="0:0:1.5">
+                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="&#xE73E;"/>
+                            </ObjectAnimationUsingKeyFrames>
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Foreground" Duration="0:0:1.5">
+                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{StaticResource SuccessBrush}"/>
+                            </ObjectAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Abschnitts-Kopfzeile: Titel (Inhalt) mit Unterstrich links, das Kopiersymbol
+             rechtsbündig — so stehen alle Symbole in einer Spalte, unabhängig von der Länge der
+             Überschrift. Die Abschnitts-Id kommt über Tag. Eine Vorlage für alle Abschnitte —
+             auch die Grundlage für den „nicht umgesetzt“-Zustand aus #65. -->
+        <Style x:Key="SectionHeaderControlStyle" TargetType="ContentControl">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <!-- Grid statt DockPanel: die Auto-Spalte reserviert die Breite des
+                             Symbols, bevor die Überschrift vermessen wird. Ein langer Vorlagenname
+                             wird abgeschnitten, das Symbol bleibt erreichbar (Codex, PR #95). -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    HorizontalAlignment="Left"
+                                    BorderThickness="0,0,0,1"
+                                    BorderBrush="{StaticResource AccentLineBrush}"
+                                    Padding="0,0,24,4">
+                                <ContentPresenter/>
+                            </Border>
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource SectionCopyButtonStyle}"
+                                    CommandParameter="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="ContentTextStyle" TargetType="TextBox">
             <Setter Property="IsReadOnly" Value="True"/>
@@ -1031,9 +1104,10 @@
                         <!-- Abstract — always shown when present, subtle highlight -->
                         <StackPanel Visibility="{Binding Detail.Entry.Abstract, Converter={StaticResource NullToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static vm:EntryDetailViewModel.AbstractSectionId}">
                                 <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </ContentControl>
                             <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="0,0,0,2"
                                     CornerRadius="2" Padding="12,10">
                                 <!-- Ebenfalls Markdown: das Modell setzt hier Fettungen,
@@ -1054,9 +1128,10 @@
                         <!-- Long Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowLongSummarySection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.LongSummary}">
                                 <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </ContentControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayLongSummary, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1072,9 +1147,10 @@
                         <!-- Prose Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowProseSummarySection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.ProseSummary}">
                                 <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </ContentControl>
                             <!-- Wie alle anderen erzeugten Abschnitte als Markdown gerendert.
                                  Stand hier bis v1.4.0 als roher TextBox: mit den schwaecheren
                                  Modellen kam ohnehin Fliesstext, mit gpt-5.6-luna standen
@@ -1094,9 +1170,10 @@
                         <!-- Task list -->
                         <StackPanel Visibility="{Binding Detail.ShowTaskListSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.TaskList}">
                                 <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </ContentControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayTaskList, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1112,9 +1189,10 @@
                         <!-- Conversation note -->
                         <StackPanel Visibility="{Binding Detail.ShowConversationNoteSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.ConversationNote}">
                                 <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </ContentControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayConversationNote, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1130,9 +1208,10 @@
                         <!-- Stundenzettel -->
                         <StackPanel Visibility="{Binding Detail.ShowStundenzettelSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.Stundenzettel}">
                                 <TextBlock Text="Stundenzettel" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </ContentControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayStundenzettelText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1148,9 +1227,10 @@
                         <!-- Analog -->
                         <StackPanel Visibility="{Binding Detail.ShowAnalogSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.Analog}">
                                 <TextBlock Text="Analog" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </ContentControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayAnalogText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1166,9 +1246,10 @@
                         <!-- E-Mail Text -->
                         <StackPanel Visibility="{Binding Detail.ShowEmailSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.EmailText}">
                                 <TextBlock Text="E-Mail" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </ContentControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayEmailText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1191,7 +1272,8 @@
                                 <DataTemplate>
                                     <StackPanel Margin="0,14,0,22"
                                                 Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
-                                        <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                        <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                                        Tag="{Binding Id}">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="{Binding Name}" Style="{StaticResource SectionHeaderStyle}"/>
                                                 <TextBlock Text=" · Nicht mehr konfiguriert"
@@ -1200,7 +1282,7 @@
                                                            ToolTip="Diese Vorlage wurde entfernt. Der erzeugte Text bleibt erhalten."
                                                            Visibility="{Binding IsOrphaned, Converter={StaticResource BoolToVis}}"/>
                                             </StackPanel>
-                                        </Border>
+                                        </ContentControl>
 
                                         <FlowDocumentScrollViewer
                                             Document="{Binding Text, Converter={StaticResource MdToDoc}}"
@@ -1237,20 +1319,16 @@
                         <StackPanel Visibility="{Binding Detail.ShowTranscriptSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
                             <!-- Header row: label + edit button -->
-                            <DockPanel Margin="0,0,0,8">
-                                <Border DockPanel.Dock="Left"
-                                        BorderThickness="0,0,0,1"
-                                        BorderBrush="{StaticResource AccentLineBrush}"
-                                        HorizontalAlignment="Left"
-                                        Padding="0,0,24,4">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
-                                        <TextBlock Text=" (bearbeitet)"
-                                                   FontSize="11" Foreground="#999" FontStyle="Italic"
-                                                   VerticalAlignment="Bottom" Margin="6,0,0,1"
-                                                   Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
-                                    </StackPanel>
-                                </Border>
+                            <!-- Die Knöpfe stehen vor der Überschrift, weil ein DockPanel in
+                                 Reihenfolge vermisst: so bekommen sie ihre Breite zuerst und werden
+                                 bei schmalem Fenster nicht abgeschnitten (Codex, PR #95). -->
+                            <DockPanel Margin="0,0,0,8" LastChildFill="False">
+                                <!-- Kopiersymbol in derselben rechten Spalte wie an den anderen
+                                     Abschnitten (#56), der Bearbeiten-Knopf links daneben. Die
+                                     Kopfzeile bleibt eigen, weil sie den Bearbeiten-Knopf trägt. -->
+                                <Button DockPanel.Dock="Right"
+                                        Style="{StaticResource SectionCopyButtonStyle}"
+                                        CommandParameter="{x:Static vm:EntryDetailViewModel.TranscriptSectionId}"/>
                                 <Button DockPanel.Dock="Right"
                                         Content="✏"
                                         FontSize="13"
@@ -1264,6 +1342,19 @@
                                         Command="{Binding Detail.EditTranscriptCommand}"
                                         Visibility="{Binding Detail.IsNotEditingTranscript, Converter={StaticResource BoolToVis}}"
                                         IsEnabled="{Binding Detail.HasEntry}"/>
+                                <Border DockPanel.Dock="Left"
+                                        BorderThickness="0,0,0,1"
+                                        BorderBrush="{StaticResource AccentLineBrush}"
+                                        HorizontalAlignment="Left"
+                                        Padding="0,0,24,4">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
+                                        <TextBlock Text=" (bearbeitet)"
+                                                   FontSize="11" Foreground="#999" FontStyle="Italic"
+                                                   VerticalAlignment="Bottom" Margin="6,0,0,1"
+                                                   Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
+                                </Border>
                             </DockPanel>
 
                             <!-- Read-only transcript (shown when NOT editing) -->
