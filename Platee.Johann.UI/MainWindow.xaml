@@ -117,17 +117,25 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ContentControl">
-                        <DockPanel LastChildFill="False">
-                            <Border DockPanel.Dock="Left"
+                        <!-- Grid statt DockPanel: die Auto-Spalte reserviert die Breite des
+                             Symbols, bevor die Überschrift vermessen wird. Ein langer Vorlagenname
+                             wird abgeschnitten, das Symbol bleibt erreichbar (Codex, PR #95). -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    HorizontalAlignment="Left"
                                     BorderThickness="0,0,0,1"
                                     BorderBrush="{StaticResource AccentLineBrush}"
                                     Padding="0,0,24,4">
                                 <ContentPresenter/>
                             </Border>
-                            <Button DockPanel.Dock="Right"
+                            <Button Grid.Column="1"
                                     Style="{StaticResource SectionCopyButtonStyle}"
                                     CommandParameter="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
-                        </DockPanel>
+                        </Grid>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -1311,20 +1319,10 @@
                         <StackPanel Visibility="{Binding Detail.ShowTranscriptSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
                             <!-- Header row: label + edit button -->
+                            <!-- Die Knöpfe stehen vor der Überschrift, weil ein DockPanel in
+                                 Reihenfolge vermisst: so bekommen sie ihre Breite zuerst und werden
+                                 bei schmalem Fenster nicht abgeschnitten (Codex, PR #95). -->
                             <DockPanel Margin="0,0,0,8" LastChildFill="False">
-                                <Border DockPanel.Dock="Left"
-                                        BorderThickness="0,0,0,1"
-                                        BorderBrush="{StaticResource AccentLineBrush}"
-                                        HorizontalAlignment="Left"
-                                        Padding="0,0,24,4">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
-                                        <TextBlock Text=" (bearbeitet)"
-                                                   FontSize="11" Foreground="#999" FontStyle="Italic"
-                                                   VerticalAlignment="Bottom" Margin="6,0,0,1"
-                                                   Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
-                                    </StackPanel>
-                                </Border>
                                 <!-- Kopiersymbol in derselben rechten Spalte wie an den anderen
                                      Abschnitten (#56), der Bearbeiten-Knopf links daneben. Die
                                      Kopfzeile bleibt eigen, weil sie den Bearbeiten-Knopf trägt. -->
@@ -1344,6 +1342,19 @@
                                         Command="{Binding Detail.EditTranscriptCommand}"
                                         Visibility="{Binding Detail.IsNotEditingTranscript, Converter={StaticResource BoolToVis}}"
                                         IsEnabled="{Binding Detail.HasEntry}"/>
+                                <Border DockPanel.Dock="Left"
+                                        BorderThickness="0,0,0,1"
+                                        BorderBrush="{StaticResource AccentLineBrush}"
+                                        HorizontalAlignment="Left"
+                                        Padding="0,0,24,4">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
+                                        <TextBlock Text=" (bearbeitet)"
+                                                   FontSize="11" Foreground="#999" FontStyle="Italic"
+                                                   VerticalAlignment="Bottom" Margin="6,0,0,1"
+                                                   Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
+                                </Border>
                             </DockPanel>
 
                             <!-- Read-only transcript (shown when NOT editing) -->
