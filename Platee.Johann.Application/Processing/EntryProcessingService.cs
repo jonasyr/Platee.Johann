@@ -231,7 +231,10 @@ public sealed class EntryProcessingService : IEntryProcessor
                 File.Move(audioFilePath, newPath);
 
                 finalEntry = finalEntry with { Status = finalEntry.Status with { Archived = true } };
-                await this.repository.SaveAsync(finalEntry, ct);
+
+                // The entry exists since the save above; Update so a deletion in between
+                // (another Johann process) is not undone (#55).
+                await this.repository.UpdateAsync(finalEntry, ct);
             }
             catch (Exception ex)
             {
@@ -289,9 +292,10 @@ public sealed class EntryProcessingService : IEntryProcessor
             Status = entry.Status with { Summarized = true },
         };
 
-        // Step 2 – Persist + regenerate overview
+        // Step 2 – Persist + regenerate overview. Update, not Save: an entry deleted in the
+        // meantime — possibly by another Johann — must not be written back (#55).
         progress?.Report(new("Aktualisierung wird gespeichert…", 2, total));
-        await this.repository.SaveAsync(updatedEntry, ct);
+        await this.repository.UpdateAsync(updatedEntry, ct);
 
         if (this.overviewService is not null)
         {
@@ -404,7 +408,7 @@ public sealed class EntryProcessingService : IEntryProcessor
             _ => await GenerateCustomAsync(entry, descriptor, generator, transcript, ct),
         };
 
-        await this.repository.SaveAsync(updated, ct);
+        await this.repository.UpdateAsync(updated, ct);
 
         // The daily overview is a rendered artefact of the entries, so every path that
         // persists one has to refresh it — otherwise a section generated on demand is
@@ -492,9 +496,10 @@ public sealed class EntryProcessingService : IEntryProcessor
             Status = entry.Status with { Summarized = true },
         };
 
-        // Step 2 – Persist + regenerate overview
+        // Step 2 – Persist + regenerate overview. Update, not Save: an entry deleted in the
+        // meantime — possibly by another Johann — must not be written back (#55).
         progress?.Report(new("Aktualisierung wird gespeichert…", 2, total));
-        await this.repository.SaveAsync(updatedEntry, ct);
+        await this.repository.UpdateAsync(updatedEntry, ct);
 
         if (this.overviewService is not null)
         {
@@ -512,7 +517,7 @@ public sealed class EntryProcessingService : IEntryProcessor
         using var work = this.workGuard.Begin(entry.JobId);
 
         var updated = entry with { IsDone = isDone };
-        await this.repository.SaveAsync(updated, ct);
+        await this.repository.UpdateAsync(updated, ct);
         return updated;
     }
 

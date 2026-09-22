@@ -221,6 +221,66 @@ public sealed class EntryDeletionRepositoryTests : IDisposable
         (await this.sut.MigrateJobIdsAsync()).Migrated.Should().Be(0, "the migration must not reach into the trash");
     }
 
+    // ── Ändern eines bestehenden Eintrags (auch über Prozessgrenzen) ─────────
+    [Fact]
+    public async Task Update_overwrites_the_existing_file()
+    {
+        var entry = await this.SaveWithArtifactsAsync(seq: 1);
+
+        await this.sut.UpdateAsync(entry with { IsDone = true });
+
+        (await this.sut.GetByJobIdAsync(entry.JobId))!.IsDone.Should().BeTrue();
+        Directory.GetFiles(this.RawDir, "*_status.json").Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Update_writes_a_legacy_entry_under_its_own_name_instead_of_adding_a_second_file()
+    {
+        var entry = MakeEntry(seq: 7, title: "Alter Eintrag");
+        await this.sut.SaveAsync(entry);
+        File.Move(
+            Path.Combine(this.RawDir, FilenameBuilder.Build(entry) + "_status.json"),
+            Path.Combine(this.RawDir, "altname_status.json"));
+
+        await this.sut.UpdateAsync(entry with { IsDone = true });
+
+        Directory.GetFiles(this.RawDir, "*_status.json").Should().ContainSingle()
+            .Which.Should().EndWith("altname_status.json");
+        (await this.sut.GetByJobIdAsync(entry.JobId))!.IsDone.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Update_never_brings_back_an_entry_deleted_by_another_process()
+    {
+        // Codex, PR #98: the in-process guard cannot see a second Johann on the same output
+        // folder. Two repository instances stand in for the two processes.
+        var entry = await this.SaveWithArtifactsAsync(seq: 1);
+        var otherProcess = new JsonRepository(this.root, () => Now);
+        await otherProcess.DeleteAsync(entry.JobId);
+
+        var act = () => this.sut.UpdateAsync(entry with { IsDone = true });
+
+        await act.Should().ThrowAsync<EntryDeletedException>();
+        (await this.sut.GetEntriesForDateAsync(Day)).Should().BeEmpty();
+        Directory.GetFiles(this.RawDir, "*_status.json").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Delete_while_another_process_writes_the_entry_is_refused_and_rolled_back()
+    {
+        var entry = await this.SaveWithArtifactsAsync(seq: 1);
+        var before = this.FilesUnder(this.root);
+        var status = Directory.GetFiles(this.RawDir, "*_status.json").Single();
+
+        using (new FileStream(status, FileMode.Open, FileAccess.Write, FileShare.None))
+        {
+            var act = () => this.sut.DeleteAsync(entry.JobId);
+            (await act.Should().ThrowAsync<EntryDeletionException>()).Which.BlockingFile.Should().Be(status);
+        }
+
+        this.FilesUnder(this.root).Should().BeEquivalentTo(before);
+    }
+
     // ── Tage ohne Einträge ────────────────────────────────────────────────────
     [Fact]
     public async Task Days_without_entries_are_not_listed()

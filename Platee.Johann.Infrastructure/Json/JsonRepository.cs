@@ -172,6 +172,32 @@ public sealed class JsonRepository : IEntryRepository
         await JsonSerializer.SerializeAsync(stream, dto, WriteOptions, ct);
     }
 
+    public async Task UpdateAsync(Entry entry, CancellationToken ct = default)
+    {
+        var lookup = await this.FindStatusFileAsync(entry.JobId, ct);
+        if (lookup.Path is null)
+        {
+            throw lookup.BusyFile is null
+                ? new EntryDeletedException()
+                : new IOException(
+                    $"„{Path.GetFileName(lookup.BusyFile)}“ wird gerade von einem anderen Programm verwendet.");
+        }
+
+        // Serialised up front, so a cancellation can never leave a truncated file behind.
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(EntryMapper.ToDto(entry), WriteOptions);
+        try
+        {
+            // Truncate, not Create: the file must still exist. Moved to the trash in the
+            // meantime — possibly by another Johann — means deleted, not "write it anew" (#55).
+            await using var stream = new FileStream(lookup.Path, FileMode.Truncate, FileAccess.Write, FileShare.None);
+            await stream.WriteAsync(bytes, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            throw new EntryDeletedException();
+        }
+    }
+
     private static async Task<Entry?> LoadFileAsync(string path, CancellationToken ct)
     {
         await using var stream = File.OpenRead(path);
@@ -338,15 +364,21 @@ public sealed class JsonRepository : IEntryRepository
 
     public async Task<EntryDeletionResult> DeleteAsync(string jobId, CancellationToken ct = default)
     {
-        var found = await this.FindStatusFileAsync(jobId, ct);
-        if (found is null)
+        var lookup = await this.FindStatusFileAsync(jobId, ct);
+        if (lookup.Path is null)
         {
-            return EntryDeletionResult.NotFound;
+            return lookup.BusyFile is null
+                ? EntryDeletionResult.NotFound
+                : throw new EntryDeletionException(
+                    $"„{Path.GetFileName(lookup.BusyFile)}“ wird gerade von einem anderen Programm verwendet. "
+                    + "Es wurde nichts gelöscht; bitte kurz warten und erneut löschen.",
+                    lookup.BusyFile);
         }
 
         // Past this point the move is not cancellable: stopping half way is exactly the
         // partial deletion the trash's roll-back exists to prevent.
-        var (statusPath, entry) = found.Value;
+        var statusPath = lookup.Path;
+        var entry = lookup.Entry!;
         var rawDir = Path.GetDirectoryName(statusPath)!;
         var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
         var files = CollectEntryFiles(statusPath, entry);
@@ -361,11 +393,29 @@ public sealed class JsonRepository : IEntryRepository
     /// Like <see cref="GetByJobIdAsync"/>, but returns the file as well and skips unreadable
     /// neighbours: a corrupt file next to the entry must not make it undeletable.
     /// </summary>
-    private async Task<(string Path, Entry Entry)?> FindStatusFileAsync(string jobId, CancellationToken ct)
+    private async Task<StatusLookup> FindStatusFileAsync(string jobId, CancellationToken ct)
+    {
+        // A file another process is writing cannot be read. Skipping it like a corrupt file
+        // would report "not found" — and a deletion would then claim success (#55). So a busy
+        // file is retried briefly and, if it stays busy, reported as such.
+        const int Attempts = 20;
+        for (var attempt = 1; ; attempt++)
+        {
+            var lookup = await this.ScanForStatusFileAsync(jobId, ct);
+            if (lookup.Path is not null || lookup.BusyFile is null || attempt == Attempts)
+            {
+                return lookup;
+            }
+
+            await Task.Delay(25, ct);
+        }
+    }
+
+    private async Task<StatusLookup> ScanForStatusFileAsync(string jobId, CancellationToken ct)
     {
         if (!Directory.Exists(this.outputRoot))
         {
-            return null;
+            return default;
         }
 
         var rawDirs = new List<string>();
@@ -376,6 +426,7 @@ public sealed class JsonRepository : IEntryRepository
 
         rawDirs.AddRange(Directory.EnumerateDirectories(this.outputRoot).Select(d => Path.Combine(d, "_raw")));
 
+        string? busy = null;
         foreach (var rawDir in rawDirs.Distinct(StringComparer.OrdinalIgnoreCase).Where(Directory.Exists))
         {
             foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
@@ -386,19 +437,30 @@ public sealed class JsonRepository : IEntryRepository
                 {
                     entry = await LoadFileAsync(file, ct);
                 }
+                catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+                {
+                    // Moved away since it was listed — by a deletion, possibly in another process.
+                    continue;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    busy ??= file;
+                    continue;
+                }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
+                    // Corrupt neighbour: it must not make this entry undeletable.
                     continue;
                 }
 
                 if (entry?.JobId == jobId)
                 {
-                    return (file, entry);
+                    return new StatusLookup(file, entry, null);
                 }
             }
         }
 
-        return null;
+        return new StatusLookup(null, null, busy);
     }
 
     /// <summary>
@@ -438,6 +500,10 @@ public sealed class JsonRepository : IEntryRepository
 
     private string GetRawDir(DateOnly date) =>
         Path.Combine(this.outputRoot, date.ToString("yyyy-MM-dd"), "_raw");
+
+    /// <summary>Where an entry's status file is — or which file could not be read to tell.</summary>
+    private readonly record struct StatusLookup(string? Path, Entry? Entry, string? BusyFile);
 }
 
 file sealed record CounterDoc(int Next);
+

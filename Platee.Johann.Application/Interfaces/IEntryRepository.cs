@@ -20,7 +20,16 @@ public interface IEntryRepository
 
     Task<Entry?> GetByJobIdAsync(string jobId, CancellationToken ct = default);
 
+    /// <summary>Writes the entry; creates its file if needed. Only for new entries.</summary>
     Task SaveAsync(Entry entry, CancellationToken ct = default);
+
+    /// <summary>
+    /// Overwrites the status file the entry already has — never creates one (#55). The file
+    /// system is the arbiter across Johann processes: a file moved to the trash is not found,
+    /// a file open for writing cannot be moved.
+    /// </summary>
+    /// <exception cref="EntryDeletedException">The entry no longer exists.</exception>
+    Task UpdateAsync(Entry entry, CancellationToken ct = default);
 
     Task<int> GetNextSequenceNumberAsync(DateOnly date, CancellationToken ct = default);
 

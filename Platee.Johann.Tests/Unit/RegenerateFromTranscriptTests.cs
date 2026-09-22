@@ -90,7 +90,7 @@ public sealed class RegenerateFromTranscriptTests
 
         await service.RegenerateFromTranscriptAsync(entry, "New text");
 
-        await repo.Received(1).SaveAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>());
+        await repo.Received(1).UpdateAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

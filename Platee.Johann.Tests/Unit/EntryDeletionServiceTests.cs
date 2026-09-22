@@ -163,6 +163,7 @@ public sealed class EntryDeletionServiceTests
         await reprocess.Should().ThrowAsync<EntryDeletedException>();
         await regenerate.Should().ThrowAsync<EntryDeletedException>();
         await this.repo.DidNotReceive().SaveAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>());
+        await this.repo.DidNotReceive().UpdateAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>());
         await this.llm.DidNotReceive().GenerateAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<LlmOptions>(), Arg.Any<CancellationToken>());
     }
@@ -175,7 +176,7 @@ public sealed class EntryDeletionServiceTests
         var updated = await service.SetDoneAsync(MakeEntry(), isDone: true);
 
         updated.IsDone.Should().BeTrue();
-        await this.repo.Received(1).SaveAsync(Arg.Is<Entry>(e => e.IsDone), Arg.Any<CancellationToken>());
+        await this.repo.Received(1).UpdateAsync(Arg.Is<Entry>(e => e.IsDone), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -191,13 +192,14 @@ public sealed class EntryDeletionServiceTests
 
         await act.Should().ThrowAsync<EntryDeletedException>();
         await this.repo.DidNotReceive().SaveAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>());
+        await this.repo.DidNotReceive().UpdateAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task Delete_while_the_done_flag_is_being_saved_is_refused()
     {
         var gate = new TaskCompletionSource();
-        this.repo.SaveAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>()).Returns(gate.Task);
+        this.repo.UpdateAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>()).Returns(gate.Task);
         var service = this.CreateService();
         var entry = MakeEntry();
         var saving = service.SetDoneAsync(entry, isDone: true);

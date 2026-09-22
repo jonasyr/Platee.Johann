@@ -131,7 +131,7 @@ public sealed class SectionGenerationCoalescingTests : IDisposable
 
         await service.GenerateSectionAsync(MakeEntry(), BuiltInSections.TaskList);
 
-        await repo.Received(1).SaveAsync(
+        await repo.Received(1).UpdateAsync(
             Arg.Is<Entry>(e => e.TaskList == "TEXT"), Arg.Any<CancellationToken>());
     }
 

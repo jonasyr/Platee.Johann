@@ -79,13 +79,19 @@ public sealed class EntryDeletionLiveTests : IDisposable
 
         deleted.Should().BeGreaterThan(0);
 
-        // Zurücklegen: jeder Papierkorb-Ordner zurück in seinen Tagesordner.
+        // Zurücklegen: jeder Papierkorb-Ordner zurück in seinen Tagesordner. Die Löschvermerke
+        // tragen absolute Pfade — ein Vermerk, der nicht in die Kopie zeigt, darf nie bewegt
+        // werden, sonst träfe der Test das Original. Das ist einmal passiert (22.09.2026).
         foreach (var folder in Directory.EnumerateDirectories(trashRoot))
         {
             var record = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, "geloescht.json")));
             foreach (var file in record.RootElement.GetProperty("files").EnumerateArray())
             {
-                File.Move(file.GetProperty("to").GetString()!, file.GetProperty("from").GetString()!);
+                var to = file.GetProperty("to").GetString()!;
+                var from = file.GetProperty("from").GetString()!;
+                IsInsideCopy(to).Should().BeTrue($"{to} must lie inside the copy");
+                IsInsideCopy(from).Should().BeTrue($"{from} must lie inside the copy");
+                File.Move(to, from);
             }
 
             File.Delete(Path.Combine(folder, "geloescht.json"));
@@ -95,15 +101,26 @@ public sealed class EntryDeletionLiveTests : IDisposable
         Snapshot(this.copy).Should().BeEquivalentTo(original, "restoring must give back the exact tree");
     }
 
+    private bool IsInsideCopy(string path) =>
+        Path.GetFullPath(path).StartsWith(Path.GetFullPath(this.copy) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Copies the day folders only. The source's own trash is left out: its deletion records
+    /// point at the source, and restoring them would move files in the original.
+    /// </summary>
     private static void CopyTree(string from, string to)
     {
-        foreach (var dir in Directory.EnumerateDirectories(from, "*", SearchOption.AllDirectories))
+        bool InTrash(string path) =>
+            Path.GetRelativePath(from, path).Split(Path.DirectorySeparatorChar)[0]
+                .Equals(JsonRepository.TrashFolderName, StringComparison.OrdinalIgnoreCase);
+
+        Directory.CreateDirectory(to);
+        foreach (var dir in Directory.EnumerateDirectories(from, "*", SearchOption.AllDirectories).Where(d => !InTrash(d)))
         {
             Directory.CreateDirectory(Path.Combine(to, Path.GetRelativePath(from, dir)));
         }
 
-        Directory.CreateDirectory(to);
-        foreach (var file in Directory.EnumerateFiles(from, "*", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(from, "*", SearchOption.AllDirectories).Where(f => !InTrash(f)))
         {
             File.Copy(file, Path.Combine(to, Path.GetRelativePath(from, file)));
         }

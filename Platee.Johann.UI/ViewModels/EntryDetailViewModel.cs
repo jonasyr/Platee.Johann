@@ -345,7 +345,8 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
         static async Task<Entry> SaveDirectlyAsync(IEntryRepository repository, Entry entry)
         {
-            await repository.SaveAsync(entry);
+            // Update, never Save: it must not recreate an entry deleted meanwhile (#55).
+            await repository.UpdateAsync(entry);
             return entry;
         }
     }

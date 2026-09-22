@@ -74,6 +74,9 @@ public sealed class PendingCountCalculatorTests
         public Task<JobIdMigrationResult> MigrateJobIdsAsync(CancellationToken ct = default) =>
             Task.FromResult(JobIdMigrationResult.Empty);
 
+        public Task UpdateAsync(Entry entry, CancellationToken ct = default) =>
+            Task.CompletedTask;
+
         public Task<EntryDeletionResult> DeleteAsync(string jobId, CancellationToken ct = default) =>
             Task.FromResult(EntryDeletionResult.NotFound);
 
