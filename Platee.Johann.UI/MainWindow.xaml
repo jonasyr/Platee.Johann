@@ -974,24 +974,37 @@
                          BorderThickness="0" Background="Transparent"
                          PreviewMouseLeftButtonDown="EntryListBox_PreviewMouseLeftButtonDown"
                          PreviewMouseMove="EntryListBox_PreviewMouseMove">
-                    <!-- Löschen (#55): Rechtsklick wählt die Zeile aus, das Menü löscht die Auswahl.
-                         Entf nur hier, nicht fensterweit — sonst löschte die Taste beim Bearbeiten
-                         des Transkripts einen Eintrag. -->
+                    <!-- Löschen (#55): Entf nur hier, nicht fensterweit — sonst löschte die Taste
+                         beim Bearbeiten des Transkripts einen Eintrag. Entf löscht die Auswahl. -->
                     <ListBox.InputBindings>
                         <KeyBinding Key="Delete" Command="{Binding DeleteEntryCommand}"/>
                     </ListBox.InputBindings>
-                    <ListBox.ContextMenu>
-                        <ContextMenu>
-                            <MenuItem Header="Eintrag löschen…" InputGestureText="Entf"
-                                      Command="{Binding PlacementTarget.DataContext.DeleteEntryCommand,
-                                                RelativeSource={RelativeSource AncestorType=ContextMenu}}">
-                                <MenuItem.Icon>
-                                    <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                               FontSize="13" VerticalAlignment="Center"/>
-                                </MenuItem.Icon>
-                            </MenuItem>
-                        </ContextMenu>
-                    </ListBox.ContextMenu>
+                    <!-- Das Menü hängt an der Zeile und übergibt genau diese Zeile — nicht die
+                         Auswahl: ob ein Rechtsklick eine Zeile vorher auswählt, ist kein Vertrag,
+                         und dann würde ein anderer Eintrag gelöscht (Codex, PR #98). Tag trägt
+                         das MainViewModel hinüber, weil das Menü nicht im visuellen Baum liegt. -->
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                            <Setter Property="Tag"
+                                    Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}"/>
+                            <Setter Property="ContextMenu">
+                                <Setter.Value>
+                                    <ContextMenu>
+                                        <MenuItem Header="Eintrag löschen…" InputGestureText="Entf"
+                                                  Command="{Binding PlacementTarget.Tag.DeleteEntryCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext,
+                                                                     RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                           FontSize="13" VerticalAlignment="Center"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </ContextMenu>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="4,2">
