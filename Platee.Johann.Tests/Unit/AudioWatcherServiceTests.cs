@@ -89,6 +89,12 @@ public sealed class AudioWatcherServiceTests : IDisposable
         public Task<Entry> RegenerateFromTranscriptAsync(Entry entry, string editedTranscript, IProgress<ProcessingProgress>? progress = null, CancellationToken ct = default)
             => Task.FromResult(entry);
 
+        public Task<Entry> SetDoneAsync(Entry entry, bool isDone, CancellationToken ct = default)
+            => Task.FromResult(entry with { IsDone = isDone });
+
+        public Task<EntryDeletionResult> DeleteAsync(Entry entry, CancellationToken ct = default)
+            => Task.FromResult(EntryDeletionResult.NotFound);
+
         private static Entry MakeEntry() => new()
         {
             JobId = "test_001",

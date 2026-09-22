@@ -41,6 +41,7 @@ public sealed partial class MainViewModel : ObservableObject
     public ObservableCollection<EntryRowViewModel> Entries { get; } = [];
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(DeleteEntryCommand))]
     private EntryRowViewModel? selectedEntry;
 
     // Right pane
@@ -111,6 +112,149 @@ public sealed partial class MainViewModel : ObservableObject
     /// </para>
     /// </summary>
     public Func<bool>? EmptySectionHintPrompt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the hook that asks "really delete this entry?" (#55). Returns
+    /// <c>true</c> only on an explicit yes; while unset, nothing is ever deleted.
+    /// A settable hook for the same reason as <see cref="EmptySectionHintPrompt"/>.
+    /// </summary>
+    public Func<Entry, bool>? ConfirmDeleteEntry { get; set; }
+
+    /// <summary>
+    /// Whether an entry's files are being moved to the trash. Entry list and detail view are
+    /// disabled meanwhile, so no click can save or export the entry half way through
+    /// (review PR #55).
+    /// </summary>
+    [ObservableProperty]
+    private bool isDeletingEntry;
+
+    private bool CanDeleteEntry(EntryRowViewModel? row) => (row ?? this.SelectedEntry) is not null;
+
+    /// <summary>
+    /// Moves an entry to the Johann trash (#55). <paramref name="row"/> is the row the context
+    /// menu or trash button belongs to; <c>null</c> means the selected entry (Entf, pinned bar).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanDeleteEntry))]
+    private async Task DeleteEntryAsync(EntryRowViewModel? row)
+    {
+        row ??= this.SelectedEntry;
+        if (row is null)
+        {
+            return;
+        }
+
+        // Asking first and refusing afterwards would be worse than not asking.
+        if (this.Detail.IsBusy)
+        {
+            this.Notify(
+                "Bitte warten, bis die laufende Aktion am Eintrag fertig ist, und dann erneut löschen.",
+                ToastTone.Warn);
+            return;
+        }
+
+        if (this.ConfirmDeleteEntry?.Invoke(row.Entry) != true)
+        {
+            return;
+        }
+
+        var label = $"{row.SequenceNumber:D3} {row.ProjectName} — {row.Title}";
+        this.IsDeletingEntry = true;
+        try
+        {
+            try
+            {
+                await this.processor.DeleteAsync(row.Entry);
+            }
+            catch (EntryBusyException ex)
+            {
+                this.Notify(ex.Message, ToastTone.Warn);
+                return;
+            }
+            catch (EntryDeletionException ex)
+            {
+                // Rolled back; the message names the file that blocked it.
+                this.Notify($"Fehler: {ex.Message}", ToastTone.Error);
+                return;
+            }
+            catch (Exception ex)
+            {
+                this.Notify($"Fehler: „{label}“ konnte nicht gelöscht werden: {ex.Message}", ToastTone.Error);
+                return;
+            }
+
+            this.Notify($"✓ Gelöscht: {label}", ToastTone.Ok);
+
+            // Still locked: until the row is gone and the neighbour selected, the detail view
+            // shows the deleted entry.
+            await this.RemoveDeletedRowAsync(row);
+        }
+        finally
+        {
+            this.IsDeletingEntry = false;
+        }
+    }
+
+    /// <summary>
+    /// Takes a deleted entry out of the view: the next row takes its place (the previous one
+    /// at the end of the list), and a day left without entries disappears in favour of the
+    /// next older day, else the next newer one.
+    /// </summary>
+    private async Task RemoveDeletedRowAsync(EntryRowViewModel row)
+    {
+        var date = DateOnly.FromDateTime(row.Entry.CreatedAt.DateTime);
+        var index = this.Entries.IndexOf(row);
+        var wasSelected = ReferenceEquals(row, this.SelectedEntry);
+
+        this.Entries.Remove(row);
+        if (wasSelected)
+        {
+            this.SelectedEntry = this.Entries.Count == 0
+                ? null
+                : this.Entries[Math.Min(index, this.Entries.Count - 1)];
+        }
+
+        // Ask the store, not the list: with "Nur unerledigte" the list may be empty while
+        // done entries of the day remain.
+        var remaining = await this.repository.GetEntriesForDateAsync(date);
+        var dateItem = this.allDates.FirstOrDefault(d => d.Date == date);
+        if (remaining.Count > 0 || dateItem is null)
+        {
+            await this.RecalculatePendingCountsAsync();
+            return;
+        }
+
+        var wasSelectedDate = this.SelectedDateItem?.Date == date;
+        this.allDates.Remove(dateItem);
+        await this.RecalculatePendingCountsAsync();
+        if (!wasSelectedDate)
+        {
+            return;
+        }
+
+        var next = this.AvailableDates.Where(d => d.Date < date).OrderByDescending(d => d.Date).FirstOrDefault()
+            ?? this.AvailableDates.Where(d => d.Date > date).OrderBy(d => d.Date).FirstOrDefault();
+
+        // Set without the change handler and load explicitly: the refresh above may already
+        // have picked this very item, and then assigning it again would not load anything.
+        this.suppressDateSelectionChanged = true;
+        try
+        {
+            this.SelectedDateItem = next;
+        }
+        finally
+        {
+            this.suppressDateSelectionChanged = false;
+        }
+
+        await this.LoadEntriesAsync(next?.Date);
+    }
+
+    /// <summary>Records a result in the process log and shows it as a toast.</summary>
+    private void Notify(string message, ToastTone tone)
+    {
+        this.ProcessLog.Insert(0, new ProcessLogItem(message, DateTime.Now, false));
+        this.Toasts.Show(message, tone);
+    }
 
     /// <summary>Maps a visibility flag on <see cref="Sections"/> to the entry field it shows.</summary>
     private static string? SectionKeyFor(string? propertyName) => propertyName switch

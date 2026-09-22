@@ -34,6 +34,12 @@ public sealed class EntryProcessingService : IEntryProcessor
     /// </summary>
     private readonly ConcurrentDictionary<(string JobId, string SectionId), Task<Entry>> inFlightSections = new();
 
+    /// <summary>
+    /// Keeps deletion and generation apart per entry (#55): every generation ends with a
+    /// save, which would bring a deleted entry straight back.
+    /// </summary>
+    private readonly EntryWorkGuard workGuard = new();
+
     public bool CanProcess => this.transcriber.IsAvailable;
 
     public EntryProcessingService(
@@ -249,6 +255,8 @@ public sealed class EntryProcessingService : IEntryProcessor
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default)
     {
+        using var work = this.workGuard.Begin(entry.JobId);
+
         if (string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             throw new InvalidOperationException(
@@ -343,6 +351,10 @@ public sealed class EntryProcessingService : IEntryProcessor
     private async Task<Entry> RunSectionAsync(
         Entry entry, string sectionId, IProgress<ProcessingProgress>? progress, CancellationToken ct)
     {
+        // Registered here rather than in GenerateSectionAsync: this is the one task that
+        // coalesced callers share, so it counts once and is released when the save is done.
+        using var work = this.workGuard.Begin(entry.JobId);
+
         if (string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             throw new InvalidOperationException("Kein Transkript vorhanden.");
@@ -445,6 +457,8 @@ public sealed class EntryProcessingService : IEntryProcessor
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default)
     {
+        using var work = this.workGuard.Begin(entry.JobId);
+
         if (string.IsNullOrWhiteSpace(editedTranscript))
         {
             throw new InvalidOperationException(
@@ -489,6 +503,53 @@ public sealed class EntryProcessingService : IEntryProcessor
         }
 
         return updatedEntry;
+    }
+
+    public async Task<Entry> SetDoneAsync(Entry entry, bool isDone, CancellationToken ct = default)
+    {
+        // Same guard as the generations: a deletion cannot interleave with this save, and a
+        // deleted entry is never written back (review PR #55).
+        using var work = this.workGuard.Begin(entry.JobId);
+
+        var updated = entry with { IsDone = isDone };
+        await this.repository.SaveAsync(updated, ct);
+        return updated;
+    }
+
+    public async Task<EntryDeletionResult> DeleteAsync(Entry entry, CancellationToken ct = default)
+    {
+        // Marked before the files move, under the same lock that registers work, so no
+        // generation can start in between and save the entry back.
+        this.workGuard.MarkDeleted(entry.JobId);
+
+        EntryDeletionResult result;
+        try
+        {
+            result = await this.repository.DeleteAsync(entry.JobId, ct);
+        }
+        catch
+        {
+            // Rolled back: the entry is intact and must stay workable.
+            this.workGuard.Unmark(entry.JobId);
+            throw;
+        }
+
+        if (this.overviewService is not null)
+        {
+            try
+            {
+                // Not cancellable: the files are gone, the overview has to follow.
+                await this.overviewService.RegenerateAsync(
+                    DateOnly.FromDateTime(entry.CreatedAt.DateTime), CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                // The entry is in the trash; failing the deletion now would be a lie.
+                this.logger.LogWarning("Tagesübersicht nach dem Löschen", entry.JobId, ex);
+            }
+        }
+
+        return result;
     }
 
     /// <summary>

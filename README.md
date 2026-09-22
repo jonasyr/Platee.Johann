@@ -132,6 +132,21 @@ Die Checkbox-Vorauswahl links richtet sich nach dem Typ und kann jederzeit angep
 | **Kopieren** | Alle sichtbaren Abschnitte mit Überschriften in Zwischenablage | — |
 | **↻ Neu generieren** | Alle KI-Abschnitte neu generieren | Einzelne Abschnitte wählen (Ausführlich, Zusammenfassung, Aufgaben, …) |
 | **Als erledigt markieren** | Eintrag abschließen – grünes Häkchen in der Liste | — |
+| **🗑 Löschen** (neben „Als erledigt markieren“) | Eintrag nach Rückfrage in den Johann-Papierkorb verschieben | — |
+
+### Einträge löschen
+
+Ein Eintrag lässt sich auf drei Wegen löschen – immer mit Rückfrage, „Nein“ ist vorausgewählt:
+
+- **Rechtsklick** auf den Eintrag in der Liste → *Eintrag löschen…*
+- Knopf **Löschen** neben *Als erledigt markieren*
+- Taste **Entf**, wenn die Eintragsliste den Fokus hat
+
+Gelöscht wird der Eintrag mit allen seinen Dateien (PDF, HTML, Transkript, Audio-Kopie). Sie wandern in den **Johann-Papierkorb** `Dokumente\Johann\output\_Papierkorb\` und bleiben dort **30 Tage**; danach entfernt Johann sie beim Start endgültig. Die **Original-Aufnahme im Archiv bleibt immer erhalten**.
+
+**Zurückholen:** den Inhalt des Ordners `_Papierkorb\<Nummer>\` zurück in den Tagesordner schieben (PDF/HTML in den Tagesordner, `_raw\` in dessen `_raw\`) und Johann neu starten. Die Datei `geloescht.json` im Ordner nennt Tag, Titel und die ursprünglichen Pfade.
+
+Ist eine Datei des Eintrags gerade in einem anderen Programm geöffnet (z. B. das PDF), wird **nichts** gelöscht und Johann sagt, welche Datei es war. Während für den Eintrag noch etwas läuft (Neu generieren, PDF-Export, Mail), wartet das Löschen, bis es fertig ist. Die laufende Nummer eines gelöschten Eintrags wird nie wieder vergeben; ein Tag ohne Einträge verschwindet aus der Liste.
 
 ### Transkript bearbeiten
 
@@ -249,14 +264,17 @@ Nach jedem Update erscheint beim ersten Start ein Fenster mit den Neuerungen der
 
 ```
 Dokumente\Johann\output\
-└── 2026-03-17\
-    ├── _ItemÜbersicht.html
-    ├── 260317_001_Johann_App_anpassen.pdf
-    ├── 260317_001_Johann_App_anpassen.html
-    └── _raw\
-        ├── …_status.json      ← Datenspeicher
-        ├── …_original.mp3     ← Audio-Kopie
-        └── …_transcript.txt   ← Transkript
+├── 2026-03-17\
+│   ├── _ItemÜbersicht.html
+│   ├── 260317_001_Johann_App_anpassen.pdf
+│   ├── 260317_001_Johann_App_anpassen.html   ← nur nach „HTML“-Export
+│   └── _raw\
+│       ├── _counter.json                       ← laufende Nummer des Tages
+│       ├── 260317_001_Johann_App_anpassen_status.json   ← Datenspeicher
+│       ├── 260317_001_Johann_App_anpassen.html
+│       ├── 260317_001_Johann_App_anpassen.mp3  ← Audio-Kopie
+│       └── 260317_001_Johann_App_anpassen.txt  ← Transkript
+└── _Papierkorb\                                ← gelöschte Einträge, 30 Tage
 ```
 
 Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren oder auf OneDrive synchronisieren lassen.

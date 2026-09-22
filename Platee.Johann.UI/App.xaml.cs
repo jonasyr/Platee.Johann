@@ -182,6 +182,25 @@ public partial class App : System.Windows.Application
                     Environment.NewLine + string.Join(Environment.NewLine, jobIdMigration.Skipped)));
         }
 
+        // Johann-Papierkorb (#55): what has been there longer than the retention goes for good.
+        // Only ever logged — a trash that cannot be emptied today is emptied on the next start.
+        try
+        {
+            var purge = await repository.PurgeTrashAsync(DateTimeOffset.UtcNow - TrashPolicy.Retention);
+            if (purge.Skipped.Count > 0)
+            {
+                crashLogger.WriteCrashLog(
+                    "PAPIERKORB",
+                    new InvalidOperationException(
+                        $"{purge.Skipped.Count} Ordner im Papierkorb konnten nicht geleert werden:" +
+                        Environment.NewLine + string.Join(Environment.NewLine, purge.Skipped)));
+            }
+        }
+        catch (Exception ex)
+        {
+            crashLogger.WriteCrashLog("PAPIERKORB", ex);
+        }
+
         // HTML overview service — regenerates _ItemÜbersicht.html after every save.
         // The name resolver is a delegate rather than a snapshot so a category renamed in
         // the settings view takes effect on the next overview without an app restart;
@@ -271,6 +290,18 @@ public partial class App : System.Windows.Application
             };
             dialog.ShowDialog();
             return dialog.Suppress;
+        };
+
+        // Löschen (#55): "Nein" is the default button, so Enter never deletes by accident.
+        var trashDirectory = Path.Combine(outputRoot, JsonRepository.TrashFolderName);
+        viewModel.ConfirmDeleteEntry = entry =>
+        {
+            var owner = System.Windows.Application.Current.MainWindow;
+            var text = EntryDeletionPrompt.MessageFor(entry, trashDirectory);
+            var answer = owner is null
+                ? MessageBox.Show(text, EntryDeletionPrompt.Title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
+                : MessageBox.Show(owner, text, EntryDeletionPrompt.Title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            return answer == MessageBoxResult.Yes;
         };
 
         // Track per-file log items for the watcher

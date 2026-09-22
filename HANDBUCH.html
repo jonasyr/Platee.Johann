@@ -396,9 +396,24 @@
           <tr><td>Kopieren</td><td>Alle sichtbaren Abschnitte mit Überschriften in Zwischenablage</td><td>—</td></tr>
           <tr><td>↻ Neu generieren</td><td>Alle KI-Abschnitte neu generieren</td><td>Einzelne Abschnitte wählen (Ausführlich, Zusammenfassung, Aufgaben, Gesprächsnotiz, E-Mail, Stundenzettel, Analog, Transkript)</td></tr>
           <tr><td>Als erledigt markieren</td><td>Eintrag abschließen – grünes Häkchen in der Liste. Erneuter Klick hebt es auf.</td><td>—</td></tr>
+          <tr><td>🗑 Löschen</td><td>Neben „Als erledigt markieren“: Eintrag nach Rückfrage in den Johann-Papierkorb verschieben</td><td>—</td></tr>
         </tbody>
       </table>
     </div>
+
+    <h3>Einträge löschen</h3>
+    <p>Ein Eintrag lässt sich auf drei Wegen löschen – immer mit Rückfrage, <strong>„Nein“</strong> ist vorausgewählt:</p>
+    <ul>
+      <li><strong>Rechtsklick</strong> auf den Eintrag in der Liste → <em>Eintrag löschen…</em></li>
+      <li>Knopf <strong>Löschen</strong> neben <em>Als erledigt markieren</em></li>
+      <li>Taste <strong>Entf</strong>, wenn die Eintragsliste den Fokus hat</li>
+    </ul>
+    <p>Gelöscht wird der Eintrag mit allen seinen Dateien (PDF, HTML, Transkript, Audio-Kopie). Sie wandern in den <strong>Johann-Papierkorb</strong> <code>Dokumente\Johann\output\_Papierkorb\</code> und bleiben dort <strong>30 Tage</strong>; danach entfernt Johann sie beim Start endgültig. Die <strong>Original-Aufnahme im Archiv bleibt immer erhalten</strong>.</p>
+    <div class="card card-accent" style="margin-bottom:14px;">
+      <strong>Zurückholen</strong>
+      <p style="font-size:13px;margin:0;">Den Inhalt des Ordners <code>_Papierkorb\&lt;Nummer&gt;\</code> zurück in den Tagesordner schieben (PDF/HTML in den Tagesordner, <code>_raw\</code> in dessen <code>_raw\</code>) und Johann neu starten. Die Datei <code>geloescht.json</code> im Ordner nennt Tag, Titel und die ursprünglichen Pfade.</p>
+    </div>
+    <p>Ist eine Datei des Eintrags gerade in einem anderen Programm geöffnet (z. B. das PDF), wird <strong>nichts</strong> gelöscht und Johann sagt, welche Datei es war. Während für den Eintrag noch etwas läuft (Neu generieren, PDF-Export, Mail), wartet das Löschen, bis es fertig ist. Die laufende Nummer eines gelöschten Eintrags wird nie wieder vergeben; ein Tag ohne Einträge verschwindet aus der Liste.</p>
 
     <h3>Drag &amp; Drop</h3>
     <div class="card card-accent" style="margin-bottom:14px;">
@@ -661,14 +676,17 @@
 
     <pre><span class="g"># Alle Daten in:</span>
 <span class="d">Dokumente\Johann\output\</span>
-└── <span class="p">2026-03-17\</span>
-    ├── <span class="p">_ItemÜbersicht.html</span>                  <span class="g">← Tages-Übersicht (auto)</span>
-    ├── <span class="p">260317_001_Johann_App_anpassen.pdf</span>
-    ├── <span class="p">260317_001_Johann_App_anpassen.html</span>
-    └── <span class="d">_raw\</span>
-        ├── <span class="p">…_status.json</span>                    <span class="g">← Datenspeicher</span>
-        ├── <span class="p">…_original.mp3</span>                   <span class="g">← Audio-Kopie</span>
-        └── <span class="p">…_transcript.txt</span>                 <span class="g">← Transkript</span></pre>
+├── <span class="p">2026-03-17\</span>
+│   ├── <span class="p">_ItemÜbersicht.html</span>                  <span class="g">← Tages-Übersicht (auto)</span>
+│   ├── <span class="p">260317_001_Johann_App_anpassen.pdf</span>
+│   ├── <span class="p">260317_001_Johann_App_anpassen.html</span>   <span class="g">← nur nach „HTML“-Export</span>
+│   └── <span class="d">_raw\</span>
+│       ├── <span class="p">_counter.json</span>                    <span class="g">← laufende Nummer des Tages</span>
+│       ├── <span class="p">…_status.json</span>                    <span class="g">← Datenspeicher</span>
+│       ├── <span class="p">….html</span>
+│       ├── <span class="p">….mp3</span>                            <span class="g">← Audio-Kopie</span>
+│       └── <span class="p">….txt</span>                            <span class="g">← Transkript</span>
+└── <span class="d">_Papierkorb\</span>                            <span class="g">← gelöschte Einträge, 30 Tage</span></pre>
 
     <h3>Dateinamen-Schema</h3>
     <p><code>YYMMDD_NNN[_Gesprächsnotiz]_Projektname_ErsteFünfWörterDesTitels</code></p>

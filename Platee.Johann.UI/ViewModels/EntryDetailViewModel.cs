@@ -114,6 +114,24 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     public bool HasEntry => this.Entry is not null;
 
+    /// <summary>
+    /// Gets a value indicating whether a command that reads or writes the entry is still
+    /// running. Deleting then would race it (#55): an export writes a file named after the
+    /// entry after the others have gone to the trash. Saves are refused by the processor's
+    /// guard as well; checking here spares the user a confirmation that is then refused.
+    /// </summary>
+    public bool IsBusy =>
+        this.ToggleDoneCommand.IsRunning
+        || this.ReprocessCommand.IsRunning
+        || this.GenerateSectionCommand.IsRunning
+        || this.RegenerateFromTranscriptCommand.IsRunning
+        || this.GeneratePdfCommand.IsRunning
+        || this.GenerateHtmlCommand.IsRunning
+        || this.CopyPdfCommand.IsRunning
+        || this.CopyHtmlCommand.IsRunning
+        || this.OpenTaskMailCommand.IsRunning
+        || this.OpenEmailCommand.IsRunning;
+
     public bool HasNoEntry => this.Entry is null;
 
     public bool IsAudio => this.Entry?.SourceType == "audio";
@@ -301,15 +319,35 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(HasEntry))]
     private async Task ToggleDoneAsync()
     {
-        if (this.Entry is null || this.repository is null)
+        if (this.Entry is null || (this.processor is null && this.repository is null))
         {
             return;
         }
 
-        var updated = this.Entry with { IsDone = !this.Entry.IsDone };
-        await this.repository.SaveAsync(updated);
+        Entry updated;
+        try
+        {
+            // Through the processor, so the deletion guard covers this save as well (#55);
+            // the repository only when no processor is wired.
+            updated = this.processor is not null
+                ? await this.processor.SetDoneAsync(this.Entry, !this.Entry.IsDone)
+                : await SaveDirectlyAsync(this.repository!, this.Entry with { IsDone = !this.Entry.IsDone });
+        }
+        catch (Exception ex)
+        {
+            // Never let it escape the command: an unhandled exception here ends the app.
+            this.addLog?.Invoke($"Fehler: „Erledigt“ wurde nicht gespeichert: {ex.Message}", false);
+            return;
+        }
+
         this.Entry = updated;
         this.EntryStatusChanged?.Invoke(updated);
+
+        static async Task<Entry> SaveDirectlyAsync(IEntryRepository repository, Entry entry)
+        {
+            await repository.SaveAsync(entry);
+            return entry;
+        }
     }
 
     /// <summary>

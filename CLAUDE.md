@@ -195,6 +195,29 @@ PDF selected in Explorer. `OutlookEnvironment` reads `UseNewOutlook`; new Outloo
 active or the only one installed. A missing PDF aborts the internal mail (its intro announces it).
 Live tests: `ClassicOutlookLiveTests` with `JOHANN_OUTLOOK_LIVE=1` (they open real drafts).
 
+**Deleting entries (v1.5.0, #55):** `IEntryProcessor.DeleteAsync` → `IEntryRepository.DeleteAsync`
+moves every file of the entry into `{output}/_Papierkorb/{JobId}/` (same layout as the day folder,
+plus `geloescht.json` with the original paths) — **all or nothing**: `EntryTrash` rolls every move
+back if one file is locked and names it. Files are matched by **exact** name from the stem of the
+`_status.json` actually found (by JobId in the content, never by rebuilding the name) plus the
+`FilenameBuilder` stem. ⚠ **Never touch `_raw/_counter.json`, `_raw` or the day folder**: without the
+counter the next number is re-seeded as max+1, a deleted top number comes back with the same file
+stem, and `ArchiveRawFilesAsync` skips an existing MP3 — a foreign recording would attach to the new
+entry. ⚠ **Every generation ends with a full `SaveAsync`**, which would silently resurrect a deleted
+entry; `EntryWorkGuard` (Application/Processing) refuses deletion while Reprocess / section /
+transcript regeneration runs for that JobId and refuses those afterwards (`EntryBusyException`,
+`EntryDeletedException`). **Every save of an existing entry must go through the guard** — "erledigt"
+therefore uses `IEntryProcessor.SetDoneAsync`, not the repository (a review found the bypass: a
+click during the delete wrote the status file back). Exports bypass the processor, so
+`MainViewModel` refuses while `EntryDetailViewModel.IsBusy` and, while the files move, disables list,
+detail and action bar via `IsDeletingEntry`. `GetAvailableDatesAsync` lists only days with a `*_status.json`.
+Startup purges trash folders older than `TrashPolicy.Retention` (30 days) — only those with a
+`geloescht.json`. The archived original MP3 has no link from the entry and stays. UI: right-click
+menu and `Entf` on the entry list (not window-wide — it would fire while editing the transcript),
+button next to "Als erledigt markieren" (the list's right edge is usually clipped, #96).
+`EntryDeletionLiveTests` replays every deletion against a copy of a real output folder
+(`JOHANN_DELETE_LIVE_SOURCE`).
+
 ⚠ **Prompts must not name their own section.** The app already renders the heading; a prompt that
 tells the model to "create a Gesprächsnotiz" gets one titled that way, and it then appears twice
 in the detail view, the PDF and the mail. Every section prompt now says so explicitly.

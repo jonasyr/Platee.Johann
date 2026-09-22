@@ -25,4 +25,17 @@ public interface IEntryRepository
     Task<int> GetNextSequenceNumberAsync(DateOnly date, CancellationToken ct = default);
 
     Task<JobIdMigrationResult> MigrateJobIdsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Moves every file of the entry into the Johann trash — all or nothing (#55).
+    /// Never touches the sequence counter or the day folder, so a number is never reused.
+    /// </summary>
+    /// <exception cref="EntryDeletionException">A file could not be moved; nothing changed.</exception>
+    Task<EntryDeletionResult> DeleteAsync(string jobId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Removes trash folders deleted before <paramref name="deletedBefore"/> for good.
+    /// Only folders Johann wrote itself (with their deletion record) are touched.
+    /// </summary>
+    Task<TrashPurgeResult> PurgeTrashAsync(DateTimeOffset deletedBefore, CancellationToken ct = default);
 }

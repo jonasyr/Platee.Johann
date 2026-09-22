@@ -16,6 +16,19 @@
   Signatur. Nur wenn gar kein Outlook bereitsteht, öffnet Johann die Mail ohne Anhang und
   zeigt das PDF im Explorer an, von wo Sie es in die Mail ziehen können.
 
+**Einträge löschen.**
+
+- Ein Eintrag lässt sich jetzt löschen: per **Rechtsklick** in der Liste, mit dem Knopf
+  **Löschen** neben „Als erledigt markieren“ oder mit der Taste **Entf** in der Liste.
+  Vorher fragt Johann nach; „Nein“ ist vorausgewählt.
+- Der Eintrag wandert mit PDF, HTML, Transkript und Audio-Kopie in den
+  **Johann-Papierkorb** (`output\_Papierkorb`) und lässt sich dort **30 Tage** lang
+  zurückholen. Die Original-Aufnahme im Archiv bleibt immer erhalten.
+- Ist das PDF gerade geöffnet, wird nichts halb gelöscht – Johann sagt, welche Datei es
+  blockiert. Läuft für den Eintrag noch eine Generierung, wartet das Löschen darauf.
+- Tage ohne Einträge verschwinden aus der Datumsliste. Die laufende Nummer eines gelöschten
+  Eintrags wird nie wieder vergeben.
+
 **Einzelne Abschnitte kopieren.**
 
 - Neben jeder Abschnittsüberschrift sitzt ein Kopiersymbol. Es kopiert genau diesen einen

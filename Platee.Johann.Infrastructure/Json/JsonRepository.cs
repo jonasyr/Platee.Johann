@@ -12,8 +12,12 @@ using Platee.Johann.Domain.Services;
 /// </summary>
 public sealed class JsonRepository : IEntryRepository
 {
+    /// <summary>Name of the Johann trash folder under the output root (#55).</summary>
+    public const string TrashFolderName = EntryTrash.FolderName;
+
     private readonly string outputRoot;
     private readonly SemaphoreSlim seqLock = new(1, 1);
+    private readonly Func<DateTimeOffset> utcNow;
 
     private static readonly JsonSerializerOptions WriteOptions = new()
     {
@@ -26,9 +30,10 @@ public sealed class JsonRepository : IEntryRepository
         PropertyNameCaseInsensitive = true,
     };
 
-    public JsonRepository(string outputRoot)
+    public JsonRepository(string outputRoot, Func<DateTimeOffset>? utcNow = null)
     {
         this.outputRoot = outputRoot;
+        this.utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
     }
 
     public Task<IReadOnlyList<DateOnly>> GetAvailableDatesAsync(CancellationToken ct = default)
@@ -43,7 +48,10 @@ public sealed class JsonRepository : IEntryRepository
         foreach (var dir in Directory.EnumerateDirectories(this.outputRoot))
         {
             var name = Path.GetFileName(dir);
-            if (DateOnly.TryParseExact(name, "yyyy-MM-dd", out var date))
+
+            // A day whose last entry was deleted keeps its folder — and with it the
+            // sequence counter, so no number is ever reused — but is no longer listed (#55).
+            if (DateOnly.TryParseExact(name, "yyyy-MM-dd", out var date) && HasEntries(dir))
             {
                 dates.Add(date);
             }
@@ -51,6 +59,12 @@ public sealed class JsonRepository : IEntryRepository
 
         dates.Sort((a, b) => b.CompareTo(a)); // newest first
         return Task.FromResult<IReadOnlyList<DateOnly>>(dates);
+    }
+
+    private static bool HasEntries(string dayDir)
+    {
+        var rawDir = Path.Combine(dayDir, "_raw");
+        return Directory.Exists(rawDir) && Directory.EnumerateFiles(rawDir, "*_status.json").Any();
     }
 
     public async Task<IReadOnlyList<Entry>> GetEntriesForDateAsync(
@@ -320,6 +334,106 @@ public sealed class JsonRepository : IEntryRepository
         }
 
         return new JobIdMigrationResult(migrated, skipped);
+    }
+
+    public async Task<EntryDeletionResult> DeleteAsync(string jobId, CancellationToken ct = default)
+    {
+        var found = await this.FindStatusFileAsync(jobId, ct);
+        if (found is null)
+        {
+            return EntryDeletionResult.NotFound;
+        }
+
+        // Past this point the move is not cancellable: stopping half way is exactly the
+        // partial deletion the trash's roll-back exists to prevent.
+        var (statusPath, entry) = found.Value;
+        var rawDir = Path.GetDirectoryName(statusPath)!;
+        var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+        var files = CollectEntryFiles(statusPath, entry);
+
+        return new EntryTrash(this.outputRoot, this.utcNow).Move(entry, date, rawDir, files);
+    }
+
+    public Task<TrashPurgeResult> PurgeTrashAsync(DateTimeOffset deletedBefore, CancellationToken ct = default) =>
+        Task.FromResult(new EntryTrash(this.outputRoot, this.utcNow).Purge(deletedBefore, ct));
+
+    /// <summary>
+    /// Like <see cref="GetByJobIdAsync"/>, but returns the file as well and skips unreadable
+    /// neighbours: a corrupt file next to the entry must not make it undeletable.
+    /// </summary>
+    private async Task<(string Path, Entry Entry)?> FindStatusFileAsync(string jobId, CancellationToken ct)
+    {
+        if (!Directory.Exists(this.outputRoot))
+        {
+            return null;
+        }
+
+        var rawDirs = new List<string>();
+        if (TryParseDateFromJobId(jobId, out var date))
+        {
+            rawDirs.Add(this.GetRawDir(date));
+        }
+
+        rawDirs.AddRange(Directory.EnumerateDirectories(this.outputRoot).Select(d => Path.Combine(d, "_raw")));
+
+        foreach (var rawDir in rawDirs.Distinct(StringComparer.OrdinalIgnoreCase).Where(Directory.Exists))
+        {
+            foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
+            {
+                ct.ThrowIfCancellationRequested();
+                Entry? entry;
+                try
+                {
+                    entry = await LoadFileAsync(file, ct);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    continue;
+                }
+
+                if (entry?.JobId == jobId)
+                {
+                    return (file, entry);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Every file of the entry, matched by exact name — never by wildcard, which would also
+    /// catch longer names sharing the prefix. The stem is taken from the status file actually
+    /// found (legacy entries may be named differently) and from <see cref="FilenameBuilder"/>,
+    /// which today's renderers use. The status file comes last, so an interrupted run leaves
+    /// the entry in place rather than orphaned artefacts without an entry.
+    /// </summary>
+    private static List<string> CollectEntryFiles(string statusPath, Entry entry)
+    {
+        const string StatusSuffix = "_status.json";
+        var rawDir = Path.GetDirectoryName(statusPath)!;
+        var dayDir = Path.GetDirectoryName(rawDir)!;
+        var statusName = Path.GetFileName(statusPath);
+        var stems = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            statusName[..^StatusSuffix.Length],
+            FilenameBuilder.Build(entry),
+        };
+
+        bool BelongsToEntry(string file)
+        {
+            var name = Path.GetFileName(file);
+            return !name.StartsWith('_')
+                && !name.EndsWith(StatusSuffix, StringComparison.OrdinalIgnoreCase)
+                && (stems.Contains(Path.GetFileNameWithoutExtension(name))
+                    || stems.Any(s => name.Equals(s + "_email.txt", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        var files = Directory.EnumerateFiles(dayDir).Where(BelongsToEntry)
+            .Concat(Directory.EnumerateFiles(rawDir).Where(BelongsToEntry))
+            .ToList();
+        files.Add(statusPath);
+        return files;
     }
 
     private string GetRawDir(DateOnly date) =>
