@@ -208,7 +208,12 @@ entry; `EntryWorkGuard` (Application/Processing) refuses deletion while Reproces
 transcript regeneration runs for that JobId and refuses those afterwards (`EntryBusyException`,
 `EntryDeletedException`). **Every save of an existing entry must go through the guard** — "erledigt"
 therefore uses `IEntryProcessor.SetDoneAsync`, not the repository (a review found the bypass: a
-click during the delete wrote the status file back). Exports bypass the processor, so
+click during the delete wrote the status file back). ⚠ **Changes use `IEntryRepository.UpdateAsync`,
+never `SaveAsync`**: it finds the existing status file by JobId and opens it with `FileMode.Truncate`,
+so it can never recreate a file — that is what makes deletion hold across **two Johann processes**
+on one output folder, where the in-process guard sees nothing (Codex, PR #98). `SaveAsync` is only
+for the first save of a new entry in `ProcessAudioAsync`. A status file that is busy (being written)
+is retried, never skipped like a corrupt one — skipping made a deletion report "not found". Exports bypass the processor, so
 `MainViewModel` refuses while `EntryDetailViewModel.IsBusy` and, while the files move, disables list,
 detail and action bar via `IsDeletingEntry`. `GetAvailableDatesAsync` lists only days with a `*_status.json`.
 Startup purges trash folders older than `TrashPolicy.Retention` (30 days) — only those with a
