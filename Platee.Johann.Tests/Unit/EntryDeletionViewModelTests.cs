@@ -293,6 +293,27 @@ public sealed class EntryDeletionViewModelTests
     }
 
     [Fact]
+    public async Task An_entry_already_gone_is_not_reported_as_deleted()
+    {
+        // Codex, PR #98: removed externally (Explorer, another Johann), nothing was moved to
+        // the trash — claiming "Gelöscht" would hide leftover files from the user.
+        this.processor.DeleteAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var entry = call.Arg<Entry>();
+                this.store[Newer].RemoveAll(e => e.JobId == entry.JobId);
+                return EntryDeletionResult.NotFound;
+            });
+        var vm = await this.CreateVmAsync(Newer, 2);
+
+        await vm.DeleteEntryCommand.ExecuteAsync(null);
+
+        vm.Toasts.Toasts.Should().NotContain(t => t.Title.StartsWith("✓"));
+        vm.Toasts.Toasts.Should().ContainSingle(t => t.Tone == ToastTone.Warn && t.Title.Contains("nicht mehr vorhanden"));
+        vm.Entries.Should().ContainSingle("the list follows the store");
+    }
+
+    [Fact]
     public async Task A_successful_deletion_is_confirmed_and_logged()
     {
         var vm = await this.CreateVmAsync(Newer, 2);

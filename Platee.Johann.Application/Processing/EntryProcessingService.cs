@@ -211,8 +211,12 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 5 – Persist JSON + archive raw files + regenerate overview
         progress?.Report(new("Eintrag wird gespeichert…", 5, total));
-        await this.repository.SaveAsync(finalEntry, ct);
+
+        // Raw files first, status file last: the status file makes the entry visible and
+        // deletable (also by another Johann), so everything a deletion moves must already
+        // be there when it appears (Codex, PR #98).
         await this.ArchiveRawFilesAsync(audioFilePath, finalEntry, ct);
+        await this.repository.SaveAsync(finalEntry, ct);
 
         // Move MP3 to configured archive
         var archiveDir = settingsSnapshot.Archivverzeichnis;

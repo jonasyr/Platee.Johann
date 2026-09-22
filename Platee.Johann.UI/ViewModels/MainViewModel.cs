@@ -161,9 +161,10 @@ public sealed partial class MainViewModel : ObservableObject
         this.IsDeletingEntry = true;
         try
         {
+            EntryDeletionResult result;
             try
             {
-                await this.processor.DeleteAsync(row.Entry);
+                result = await this.processor.DeleteAsync(row.Entry);
             }
             catch (EntryBusyException ex)
             {
@@ -182,7 +183,14 @@ public sealed partial class MainViewModel : ObservableObject
                 return;
             }
 
-            this.Notify($"✓ Gelöscht: {label}", ToastTone.Ok);
+            // Gone before we got to it (Explorer, another Johann): nothing went to the trash,
+            // so do not claim a deletion — leftover files would stay unnoticed (Codex, PR #98).
+            this.Notify(
+                result.Found
+                    ? $"✓ Gelöscht: {label}"
+                    : $"„{label}“ war nicht mehr vorhanden, die Liste wurde neu geladen. "
+                      + "Nichts wurde in den Papierkorb verschoben; übrige Dateien ggf. im Ausgabeordner prüfen.",
+                result.Found ? ToastTone.Ok : ToastTone.Warn);
 
             // Still locked: until the row is gone and the neighbour selected, the detail view
             // shows the deleted entry.
