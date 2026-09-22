@@ -49,7 +49,7 @@
             <Setter Property="SpellCheck.IsEnabled"    Value="False"/>
             <Setter Property="HorizontalAlignment"     Value="Stretch"/>
         </Style>
-        <Style x:Key="BrowseButton" TargetType="Button">
+        <Style x:Key="BrowseButton" TargetType="Button" BasedOn="{StaticResource StandardButtonStyle}">
             <Setter Property="Padding"    Value="10,4"/>
             <Setter Property="FontSize"   Value="12"/>
             <Setter Property="Margin"     Value="6,0,0,0"/>
@@ -348,12 +348,16 @@
                                             <TextBox Grid.Column="2" Style="{StaticResource FieldBox}" Margin="0"
                                                      Text="{Binding Correct, UpdateSourceTrigger=PropertyChanged}"
                                                      KeyDown="CorrectionCorrectField_KeyDown"/>
+                                            <!-- Leise Rolle (#97). IsTabStop bleibt aus: Tab/Enter im Feld
+                                                 „richtig“ springt per MoveFocus in die neue Zeile, ein
+                                                 erreichbares ✕ läge genau dazwischen. -->
                                             <Button Grid.Column="3" Content="✕" FontSize="11" Padding="4,2"
+                                                    Style="{StaticResource QuietButtonStyle}"
                                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                                     Command="{Binding DataContext.RemoveCorrectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding}"
-                                                    Background="Transparent" BorderThickness="0"
-                                                    Foreground="#999" Cursor="Hand" IsTabStop="False"
+                                                    IsTabStop="False"
+                                                    AutomationProperties.Name="Korrektur entfernen"
                                                     ToolTip="Eintrag entfernen"/>
                                         </Grid>
                                     </DataTemplate>
@@ -408,7 +412,8 @@
                                          SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
                                          MaxHeight="150"
                                          BorderThickness="0"
-                                         HorizontalContentAlignment="Stretch">
+                                         HorizontalContentAlignment="Stretch"
+                                         ItemContainerStyle="{StaticResource ListRowItemStyle}">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <!-- Abstand zu Rahmen und eigener Bildlaufleiste der Liste (#79). -->
@@ -633,11 +638,11 @@
                 <Button Content="Standard wiederherstellen"
                         Command="{Binding ResetCommand}"
                         Padding="12,6" Margin="0,0,8,0" FontSize="13"/>
+                <!-- Primär-Rolle (#97) statt lokaler Farben: Überfahren wirkt, Weiß auf Rot 5,4:1. -->
                 <Button Content="Speichern"
                         Command="{Binding SaveCommand}"
-                        Padding="14,6" FontSize="13"
-                        Background="#E63123" Foreground="White"
-                        BorderThickness="0"/>
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Padding="14,6" FontSize="13"/>
             </StackPanel>
         </DockPanel>
     </Grid>

@@ -223,6 +223,17 @@ button next to "Als erledigt markieren" (the list's right edge is usually clippe
 `EntryDeletionLiveTests` replays every deletion against a copy of a real output folder
 (`JOHANN_DELETE_LIVE_SOURCE`).
 
+**Controls and colours (v1.5.0, #97):** `UI/Themes/Controls.xaml` (merged in `App.xaml`) holds every
+brush and one button template (`ButtonChromeTemplate`) with five roles — implicit Standard,
+`PrimaryButtonStyle`, `OutlineButtonStyle`, `QuietButtonStyle`, `LinkButtonStyle` — plus
+`ListRowItemStyle` and a keyboard-only `FocusVisual`. The WPF default template paints its own light
+blue on hover/press over any background, so a style's hover colours never showed. ⚠ **Never set
+`Background`/`Foreground`/`BorderBrush` directly on a button** — local values beat style triggers
+and the hover state dies; pick a role. Primary red is `#C0392B` (white 5.4:1), not brand `#E63123`
+(4.35:1). `ControlContrastTests` reads the brushes from the XAML and checks WCAG AA on every
+surface, and applies each role to a real control (a broken reference inside a template only fails
+when it is applied).
+
 ⚠ **Prompts must not name their own section.** The app already renders the heading; a prompt that
 tells the model to "create a Gesprächsnotiz" gets one titled that way, and it then appears twice
 in the detail view, the PDF and the mail. Every section prompt now says so explicitly.

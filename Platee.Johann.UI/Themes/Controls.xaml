@@ -1,0 +1,262 @@
+<!--
+    Gemeinsames Aussehen der Bedienelemente (#97).
+
+    Die WPF-Standardvorlage eines Knopfs malt beim Überfahren und Drücken ihr eigenes Hellblau
+    (#BEE6FD / #C4E5F6) über jeden Hintergrund. Farben aus Stil-Auslösern kamen deshalb nie an,
+    und weiße Schrift auf Hellblau lag bei ~1,4:1. Hier gibt es EINE Knopfvorlage, auf der alle
+    Rollen aufbauen, und einen Fokusrahmen, der nur bei Tastaturbedienung erscheint.
+
+    Kontraste: ControlContrastTests liest die Farben aus dieser Datei — Text ≥ 4,5:1,
+    Rahmen/Symbole/Fokus ≥ 3:1 auf jeder Fläche, auf der Knöpfe sitzen.
+
+    ⚠ Farben, die direkt am Element stehen (Background="…"), gehen in WPF Stil-Auslösern vor.
+    Ein Knopf mit lokalem Hintergrund zeigt kein Überfahren — Rolle setzen, nicht Farbe.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ── Grundfarben (aus MainWindow hierher, Namen unverändert) ─────────── -->
+    <SolidColorBrush x:Key="AccentBrush" Color="#E63123"/>
+    <SolidColorBrush x:Key="AccentDarkBrush" Color="#C0392B"/>
+    <SolidColorBrush x:Key="AccentDeepBrush" Color="#C92D21"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="#FDF1F0"/>
+    <SolidColorBrush x:Key="BgBrush" Color="#F0F0F0"/>
+    <SolidColorBrush x:Key="BgPaneBrush" Color="#F9F9F9"/>
+    <SolidColorBrush x:Key="BgLightBrush" Color="#FAFAFA"/>
+    <SolidColorBrush x:Key="BorderBrush" Color="#E0E0E0"/>
+    <SolidColorBrush x:Key="TextBrush" Color="#333333"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#777777"/>
+    <SolidColorBrush x:Key="TextQuietBrush" Color="#666666"/>
+    <SolidColorBrush x:Key="TextFaintBrush" Color="#999999"/>
+    <SolidColorBrush x:Key="BorderMidBrush" Color="#CCCCCC"/>
+    <SolidColorBrush x:Key="AccentLineBrush" Color="#E7B1AC"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="#27AE60"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="#B76E00"/>
+    <SolidColorBrush x:Key="WarningBgBrush" Color="#FFF8EC"/>
+    <SolidColorBrush x:Key="WarningBorderBrush" Color="#F2C879"/>
+    <SolidColorBrush x:Key="InfoBgBrush" Color="#F7F7F7"/>
+
+    <!-- ── Knopffarben je Rolle ───────────────────────────────────────────── -->
+    <!-- Standard (grau) -->
+    <SolidColorBrush x:Key="ButtonBgBrush" Color="#F5F5F5"/>
+    <SolidColorBrush x:Key="ButtonFgBrush" Color="#333333"/>
+    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#8A8A8A"/>
+    <SolidColorBrush x:Key="ButtonHoverBgBrush" Color="#E5E5E5"/>
+    <SolidColorBrush x:Key="ButtonHoverFgBrush" Color="#222222"/>
+    <SolidColorBrush x:Key="ButtonPressedBgBrush" Color="#D4D4D4"/>
+    <!-- Primär (rot gefüllt). #C0392B statt Markenrot #E63123: Weiß darauf 5,4:1 statt 4,35:1 -->
+    <SolidColorBrush x:Key="PrimaryBgBrush" Color="#C0392B"/>
+    <SolidColorBrush x:Key="PrimaryHoverBgBrush" Color="#A93226"/>
+    <SolidColorBrush x:Key="PrimaryPressedBgBrush" Color="#922B21"/>
+    <SolidColorBrush x:Key="PrimaryFgBrush" Color="#FFFFFF"/>
+    <!-- Rot umrandet -->
+    <SolidColorBrush x:Key="OutlineFgBrush" Color="#C0392B"/>
+    <SolidColorBrush x:Key="OutlineHoverBgBrush" Color="#FDF1F0"/>
+    <SolidColorBrush x:Key="OutlineHoverFgBrush" Color="#A93226"/>
+    <SolidColorBrush x:Key="OutlinePressedBgBrush" Color="#F9DEDB"/>
+    <SolidColorBrush x:Key="OutlinePressedFgBrush" Color="#922B21"/>
+    <!-- Leise / Symbol -->
+    <SolidColorBrush x:Key="QuietFgBrush" Color="#595959"/>
+    <SolidColorBrush x:Key="QuietHoverBgBrush" Color="#E5E5E5"/>
+    <SolidColorBrush x:Key="QuietPressedBgBrush" Color="#D4D4D4"/>
+    <!-- Bestätigungs-Haken an Symbolknöpfen. SuccessBrush #27AE60 hält auf Weiß nur 2,9:1 -->
+    <SolidColorBrush x:Key="ConfirmFgBrush" Color="#1E8449"/>
+    <!-- Link -->
+    <SolidColorBrush x:Key="LinkFgBrush" Color="#C0392B"/>
+    <SolidColorBrush x:Key="LinkHoverFgBrush" Color="#922B21"/>
+    <!-- Fokus und Listenzeilen -->
+    <SolidColorBrush x:Key="FocusRingBrush" Color="#333333"/>
+    <SolidColorBrush x:Key="ListItemFgBrush" Color="#333333"/>
+    <SolidColorBrush x:Key="ListItemHoverBgBrush" Color="#F0F0F0"/>
+    <SolidColorBrush x:Key="ListItemSelectedBgBrush" Color="#FDF1F0"/>
+    <SolidColorBrush x:Key="ListItemSelectedBarBrush" Color="#C0392B"/>
+
+    <!-- ── Fokusrahmen: nur bei Tastaturbedienung, nicht nach jedem Mausklick ── -->
+    <Style x:Key="FocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="-3" BorderThickness="2" CornerRadius="2"
+                            BorderBrush="{StaticResource FocusRingBrush}"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ── Eine Knopfvorlage für alle Rollen ──────────────────────────────── -->
+    <!-- Bindet Hintergrund, Rahmen und Abstand an den Stil, damit dessen Auslöser wirken.
+         Kein eigener Überfahren-/Drück-Zustand hier: die Farben gehören der Rolle. -->
+    <ControlTemplate x:Key="ButtonChromeTemplate" TargetType="ButtonBase">
+        <Border x:Name="Chrome"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                Padding="{TemplateBinding Padding}"
+                SnapsToDevicePixels="True">
+            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                              RecognizesAccessKey="True"/>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- Standard: gilt für jeden Knopf ohne eigenen Stil -->
+    <Style TargetType="Button">
+        <Setter Property="Template" Value="{StaticResource ButtonChromeTemplate}"/>
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
+        <Setter Property="Background" Value="{StaticResource ButtonBgBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource ButtonFgBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource ButtonBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="10,4"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource ButtonHoverBgBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource ButtonHoverFgBrush}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource ButtonPressedBgBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="StandardButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"/>
+
+    <!-- Primär: die eine Hauptaktion eines Bereichs (Speichern, OK, Schließen) -->
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="{StaticResource PrimaryBgBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryBgBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PrimaryFgBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource PrimaryHoverBgBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource PrimaryHoverBgBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource PrimaryFgBrush}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource PrimaryPressedBgBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource PrimaryPressedBgBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Rot umrandet: gewichtige Nebenaktion (Neu generieren) -->
+    <Style x:Key="OutlineButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{StaticResource OutlineFgBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource OutlineFgBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource OutlineHoverBgBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource OutlineHoverFgBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource OutlineHoverFgBrush}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource OutlinePressedBgBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource OutlinePressedFgBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Leise: Symbole und Knöpfe ohne Rahmen (⚙, ?, ✏, ×, Zoom, Kopiersymbol) -->
+    <Style x:Key="QuietButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource QuietFgBrush}"/>
+        <Setter Property="Padding" Value="6,2"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource QuietHoverBgBrush}"/>
+                <Setter Property="Foreground" Value="{StaticResource ButtonHoverFgBrush}"/>
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{StaticResource QuietPressedBgBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Link: Text, der wie ein Verweis wirkt — nie ein Kasten, beim Überfahren unterstrichen -->
+    <Style x:Key="LinkButtonStyle" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
+        <Setter Property="Foreground" Value="{StaticResource LinkFgBrush}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True">
+                            <ContentPresenter.Resources>
+                                <!-- Gilt für den Text, den der Knopf erzeugt, und für eigene TextBlocks. -->
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                     Value="True">
+                                            <Setter Property="TextDecorations" Value="Underline"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource LinkHoverFgBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ── Listenzeilen: hellgrau beim Überfahren, rosa mit roter Leiste ausgewählt ── -->
+    <Style x:Key="ListRowItemStyle" TargetType="ListBoxItem">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
+        <Setter Property="Foreground" Value="{StaticResource ListItemFgBrush}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="3,0,0,0"/>
+        <Setter Property="Padding" Value="2,1"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource ListItemHoverBgBrush}"/>
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource ListItemSelectedBgBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource ListItemSelectedBarBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+</ResourceDictionary>

@@ -50,7 +50,7 @@
                     Content="Empfohlen – 4 Abschnitte automatisch"
                     IsDefault="True"
                     Padding="14,7" FontSize="13"
-                    Background="#E63123" Foreground="White" BorderThickness="0"
+                    Style="{StaticResource PrimaryButtonStyle}"
                     Click="Recommended_Click"/>
         </StackPanel>
     </StackPanel>
