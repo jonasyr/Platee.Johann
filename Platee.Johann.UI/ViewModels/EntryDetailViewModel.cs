@@ -14,6 +14,12 @@ using Platee.Johann.Domain.Entities;
 
 public sealed partial class EntryDetailViewModel : ObservableObject
 {
+    /// <summary>Section id of the abstract for <see cref="CopySectionCommand"/> (#56).</summary>
+    public const string AbstractSectionId = "abstract";
+
+    /// <summary>Section id of the transcript for <see cref="CopySectionCommand"/> (#56).</summary>
+    public const string TranscriptSectionId = "transcript";
+
     private readonly IEnumerable<IEntryRenderer> renderers;
     private readonly IEntryProcessor? processor;
     private readonly IEntryRepository? repository;
@@ -205,6 +211,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         OpenEmailCommand.NotifyCanExecuteChanged();
         OpenTaskMailCommand.NotifyCanExecuteChanged();
         CopyCommand.NotifyCanExecuteChanged();
+        CopySectionCommand.NotifyCanExecuteChanged();
         ReprocessCommand.NotifyCanExecuteChanged();
         CopyPdfCommand.NotifyCanExecuteChanged();
         CopyHtmlCommand.NotifyCanExecuteChanged();
@@ -453,6 +460,34 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Copies one section with its heading — the copy icon in each section header (#56).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanCopySection))]
+    private void CopySection(string? sectionId)
+    {
+        var text = sectionId is null ? null : this.BuildSectionCopyText(sectionId);
+        if (text is null)
+        {
+            return;
+        }
+
+        System.Windows.Clipboard.SetText(text);
+        this.addLog?.Invoke($"✓ {this.CopyLabelOf(sectionId!)} kopiert!", false);
+    }
+
+    // Also hides the icon (see SectionCopyButtonStyle): a section "auf Knopfdruck" that was
+    // never generated has nothing to copy.
+    private bool CanCopySection(string? sectionId) =>
+        sectionId is not null && this.BuildSectionCopyText(sectionId) is not null;
+
+    private string CopyLabelOf(string sectionId) => sectionId switch
+    {
+        AbstractSectionId => "Abstract",
+        TranscriptSectionId => "Transkript",
+        _ => this.CustomSectionNames().TryGetValue(sectionId, out var name) ? name : this.DisplayNameOf(sectionId),
+    };
+
+    /// <summary>
     /// Builds the clipboard text. Split out from <see cref="Copy"/> so the section
     /// selection can be tested without an STA thread and a real clipboard.
     /// </summary>
@@ -470,62 +505,12 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         sb.AppendLine(new string('─', 60));
         sb.AppendLine();
 
-        // Abstract
-        if (!string.IsNullOrWhiteSpace(this.Entry.Abstract))
+        // Every section the detail view shows, in its order and under its visibility rules —
+        // built from the same pieces as the per-section copy icons (#56), so the two never
+        // disagree. Custom categories use the name rules of the HTML and PDF renderers.
+        foreach (var section in this.CopyParts(visibleOnly: true))
         {
-            sb.AppendLine("ABSTRACT");
-            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.Abstract));
-            sb.AppendLine();
-        }
-
-        // TaskList (Aufgabe)
-        if (!string.IsNullOrWhiteSpace(this.Entry.TaskList))
-        {
-            sb.AppendLine("AUFGABEN");
-            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.TaskList));
-            sb.AppendLine();
-        }
-
-        // ConversationNote (Gesprächsnotiz)
-        if (!string.IsNullOrWhiteSpace(this.Entry.ConversationNote))
-        {
-            sb.AppendLine("GESPRÄCHSNOTIZ");
-            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.ConversationNote));
-            sb.AppendLine();
-        }
-
-        // Zusammenfassung
-        if (!string.IsNullOrWhiteSpace(this.Entry.LongSummary))
-        {
-            sb.AppendLine("ZUSAMMENFASSUNG");
-            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.LongSummary));
-            sb.AppendLine();
-        }
-
-        // Ausführliche Zusammenfassung
-        if (!string.IsNullOrWhiteSpace(this.Entry.ProseSummary))
-        {
-            sb.AppendLine("AUSFÜHRLICHE ZUSAMMENFASSUNG");
-            sb.AppendLine(InlineMarkdown.ToPlainText(this.Entry.ProseSummary));
-            sb.AppendLine();
-        }
-
-        // Custom categories — same name and visibility rules the HTML and PDF
-        // renderers use, so the clipboard never disagrees with the export.
-        var names = this.CustomSectionNames();
-        foreach (var (id, text) in this.OrderedCustomSections())
-        {
-            sb.AppendLine((names.TryGetValue(id, out var name) ? name : id).ToUpperInvariant());
-            sb.AppendLine(InlineMarkdown.ToPlainText(text));
-            sb.AppendLine();
-        }
-
-        // Transcript — only when checkbox is checked; verbatim, it is the record of what was said.
-        // The generated sections above are plain text: they carry markdown since #73 (PR #91).
-        if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.EffectiveTranscript))
-        {
-            sb.AppendLine(this.Entry.EditedTranscript is not null ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT");
-            sb.AppendLine(this.Entry.EffectiveTranscript!);
+            sb.AppendLine(FormatCopyPart(section));
             sb.AppendLine();
         }
 
@@ -536,9 +521,74 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Builds the clipboard text of one section, heading included (#56). Visibility is not
+    /// checked: the copy icon only exists on a section the detail view shows.
+    /// </summary>
+    internal string? BuildSectionCopyText(string sectionId)
+    {
+        var section = this.CopyParts(visibleOnly: false)
+            .FirstOrDefault(s => string.Equals(s.Id, sectionId, StringComparison.Ordinal));
+        return section is null ? null : FormatCopyPart(section);
+    }
+
+    private static string FormatCopyPart(CopyPart part) =>
+        part.Heading + Environment.NewLine + part.Body;
+
+    /// <summary>
+    /// The sections with text, in detail-view order: abstract, built-ins, custom categories,
+    /// transcript last. Generated sections are plain text — they carry markdown since #73
+    /// (PR #91); the transcript stays verbatim, it is the record of what was said.
+    /// </summary>
+    private IEnumerable<CopyPart> CopyParts(bool visibleOnly)
+    {
+        var entry = this.Entry;
+        if (entry is null)
+        {
+            yield break;
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.Abstract))
+        {
+            yield return new CopyPart(AbstractSectionId, "ABSTRACT", InlineMarkdown.ToPlainText(entry.Abstract));
+        }
+
+        (string Id, string? Text, bool Shown)[] builtIns =
+        [
+            (BuiltInSections.LongSummary, entry.LongSummary, this.sections.ShowLongSummary),
+            (BuiltInSections.ProseSummary, entry.ProseSummary, this.sections.ShowProseSummary),
+            (BuiltInSections.TaskList, entry.TaskList, this.sections.ShowTaskList),
+            (BuiltInSections.ConversationNote, entry.ConversationNote, this.sections.ShowConversationNote),
+            (BuiltInSections.Stundenzettel, entry.StundenzettelText, this.sections.ShowStundenzettelText),
+            (BuiltInSections.Analog, entry.AnalogText, this.sections.ShowAnalogText),
+            (BuiltInSections.EmailText, entry.EmailText, this.sections.ShowEmailText),
+        ];
+        foreach (var (id, text, shown) in builtIns)
+        {
+            if (!string.IsNullOrWhiteSpace(text) && (shown || !visibleOnly))
+            {
+                yield return new CopyPart(
+                    id, this.DisplayNameOf(id).ToUpperInvariant(), InlineMarkdown.ToPlainText(text));
+            }
+        }
+
+        var names = this.CustomSectionNames();
+        foreach (var (id, text) in this.OrderedCustomSections(visibleOnly))
+        {
+            var name = names.TryGetValue(id, out var recorded) ? recorded : id;
+            yield return new CopyPart(id, name.ToUpperInvariant(), InlineMarkdown.ToPlainText(text));
+        }
+
+        if ((this.sections.ShowTranscript || !visibleOnly) && !string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
+        {
+            var heading = entry.EditedTranscript is not null ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT";
+            yield return new CopyPart(TranscriptSectionId, heading, entry.EffectiveTranscript!);
+        }
+    }
+
+    /// <summary>
     /// The entry's non-empty custom sections that are currently ticked, in catalog order.
     /// </summary>
-    private IEnumerable<(string Id, string Text)> OrderedCustomSections()
+    private IEnumerable<(string Id, string Text)> OrderedCustomSections(bool visibleOnly)
     {
         if (this.Entry is null)
         {
@@ -550,13 +600,13 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             .Select((d, i) => (d.Id, Index: i))
             .ToDictionary(x => x.Id, x => x.Index, StringComparer.Ordinal);
 
-        var visible = this.Entry.CustomSections
+        var sections = this.Entry.CustomSections
             .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
-            .Where(kv => !visibility.TryGetValue(kv.Key, out var shown) || shown)
+            .Where(kv => !visibleOnly || !visibility.TryGetValue(kv.Key, out var shown) || shown)
             .OrderBy(kv => order.TryGetValue(kv.Key, out var i) ? i : int.MaxValue)
             .ThenBy(kv => kv.Key, StringComparer.Ordinal);
 
-        foreach (var kv in visible)
+        foreach (var kv in sections)
         {
             yield return (kv.Key, kv.Value);
         }
@@ -996,5 +1046,8 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         sb.AppendLine($"[{entry.CreatedAt:dd.MM.yyyy} · {entry.ProjectName}]");
         return sb.ToString();
     }
+
+    /// <summary>One copyable section: id as used by the copy icon, heading and plain text.</summary>
+    private sealed record CopyPart(string Id, string Heading, string Body);
 
 }
