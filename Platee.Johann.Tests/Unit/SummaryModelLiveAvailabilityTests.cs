@@ -1,5 +1,6 @@
 namespace Platee.Johann.Tests.Unit;
 
+using System.ClientModel;
 using FluentAssertions;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
@@ -15,12 +16,18 @@ using Xunit;
 /// </para>
 /// <para>
 /// Braucht einen echten Schluessel und laeuft deshalb auf CI nie — dort wird der Test als
-/// <b>uebersprungen</b> ausgewiesen und nicht still gruen. Kostet vier Aufrufe mit
-/// minimaler Ausgabe, also Bruchteile eines Cents.
+/// <b>uebersprungen</b> ausgewiesen und nicht still gruen. Kostet je Katalogmodell einen
+/// Aufruf mit kleiner Ausgabe, also Bruchteile eines Cents.
 /// </para>
 /// </summary>
 public sealed class SummaryModelLiveAvailabilityTests
 {
+    // Alle Katalogmodelle sind Reasoning-Modelle. Mit 16 Token ging das Limit gelegentlich
+    // ganz ins Denken (#84); 256 reichen fuer Denken plus ein Wort.
+    private const int ProbeMaxTokens = 256;
+
+    private const string InventedModelId = "gpt-johann-gibt-es-nicht";
+
     private static string? ApiKey => ApiKeyProvider.TryGetOpenAiKey();
 
     public static TheoryData<string> CatalogIds()
@@ -40,21 +47,41 @@ public sealed class SummaryModelLiveAvailabilityTests
     {
         Skip.If(ApiKey is null, "Kein OPENAI_API_KEY gefunden — Live-Pruefung uebersprungen.");
 
+        // Der *Text* wird bewusst nicht geprueft: bei Reasoning-Modellen haengt er vom
+        // Denkverhalten ab, nicht von der Existenz. Verbraucht das Modell trotz allem das
+        // ganze Limit im Denken, antwortet die API mit HTTP 400 statt einer abgeschnittenen
+        // Antwort — auch das beweist, dass das Modell existiert.
+        var (outcome, detail) = await CallAsync(modelId);
+
+        outcome.Should().Be(LiveModelCallOutcome.Exists, detail);
+    }
+
+    [SkippableFact]
+    public async Task Invented_model_id_is_reported_missing()
+    {
+        Skip.If(ApiKey is null, "Kein OPENAI_API_KEY gefunden — Live-Pruefung uebersprungen.");
+
+        // Gegenprobe: die Auswertung darf ein totes Modell nicht als vorhanden durchwinken.
+        var (outcome, detail) = await CallAsync(InventedModelId);
+
+        outcome.Should().Be(LiveModelCallOutcome.Missing, detail);
+    }
+
+    private static async Task<(LiveModelCallOutcome Outcome, string Detail)> CallAsync(string modelId)
+    {
         var provider = new OpenAiLlmProvider(ApiKey!);
 
-        var call = async () => await provider.GenerateAsync(
-            systemPrompt: "Antworte mit genau einem Wort.",
-            userContent: "Sag: ok",
-            options: new LlmOptions(MaxTokens: 16, Model: modelId));
-
-        // Eine abgekuendigte oder umbenannte Id beantwortet OpenAI mit HTTP 404, das SDK
-        // wirft daraufhin — genau darauf zielt dieser Test.
-        //
-        // Der *Text* wird bewusst nicht geprueft. Alle vier sind Reasoning-Modelle: bei
-        // gpt-5-nano gingen selbst bei einem "Sag: ok" in drei von vier Messungen 256+
-        // Token ins interne Denken, finish_reason war "length" und der sichtbare Inhalt
-        // leer. Eine Textzusicherung wuerde also das Denkverhalten messen statt der
-        // Existenz und den Test grundlos flackern lassen.
-        await call.Should().NotThrowAsync();
+        try
+        {
+            await provider.GenerateAsync(
+                systemPrompt: "Antworte mit genau einem Wort.",
+                userContent: "Sag: ok",
+                options: new LlmOptions(MaxTokens: ProbeMaxTokens, Model: modelId));
+            return (LiveModelCallOutcome.Exists, "Aufruf ohne Fehler");
+        }
+        catch (ClientResultException ex)
+        {
+            return (LiveModelCallClassifier.Classify(ex.Status, ex.Message), ex.Message);
+        }
     }
 }
