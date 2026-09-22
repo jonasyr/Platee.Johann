@@ -9,6 +9,7 @@ using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Parsing;
+using Platee.Johann.Domain.Services;
 
 /// <summary>
 /// Covers the orchestration gaps left open by <see cref="EntryProcessingLoggingTests"/>
@@ -63,6 +64,30 @@ public sealed class EntryProcessingServiceTests : IDisposable
         await ctx.Repo.Received().SaveAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>());
         await renderer.Received().RenderAsync(
             Arg.Any<Entry>(), Arg.Any<RenderOptions>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ProcessAudioAsync_PublishesTheStatusFileOnlyAfterTheRawFiles()
+    {
+        // Codex, PR #98: the status file makes the entry visible — and deletable, possibly by
+        // another Johann. Raw files copied after it would be left behind by such a deletion.
+        var ctx = this.CreateService();
+        var rawFilesAtSave = new List<string>();
+        ctx.Repo.When(r => r.SaveAsync(Arg.Any<Entry>(), Arg.Any<CancellationToken>()))
+            .Do(call =>
+            {
+                var saved = call.Arg<Entry>();
+                var raw = Path.Combine(this.tempDir, "out", saved.CreatedAt.ToString("yyyy-MM-dd"), "_raw");
+                if (Directory.Exists(raw))
+                {
+                    rawFilesAtSave.AddRange(Directory.GetFiles(raw).Select(f => Path.GetFileName(f)));
+                }
+            });
+
+        var entry = await ctx.Service.ProcessAudioAsync(this.audioPath, new DateOnly(2026, 9, 3));
+
+        var stem = FilenameBuilder.Build(entry);
+        rawFilesAtSave.Should().Contain(stem + ".mp3").And.Contain(stem + ".txt");
     }
 
     [Fact]

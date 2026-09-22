@@ -34,6 +34,12 @@ public sealed class EntryProcessingService : IEntryProcessor
     /// </summary>
     private readonly ConcurrentDictionary<(string JobId, string SectionId), Task<Entry>> inFlightSections = new();
 
+    /// <summary>
+    /// Keeps deletion and generation apart per entry (#55): every generation ends with a
+    /// save, which would bring a deleted entry straight back.
+    /// </summary>
+    private readonly EntryWorkGuard workGuard = new();
+
     public bool CanProcess => this.transcriber.IsAvailable;
 
     public EntryProcessingService(
@@ -205,8 +211,12 @@ public sealed class EntryProcessingService : IEntryProcessor
 
         // Step 5 – Persist JSON + archive raw files + regenerate overview
         progress?.Report(new("Eintrag wird gespeichert…", 5, total));
-        await this.repository.SaveAsync(finalEntry, ct);
+
+        // Raw files first, status file last: the status file makes the entry visible and
+        // deletable (also by another Johann), so everything a deletion moves must already
+        // be there when it appears (Codex, PR #98).
         await this.ArchiveRawFilesAsync(audioFilePath, finalEntry, ct);
+        await this.repository.SaveAsync(finalEntry, ct);
 
         // Move MP3 to configured archive
         var archiveDir = settingsSnapshot.Archivverzeichnis;
@@ -225,7 +235,10 @@ public sealed class EntryProcessingService : IEntryProcessor
                 File.Move(audioFilePath, newPath);
 
                 finalEntry = finalEntry with { Status = finalEntry.Status with { Archived = true } };
-                await this.repository.SaveAsync(finalEntry, ct);
+
+                // The entry exists since the save above; Update so a deletion in between
+                // (another Johann process) is not undone (#55).
+                await this.repository.UpdateAsync(finalEntry, ct);
             }
             catch (Exception ex)
             {
@@ -249,6 +262,8 @@ public sealed class EntryProcessingService : IEntryProcessor
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default)
     {
+        using var work = this.workGuard.Begin(entry.JobId);
+
         if (string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             throw new InvalidOperationException(
@@ -281,9 +296,10 @@ public sealed class EntryProcessingService : IEntryProcessor
             Status = entry.Status with { Summarized = true },
         };
 
-        // Step 2 – Persist + regenerate overview
+        // Step 2 – Persist + regenerate overview. Update, not Save: an entry deleted in the
+        // meantime — possibly by another Johann — must not be written back (#55).
         progress?.Report(new("Aktualisierung wird gespeichert…", 2, total));
-        await this.repository.SaveAsync(updatedEntry, ct);
+        await this.repository.UpdateAsync(updatedEntry, ct);
 
         if (this.overviewService is not null)
         {
@@ -343,6 +359,10 @@ public sealed class EntryProcessingService : IEntryProcessor
     private async Task<Entry> RunSectionAsync(
         Entry entry, string sectionId, IProgress<ProcessingProgress>? progress, CancellationToken ct)
     {
+        // Registered here rather than in GenerateSectionAsync: this is the one task that
+        // coalesced callers share, so it counts once and is released when the save is done.
+        using var work = this.workGuard.Begin(entry.JobId);
+
         if (string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             throw new InvalidOperationException("Kein Transkript vorhanden.");
@@ -392,7 +412,7 @@ public sealed class EntryProcessingService : IEntryProcessor
             _ => await GenerateCustomAsync(entry, descriptor, generator, transcript, ct),
         };
 
-        await this.repository.SaveAsync(updated, ct);
+        await this.repository.UpdateAsync(updated, ct);
 
         // The daily overview is a rendered artefact of the entries, so every path that
         // persists one has to refresh it — otherwise a section generated on demand is
@@ -445,6 +465,8 @@ public sealed class EntryProcessingService : IEntryProcessor
         IProgress<ProcessingProgress>? progress = null,
         CancellationToken ct = default)
     {
+        using var work = this.workGuard.Begin(entry.JobId);
+
         if (string.IsNullOrWhiteSpace(editedTranscript))
         {
             throw new InvalidOperationException(
@@ -478,9 +500,10 @@ public sealed class EntryProcessingService : IEntryProcessor
             Status = entry.Status with { Summarized = true },
         };
 
-        // Step 2 – Persist + regenerate overview
+        // Step 2 – Persist + regenerate overview. Update, not Save: an entry deleted in the
+        // meantime — possibly by another Johann — must not be written back (#55).
         progress?.Report(new("Aktualisierung wird gespeichert…", 2, total));
-        await this.repository.SaveAsync(updatedEntry, ct);
+        await this.repository.UpdateAsync(updatedEntry, ct);
 
         if (this.overviewService is not null)
         {
@@ -489,6 +512,53 @@ public sealed class EntryProcessingService : IEntryProcessor
         }
 
         return updatedEntry;
+    }
+
+    public async Task<Entry> SetDoneAsync(Entry entry, bool isDone, CancellationToken ct = default)
+    {
+        // Same guard as the generations: a deletion cannot interleave with this save, and a
+        // deleted entry is never written back (review PR #55).
+        using var work = this.workGuard.Begin(entry.JobId);
+
+        var updated = entry with { IsDone = isDone };
+        await this.repository.UpdateAsync(updated, ct);
+        return updated;
+    }
+
+    public async Task<EntryDeletionResult> DeleteAsync(Entry entry, CancellationToken ct = default)
+    {
+        // Marked before the files move, under the same lock that registers work, so no
+        // generation can start in between and save the entry back.
+        this.workGuard.MarkDeleted(entry.JobId);
+
+        EntryDeletionResult result;
+        try
+        {
+            result = await this.repository.DeleteAsync(entry.JobId, ct);
+        }
+        catch
+        {
+            // Rolled back: the entry is intact and must stay workable.
+            this.workGuard.Unmark(entry.JobId);
+            throw;
+        }
+
+        if (this.overviewService is not null)
+        {
+            try
+            {
+                // Not cancellable: the files are gone, the overview has to follow.
+                await this.overviewService.RegenerateAsync(
+                    DateOnly.FromDateTime(entry.CreatedAt.DateTime), CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                // The entry is in the trash; failing the deletion now would be a lie.
+                this.logger.LogWarning("Tagesübersicht nach dem Löschen", entry.JobId, ex);
+            }
+        }
+
+        return result;
     }
 
     /// <summary>
