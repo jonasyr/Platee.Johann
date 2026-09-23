@@ -4,6 +4,12 @@
              xmlns:local="clr-namespace:Platee.Johann.UI"
              xmlns:conv="clr-namespace:Platee.Johann.UI.Converters">
     <Application.Resources>
-        <conv:NullToVisibilityConverter x:Key="NullToVis"/>
+        <ResourceDictionary>
+            <!-- Farben und Bedienelemente für alle Fenster (#97) -->
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Controls.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <conv:NullToVisibilityConverter x:Key="NullToVis"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

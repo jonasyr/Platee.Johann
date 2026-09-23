@@ -11,7 +11,7 @@
             <Button DockPanel.Dock="Right"
                     Content="Schließen" IsDefault="True" IsCancel="True"
                     Padding="16,6" FontSize="13"
-                    Background="#E63123" Foreground="White" BorderThickness="0"
+                    Style="{StaticResource PrimaryButtonStyle}"
                     Click="Close_Click"/>
         </DockPanel>
         <WebBrowser x:Name="Browser" Margin="0"/>
