@@ -61,6 +61,12 @@
 - Knöpfe zeigen beim Überfahren und Klicken keine hellblaue Windows-Färbung mehr, sind
   kontrastreicher und zeigen bei Bedienung mit der Tastatur deutlich, wo der Fokus steht.
 
+**Sehr lange Aufnahmen.**
+
+- Eine Aufnahme über 25 MB (bei MP3 etwa 25 Minuten) kann die Transkription nicht annehmen.
+  Johann sagt das jetzt vor dem Hochladen verständlich – mit Dateigröße und dem Hinweis, die
+  Aufnahme in kürzere Teile aufzuteilen – statt eine technische Fehlermeldung zu zeigen.
+
 **Sauberes PDF.**
 
 - Verschachtelte Aufzählungen erscheinen im PDF jetzt eingerückt als Liste; vorher standen

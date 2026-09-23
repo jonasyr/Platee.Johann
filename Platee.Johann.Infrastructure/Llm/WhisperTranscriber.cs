@@ -50,6 +50,9 @@ public sealed class WhisperTranscriber : IAudioTranscriber
             options.Language = ForcedLanguage;
         }
 
+        // Before opening the upload: past 25 MB the API answers with a raw error (#77).
+        AudioUploadLimit.Ensure(audioFilePath);
+
         await using var stream = File.OpenRead(audioFilePath);
         var response = await this.client.TranscribeAudioAsync(
             stream, Path.GetFileName(audioFilePath), options, ct);
