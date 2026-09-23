@@ -45,6 +45,19 @@ public sealed class EntryListLayoutTests
         literal.Should().BeEmpty();
     }
 
+    [Fact]
+    public void Both_column_dividers_fit_their_column_on_double_click()
+    {
+        // Like double-clicking a column border in Excel: the date and the entry column each
+        // take the width of their widest content.
+        var splitters = this.listBox.Document!.Descendants(Wpf + "GridSplitter").ToList();
+
+        splitters.Should().HaveCount(2);
+        splitters.Should().OnlyContain(s => s.Attribute("MouseDoubleClick") != null);
+        splitters.Select(s => (string?)s.Attribute("ToolTip") ?? string.Empty)
+            .Should().OnlyContain(tip => tip.Contains("Doppelklick"), "the gesture is invisible otherwise");
+    }
+
     private XElement RowTemplate() =>
         this.listBox.Element(Wpf + "ListBox.ItemTemplate")!.Element(Wpf + "DataTemplate")!;
 

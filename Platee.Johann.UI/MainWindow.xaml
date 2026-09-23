@@ -526,15 +526,15 @@
         <!-- 3-pane layout -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="196" MinWidth="150"/>
+                <ColumnDefinition x:Name="DateColumn" Width="196" MinWidth="150"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="280" MinWidth="200"/>
+                <ColumnDefinition x:Name="EntryColumn" Width="280" MinWidth="200"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="DetailColumn" Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- === LEFT: Date list === -->
-            <DockPanel Grid.Column="0" Background="#FAFAFA">
+            <DockPanel x:Name="DatePane" Grid.Column="0" Background="#FAFAFA">
                 <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
                     <TextBlock Text="Datum" Foreground="White" FontWeight="SemiBold"/>
                 </Border>
@@ -646,7 +646,8 @@
                         <TextBlock Text="{Binding HiddenDatesLabel}" TextWrapping="Wrap"/>
                     </Button>
                 </Border>
-                <ListBox ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
+                <ListBox x:Name="DateListBox"
+                         ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
                          SelectedItem="{Binding SelectedDateItem}"
                          BorderThickness="0" Background="Transparent"
                          ItemContainerStyle="{StaticResource DateListBoxItemStyle}">
@@ -718,11 +719,14 @@
                 </ListBox>
             </DockPanel>
 
+            <!-- Doppelklick passt die Spalte links an ihren breitesten Inhalt an, wie in Excel (#96). -->
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
-                          Background="#E0E0E0"/>
+                          Background="#E0E0E0"
+                          ToolTip="Ziehen zum Verbreitern – Doppelklick: an den Inhalt anpassen"
+                          MouseDoubleClick="DateSplitter_MouseDoubleClick"/>
 
             <!-- === CENTER: Entry list === -->
-            <DockPanel Grid.Column="2" Background="White">
+            <DockPanel x:Name="EntryPane" Grid.Column="2" Background="White">
                 <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
                     <TextBlock Text="{Binding SelectedDateDisplay}" Foreground="White" FontWeight="SemiBold"/>
                 </Border>
@@ -926,7 +930,9 @@
             </DockPanel>
 
             <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
-                          Background="#E0E0E0"/>
+                          Background="#E0E0E0"
+                          ToolTip="Ziehen zum Verbreitern – Doppelklick: an den Inhalt anpassen"
+                          MouseDoubleClick="EntrySplitter_MouseDoubleClick"/>
 
             <!-- Toast tray — stacked top-right over the right pane -->
             <ItemsControl Grid.Column="4" Panel.ZIndex="8"
