@@ -223,6 +223,18 @@ button next to "Als erledigt markieren" (the list's right edge is usually clippe
 `EntryDeletionLiveTests` replays every deletion against a copy of a real output folder
 (`JOHANN_DELETE_LIVE_SOURCE`).
 
+**Entry list is reconciled, never rebuilt (v1.5.0, #100):** sorting, „erledigt“, the „Nur
+unerledigte“ filter and a day switch no longer clear `MainViewModel.Entries`. `LoadEntriesAsync`
+reads first, then `ReconcileEntries` reuses the row of every JobId still shown (`ArrangeRows`:
+`Move`/`Insert`, the selection moves before stale rows go), so `SelectedEntry` stays the same
+object — a new row object re-runs `OnSelectedEntryChanged`, which resets the section ticks to the
+type defaults and rebuilds the detail view. A `loadGeneration` counter lets only the newest load
+write the list (loads are fire-and-forget; an older, slower one used to win). Sorting is in memory
+(`SortRows`); „erledigt“ updates the row and adjusts the day's count by one only if the row's state
+really changed; under the filter the row leaves via `RemoveRow` (next row, else previous — shared
+with deleting). `IsLoading` is startup only. ⚠ **Never go back to `Entries.Clear()` + new rows**
+for an in-place change.
+
 **Controls and colours (v1.5.0, #97):** `UI/Themes/Controls.xaml` (merged in `App.xaml`) holds every
 brush and one button template (`ButtonChromeTemplate`) with five roles — implicit Standard,
 `PrimaryButtonStyle`, `OutlineButtonStyle`, `QuietButtonStyle`, `LinkButtonStyle` — plus
