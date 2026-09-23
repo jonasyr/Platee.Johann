@@ -81,13 +81,16 @@ Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Dom
                                #   JsonPromptSettingsRepository, migration
   Llm/                         # OpenAiLlmProvider (ChatClient per model id),
                                #   WhisperTranscriber (gpt-transcribe), ApiKeyProvider,
-                               #   OpenAiModelAvailabilityProbe, NoOp stubs
+                               #   OpenAiModelAvailabilityProbe, NoOp stubs,
+                               #   AudioUploadLimit (25-MB check before upload, #77)
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
 Platee.Johann.UI/              # WPF presentation layer (depends on all)
   Assets/                      # RELEASE_NOTES.md, HANDBUCH.html (embedded resources,
                                #   auto-copied from repo root via CopyDocsToAssets MSBuild target)
-  Helpers/                     # DurationFormatter, ReleaseNotesHelper — pure static helpers
+  Helpers/                     # DurationFormatter, ReleaseNotesHelper, ColumnAutoFit (#96),
+                               #   DictationRescue (#106) — static helpers, linked into tests
+  Themes/                      # Controls.xaml — every brush and the one button template (#97)
   ViewModels/                  # MainViewModel, SettingsViewModel, NewEntryViewModel,
                                #   CorrectionEntryViewModel, CategoryEditorViewModel,
                                #   SectionRowViewModel, SectionVisibilityViewModel,
@@ -254,7 +257,7 @@ in the detail view, the PDF and the mail. Every section prompt now says so expli
 
 **No-Op stubs**: `NoOpLlmProvider`, `NoOpAudioTranscriber`, and `NoOpMicrophoneRecorder` in Infrastructure allow the app to run without an API key or audio hardware configured. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) returns `false` for `IsMicrophoneAvailable` and throws `InvalidOperationException` on `StartAsync`.
 
-**In-app dictation (microphone recording)**: `IMicrophoneRecorder` interface (Application/Interfaces/) with `IsMicrophoneAvailable`, `StartAsync(string outputFilePath, CancellationToken)`, `StopAsync()`. `WindowsMicrophoneRecorder` (Infrastructure/Audio/) is the concrete implementation using NAudio 2.2.1 `WasapiCapture` + `WaveFileWriter` to capture WASAPI PCM into a temporary `.tmp.wav` file (`Path.ChangeExtension(outputFilePath, ".tmp.wav")`). `StopAsync()` is truly async: wires a `TaskCompletionSource<bool>` to `WasapiCapture.RecordingStopped`, awaits it, flushes/disposes the writer, then on a background thread encodes the temp WAV to MP3 at `outputFilePath` via `MediaFoundationEncoder.EncodeToMp3` (NAudio MediaFoundation) and deletes the temp WAV. The caller always receives an MP3, never a raw WAV. `Dispose()` cleans up capture/writer and deletes the temp WAV if present. `IsMicrophoneAvailable` gracefully returns `false` on any exception (no hardware). `StartAsync` throws `InvalidOperationException("Recording is already in progress.")` on double-start. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) is the offline stub injected in tests. `MainViewModel` exposes `IsRecording` (`[ObservableProperty]`), `RecordingDuration` (live `mm:ss` string updated via `DispatcherTimer`), `StartDictationCommand` (CanExecute = `!IsRecording`; checks `processor.CanProcess` and `microphoneRecorder.IsMicrophoneAvailable`; sets `tempRecordingPath` to an `.mp3` path in `Path.GetTempPath()`), and `StopDictationCommand` (CanExecute = `IsRecording` property directly; stops timer + recorder — recorder internally converts WAV→MP3 — then pipes the MP3 through `processor.ProcessAudioAsync`). Flow: microphone → temp WAV (internal) → MP3 at temp path → `ProcessAudioAsync` → `RefreshAfterEntryAsync`. Tested in `MicrophoneRecordingViewModelTests.cs`. UI: bottom bar of the entry list pane is dual-state — idle shows a full-width "🎙 Diktieren" button (visibility via `InverseBoolToVis`; "+ Neues Element" and `NewEntryView` were removed in v1.4.0); recording shows a pulsing red ellipse (WPF Storyboard, Opacity 1→0.15, 0.8 s, AutoReverse, Forever), "REC" label in `AccentBrush`, `RecordingDuration` timer in `MonoFamily`, and "■ Stop" button docked right (visibility via `BoolToVis`).
+**In-app dictation (microphone recording)**: `IMicrophoneRecorder` interface (Application/Interfaces/) with `IsMicrophoneAvailable`, `StartAsync(string outputFilePath, CancellationToken)`, `StopAsync()`. `WindowsMicrophoneRecorder` (Infrastructure/Audio/) is the concrete implementation using NAudio 2.2.1 `WasapiCapture` + `WaveFileWriter` to capture WASAPI PCM into a temporary `.tmp.wav` file (`Path.ChangeExtension(outputFilePath, ".tmp.wav")`). `StopAsync()` is truly async: wires a `TaskCompletionSource<bool>` to `WasapiCapture.RecordingStopped`, awaits it, flushes/disposes the writer, then on a background thread encodes the temp WAV to MP3 at `outputFilePath` via `MediaFoundationEncoder.EncodeToMp3` (NAudio MediaFoundation) and deletes the temp WAV. The caller always receives an MP3, never a raw WAV. `Dispose()` cleans up capture/writer and deletes the temp WAV if present. `IsMicrophoneAvailable` gracefully returns `false` on any exception (no hardware). `StartAsync` throws `InvalidOperationException("Recording is already in progress.")` on double-start. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) is the offline stub injected in tests. `MainViewModel` exposes `IsRecording` (`[ObservableProperty]`), `RecordingDuration` (live `mm:ss` string updated via `DispatcherTimer`), `StartDictationCommand` (CanExecute = `!IsRecording`; checks `processor.CanProcess` and `microphoneRecorder.IsMicrophoneAvailable`; sets `tempRecordingPath` to an `.mp3` path in `Path.GetTempPath()`), and `StopDictationCommand` (CanExecute = `IsRecording` property directly; stops timer + recorder — recorder internally converts WAV→MP3 — then pipes the MP3 through `processor.ProcessAudioAsync`). Flow: microphone → temp WAV (internal) → MP3 at temp path → `ProcessAudioAsync` → `RefreshAfterEntryAsync`. The temp MP3 is deleted **only after success**; on failure `DictationRescue.Save` moves it to `{output}\_Diktate (nicht verarbeitet)\Diktat_<yyyy-MM-dd_HHmmss>.mp3` and the error names the path (#106 — before, a failed dictation was deleted). Files over 25 MB are refused before upload by `AudioUploadLimit` in `WhisperTranscriber` (#77); actually processing them is #107. Tested in `MicrophoneRecordingViewModelTests.cs`. UI: bottom bar of the entry list pane is dual-state — idle shows a full-width "🎙 Diktieren" button (visibility via `InverseBoolToVis`; "+ Neues Element" and `NewEntryView` were removed in v1.4.0); recording shows a pulsing red ellipse (WPF Storyboard, Opacity 1→0.15, 0.8 s, AutoReverse, Forever), "REC" label in `AccentBrush`, `RecordingDuration` timer in `MonoFamily`, and "■ Stop" button docked right (visibility via `BoolToVis`).
 
 **Schema versioning**: `Entry.SchemaVersion` (currently **4**) + `JsonMigrator` handle forward migration of persisted JSON files. v2→v3 added `EditedTranscript`; v3→v4 added `CustomSections` and `CustomSectionNames`. `EntryDto` carries `[JsonExtensionData]` so unknown fields survive a round-trip. **`EntryDto`/`EntryMapper`, `SettingsDto` and `PromptDto` are hand-written mappers — every new field must be added to the DTO *and* both mapping directions. This has silently eaten a field three times (`CustomCategories`, `SectionModes`, `CustomSections`); always add a round-trip test.**
 
@@ -302,7 +305,7 @@ are in `docs/prompting/kandidaten-73.md`; real dictations and prompt text stay i
 
 **Settings view section navigation**: `SettingsView.xaml` uses a `CollectionViewSource` with `PropertyGroupDescription` for grouped left-sidebar section navigation. Sections are bound to `SettingsViewModel.Sections`; selected section toggles content panel visibility via `Is<Section>Selected` properties.
 
-**Release notes window**: `ReleaseNotesHelper` in `UI/Helpers/` loads `RELEASE_NOTES.md` (embedded resource) and renders it via `MarkdownHelper.ToHtml()` into a styled HTML document displayed in `ReleaseNotesWindow` (WPF `WebBrowser`). `ShouldShow(lastSeenVersion, currentVersion)` gates display to once per version update.
+**Release notes window**: `ReleaseNotesHelper` in `UI/Helpers/` loads `RELEASE_NOTES.md` (embedded resource) and renders it via `MarkdownHelper.ToHtml()` into a styled HTML document displayed in `ReleaseNotesWindow` (WPF `WebBrowser`). `ShouldShow(lastSeenVersion, currentVersion)` gates the automatic display to once per version update. Since #78 the „Neuigkeiten“ button (next to „?“) reopens them any time: `MainViewModel.OpenReleaseNotesCommand` invokes the settable callback `ShowReleaseNotes`, which `MainWindow` wires to its `ShowReleaseNotes()` — load, show, then pulse the button (scale 1→1.2, twice; skipped when `SystemParameters.ClientAreaAnimation` is off). `App.OnStartup` uses the same method, so the first showing already points at the button.
 
 **Embedded user handbook**: `HANDBUCH.html` is an embedded resource in `UI/Assets/`. `MainViewModel.ExtractHandbook()` extracts it to a temp file (`Platee.Johann.HANDBUCH.html`) for display in the default browser. `README.md` (repo root) is the Markdown version of the same handbook content.
 
@@ -363,7 +366,7 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 ## Git Insights
 
-- **v1.5.0 in progress** (`release/v1.5.0`, 2026-09-23): #73 prompts for GPT-5.6 (PR #85) and the
+- **v1.5.0 complete, not yet released** (`release/v1.5.0`, 2026-09-23, milestone empty): #73 prompts for GPT-5.6 (PR #85) and the
   central markdown rule (PR #91); #83 nested lists in the PDF (PR #86); #57 mail buttons for classic
   and new Outlook (PR #87, #90); #88 Codex findings (PR #89). **Codex reviews every PR** — read its
   inline comments before merging; it found real bugs in five of six PRs that day (missing PDF
@@ -374,8 +377,11 @@ which half was rescued — prompt text is team-owned and survives only for the s
   no longer scrolls sideways — title trimmed, done tick always visible, row colours from the theme
   and contrast-tested (`EntryListLayoutTests`), plus double-click on either column divider fits the
   column to its widest content (PR #102); #78 „Neuigkeiten“ button, pulses after the notes close
-  (PR #104); #77 cut down to the 25-MB check (`AudioUploadLimit`) — keywords/languages/prompt moved
-  to #103 (v1.6.0, needs a measurement run). Then the release.
+  (PR #104); #77 cut down to the 25-MB check (`AudioUploadLimit`, PR #105) — keywords/languages/
+  prompt moved to #103 (v1.6.0, needs a measurement run); #106 a failed in-app dictation is rescued
+  instead of deleted (PR #108); processing large files for real → #107 (v1.6.0). Handbook
+  (`README.md`, `HANDBUCH.html`) brought up to v1.5.0. **Next: the release** (see "Vor jedem
+  Release" in the Serena memory `backlog`).
 
 - **Column auto-fit (#96):** measure the rows **where they live** (`ItemsPresenter` of the real
   list, unconstrained), never a detached copy of a row — that one measured without its bound title.
@@ -384,9 +390,11 @@ which half was rescued — prompt text is team-owned and survives only for the s
   again. Both mistakes were found only by a diagnostic log in the running window — a replica in a
   real `Window` (STA thread, resources inlined into the parsed XAML, **no `Application` object**)
   is the way to reproduce WPF layout in a test.
-- ⚠ **In-app dictation deletes its temp recording on any processing failure**
-  (`MainViewModel.StopDictation`, `finally`) — a failed dictation is lost. Watch-folder files stay
-  in place. Found during #77.
+- **Failed dictations (#106, found during #77):** `StopDictation` used to delete the temp recording
+  in `finally`, also on failure — a failed dictation was lost. Now it deletes only after success;
+  on failure `DictationRescue.Save` moves it to `{output}\_Diktate (nicht verarbeitet)\` and the
+  message names the path (if even that fails, the temp path). Watch-folder files never had the
+  problem — they stay in the input folder. Nothing re-processes rescued files automatically (#107).
 
 - **v1.4.0** (2026-09-10, released): the first release since v1.3.2. Renumbered from the
   unreleased v1.3.3 under the new rule — minor for anything users see, patch for developer
@@ -453,8 +461,15 @@ which half was rescued — prompt text is team-owned and survives only for the s
   `dotnet test --blame-hang-timeout 60s` + `dotnet-dump analyze <dmp> -c "clrstack -all"`.
 - ⚠ **CI only failed on the last command** of the PowerShell step (sonarscanner end) until PR #101
   — failing tests left it green. Every command in that step now checks `$LASTEXITCODE`.
-- Codex did not react to `@codex review` on PR #99 and #101 (not even 👀) — the trigger was not
-  picked up; it does not depend on our CI.
+- Codex did not react to `@codex review` on PR #99 and #101–#108 (not even 👀) — the trigger was
+  not picked up; it does not depend on our CI. Check the Codex GitHub connector before relying on it.
+- ⚠ **Verify with a full `dotnet build`, not only `dotnet test`.** The UI project (WPF) has **no**
+  implicit `using System.IO`; the test project does. A UI helper linked into the tests
+  (`<Compile Include=… Link=…/>`) therefore compiled and passed its tests while the app did not
+  build (#106 — caught by the pre-push hook).
+- A **UI-only change is checked visually by the user before merging** (the PR carries a
+  "Sichtprüfung" checklist); layout questions are settled with evidence from the running window,
+  not by guessing (#96).
 
 <!-- Add project-specific notes here. This section is never auto-modified. -->
 

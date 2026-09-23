@@ -34,7 +34,10 @@
 Alle Tage mit Einträgen, neueste zuerst. Klick auf ein Datum filtert die Liste.
 
 **Mitte – Einträge des Tages**
-Nummer, Projektname und erste Wörter des Titels. Badge darunter zeigt den Typ.
+Nummer, Projektname und Titel, darunter Typ und Dauer; erledigte Einträge tragen rechts einen grünen Haken. Lange Titel enden mit „…“ – beim Darüberfahren erscheint der volle Titel. Oben lässt sich nach **Nr** oder **Projekt** sortieren (erneuter Klick kehrt die Reihenfolge um) und mit **Nur unerledigte** filtern; die Auswahl bleibt dabei erhalten.
+
+**Spaltenbreite**
+Die Trennlinien zwischen den Spalten lassen sich ziehen. Ein **Doppelklick auf eine Trennlinie** passt die Spalte links davon an ihren breitesten Inhalt an – wie in Excel.
 
 **Rechts – Detailansicht**
 Vollständiger Inhalt: alle KI-Abschnitte, Exportbuttons und das aufklappbare Transkript.
@@ -50,6 +53,12 @@ MP3 in `Dokumente\Johann\Eingang` legen – Johann erkennt die Datei automatisch
 ### Direkt diktieren (Mikrofon)
 
 **🎙 Diktieren**-Button in der Eintrags-Liste klicken, sprechen, dann **■ Stop** klicken. Johann transkribiert und erstellt die Zusammenfassung wie gewohnt. Erfordert ein angeschlossenes Mikrofon und einen konfigurierten API-Schlüssel.
+
+Scheitert die Verarbeitung – etwa ohne Internet –, geht die Aufnahme nicht verloren: Johann legt sie unter `output\_Diktate (nicht verarbeitet)` ab und nennt den Pfad in der Fehlermeldung. Von dort lässt sie sich später in den Eingangsordner legen.
+
+### Sehr lange Aufnahmen
+
+Die Transkription nimmt höchstens **25 MB** je Datei an – bei MP3 etwa 25 Minuten. Größere Aufnahmen lehnt Johann vor dem Hochladen mit einem Hinweis ab; bitte in kürzere Teile aufteilen und einzeln einlesen.
 
 ### Fortschritt verfolgen
 
@@ -107,6 +116,8 @@ automatisch — das halbiert die Wartezeit pro Eintrag. Die Modi stellst du in d
 unter **Vorlagen** ein; sie gelten nur für dich.
 
 Die Checkbox-Vorauswahl links richtet sich nach dem Typ und kann jederzeit angepasst werden.
+
+Neben jeder Abschnittsüberschrift sitzt ein **Kopiersymbol**: Es kopiert genau diesen Abschnitt samt Überschrift in die Zwischenablage – auch das Transkript.
 
 | Abschnitt | Inhalt | Standard aktiv bei |
 |---|---|---|
@@ -256,7 +267,7 @@ HTML und beim Kopieren.
 
 ## Neuigkeiten nach Updates
 
-Nach jedem Update erscheint beim ersten Start ein Fenster mit den Neuerungen der Version. Es wird nur einmal pro Version angezeigt.
+Nach jedem Update erscheint beim ersten Start ein Fenster mit den Neuerungen der Version. Danach öffnet der Knopf **Neuigkeiten** oben rechts (neben „?“) es jederzeit wieder; beim Schließen pulsiert er kurz, damit man sieht, wo man die Neuigkeiten wiederfindet.
 
 ---
 
@@ -274,7 +285,8 @@ Dokumente\Johann\output\
 │       ├── 260317_001_Johann_App_anpassen.html
 │       ├── 260317_001_Johann_App_anpassen.mp3  ← Audio-Kopie
 │       └── 260317_001_Johann_App_anpassen.txt  ← Transkript
-└── _Papierkorb\                                ← gelöschte Einträge, 30 Tage
+├── _Papierkorb\                                ← gelöschte Einträge, 30 Tage
+└── _Diktate (nicht verarbeitet)\               ← Diktate, deren Verarbeitung scheiterte
 ```
 
 Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren oder auf OneDrive synchronisieren lassen.
@@ -303,11 +315,14 @@ Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren
 | MP3 im Eingangsordner wird nicht erkannt | Dateiformat prüfen (`.mp3`), Eingangsordner in Einstellungen kontrollieren |
 | Eintrag hat falschen Typ | Diktat-Einstieg anpassen, dann **↻ Neu generieren** |
 | KI-Abschnitte leer | API-Schlüssel und Internetverbindung prüfen, Status-Log prüfen |
-| Absturz | Crash-Logs unter `%LOCALAPPDATA%\Platee\Johann\logs\crash-*.log` mit Zeitstempel und Fehlertext |
+| Absturz | Crash-Logs unter `C:\Peano\Platee.Johann\logs\johann-crash-*.log` (falls dort nicht schreibbar: `%LOCALAPPDATA%\Peano\Platee.Johann\logs\`) mit Zeitstempel und Fehlertext |
+| „Aufnahme ist … MB groß“ | Über 25 MB nimmt die Transkription nicht an → Aufnahme in kürzere Teile aufteilen und einzeln einlesen |
+| Diktat fehlgeschlagen – wo ist die Aufnahme? | Unter `output\_Diktate (nicht verarbeitet)`; der genaue Pfad steht in der Fehlermeldung und im Status-Log. Später in den Eingangsordner legen |
+| Titel in der Liste abgeschnitten | Maus darüber zeigt den vollen Titel; Doppelklick auf die Trennlinie rechts der Liste verbreitert die Spalte passend |
 | Prompts nicht aktuell | App neu starten – Prompts werden beim Start vom Netzlaufwerk geladen |
 | Korrekturen nicht aktiv | Einstellungen → Korrekturliste prüfen, Speichern klicken |
 | Transkript-Bearbeitung verloren | Bei API-Fehler bleibt der korrigierte Text erhalten → erneut „↻ Neu generieren" klicken |
 
 ---
 
-*Platé.Johann v1.3.0 · Windows 10/11 · Daten bleiben lokal*
+*Platé.Johann v1.5.0 · Windows 10/11 · Daten bleiben lokal*
