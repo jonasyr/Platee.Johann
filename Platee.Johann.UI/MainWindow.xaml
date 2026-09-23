@@ -863,6 +863,7 @@
                          IsEnabled="{Binding IsDeletingEntry, Converter={StaticResource InverseBool}}"
                          BorderThickness="0" Background="Transparent"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="False"
                          PreviewMouseLeftButtonDown="EntryListBox_PreviewMouseLeftButtonDown"
                          PreviewMouseMove="EntryListBox_PreviewMouseMove">
                     <!-- Löschen (#55): Entf nur hier, nicht fensterweit — sonst löschte die Taste

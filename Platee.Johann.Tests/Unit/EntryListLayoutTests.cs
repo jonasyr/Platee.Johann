@@ -58,6 +58,14 @@ public sealed class EntryListLayoutTests
             .Should().OnlyContain(tip => tip.Contains("Doppelklick"), "the gesture is invisible otherwise");
     }
 
+    [Fact]
+    public void Every_entry_row_exists_so_the_double_click_measures_them_all()
+    {
+        // The fit measures the rows where they live; a virtualising list builds only the
+        // visible ones, and a long title further down would stay trimmed.
+        ((string?)this.listBox.Attribute("VirtualizingPanel.IsVirtualizing")).Should().Be("False");
+    }
+
     private XElement RowTemplate() =>
         this.listBox.Element(Wpf + "ListBox.ItemTemplate")!.Element(Wpf + "DataTemplate")!;
 

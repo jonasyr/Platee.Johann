@@ -152,16 +152,16 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Like double-clicking a column border in Excel: the column takes the width of its widest
-    /// content — every list row (not only the realised ones; the list virtualises), the group
+    /// content — every list row, the group
     /// headers, and the rest of the pane (header bar, the "Im Eintrag anzeigen" ticks). The
     /// space comes from the detail view, which keeps <see cref="DetailMinWidth"/>.
     /// </summary>
     private void FitColumnToContent(ColumnDefinition column, Panel pane, ListBox list)
     {
-        var rows = list.Items.Cast<object>().Select(item => MeasureRow(list, item))
-            .Concat(MeasureGroupHeaders(list))
-            .DefaultIfEmpty(0)
-            .Max();
+        // The rows are measured where they live — with their bindings, fonts and styles. A
+        // detached copy of a row measured without its bound title and came out far too narrow.
+        // All rows exist: the entry list does not virtualise, and a grouped list never does.
+        var rows = FindDescendant<ItemsPresenter>(list) is { } presenter ? MeasureUnconstrained(presenter) : 0;
         var rest = pane.Children.OfType<FrameworkElement>()
             .Where(child => !ReferenceEquals(child, list) && child.Visibility == Visibility.Visible)
             .Select(MeasureUnconstrained)
@@ -169,10 +169,11 @@ public partial class MainWindow : Window
             .Max();
 
         // Measuring live elements unconstrained leaves them with the wrong desired size until
-        // the pane is measured again.
+        // they are measured again.
+        list.InvalidateMeasure();
         pane.InvalidateMeasure();
 
-        var widest = Math.Max(rows + ListChrome(list), rest);
+        var widest = Math.Max(rows > 0 ? rows + ListChrome(list) : 0, rest);
         var max = column.ActualWidth + this.DetailColumn.ActualWidth - DetailMinWidth;
         var width = ColumnAutoFit.Width(widest, chrome: 0, column.MinWidth, max);
         if (width is not null)
@@ -181,52 +182,10 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Builds a detached row with the list's own container style and template and measures it
-    /// untrimmed. Text properties are copied, since a detached element inherits nothing.
-    /// </summary>
-    private static double MeasureRow(ListBox list, object item)
-    {
-        var row = new ListBoxItem
-        {
-            Style = list.ItemContainerStyle,
-            Content = item,
-            ContentTemplate = list.ItemTemplate,
-            DataContext = item,
-        };
-        CopyTextProperties(list, row);
-        return MeasureUnconstrained(row);
-    }
-
-    private static IEnumerable<double> MeasureGroupHeaders(ListBox list)
-    {
-        var template = list.GroupStyle.FirstOrDefault()?.HeaderTemplate;
-        if (template is null || list.Items.Groups is null)
-        {
-            yield break;
-        }
-
-        foreach (var group in list.Items.Groups)
-        {
-            var header = new ContentControl { Content = group, ContentTemplate = template };
-            CopyTextProperties(list, header);
-            yield return MeasureUnconstrained(header);
-        }
-    }
-
     private static double MeasureUnconstrained(FrameworkElement element)
     {
         element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         return element.DesiredSize.Width + element.Margin.Left + element.Margin.Right;
-    }
-
-    private static void CopyTextProperties(Control source, Control target)
-    {
-        target.FontFamily = source.FontFamily;
-        target.FontSize = source.FontSize;
-        target.FontStyle = source.FontStyle;
-        target.FontWeight = source.FontWeight;
-        target.FontStretch = source.FontStretch;
     }
 
     /// <summary>The list's own border and padding, plus its vertical scroll bar when shown.</summary>
