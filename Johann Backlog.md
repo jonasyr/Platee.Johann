@@ -69,17 +69,23 @@
 
 ---
 
-## 📌 Aktueller Stand (2026-09-10)
+## 📌 Aktueller Stand (2026-09-23)
 
-**v1.3.3 liegt in `main`, getaggt als `v1.3.3-dev`, ist aber NICHT veröffentlicht.**
-Kein Installer gebaut, kein GitHub-Release — Nutzer laufen weiter auf v1.3.2.
+**v1.5.0 ist fertig entwickelt, aber noch nicht veröffentlicht.** Alles liegt in
+`release/v1.5.0`, der Meilenstein hat keine offenen Issues mehr. Nutzer laufen auf
+**v1.4.0** (ausgeliefert 2026-09-10). Nächster Schritt: Release v1.5.0
+(`build-installer.ps1 -Version 1.5.0`, Johann dabei geschlossen, Auto-Update gegen v1.4.0
+prüfen, dann `release/v1.5.0` → `main` + Tag).
 
-Fertig und gemergt: #50, #51, #52, #53 — eigene Kategorien (persönlich + global),
-Auto/Auf-Knopfdruck pro Abschnitt, Admin-Passwort entfernt, Abschnitts-Sichtbarkeit
-mit Gruppierung, Namensgrabsteine für gelöschte Kategorien. 453 Tests grün.
+Inhalt v1.5.0: Mail-Knöpfe für klassisches und neues Outlook, Einträge löschen mit
+Johann-Papierkorb, Kopiersymbol je Abschnitt, überarbeitete Prompts (−20 % Kosten),
+PDF mit Listen und Fettdruck, ruhigere Eintragsliste (kein Neuladen, Auswahl bleibt),
+Doppelklick auf die Trennlinien passt die Spalte an, Knopf „Neuigkeiten“, einheitliche
+Knöpfe mit geprüften Kontrasten, Aufnahmen über 25 MB verständlich abgelehnt, gescheiterte
+Diktate werden gesichert statt gelöscht. 816 Tests grün. Details: `RELEASE_NOTES.md`.
 
-Der Testplan (`TESTPLAN-v1.3.3.md`) ist bis auf die Rollback-Abschnitte durch;
-zwölf dabei gefundene Fehler wurden behoben.
+Nebenbei behoben: ein Deadlock in den WPF-Tests, der die CI hängen ließ, und die CI
+meldete fehlschlagende Tests bis dahin gar nicht (PR #101).
 
 > [!IMPORTANT]
 > **Source of Truth sind die [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues).**
@@ -107,7 +113,7 @@ beim Speichern aus der Team-Datei.
 
 ## 🔗 GitHub-Issue-Zuordnung
 
-Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues) (Stand: 2026-09-10).
+Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues) (Stand: 2026-09-10 — für alles danach gilt der Release-Plan unten bzw. GitHub).
 
 | Issue | Titel | GH-Status | Backlog-Eintrag |
 | ----- | ----- | --------- | --------------- |
@@ -280,7 +286,8 @@ könnten.
 ~~[#83](https://github.com/jonasyr/Platee.Johann/issues/83) PDF: verschachtelte Listen~~ **erledigt** (PR #86) ·
 ~~[#88](https://github.com/jonasyr/Platee.Johann/issues/88) Codex-Befunde~~ **erledigt** (PR #89) ·
 ~~[#84](https://github.com/jonasyr/Platee.Johann/issues/84) Live-Test der Katalogmodelle flackert~~ **erledigt** (PR #93) ·
-[#77](https://github.com/jonasyr/Platee.Johann/issues/77) Aufnahmen über 25 MB abfangen — PR offen ·
+~~[#77](https://github.com/jonasyr/Platee.Johann/issues/77) Aufnahmen über 25 MB abfangen~~ **erledigt** (PR #105) ·
+~~[#106](https://github.com/jonasyr/Platee.Johann/issues/106) Gescheitertes Diktat sichern statt löschen~~ **erledigt** (PR #108) ·
 ~~[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf~~ **erledigt** (PR #104) ·
 ~~[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen~~ **erledigt** (PR #94)
 
@@ -288,7 +295,9 @@ könnten.
 
 Unabhängig davon: [#103](https://github.com/jonasyr/Platee.Johann/issues/103) `gpt-transcribe`
 mit Kontext (Korrekturliste als `keywords`, `languages`, `prompt`) — aus #77 abgespalten, nur mit
-Messlauf.
+Messlauf. [#107](https://github.com/jonasyr/Platee.Johann/issues/107) Große Aufnahmen verarbeiten
+— erst Sprach-Bitrate senken (Messlauf), sonst an Pausen teilen; gesicherte Diktate erneut
+verarbeiten (passt zu #36).
 
 Reihenfolge zwingend: [#64](https://github.com/jonasyr/Platee.Johann/issues/64) Schema v5
 → [#36](https://github.com/jonasyr/Platee.Johann/issues/36) Diktier-Popup
