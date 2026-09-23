@@ -428,7 +428,18 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 - Install repo hooks with `./scripts/install-hooks.ps1`.
 - Pre-commit runs quick hygiene checks and auto-formats staged C# files via `dotnet-format` (run `dotnet tool restore` once).
-- Pre-push runs `dotnet build` and `dotnet test` with `--no-restore`.
+- Pre-push runs `dotnet build` and `dotnet test` with `--no-restore`. A running Johann (Debug)
+  locks the UI DLLs and makes the push fail — close it first.
+- ⚠ **WPF tests that load XAML must not run in parallel** (`[Collection(WpfXamlCollection.Name)]`,
+  `DisableParallelization`). `XamlReader.Load` on one thread and first-time WPF construction on
+  another deadlock on WPF's schema-context lock vs. a static constructor (`ContentPresenter`).
+  It hung CI for 10+ min about once in 20 runs (PR #101). CI now has `timeout-minutes: 20` and
+  `--blame-hang-timeout 5m`; a local hang is found with
+  `dotnet test --blame-hang-timeout 60s` + `dotnet-dump analyze <dmp> -c "clrstack -all"`.
+- ⚠ **CI only failed on the last command** of the PowerShell step (sonarscanner end) until PR #101
+  — failing tests left it green. Every command in that step now checks `$LASTEXITCODE`.
+- Codex did not react to `@codex review` on PR #99 and #101 (not even 👀) — the trigger was not
+  picked up; it does not depend on our CI.
 
 <!-- Add project-specific notes here. This section is never auto-modified. -->
 
