@@ -403,6 +403,19 @@
                                 ToolTip="Einstellungen öffnen (Strg+,)"
                                 Style="{StaticResource QuietButtonStyle}"
                                 FontSize="12" Padding="6,2"/>
+                        <!-- Release Notes jederzeit (#78). Nach dem Schließen der Notes pulsiert der
+                             Knopf kurz, damit man sieht, wo man sie wiederfindet (MainWindow.xaml.cs). -->
+                        <Button x:Name="ReleaseNotesButton"
+                                Content="Neuigkeiten" Command="{Binding OpenReleaseNotesCommand}"
+                                ToolTip="Neuigkeiten dieser Version anzeigen"
+                                AutomationProperties.Name="Neuigkeiten"
+                                Style="{StaticResource QuietButtonStyle}"
+                                FontSize="12" Padding="6,2" Margin="4,0,0,0"
+                                RenderTransformOrigin="0.5,0.5">
+                            <Button.RenderTransform>
+                                <ScaleTransform/>
+                            </Button.RenderTransform>
+                        </Button>
                         <Button Content="?" Command="{Binding OpenHandbookCommand}"
                                 ToolTip="Handbuch öffnen (F1)"
                                 AutomationProperties.Name="Handbuch"

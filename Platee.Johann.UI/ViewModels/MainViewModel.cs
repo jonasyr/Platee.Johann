@@ -1032,6 +1032,17 @@ public sealed partial class MainViewModel : ObservableObject
             System.Windows.MessageBoxImage.Warning);
     }
 
+    /// <summary>
+    /// Set by the window: shows the release notes and then points at the button that reopens
+    /// them (#78). A callback keeps the view model free of windows in tests, like
+    /// <see cref="ConfirmDeleteEntry"/>.
+    /// </summary>
+    public Action? ShowReleaseNotes { get; set; }
+
+    /// <summary>Opens the release notes at any time, not only after an update (#78).</summary>
+    [RelayCommand]
+    private void OpenReleaseNotes() => this.ShowReleaseNotes?.Invoke();
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>

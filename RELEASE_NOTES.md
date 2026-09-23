@@ -37,6 +37,12 @@
   Stundenzettel, Analog und E-Mail fehlten bisher, und ausgeblendete Abschnitte wurden
   trotzdem mitkopiert. Die Reihenfolge entspricht nun der Detailansicht.
 
+**Diese Neuigkeiten jederzeit wiederfinden.**
+
+- Oben rechts neben „?“ öffnet der Knopf **„Neuigkeiten“** diese Übersicht jederzeit – nicht
+  mehr nur einmal nach einem Update. Beim Schließen pulsiert er kurz, damit Sie sehen, wo
+  Sie sie wiederfinden.
+
 **Ruhigere Liste und Knöpfe.**
 
 - Sortieren, „Als erledigt markieren“ und der Filter „Nur unerledigte“ laden die Liste
