@@ -37,6 +37,12 @@
   Stundenzettel, Analog und E-Mail fehlten bisher, und ausgeblendete Abschnitte wurden
   trotzdem mitkopiert. Die Reihenfolge entspricht nun der Detailansicht.
 
+**Kein Diktat geht mehr verloren.**
+
+- Scheitert die Verarbeitung eines Diktats aus dem Knopf „🎙 Diktieren“ – etwa ohne
+  Internet –, wurde die Aufnahme bisher gelöscht. Jetzt legt Johann sie im Ausgabeordner
+  unter `_Diktate (nicht verarbeitet)` ab und nennt den Pfad in der Fehlermeldung.
+
 **Diese Neuigkeiten jederzeit wiederfinden.**
 
 - Oben rechts neben „?“ öffnet der Knopf **„Neuigkeiten“** diese Übersicht jederzeit – nicht
