@@ -395,13 +395,9 @@ public partial class App : System.Windows.Application
         var currentVersion = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
         if (ReleaseNotesHelper.ShouldShow(persistedSettings.LastSeenReleaseNotesVersion, currentVersion))
         {
-            var markdown = ReleaseNotesHelper.LoadMarkdown(typeof(App).Assembly);
-            if (!string.IsNullOrWhiteSpace(markdown))
-            {
-                var html = ReleaseNotesHelper.RenderToHtml(markdown);
-                var notesWindow = new ReleaseNotesWindow(html) { Owner = mainWindow };
-                notesWindow.ShowDialog();
-            }
+            // Same path as the „Neuigkeiten“ button: afterwards the button pulses, so the first
+            // showing already tells the user where to find the notes again (#78).
+            mainWindow.ShowReleaseNotes();
 
             var updatedSettings = persistedSettings with { LastSeenReleaseNotesVersion = currentVersion };
             persistedSettingsHolder.Update(updatedSettings, persistedSettingsHolder.Prompts);

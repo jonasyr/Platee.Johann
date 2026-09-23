@@ -23,6 +23,50 @@ public partial class MainWindow : Window
         this.InitializeComponent();
         this.viewModel = viewModel;
         this.DataContext = viewModel;
+        viewModel.ShowReleaseNotes = this.ShowReleaseNotes;
+    }
+
+    /// <summary>
+    /// Shows the release notes — after an update at startup, and from the „Neuigkeiten“ button
+    /// (#78). Afterwards the button pulses briefly, so the user sees where to find them again.
+    /// </summary>
+    public void ShowReleaseNotes()
+    {
+        var markdown = ReleaseNotesHelper.LoadMarkdown(typeof(App).Assembly);
+        if (string.IsNullOrWhiteSpace(markdown))
+        {
+            MessageBox.Show(
+                this,
+                "Die Neuigkeiten konnten nicht geladen werden.",
+                "Neuigkeiten",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        new Views.ReleaseNotesWindow(ReleaseNotesHelper.RenderToHtml(markdown)) { Owner = this }.ShowDialog();
+        this.PulseReleaseNotesButton();
+    }
+
+    /// <summary>
+    /// Scales the button up and back twice. The simple variant from #78: a window cannot be
+    /// animated into an element of another window, and a pulse serves the same purpose.
+    /// Skipped when Windows animations are switched off.
+    /// </summary>
+    private void PulseReleaseNotesButton()
+    {
+        if (!SystemParameters.ClientAreaAnimation || this.ReleaseNotesButton.RenderTransform is not ScaleTransform scale)
+        {
+            return;
+        }
+
+        var pulse = new System.Windows.Media.Animation.DoubleAnimation(1.0, 1.2, TimeSpan.FromMilliseconds(220))
+        {
+            AutoReverse = true,
+            RepeatBehavior = new System.Windows.Media.Animation.RepeatBehavior(2),
+        };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, pulse);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, pulse);
     }
 
     protected override async void OnContentRendered(EventArgs e)
