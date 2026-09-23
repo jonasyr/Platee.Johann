@@ -372,8 +372,21 @@ which half was rescued — prompt text is team-owned and survives only for the s
   entries (PR #98), #97 one button template + contrast tests (PR #99, merged without a Codex
   review — Codex never answered), #100 list reconciled instead of reloaded (PR #101), #96 entry list
   no longer scrolls sideways — title trimmed, done tick always visible, row colours from the theme
-  and contrast-tested (`EntryListLayoutTests`). Open in v1.5.0: #78, #77 (25-MB check; keywords and
-  languages need a measurement run), then the release.
+  and contrast-tested (`EntryListLayoutTests`), plus double-click on either column divider fits the
+  column to its widest content (PR #102); #78 „Neuigkeiten“ button, pulses after the notes close
+  (PR #104); #77 cut down to the 25-MB check (`AudioUploadLimit`) — keywords/languages/prompt moved
+  to #103 (v1.6.0, needs a measurement run). Then the release.
+
+- **Column auto-fit (#96):** measure the rows **where they live** (`ItemsPresenter` of the real
+  list, unconstrained), never a detached copy of a row — that one measured without its bound title.
+  The chrome between column edge and rows is **measured** (column width − presenter width): the
+  ListBox template pads rows by a fixed 1 px no property shows, and 2 px short trimmed the title
+  again. Both mistakes were found only by a diagnostic log in the running window — a replica in a
+  real `Window` (STA thread, resources inlined into the parsed XAML, **no `Application` object**)
+  is the way to reproduce WPF layout in a test.
+- ⚠ **In-app dictation deletes its temp recording on any processing failure**
+  (`MainViewModel.StopDictation`, `finally`) — a failed dictation is lost. Watch-folder files stay
+  in place. Found during #77.
 
 - **v1.4.0** (2026-09-10, released): the first release since v1.3.2. Renumbered from the
   unreleased v1.3.3 under the new rule — minor for anything users see, patch for developer
