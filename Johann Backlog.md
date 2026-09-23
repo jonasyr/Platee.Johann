@@ -273,17 +273,22 @@ könnten.
 ~~[#56](https://github.com/jonasyr/Platee.Johann/issues/56) Kopiersymbol je Abschnitt~~ **erledigt** (PR #95) ·
 ~~[#55](https://github.com/jonasyr/Platee.Johann/issues/55) Einträge löschen~~ **erledigt** (PR #98) ·
 ~~[#97](https://github.com/jonasyr/Platee.Johann/issues/97) Knöpfe ohne WPF-Hellblau, Kontraste~~ **erledigt** (PR #99) ·
-[#100](https://github.com/jonasyr/Platee.Johann/issues/100) Liste abgleichen statt neu laden — PR #101, wartet auf Codex ·
+~~[#100](https://github.com/jonasyr/Platee.Johann/issues/100) Liste abgleichen statt neu laden~~ **erledigt** (PR #101, inkl. WPF-Test-Deadlock + CI-Härtung) ·
+~~[#96](https://github.com/jonasyr/Platee.Johann/issues/96) Eintragsliste abgeschnitten~~ **erledigt** (PR #102, inkl. Doppelklick auf die Trennlinien) ·
 ~~[#71](https://github.com/jonasyr/Platee.Johann/issues/71) Modell in den Einstellungen wählbar~~ **erledigt** ·
 ~~[#73](https://github.com/jonasyr/Platee.Johann/issues/73) Prompts für GPT-5.6 überarbeiten~~ **erledigt** (PR #85, #91) ·
 ~~[#83](https://github.com/jonasyr/Platee.Johann/issues/83) PDF: verschachtelte Listen~~ **erledigt** (PR #86) ·
 ~~[#88](https://github.com/jonasyr/Platee.Johann/issues/88) Codex-Befunde~~ **erledigt** (PR #89) ·
 ~~[#84](https://github.com/jonasyr/Platee.Johann/issues/84) Live-Test der Katalogmodelle flackert~~ **erledigt** (PR #93) ·
-[#77](https://github.com/jonasyr/Platee.Johann/issues/77) `gpt-transcribe` besser ausnutzen ·
-[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf ·
+[#77](https://github.com/jonasyr/Platee.Johann/issues/77) Aufnahmen über 25 MB abfangen — PR offen ·
+~~[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf~~ **erledigt** (PR #104) ·
 ~~[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen~~ **erledigt** (PR #94)
 
 ### v1.6.0 — Diktieren
+
+Unabhängig davon: [#103](https://github.com/jonasyr/Platee.Johann/issues/103) `gpt-transcribe`
+mit Kontext (Korrekturliste als `keywords`, `languages`, `prompt`) — aus #77 abgespalten, nur mit
+Messlauf.
 
 Reihenfolge zwingend: [#64](https://github.com/jonasyr/Platee.Johann/issues/64) Schema v5
 → [#36](https://github.com/jonasyr/Platee.Johann/issues/36) Diktier-Popup
