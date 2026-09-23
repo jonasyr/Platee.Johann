@@ -11,6 +11,7 @@ using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Entities;
 using Platee.Johann.Domain.Enums;
+using Platee.Johann.UI.Helpers;
 using Platee.Johann.UI.Views;
 
 public sealed partial class MainViewModel : ObservableObject
@@ -944,15 +945,17 @@ public sealed partial class MainViewModel : ObservableObject
             var entry = await this.processor.ProcessAudioAsync(tempPath, today, progress, CancellationToken.None);
             await this.RefreshAfterEntryAsync(entry);
             this.CompleteProcessLog(logItem, "Fertig");
+
+            // Only after success: the recording has become an entry. On failure it was
+            // deleted here as well and the dictation was lost (#106).
+            try { File.Delete(tempPath); } catch { }
         }
         catch (Exception ex)
         {
-            this.ErrorMessage = $"Diktieraufnahme: Fehler – {ex.Message}";
-            this.CompleteProcessLog(logItem, $"Fehler: {ex.Message}");
-        }
-        finally
-        {
-            try { File.Delete(tempPath); } catch { }
+            var kept = DictationRescue.Save(tempPath, this.outputRoot, DateTime.Now);
+            var where = kept is null ? string.Empty : $" Die Aufnahme ist gesichert unter: {kept}";
+            this.ErrorMessage = $"Diktieraufnahme: Fehler – {ex.Message}{where}";
+            this.CompleteProcessLog(logItem, $"Fehler: {ex.Message}{where}");
         }
     }
 

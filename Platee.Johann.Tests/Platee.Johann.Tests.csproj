@@ -54,6 +54,7 @@
     <Compile Include="..\Platee.Johann.UI\ViewModels\ProcessLogItem.cs" Link="ViewModels/ProcessLogItem.cs" />
     <Compile Include="..\Platee.Johann.UI\Helpers\ReleaseNotesHelper.cs" Link="Helpers/ReleaseNotesHelper.cs" />
     <Compile Include="..\Platee.Johann.UI\Helpers\ColumnAutoFit.cs" Link="Helpers/ColumnAutoFit.cs" />
+    <Compile Include="..\Platee.Johann.UI\Helpers\DictationRescue.cs" Link="Helpers/DictationRescue.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\MainViewModel.cs" Link="ViewModels/MainViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\ToastsViewModel.cs" Link="ViewModels/ToastsViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\SortMode.cs" Link="ViewModels/SortMode.cs" />
