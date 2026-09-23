@@ -1,5 +1,7 @@
 namespace Platee.Johann.UI.Helpers;
 
+using System.IO;
+
 /// <summary>
 /// Keeps a dictation whose processing failed (#106). Until v1.5.0 the temporary recording was
 /// deleted on every failure — no network, a server error, a file over 25 MB — and the
