@@ -70,6 +70,11 @@
     <SolidColorBrush x:Key="ListItemHoverBgBrush" Color="#F0F0F0"/>
     <SolidColorBrush x:Key="ListItemSelectedBgBrush" Color="#FDF1F0"/>
     <SolidColorBrush x:Key="ListItemSelectedBarBrush" Color="#C0392B"/>
+    <!-- Zeilen der Eintragsliste (#96). Die Nummer war #AAAAAA (2,3 : 1), Typ · Dauer #888
+         (3,5 : 1), der Haken #27AE60 (2,9 : 1) - alle unter WCAG AA. -->
+    <SolidColorBrush x:Key="ListItemMetaFgBrush" Color="#666666"/>
+    <SolidColorBrush x:Key="ListItemProjectFgBrush" Color="#C0392B"/>
+    <SolidColorBrush x:Key="ListItemDoneFgBrush" Color="#196F3D"/>
 
     <!-- ── Fokusrahmen: nur bei Tastaturbedienung, nicht nach jedem Mausklick ── -->
     <Style x:Key="FocusVisual">

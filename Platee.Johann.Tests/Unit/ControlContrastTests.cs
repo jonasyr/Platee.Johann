@@ -51,6 +51,14 @@ public sealed class ControlContrastTests
         // Listenzeilen
         { "ListItemFgBrush", "ListItemHoverBgBrush", Text },
         { "ListItemFgBrush", "ListItemSelectedBgBrush", Text },
+
+        // Zeilen der Eintragsliste (#96): Nummer, Projekt, Typ · Dauer und der Erledigt-Haken
+        { "ListItemMetaFgBrush", "ListItemHoverBgBrush", Text },
+        { "ListItemMetaFgBrush", "ListItemSelectedBgBrush", Text },
+        { "ListItemProjectFgBrush", "ListItemHoverBgBrush", Text },
+        { "ListItemProjectFgBrush", "ListItemSelectedBgBrush", Text },
+        { "ListItemDoneFgBrush", "ListItemHoverBgBrush", Text },
+        { "ListItemDoneFgBrush", "ListItemSelectedBgBrush", Text },
     };
 
     public static TheoryData<string, double> OnEverySurface() => new()
@@ -64,6 +72,9 @@ public sealed class ControlContrastTests
         { "LinkHoverFgBrush", Text },
         { "FocusRingBrush", NonText },
         { "ListItemSelectedBarBrush", NonText },
+        { "ListItemMetaFgBrush", Text },
+        { "ListItemProjectFgBrush", Text },
+        { "ListItemDoneFgBrush", Text },
     };
 
     [Theory]

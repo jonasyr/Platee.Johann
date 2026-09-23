@@ -526,15 +526,15 @@
         <!-- 3-pane layout -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="196" MinWidth="150"/>
+                <ColumnDefinition x:Name="DateColumn" Width="196" MinWidth="150"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="280" MinWidth="200"/>
+                <ColumnDefinition x:Name="EntryColumn" Width="280" MinWidth="200"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="DetailColumn" Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- === LEFT: Date list === -->
-            <DockPanel Grid.Column="0" Background="#FAFAFA">
+            <DockPanel x:Name="DatePane" Grid.Column="0" Background="#FAFAFA">
                 <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
                     <TextBlock Text="Datum" Foreground="White" FontWeight="SemiBold"/>
                 </Border>
@@ -646,7 +646,8 @@
                         <TextBlock Text="{Binding HiddenDatesLabel}" TextWrapping="Wrap"/>
                     </Button>
                 </Border>
-                <ListBox ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
+                <ListBox x:Name="DateListBox"
+                         ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
                          SelectedItem="{Binding SelectedDateItem}"
                          BorderThickness="0" Background="Transparent"
                          ItemContainerStyle="{StaticResource DateListBoxItemStyle}">
@@ -718,11 +719,14 @@
                 </ListBox>
             </DockPanel>
 
+            <!-- Doppelklick passt die Spalte links an ihren breitesten Inhalt an, wie in Excel (#96). -->
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
-                          Background="#E0E0E0"/>
+                          Background="#E0E0E0"
+                          ToolTip="Ziehen zum Verbreitern – Doppelklick: an den Inhalt anpassen"
+                          MouseDoubleClick="DateSplitter_MouseDoubleClick"/>
 
             <!-- === CENTER: Entry list === -->
-            <DockPanel Grid.Column="2" Background="White">
+            <DockPanel x:Name="EntryPane" Grid.Column="2" Background="White">
                 <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
                     <TextBlock Text="{Binding SelectedDateDisplay}" Foreground="White" FontWeight="SemiBold"/>
                 </Border>
@@ -858,6 +862,8 @@
                          SelectedItem="{Binding SelectedEntry}"
                          IsEnabled="{Binding IsDeletingEntry, Converter={StaticResource InverseBool}}"
                          BorderThickness="0" Background="Transparent"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="False"
                          PreviewMouseLeftButtonDown="EntryListBox_PreviewMouseLeftButtonDown"
                          PreviewMouseMove="EntryListBox_PreviewMouseMove">
                     <!-- Löschen (#55): Entf nur hier, nicht fensterweit — sonst löschte die Taste
@@ -895,20 +901,25 @@
                         <DataTemplate>
                             <StackPanel Margin="4,2">
                                 <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" Text="✓" Foreground="#27AE60" FontSize="12"
-                                               FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"
+                                    <!-- Rechts angedockt; sichtbar bleibt der Haken nur, weil die Liste
+                                         nicht waagerecht scrollt und der Titel sonst gekürzt wird (#96). -->
+                                    <TextBlock DockPanel.Dock="Right" Text="✓" Foreground="{StaticResource ListItemDoneFgBrush}"
+                                               FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"
+                                               ToolTip="Erledigt"
                                                Visibility="{Binding IsDone, Converter={StaticResource BoolToVis}}"/>
-                                    <TextBlock TextTrimming="CharacterEllipsis" FontSize="13">
+                                    <TextBlock TextTrimming="CharacterEllipsis" FontSize="13"
+                                               ToolTip="{Binding Title, Mode=OneWay}">
                                         <Run Text="{Binding SequenceNumber, StringFormat='{}{0:D3}', Mode=OneWay}"
-                                             FontStyle="Italic" Foreground="#AAAAAA"/>
+                                             FontStyle="Italic" Foreground="{StaticResource ListItemMetaFgBrush}"/>
                                         <Run Text=" "/>
                                         <Run Text="{Binding ProjectName, Mode=OneWay}"
-                                             FontWeight="Bold" Foreground="#C0392B"/>
+                                             FontWeight="Bold" Foreground="{StaticResource ListItemProjectFgBrush}"/>
                                         <Run Text=" — "/>
                                         <Run Text="{Binding Title, Mode=OneWay}"/>
                                     </TextBlock>
                                 </DockPanel>
-                                <TextBlock FontSize="10" Foreground="#888">
+                                <TextBlock FontSize="10" Foreground="{StaticResource ListItemMetaFgBrush}"
+                                           TextTrimming="CharacterEllipsis">
                                     <Run Text="{Binding TypeBadge, Mode=OneWay}"/>
                                     <Run Text=" · "/>
                                     <Run Text="{Binding FormattedDuration, Mode=OneWay}"/>
@@ -920,7 +931,9 @@
             </DockPanel>
 
             <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
-                          Background="#E0E0E0"/>
+                          Background="#E0E0E0"
+                          ToolTip="Ziehen zum Verbreitern – Doppelklick: an den Inhalt anpassen"
+                          MouseDoubleClick="EntrySplitter_MouseDoubleClick"/>
 
             <!-- Toast tray — stacked top-right over the right pane -->
             <ItemsControl Grid.Column="4" Panel.ZIndex="8"

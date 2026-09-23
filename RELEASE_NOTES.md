@@ -46,6 +46,12 @@
 - Ist „Nur unerledigte“ aktiv, verschwindet ein erledigter Eintrag aus der Liste, und der
   nächste rückt an seine Stelle.
 - Ein neues Diktat erscheint an seinem Platz in der gewählten Sortierung statt unten.
+- Die Eintragsliste passt sich der Spaltenbreite an, statt zur Seite zu scrollen: lange
+  Titel enden mit „…“ (der volle Titel erscheint beim Darüberfahren), und der grüne Haken
+  erledigter Einträge ist immer zu sehen. Nummer, Typ und Dauer sind besser lesbar.
+- **Doppelklick auf eine Trennlinie** passt die Spalte links davon an ihren breitesten
+  Inhalt an – wie in Excel. So lassen sich lange Titel mit einem Klick ganz lesen, und die
+  Tagesspalte wird so breit wie nötig.
 - Knöpfe zeigen beim Überfahren und Klicken keine hellblaue Windows-Färbung mehr, sind
   kontrastreicher und zeigen bei Bedienung mit der Tastatur deutlich, wo der Fokus steht.
 
