@@ -247,13 +247,15 @@ public sealed class EntryListReconcileTests
         var slow = this.MakeSlow(Older);
         var loading = TrackLoading(vm);
 
-        vm.SelectedDateItem = vm.AvailableDates.Single(d => d.Date == Older);
+        await OutsideTheTestContext(() =>
+        {
+            vm.SelectedDateItem = vm.AvailableDates.Single(d => d.Date == Older);
 
-        vm.Entries.Should().HaveCount(3, "nothing is cleared before the new day is read");
-        vm.SelectedEntry.Should().NotBeNull();
+            vm.Entries.Should().HaveCount(3, "nothing is cleared before the new day is read");
+            vm.SelectedEntry.Should().NotBeNull();
 
-        slow.SetResult(this.store[Older].ToList());
-        await Settle();
+            slow.SetResult(this.store[Older].ToList());
+        });
 
         vm.Entries.Select(r => r.Entry.CreatedAt.Date).Should().OnlyContain(d => d == Older.ToDateTime(TimeOnly.MinValue));
         vm.SelectedEntry.Should().BeSameAs(vm.Entries[0]);
@@ -266,12 +268,19 @@ public sealed class EntryListReconcileTests
         this.Seed(Older, 2);
         var vm = await this.CreateVmAsync(Newer, 3);
         var slow = this.MakeSlow(Older);
+        var stale = false;
+        vm.Entries.CollectionChanged += (_, _) =>
+            stale |= vm.Entries.Any(r => r.Entry.CreatedAt.Date == Older.ToDateTime(TimeOnly.MinValue));
 
-        vm.SelectedDateItem = vm.AvailableDates.Single(d => d.Date == Older);
-        vm.SelectedDateItem = vm.AvailableDates.Single(d => d.Date == Newer);
-        await Settle();
-        slow.SetResult(this.store[Older].ToList());
-        await Settle();
+        await OutsideTheTestContext(() =>
+        {
+            vm.SelectedDateItem = vm.AvailableDates.Single(d => d.Date == Older);
+            vm.SelectedDateItem = vm.AvailableDates.Single(d => d.Date == Newer);
+            slow.SetResult(this.store[Older].ToList()); // the older load finishes here, inline
+        });
+
+        slow.Task.IsCompleted.Should().BeTrue();
+        stale.Should().BeFalse("the older load must not touch the list, not even briefly");
 
         vm.SelectedDateItem!.Date.Should().Be(Newer);
         vm.Entries.Should().HaveCount(3);
@@ -301,7 +310,8 @@ public sealed class EntryListReconcileTests
 
     private TaskCompletionSource<IReadOnlyList<Entry>> MakeSlow(DateOnly date)
     {
-        // Continuations run inline: when SetResult returns, the load has finished — no timing.
+        // No RunContinuationsAsynchronously: inside OutsideTheTestContext the load's continuation
+        // runs inline, so when SetResult returns the load has finished — no timing involved.
         var slow = new TaskCompletionSource<IReadOnlyList<Entry>>();
         this.slowDays[date] = slow;
         return slow;
@@ -345,6 +355,13 @@ public sealed class EntryListReconcileTests
 
     /// <summary>Fire-and-forget continuations (filter, day switch) run on the pool; let them land.</summary>
     private static Task Settle() => Task.Delay(50);
+
+    /// <summary>
+    /// Runs <paramref name="act"/> without xUnit's SynchronizationContext. Under it, a load's
+    /// continuation is queued instead of running inside <c>SetResult</c>, and the test would
+    /// again depend on how long it waits.
+    /// </summary>
+    private static Task OutsideTheTestContext(Action act) => Task.Run(act);
 
     private static Entry MakeEntry(DateOnly date, int seq) => new()
     {
