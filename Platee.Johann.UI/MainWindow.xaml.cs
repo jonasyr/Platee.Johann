@@ -161,7 +161,13 @@ public partial class MainWindow : Window
         // The rows are measured where they live — with their bindings, fonts and styles. A
         // detached copy of a row measured without its bound title and came out far too narrow.
         // All rows exist: the entry list does not virtualise, and a grouped list never does.
-        var rows = FindDescendant<ItemsPresenter>(list) is { } presenter ? MeasureUnconstrained(presenter) : 0;
+        var presenter = FindDescendant<ItemsPresenter>(list);
+
+        // Everything between the column edge and the rows, measured rather than added up: the
+        // ListBox template pads its rows by a fixed 1 px that no property shows, and those 2 px
+        // were enough to trim the title again (#96). A visible scroll bar is included as well.
+        var chrome = presenter is null ? 0 : column.ActualWidth - presenter.ActualWidth;
+        var rows = presenter is null ? 0 : MeasureUnconstrained(presenter);
         var rest = pane.Children.OfType<FrameworkElement>()
             .Where(child => !ReferenceEquals(child, list) && child.Visibility == Visibility.Visible)
             .Select(MeasureUnconstrained)
@@ -173,7 +179,7 @@ public partial class MainWindow : Window
         list.InvalidateMeasure();
         pane.InvalidateMeasure();
 
-        var widest = Math.Max(rows > 0 ? rows + ListChrome(list) : 0, rest);
+        var widest = Math.Max(rows > 0 ? rows + chrome : 0, rest);
         var max = column.ActualWidth + this.DetailColumn.ActualWidth - DetailMinWidth;
         var width = ColumnAutoFit.Width(widest, chrome: 0, column.MinWidth, max);
         if (width is not null)
@@ -186,20 +192,6 @@ public partial class MainWindow : Window
     {
         element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         return element.DesiredSize.Width + element.Margin.Left + element.Margin.Right;
-    }
-
-    /// <summary>The list's own border and padding, plus its vertical scroll bar when shown.</summary>
-    private static double ListChrome(ListBox list)
-    {
-        var chrome = list.BorderThickness.Left + list.BorderThickness.Right
-                     + list.Padding.Left + list.Padding.Right;
-        var scrollViewer = FindDescendant<ScrollViewer>(list);
-        if (scrollViewer?.ComputedVerticalScrollBarVisibility == Visibility.Visible)
-        {
-            chrome += SystemParameters.VerticalScrollBarWidth;
-        }
-
-        return chrome;
     }
 
     private static T? FindDescendant<T>(DependencyObject parent)
