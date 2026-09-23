@@ -370,8 +370,10 @@ which half was rescued — prompt text is team-owned and survives only for the s
   announced in the mail, list base level, retry of failed calls, round binding, raw markdown in
   copies). **Since then (2026-09-22/23):** #84 (PR #93), #79 (PR #94), #56 (PR #95), #55 deleting
   entries (PR #98), #97 one button template + contrast tests (PR #99, merged without a Codex
-  review — Codex never answered), #100 list reconciled instead of reloaded (PR #101, open).
-  Open in v1.5.0: #77, #78, then the release.
+  review — Codex never answered), #100 list reconciled instead of reloaded (PR #101), #96 entry list
+  no longer scrolls sideways — title trimmed, done tick always visible, row colours from the theme
+  and contrast-tested (`EntryListLayoutTests`). Open in v1.5.0: #78, #77 (25-MB check; keywords and
+  languages need a measurement run), then the release.
 
 - **v1.4.0** (2026-09-10, released): the first release since v1.3.2. Renumbered from the
   unreleased v1.3.3 under the new rule — minor for anything users see, patch for developer
