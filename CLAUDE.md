@@ -363,12 +363,15 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 ## Git Insights
 
-- **v1.5.0 in progress** (`release/v1.5.0`, 2026-09-21): #73 prompts for GPT-5.6 (PR #85) and the
+- **v1.5.0 in progress** (`release/v1.5.0`, 2026-09-23): #73 prompts for GPT-5.6 (PR #85) and the
   central markdown rule (PR #91); #83 nested lists in the PDF (PR #86); #57 mail buttons for classic
   and new Outlook (PR #87, #90); #88 Codex findings (PR #89). **Codex reviews every PR** — read its
   inline comments before merging; it found real bugs in five of six PRs that day (missing PDF
   announced in the mail, list base level, retry of failed calls, round binding, raw markdown in
-  copies). Open in v1.5.0: #55, #56, #77, #78, #79, #84 (flaky live model test).
+  copies). **Since then (2026-09-22/23):** #84 (PR #93), #79 (PR #94), #56 (PR #95), #55 deleting
+  entries (PR #98), #97 one button template + contrast tests (PR #99, merged without a Codex
+  review — Codex never answered), #100 list reconciled instead of reloaded (PR #101, open).
+  Open in v1.5.0: #77, #78, then the release.
 
 - **v1.4.0** (2026-09-10, released): the first release since v1.3.2. Renumbered from the
   unreleased v1.3.3 under the new rule — minor for anything users see, patch for developer
