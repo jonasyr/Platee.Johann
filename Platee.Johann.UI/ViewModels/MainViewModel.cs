@@ -27,6 +27,10 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IReadOnlyList<StartupPathIssue> startupPathIssues;
     private readonly List<DateItemViewModel> allDates = [];
     private bool suppressDateSelectionChanged;
+
+    // Numbers every load of the entry list; only the newest may write it (#100). Loads are
+    // started without awaiting, and an older, slower one finishing last showed stale rows.
+    private int loadGeneration;
     private SettingsViewModel? settingsViewModel;
     private SettingsView? settingsWindow;
 
@@ -48,7 +52,8 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private EntryDetailViewModel detail;
 
-    // Status — used for progress messages; IsLoading only for initial data loads
+    // Status — used for progress messages; IsLoading only at startup (InitializeAsync), never
+    // for sorting, "erledigt", the filter or a day switch (#100)
     [ObservableProperty]
     private bool isLoading;
     [ObservableProperty]
@@ -210,16 +215,7 @@ public sealed partial class MainViewModel : ObservableObject
     private async Task RemoveDeletedRowAsync(EntryRowViewModel row)
     {
         var date = DateOnly.FromDateTime(row.Entry.CreatedAt.DateTime);
-        var index = this.Entries.IndexOf(row);
-        var wasSelected = ReferenceEquals(row, this.SelectedEntry);
-
-        this.Entries.Remove(row);
-        if (wasSelected)
-        {
-            this.SelectedEntry = this.Entries.Count == 0
-                ? null
-                : this.Entries[Math.Min(index, this.Entries.Count - 1)];
-        }
+        this.RemoveRow(row);
 
         // Ask the store, not the list: with "Nur unerledigte" the list may be empty while
         // done entries of the day remain.
@@ -377,11 +373,7 @@ public sealed partial class MainViewModel : ObservableObject
                 runtimeSettingsHolder.Prompts, runtimeSettingsHolder.Current.SectionModes),
             mailComposer: mailComposer,
             taskMailIntro: () => persistedSettingsHolder.Current.AufgabenMailText);
-        this.detail.EntryStatusChanged += entry =>
-        {
-            _ = this.LoadEntriesAsync(this.SelectedDateItem?.Date);
-            _ = this.RecalculatePendingCountsAsync();
-        };
+        this.detail.EntryStatusChanged += this.OnEntryStatusChanged;
 
         // Swap the row's entry in place rather than reloading the list: LoadEntriesAsync
         // resets the selection to the first row, which would yank the user away from the
@@ -498,43 +490,182 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(SortByProjectLabel));
     }
 
+    /// <summary>
+    /// Reads a day and reconciles the list with it (#100): nothing is cleared first, rows of
+    /// entries still shown are kept, and so is the selection if it stays visible. No loading
+    /// overlay — the day files are local, and the old list stays until the new one is in.
+    /// </summary>
     private async Task LoadEntriesAsync(DateOnly? date)
     {
-        this.Entries.Clear();
-        this.SelectedEntry = null;
-
+        var generation = ++this.loadGeneration;
         if (date is null)
+        {
+            this.ReconcileEntries([]);
+            return;
+        }
+
+        IReadOnlyList<Entry> entries;
+        try
+        {
+            entries = await this.repository.GetEntriesForDateAsync(date.Value);
+        }
+        catch (Exception ex)
+        {
+            if (generation == this.loadGeneration)
+            {
+                this.ErrorMessage = $"Fehler beim Laden: {ex.Message}";
+            }
+
+            return;
+        }
+
+        // A later load (another day, the filter switched again) owns the list now.
+        if (generation != this.loadGeneration)
         {
             return;
         }
 
-        this.IsLoading = true;
-        try
-        {
-            var entries = await this.repository.GetEntriesForDateAsync(date.Value);
-            IEnumerable<Entry> filtered = this.ShowOnlyPending
-                ? entries.Where(e => !e.IsDone)
-                : entries;
-            var sorted = this.ApplySort(filtered);
-            foreach (var entry in sorted)
-            {
-                this.Entries.Add(new EntryRowViewModel(entry));
-            }
+        // The day was just read in full, so its counts come for free.
+        this.allDates.FirstOrDefault(d => d.Date == date.Value)
+            ?.UpdateCounts(entries.Count, entries.Count(e => !e.IsDone));
+        this.RefreshAvailableDatesView();
+        this.ReconcileEntries(this.ApplySort(this.ApplyFilter(entries)).ToList());
+    }
 
-            if (this.Entries.Count > 0)
-            {
-                this.SelectedEntry = this.Entries[0];
-            }
+    private IEnumerable<Entry> ApplyFilter(IEnumerable<Entry> entries) =>
+        this.ShowOnlyPending ? entries.Where(e => !e.IsDone) : entries;
 
-            await this.RecalculatePendingCountsAsync();
-        }
-        catch (Exception ex)
+    /// <summary>
+    /// Makes <see cref="Entries"/> show <paramref name="target"/> in that order, reusing the row
+    /// of every entry already shown. A reused row stays the same object, so the selection and
+    /// with it the detail view and the section ticks are left alone; a new row object would
+    /// re-run <see cref="OnSelectedEntryChanged"/> and reset them.
+    /// </summary>
+    private void ReconcileEntries(IReadOnlyList<Entry> target)
+    {
+        var existing = new Dictionary<string, EntryRowViewModel>();
+        foreach (var row in this.Entries)
         {
-            this.ErrorMessage = $"Fehler beim Laden: {ex.Message}";
+            existing.TryAdd(row.JobId, row);
         }
-        finally
+
+        var rows = new List<EntryRowViewModel>(target.Count);
+        foreach (var entry in target)
         {
-            this.IsLoading = false;
+            // Remove as it is taken, so a duplicate JobId cannot put one row in twice.
+            if (existing.Remove(entry.JobId, out var row))
+            {
+                if (!ReferenceEquals(row.Entry, entry))
+                {
+                    row.UpdateEntry(entry);
+                }
+
+                rows.Add(row);
+            }
+            else
+            {
+                rows.Add(new EntryRowViewModel(entry));
+            }
+        }
+
+        this.ArrangeRows(rows);
+    }
+
+    /// <summary>Sorts the rows already shown, in memory: no disk access, selection kept.</summary>
+    private void SortRows()
+    {
+        var byJobId = new Dictionary<string, EntryRowViewModel>();
+        foreach (var row in this.Entries)
+        {
+            byJobId.TryAdd(row.JobId, row);
+        }
+
+        this.ArrangeRows(this.ApplySort(byJobId.Values.Select(r => r.Entry)).Select(e => byJobId[e.JobId]).ToList());
+    }
+
+    /// <summary>
+    /// Moves, inserts and removes rows until <see cref="Entries"/> equals <paramref name="rows"/>.
+    /// A selection that is no longer among them moves to the first row before the old one
+    /// goes, so the detail view never passes through "nothing selected".
+    /// </summary>
+    private void ArrangeRows(IReadOnlyList<EntryRowViewModel> rows)
+    {
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var current = this.Entries.IndexOf(rows[i]);
+            if (current < 0)
+            {
+                this.Entries.Insert(i, rows[i]);
+            }
+            else if (current != i)
+            {
+                this.Entries.Move(current, i);
+            }
+        }
+
+        if (this.SelectedEntry is null || !rows.Contains(this.SelectedEntry))
+        {
+            this.SelectedEntry = rows.Count > 0 ? rows[0] : null;
+        }
+
+        while (this.Entries.Count > rows.Count)
+        {
+            this.Entries.RemoveAt(this.Entries.Count - 1);
+        }
+    }
+
+    /// <summary>
+    /// Takes one row out of the list. If it was selected, the next row takes its place (the
+    /// previous one at the end of the list) — selected before the row goes, for the same
+    /// reason as in <see cref="ArrangeRows"/>. Shared by deleting and by "erledigt" under
+    /// "Nur unerledigte".
+    /// </summary>
+    private void RemoveRow(EntryRowViewModel row)
+    {
+        var index = this.Entries.IndexOf(row);
+        if (index < 0)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(row, this.SelectedEntry))
+        {
+            this.SelectedEntry = index + 1 < this.Entries.Count ? this.Entries[index + 1]
+                : index > 0 ? this.Entries[index - 1]
+                : null;
+        }
+
+        this.Entries.RemoveAt(index);
+    }
+
+    /// <summary>
+    /// "Als erledigt markieren" / "rückgängig" (#100): the row is updated in place and only the
+    /// day's counts change — no reload, so the selection stays on the entry. Under "Nur
+    /// unerledigte" a now done entry leaves the list and its neighbour is selected.
+    /// </summary>
+    private void OnEntryStatusChanged(Entry updated)
+    {
+        var row = this.Entries.FirstOrDefault(r => r.JobId == updated.JobId);
+
+        // Count only a real change of the row: two overlapping saves both reporting "done"
+        // must not count twice — adjusted, not re-read, the count would never heal.
+        if (row is null || row.IsDone == updated.IsDone)
+        {
+            row?.UpdateEntry(updated);
+            return;
+        }
+
+        row.UpdateEntry(updated);
+        var dateItem = this.allDates.FirstOrDefault(d => d.Date == DateOnly.FromDateTime(updated.CreatedAt.DateTime));
+        if (dateItem is not null)
+        {
+            var pending = dateItem.PendingCount + (updated.IsDone ? -1 : 1);
+            dateItem.UpdateCounts(dateItem.TotalCount, Math.Clamp(pending, 0, dateItem.TotalCount));
+        }
+
+        if (this.ShowOnlyPending && updated.IsDone)
+        {
+            this.RemoveRow(row);
         }
     }
 
@@ -641,7 +772,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         this.OnPropertyChanged(nameof(this.SortByIdLabel));
         this.OnPropertyChanged(nameof(this.SortByProjectLabel));
-        _ = this.LoadEntriesAsync(this.SelectedDateItem?.Date);
+        this.SortRows();
     }
 
     [RelayCommand]
@@ -659,7 +790,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         this.OnPropertyChanged(nameof(this.SortByIdLabel));
         this.OnPropertyChanged(nameof(this.SortByProjectLabel));
-        _ = this.LoadEntriesAsync(this.SelectedDateItem?.Date);
+        this.SortRows();
     }
 
     [RelayCommand]
@@ -926,8 +1057,10 @@ public sealed partial class MainViewModel : ObservableObject
         }
         else if (this.SelectedDateItem?.Date == entryDate)
         {
-            var rowVm = new EntryRowViewModel(entry);
-            this.Entries.Add(rowVm);
+            // Into its place by the current sort (it used to land at the bottom); an entry
+            // already shown (reprocessed) keeps its row.
+            var shown = this.Entries.Select(r => r.Entry).Where(e => e.JobId != entry.JobId).Append(entry);
+            this.ReconcileEntries(this.ApplySort(this.ApplyFilter(shown)).ToList());
         }
         else
         {

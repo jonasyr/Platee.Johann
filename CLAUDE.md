@@ -223,6 +223,18 @@ button next to "Als erledigt markieren" (the list's right edge is usually clippe
 `EntryDeletionLiveTests` replays every deletion against a copy of a real output folder
 (`JOHANN_DELETE_LIVE_SOURCE`).
 
+**Entry list is reconciled, never rebuilt (v1.5.0, #100):** sorting, „erledigt“, the „Nur
+unerledigte“ filter and a day switch no longer clear `MainViewModel.Entries`. `LoadEntriesAsync`
+reads first, then `ReconcileEntries` reuses the row of every JobId still shown (`ArrangeRows`:
+`Move`/`Insert`, the selection moves before stale rows go), so `SelectedEntry` stays the same
+object — a new row object re-runs `OnSelectedEntryChanged`, which resets the section ticks to the
+type defaults and rebuilds the detail view. A `loadGeneration` counter lets only the newest load
+write the list (loads are fire-and-forget; an older, slower one used to win). Sorting is in memory
+(`SortRows`); „erledigt“ updates the row and adjusts the day's count by one only if the row's state
+really changed; under the filter the row leaves via `RemoveRow` (next row, else previous — shared
+with deleting). `IsLoading` is startup only. ⚠ **Never go back to `Entries.Clear()` + new rows**
+for an in-place change.
+
 **Controls and colours (v1.5.0, #97):** `UI/Themes/Controls.xaml` (merged in `App.xaml`) holds every
 brush and one button template (`ButtonChromeTemplate`) with five roles — implicit Standard,
 `PrimaryButtonStyle`, `OutlineButtonStyle`, `QuietButtonStyle`, `LinkButtonStyle` — plus
@@ -351,12 +363,15 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 ## Git Insights
 
-- **v1.5.0 in progress** (`release/v1.5.0`, 2026-09-21): #73 prompts for GPT-5.6 (PR #85) and the
+- **v1.5.0 in progress** (`release/v1.5.0`, 2026-09-23): #73 prompts for GPT-5.6 (PR #85) and the
   central markdown rule (PR #91); #83 nested lists in the PDF (PR #86); #57 mail buttons for classic
   and new Outlook (PR #87, #90); #88 Codex findings (PR #89). **Codex reviews every PR** — read its
   inline comments before merging; it found real bugs in five of six PRs that day (missing PDF
   announced in the mail, list base level, retry of failed calls, round binding, raw markdown in
-  copies). Open in v1.5.0: #55, #56, #77, #78, #79, #84 (flaky live model test).
+  copies). **Since then (2026-09-22/23):** #84 (PR #93), #79 (PR #94), #56 (PR #95), #55 deleting
+  entries (PR #98), #97 one button template + contrast tests (PR #99, merged without a Codex
+  review — Codex never answered), #100 list reconciled instead of reloaded (PR #101, open).
+  Open in v1.5.0: #77, #78, then the release.
 
 - **v1.4.0** (2026-09-10, released): the first release since v1.3.2. Renumbered from the
   unreleased v1.3.3 under the new rule — minor for anything users see, patch for developer
@@ -413,7 +428,18 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 - Install repo hooks with `./scripts/install-hooks.ps1`.
 - Pre-commit runs quick hygiene checks and auto-formats staged C# files via `dotnet-format` (run `dotnet tool restore` once).
-- Pre-push runs `dotnet build` and `dotnet test` with `--no-restore`.
+- Pre-push runs `dotnet build` and `dotnet test` with `--no-restore`. A running Johann (Debug)
+  locks the UI DLLs and makes the push fail — close it first.
+- ⚠ **WPF tests that load XAML must not run in parallel** (`[Collection(WpfXamlCollection.Name)]`,
+  `DisableParallelization`). `XamlReader.Load` on one thread and first-time WPF construction on
+  another deadlock on WPF's schema-context lock vs. a static constructor (`ContentPresenter`).
+  It hung CI for 10+ min about once in 20 runs (PR #101). CI now has `timeout-minutes: 20` and
+  `--blame-hang-timeout 5m`; a local hang is found with
+  `dotnet test --blame-hang-timeout 60s` + `dotnet-dump analyze <dmp> -c "clrstack -all"`.
+- ⚠ **CI only failed on the last command** of the PowerShell step (sonarscanner end) until PR #101
+  — failing tests left it green. Every command in that step now checks `$LASTEXITCODE`.
+- Codex did not react to `@codex review` on PR #99 and #101 (not even 👀) — the trigger was not
+  picked up; it does not depend on our CI.
 
 <!-- Add project-specific notes here. This section is never auto-modified. -->
 

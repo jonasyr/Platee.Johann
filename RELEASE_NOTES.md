@@ -37,6 +37,18 @@
   Stundenzettel, Analog und E-Mail fehlten bisher, und ausgeblendete Abschnitte wurden
   trotzdem mitkopiert. Die Reihenfolge entspricht nun der Detailansicht.
 
+**Ruhigere Liste und Knöpfe.**
+
+- Sortieren, „Als erledigt markieren“ und der Filter „Nur unerledigte“ laden die Liste
+  nicht mehr neu: kein „Lade…“ über dem ganzen Fenster, kein Aufflackern. Der gerade
+  bearbeitete Eintrag bleibt ausgewählt, und die Häkchen unter „Im Eintrag anzeigen“
+  bleiben so, wie Sie sie gesetzt haben.
+- Ist „Nur unerledigte“ aktiv, verschwindet ein erledigter Eintrag aus der Liste, und der
+  nächste rückt an seine Stelle.
+- Ein neues Diktat erscheint an seinem Platz in der gewählten Sortierung statt unten.
+- Knöpfe zeigen beim Überfahren und Klicken keine hellblaue Windows-Färbung mehr, sind
+  kontrastreicher und zeigen bei Bedienung mit der Tastatur deutlich, wo der Fokus steht.
+
 **Sauberes PDF.**
 
 - Verschachtelte Aufzählungen erscheinen im PDF jetzt eingerückt als Liste; vorher standen

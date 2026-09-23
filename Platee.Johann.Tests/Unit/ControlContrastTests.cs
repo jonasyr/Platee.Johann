@@ -9,7 +9,15 @@ using FluentAssertions;
 /// <c>Platee.Johann.UI/Themes/Controls.xaml</c> selbst — wer dort eine Farbe ändert und
 /// damit unter die Grenze fällt, bekommt hier einen roten Test statt eines unlesbaren Knopfs.
 /// Text braucht 4,5 : 1 (WCAG 1.4.3 AA), Rahmen, Symbole und Fokusring 3 : 1 (1.4.11).
+/// <para>
+/// Läuft nie parallel zu anderen Tests: <c>XamlReader.Load</c> hält die Sperre des
+/// WPF-Schemakontexts und wartet dabei auf statische Konstruktoren wie den von
+/// <c>ContentPresenter</c>. Baut ein anderer Test gleichzeitig zum ersten Mal WPF-Objekte
+/// (z. B. <c>MarkdownFlowDocumentConverter</c>), wartet dessen Konstruktor auf dieselbe
+/// Sperre — ein Deadlock, der die CI bis zum Zeitlimit hängen ließ (PR #101).
+/// </para>
 /// </summary>
+[Collection(WpfXamlCollection.Name)]
 public sealed class ControlContrastTests
 {
     private const double Text = 4.5;
