@@ -45,9 +45,9 @@ Outlook-Schritt nur beaufsichtigt · Befunde werden erst nach Freigabe zu Issues
 | `JOHANN_OPENAI_ENDPOINT` | Basis-URL für alle OpenAI-Aufrufe | `OpenAiLlmProvider`, `WhisperTranscriber` (`OpenAIClientOptions.Endpoint`), `OpenAiModelAvailabilityProbe` (`baseAddress`) |
 | `JOHANN_NO_UPDATE_CHECK` | Überspringt die Velopack-Prüfung | `App.CheckForUpdatesAsync` |
 
-Ungesetzt verhält sich Johann exakt wie heute — durch Unit-Tests belegt. Das Auflösen der
-Variablen liegt in einer kleinen statischen Klasse (`JohannEnvironment`, UI/Helpers), die im
-Testprojekt verlinkt und getestet wird.
+Ungesetzt verhält sich Johann exakt wie heute — durch Unit-Tests belegt. **Gesetzt, aber ungültig** (relativer Pfad, keine http(s)-URL) verweigert Johann den Start mit klarer Meldung, statt still auf den Standard zurückzufallen: ein Tippfehler in `JOHANN_HOME` landete sonst in den echten Daten, einer im Endpunkt bei der kostenpflichtigen API. Ist `JOHANN_HOME` gesetzt, sucht `ApiKeyProvider` keine `.env` mehr in Elternordnern der EXE. Das Auflösen der
+Variablen liegt in einer kleinen statischen Klasse (`JohannEnvironment`, Infrastructure/Hosting), die UI und
+Infrastructure gemeinsam nutzen.
 
 `AutomationProperties.AutomationId` an allen bedienbaren Elementen von `MainWindow`,
 `SettingsView`, Dialogen und Toasts (Phase B). Keine Verhaltens- oder Sichtänderung.
@@ -181,8 +181,8 @@ Drag & Drop in den Explorer, optische Beurteilung (bleibt Audit + Sichtprüfung)
 
 ## Tests der Produktänderungen
 
-`JohannEnvironment` mit Unit-Tests: ungesetzt → heutige Pfade/Endpoint; gesetzt → Override;
-leerer/ungültiger Wert → Standard. Ein Test belegt, dass `OpenAiLlmProvider` und
+`JohannEnvironment` mit Unit-Tests: ungesetzt oder leer → heutige Pfade/Endpoint; gesetzt → Override;
+ungültiger Wert → Ausnahme mit Variablenname. Ein Test belegt, dass `OpenAiLlmProvider` und
 `WhisperTranscriber` den Endpoint übernehmen (gegen den Stub).
 
 ## Offene Punkte / Risiken
