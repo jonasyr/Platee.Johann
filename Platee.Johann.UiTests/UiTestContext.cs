@@ -3,6 +3,7 @@ namespace Platee.Johann.UiTests;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using FlaUI.Core.AutomationElements;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.UiDriver.Automation;
@@ -327,28 +328,35 @@ public sealed class UiTestContext : IDisposable
     /// <summary>
     /// Finds every fixture key (e.g. <c>"D1"</c>, <c>"D12"</c>) present in
     /// <paramref name="fixturesDirectory"/>, recognised from either a <c>D&lt;n&gt;-*.mp3</c>/
-    /// <c>D&lt;n&gt;-*.txt</c> pair or a <c>D&lt;n&gt;_status.json</c> file.
+    /// <c>D&lt;n&gt;-*.txt</c> pair or a <c>D&lt;n&gt;_status.json</c> file — via the same
+    /// <see cref="ExtractFixtureKey"/> the stub's transcription lookup uses, so the two never
+    /// disagree on what counts as a fixture file.
     /// </summary>
     private static IReadOnlyCollection<string> DiscoverFixtureKeys(string fixturesDirectory)
     {
         var keys = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var file in Directory.EnumerateFiles(fixturesDirectory))
         {
-            var match = System.Text.RegularExpressions.Regex.Match(
-                Path.GetFileName(file), @"^(D\d+)(?:-|_status\.json$)");
-            if (match.Success)
+            var key = ExtractFixtureKey(file);
+            if (key is not null)
             {
-                keys.Add(match.Groups[1].Value);
+                keys.Add(key);
             }
         }
 
         return keys;
     }
 
+    /// <summary>
+    /// Shared by <see cref="DiscoverFixtureKeys"/> (walking the Fixtures folder) and the stub's
+    /// transcription lookup (matching an uploaded mp3's filename) — one regex, one definition of
+    /// "this file belongs to fixture D&lt;n&gt;".
+    /// </summary>
+    private static readonly Regex FixtureFileNamePattern = new(@"^(D\d+)(?:-|_status\.json$)", RegexOptions.Compiled);
+
     private static string? ExtractFixtureKey(string fileName)
     {
-        var name = Path.GetFileName(fileName);
-        var match = System.Text.RegularExpressions.Regex.Match(name, @"^(D\d+)");
+        var match = FixtureFileNamePattern.Match(Path.GetFileName(fileName));
         return match.Success ? match.Groups[1].Value : null;
     }
 

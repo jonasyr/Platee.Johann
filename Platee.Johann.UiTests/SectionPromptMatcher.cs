@@ -52,7 +52,7 @@ public static class SectionPromptMatcher
         foreach (var (key, prompt) in promptsByKey)
         {
             var prefix = PrefixOf(prompt);
-            if (prefix.Length > bestLength && userContent.StartsWith(prefix, StringComparison.Ordinal))
+            if (prefix.Length > 0 && prefix.Length > bestLength && userContent.StartsWith(prefix, StringComparison.Ordinal))
             {
                 bestKey = key;
                 bestLength = prefix.Length;

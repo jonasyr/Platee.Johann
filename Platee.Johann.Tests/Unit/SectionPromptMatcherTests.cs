@@ -87,6 +87,22 @@ public sealed class SectionPromptMatcherTests
     }
 
     [Fact]
+    public void MatchSection_ignores_an_empty_prefix_instead_of_matching_everything()
+    {
+        // A prompt whose placeholder is its very first character (PrefixOf returns "") must never
+        // swallow unrelated requests just because "" is trivially a prefix of anything — this is
+        // the N1 regression from fix round 1 (bestLength started at -1 with no length > 0 guard).
+        var prompts = new Dictionary<string, string>
+        {
+            ["empty"] = "{transcript}",
+            ["real"] = "Erstelle etwas Bestimmtes.\n{transcript}",
+        };
+
+        SectionPromptMatcher.MatchSection("Irgendein anderer Text ohne Bezug.", prompts).Should().BeNull();
+        SectionPromptMatcher.MatchSection("Erstelle etwas Bestimmtes.\nDer Rest.", prompts).Should().Be("real");
+    }
+
+    [Fact]
     public void IsTitleRequest_recognises_the_real_title_prompt_prefix()
     {
         var titleRequest = "Bitte formuliere einen sehr kurzen, prägnanten Titel für dieses Diktat:\n\nEs geht um...";
