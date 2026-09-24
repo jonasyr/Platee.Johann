@@ -138,6 +138,8 @@ public static class SandboxGuard
         _ => [],
     };
 
+    private const int ErrorConnectionUnavail = 1201;
+
     [DllImport("mpr.dll", CharSet = CharSet.Unicode)]
     private static extern int WNetGetConnection(string localName, StringBuilder remoteName, ref int length);
 
@@ -147,7 +149,10 @@ public static class SandboxGuard
         var length = sb.Capacity;
         try
         {
-            if (WNetGetConnection(driveLetter, sb, ref length) == 0 && sb.Length > 0)
+            // ERROR_CONNECTION_UNAVAIL (1201): the mapping is remembered but currently disconnected
+            // (e.g. no VPN) — Windows still returns the remembered UNC name in that case.
+            var result = WNetGetConnection(driveLetter, sb, ref length);
+            if ((result == 0 || result == ErrorConnectionUnavail) && sb.Length > 0)
             {
                 uncPath = sb.ToString();
                 return true;

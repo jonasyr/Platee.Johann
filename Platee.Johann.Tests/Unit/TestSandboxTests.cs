@@ -38,4 +38,17 @@ public sealed class TestSandboxTests : IDisposable
         act.Should().Throw<InvalidOperationException>();
         Directory.Exists(root).Should().BeFalse();
     }
+
+    [Fact]
+    public void Create_RefusesExistingNonEmptyRoot()
+    {
+        var root = Directory.CreateDirectory(Path.Combine(this.tmp, "sb")).FullName;
+        var existingFile = Path.Combine(root, "x");
+        File.WriteAllText(existingFile, "x");
+
+        var act = () => TestSandbox.Create(root, "1.5.0");
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*existiert bereits*");
+        File.ReadAllText(existingFile).Should().Be("x");
+    }
 }

@@ -69,7 +69,8 @@ public static class AuditSandbox
 
     /// <summary>
     /// Reads (read-only) which output folder the real settings.json actually points at, falling
-    /// back to "&lt;realHome&gt;\output" when the file, the key, or the folder itself is missing.
+    /// back to "&lt;realHome&gt;\output" when the file, the key, the folder itself, or a well-formed
+    /// absolute path in the key is missing — a relative path or a non-string value also falls back.
     /// </summary>
     private static string ResolveRealOutput(string realHome)
     {
@@ -84,7 +85,9 @@ public static class AuditSandbox
         {
             var node = JsonNode.Parse(File.ReadAllText(settingsPath));
             var configured = node?["ausgabeverzeichnis"]?.GetValue<string>();
-            if (!string.IsNullOrWhiteSpace(configured) && Directory.Exists(configured))
+            if (!string.IsNullOrWhiteSpace(configured)
+                && Path.IsPathRooted(configured)
+                && Directory.Exists(configured))
             {
                 return configured;
             }
@@ -92,6 +95,10 @@ public static class AuditSandbox
         catch (JsonException)
         {
             // A corrupt real settings.json is not this audit's concern — fall back below.
+        }
+        catch (InvalidOperationException)
+        {
+            // 'ausgabeverzeichnis' exists but isn't a JSON string (number/bool/object/array) — fall back below.
         }
 
         return fallback;

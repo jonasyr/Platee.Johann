@@ -39,8 +39,11 @@ public sealed class AuditSandboxTests : IDisposable
     {
         var root = Directory.CreateDirectory(Path.Combine(this.tmp, "sb")).FullName;
         File.WriteAllText(Path.Combine(root, "x"), "x");
-        var act = () => AuditSandbox.Create(root, this.tmp, null);
-        act.Should().Throw<InvalidOperationException>();
+        var realHome = Directory.CreateDirectory(Path.Combine(this.tmp, "real")).FullName;
+
+        var act = () => AuditSandbox.Create(root, realHome, null);
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*existiert bereits*");
     }
 
     [Fact]
@@ -78,6 +81,47 @@ public sealed class AuditSandboxTests : IDisposable
         File.WriteAllText(
             Path.Combine(realHome, "settings.json"),
             $$"""{"name":"JW","ausgabeverzeichnis":{{System.Text.Json.JsonSerializer.Serialize(customOutput)}}}""");
+
+        var layout = AuditSandbox.Create(Path.Combine(this.tmp, "sb"), realHome, null);
+
+        Directory.Exists(Path.Combine(layout.Output, "2026-09-24", "_raw")).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Create_RootInsideConfiguredOutputOutsideRealHome_ThrowsAndCreatesNothing()
+    {
+        var realHome = Directory.CreateDirectory(Path.Combine(this.tmp, "real")).FullName;
+        var externalOutput = Directory.CreateDirectory(Path.Combine(this.tmp, "external-output")).FullName;
+        File.WriteAllText(
+            Path.Combine(realHome, "settings.json"),
+            $$"""{"name":"JW","ausgabeverzeichnis":{{System.Text.Json.JsonSerializer.Serialize(externalOutput)}}}""");
+        var root = Path.Combine(externalOutput, "sb");
+
+        var act = () => AuditSandbox.Create(root, realHome, null);
+
+        act.Should().Throw<InvalidOperationException>();
+        Directory.Exists(root).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Create_NonStringAusgabeverzeichnisInRealSettings_FallsBackWithoutThrowing()
+    {
+        var realHome = Directory.CreateDirectory(Path.Combine(this.tmp, "real")).FullName;
+        File.WriteAllText(Path.Combine(realHome, "settings.json"), """{"name":"JW","ausgabeverzeichnis":123}""");
+
+        var act = () => AuditSandbox.Create(Path.Combine(this.tmp, "sb"), realHome, null);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Create_RelativeAusgabeverzeichnisInRealSettings_FallsBackToRealHomeOutput()
+    {
+        var realHome = Directory.CreateDirectory(Path.Combine(this.tmp, "real")).FullName;
+        Directory.CreateDirectory(Path.Combine(realHome, "output", "2026-09-24", "_raw"));
+        File.WriteAllText(
+            Path.Combine(realHome, "settings.json"),
+            """{"name":"JW","ausgabeverzeichnis":"relative\\output"}""");
 
         var layout = AuditSandbox.Create(Path.Combine(this.tmp, "sb"), realHome, null);
 
