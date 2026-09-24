@@ -65,7 +65,14 @@ public static class ReleaseNotesHelper
                     border-radius: 4px;
                 }
                 body > h2:first-of-type { margin-top: 0; }
-                h3, strong { font-size: 14px; font-weight: 600; color: #222; }
+                strong { font-size: 14px; font-weight: 600; color: #222; }
+                h3 {
+                    font-size: 12px; font-weight: 700; color: #C0392B;
+                    text-transform: uppercase; letter-spacing: 0.06em;
+                    margin: 16px 0 4px 0;
+                }
+                body > h2 + h3 { margin-top: 4px; }
+                em { color: #666; }
                 p { margin: 4px 0 8px 0; color: #444; }
                 hr { display: none; }
                 ul {
