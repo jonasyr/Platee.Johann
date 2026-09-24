@@ -1,17 +1,33 @@
 namespace Platee.Johann.UiDriver.Sandbox;
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 public static class TestSandbox
 {
-    public static SandboxLayout Create(string root, string? lastSeenReleaseNotesVersion, Func<JsonObject, JsonObject>? adjust = null)
+    public static SandboxLayout Create(string root, string? lastSeenReleaseNotesVersion, Func<JsonObject, JsonObject>? adjust = null) =>
+        Create(root, lastSeenReleaseNotesVersion, SandboxGuard.DefaultForbiddenRoots(), adjust);
+
+    public static SandboxLayout Create(
+        string root,
+        string? lastSeenReleaseNotesVersion,
+        IEnumerable<string> forbiddenRoots,
+        Func<JsonObject, JsonObject>? adjust)
     {
+        // Must run before the first write — nothing may be created for a root the guard would reject anyway.
+        SandboxGuard.EnsureRootOutsideForbiddenAreas(root, forbiddenRoots);
+
+        if (Directory.Exists(root) && Directory.EnumerateFileSystemEntries(root).Any())
+        {
+            throw new InvalidOperationException($"Sandbox-Wurzel '{root}' existiert bereits und ist nicht leer.");
+        }
+
         var layout = new SandboxLayout(root);
 
         Directory.CreateDirectory(layout.Home);
         Directory.CreateDirectory(layout.Archiv);
         Directory.CreateDirectory(layout.Output);
-        Directory.CreateDirectory(Path.GetDirectoryName(layout.TeamPrompts)!);
+        Directory.CreateDirectory(TeamDirectoryOf(layout));
 
         var settings = new JsonObject
         {
@@ -37,7 +53,7 @@ public static class TestSandbox
 
         File.WriteAllText(
             layout.SettingsFile,
-            settings.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            settings.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
         File.WriteAllText(Path.Combine(layout.Home, ".env"), "OPENAI_API_KEY=sk-stub-not-a-real-key");
 
@@ -45,4 +61,8 @@ public static class TestSandbox
 
         return layout;
     }
+
+    private static string TeamDirectoryOf(SandboxLayout layout) =>
+        Path.GetDirectoryName(layout.TeamPrompts)
+        ?? throw new InvalidOperationException($"Kein Verzeichnis für '{layout.TeamPrompts}' ermittelbar.");
 }

@@ -18,14 +18,17 @@ public sealed class SandboxGuardTests
     }
 
     [Theory]
-    [InlineData("""{"globalPromptFilePath":"Z:\\12_Tools\\Peano\\Johann\\prompts.json"}""")]
-    [InlineData("""{"ausgabeverzeichnis":"C:\\Users\\JW\\Documents\\Johann\\output"}""")]
-    [InlineData("""{"ausgabeverzeichnis":"c:/users/jw/documents/johann/output"}""")]
-    [InlineData("""{"nested":{"x":["C:\\Users\\JW\\Documents\\Johann"]}}""")]
-    [InlineData("""{"globalPromptFilePath":"z:/12_Tools/p.json"}""")]
+    [InlineData("""{"quellverzeichnis":"C:\\Temp\\sb\\eingang","archivverzeichnis":"C:\\Temp\\sb\\eingang\\Archiv","ausgabeverzeichnis":"C:\\Temp\\sb\\output","globalPromptFilePath":"Z:\\12_Tools\\Peano\\Johann\\prompts.json"}""")]
+    [InlineData("""{"quellverzeichnis":"C:\\Temp\\sb\\eingang","archivverzeichnis":"C:\\Temp\\sb\\eingang\\Archiv","ausgabeverzeichnis":"C:\\Users\\JW\\Documents\\Johann\\output"}""")]
+    [InlineData("""{"quellverzeichnis":"C:\\Temp\\sb\\eingang","archivverzeichnis":"C:\\Temp\\sb\\eingang\\Archiv","ausgabeverzeichnis":"c:/users/jw/documents/johann/output"}""")]
+    [InlineData("""{"quellverzeichnis":"C:\\Temp\\sb\\eingang","archivverzeichnis":"C:\\Temp\\sb\\eingang\\Archiv","ausgabeverzeichnis":"C:\\Temp\\sb\\output","nested":{"x":["C:\\Users\\JW\\Documents\\Johann"]}}""")]
+    [InlineData("""{"quellverzeichnis":"C:\\Temp\\sb\\eingang","archivverzeichnis":"C:\\Temp\\sb\\eingang\\Archiv","ausgabeverzeichnis":"C:\\Temp\\sb\\output","globalPromptFilePath":"z:/12_Tools/p.json"}""")]
     public void ForbiddenPath_AnywhereInJson_IsViolation(string json)
     {
-        SandboxGuard.Violations(json, Forbidden).Should().NotBeEmpty();
+        var violations = SandboxGuard.Violations(json, Forbidden);
+
+        violations.Should().NotBeEmpty();
+        violations.Should().Contain(v => v.Contains("verbotenen Bereich"));
     }
 
     [Fact]
@@ -59,5 +62,39 @@ public sealed class SandboxGuardTests
             {"quellverzeichnis":"C:\\Temp\\sb\\eingang","archivverzeichnis":"","ausgabeverzeichnis":"C:\\Temp\\sb\\output"}
             """;
         SandboxGuard.Violations(json, Forbidden).Should().Contain(v => v.Contains("archivverzeichnis"));
+    }
+
+    [Fact]
+    public void RelativeSegment_ResolvesToForbiddenRoot_IsViolation()
+    {
+        var json = """
+            {"quellverzeichnis":"C:\\Temp\\sb\\eingang","archivverzeichnis":"C:\\Temp\\sb\\eingang\\Archiv","ausgabeverzeichnis":"C:\\Temp\\sb\\output","globalPromptFilePath":"C:\\Users\\JW\\Documents\\x\\..\\Johann\\prompts.json"}
+            """;
+
+        var violations = SandboxGuard.Violations(json, Forbidden);
+
+        violations.Should().Contain(v => v.Contains("verbotenen Bereich"));
+    }
+
+    [Fact]
+    public void InjectedUncRoot_MatchesUncPathUnderIt()
+    {
+        string[] forbidden = [@"\\server\share\Johann"];
+        var json = """
+            {"quellverzeichnis":"C:\\Temp\\sb\\eingang","archivverzeichnis":"C:\\Temp\\sb\\eingang\\Archiv","ausgabeverzeichnis":"\\\\server\\share\\Johann\\output"}
+            """;
+
+        var violations = SandboxGuard.Violations(json, forbidden);
+
+        violations.Should().Contain(v => v.Contains("verbotenen Bereich"));
+    }
+
+    [Fact]
+    public void DefaultForbiddenRoots_ContainsZAndDocumentsJohann()
+    {
+        var roots = SandboxGuard.DefaultForbiddenRoots();
+
+        roots.Should().Contain(@"Z:\");
+        roots.Should().Contain(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann"));
     }
 }

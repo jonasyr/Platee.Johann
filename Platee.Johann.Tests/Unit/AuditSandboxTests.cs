@@ -42,4 +42,45 @@ public sealed class AuditSandboxTests : IDisposable
         var act = () => AuditSandbox.Create(root, this.tmp, null);
         act.Should().Throw<InvalidOperationException>();
     }
+
+    [Fact]
+    public void Create_RootInsideInjectedForbiddenRoot_ThrowsAndCreatesNothing()
+    {
+        var forbiddenParent = Directory.CreateDirectory(Path.Combine(this.tmp, "forbidden")).FullName;
+        var root = Path.Combine(forbiddenParent, "sb");
+        var realHome = Directory.CreateDirectory(Path.Combine(this.tmp, "real")).FullName;
+
+        var act = () => AuditSandbox.Create(root, realHome, null, [forbiddenParent]);
+
+        act.Should().Throw<InvalidOperationException>();
+        Directory.Exists(root).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Create_RootInsideRealOutput_ThrowsAndCreatesNothing()
+    {
+        var realHome = Directory.CreateDirectory(Path.Combine(this.tmp, "real")).FullName;
+        var realOutput = Directory.CreateDirectory(Path.Combine(realHome, "output")).FullName;
+        var root = Path.Combine(realOutput, "sb");
+
+        var act = () => AuditSandbox.Create(root, realHome, null);
+
+        act.Should().Throw<InvalidOperationException>();
+        Directory.Exists(root).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Create_CopiesOutputFolderNamedInRealSettings_NotJustDefault()
+    {
+        var realHome = Directory.CreateDirectory(Path.Combine(this.tmp, "real")).FullName;
+        var customOutput = Directory.CreateDirectory(Path.Combine(this.tmp, "custom-output")).FullName;
+        Directory.CreateDirectory(Path.Combine(customOutput, "2026-09-24", "_raw"));
+        File.WriteAllText(
+            Path.Combine(realHome, "settings.json"),
+            $$"""{"name":"JW","ausgabeverzeichnis":{{System.Text.Json.JsonSerializer.Serialize(customOutput)}}}""");
+
+        var layout = AuditSandbox.Create(Path.Combine(this.tmp, "sb"), realHome, null);
+
+        Directory.Exists(Path.Combine(layout.Output, "2026-09-24", "_raw")).Should().BeTrue();
+    }
 }
