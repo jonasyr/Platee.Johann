@@ -52,3 +52,26 @@ jobs:
           # PowerShell steps only fail on the LAST command's exit code, so failed tests used to pass the job.
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ${{ runner.temp }}\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+  ui-tests:
+    # FlaUI suite against the real EXE with an OpenAI stub (#111). Non-blocking until it has
+    # proven stable over several runs; then drop continue-on-error.
+    name: UI tests (FlaUI, non-blocking)
+    runs-on: windows-latest
+    timeout-minutes: 25
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Build and run UI tests
+        shell: powershell
+        run: |
+          dotnet build Platee.Johann.slnx
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test Platee.Johann.UiTests --no-build -p:RunUiTests=true --blame-hang-timeout 3m --results-directory TestResults
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload UI test artefacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-test-results
+          path: TestResults/
