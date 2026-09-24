@@ -13,6 +13,12 @@ public sealed class JsonSettingsRepository : ISettingsRepository
 {
     private readonly string filePath;
 
+    // Basis fuer alle Fallbacks (Datei fehlt, Schluessel fehlt, Datei defekt). Normalerweise die
+    // AppSettings-Feldinitialisierer; unter JOHANN_HOME (#111) uebergibt App.xaml.cs stattdessen
+    // Pfade unter dem Home-Ordner, damit eine fehlende settings.json nicht heimlich das echte
+    // Documents\Johann benutzt.
+    private readonly AppSettings defaults;
+
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
@@ -26,10 +32,11 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
     };
 
-    public JsonSettingsRepository(string settingsDirectory)
+    public JsonSettingsRepository(string settingsDirectory, AppSettings? defaults = null)
     {
         Directory.CreateDirectory(settingsDirectory);
         this.filePath = Path.Combine(settingsDirectory, "settings.json");
+        this.defaults = defaults ?? new AppSettings();
     }
 
     /// <summary>
@@ -45,14 +52,14 @@ public sealed class JsonSettingsRepository : ISettingsRepository
 
         if (!File.Exists(this.filePath))
         {
-            return AppSettings.Default;
+            return this.defaults;
         }
 
         try
         {
             await using var stream = File.OpenRead(this.filePath);
             var dto = await JsonSerializer.DeserializeAsync<SettingsDto>(stream, Options, ct).ConfigureAwait(false);
-            return dto is null ? AppSettings.Default : MapToSettings(dto);
+            return dto is null ? this.defaults : this.MapToSettings(dto);
         }
         catch (OperationCanceledException)
         {
@@ -61,7 +68,7 @@ public sealed class JsonSettingsRepository : ISettingsRepository
         catch (Exception ex)
         {
             this.LastLoadFault = CorruptSettingsBackup.Preserve(this.filePath, ex);
-            return AppSettings.Default;
+            return this.defaults;
         }
     }
 
@@ -73,9 +80,9 @@ public sealed class JsonSettingsRepository : ISettingsRepository
     }
 
     // ── Mapping ───────────────────────────────────────────────────────────────
-    private static AppSettings MapToSettings(SettingsDto dto)
+    private AppSettings MapToSettings(SettingsDto dto)
     {
-        var defaultSettings = AppSettings.Default;
+        var defaultSettings = this.defaults;
         return new()
         {
             Name = dto.Name ?? defaultSettings.Name,

@@ -65,7 +65,19 @@ public partial class App : System.Windows.Application
 
         // ── Settings ──────────────────────────────────────────────────────────
         var settingsDir = johannHome;
-        var jsonSettingsRepo = new JsonSettingsRepository(settingsDir);
+
+        // Unter JOHANN_HOME (#111) muss auch eine fehlende oder unvollstaendige settings.json
+        // unter dem Home-Ordner landen — sonst wuerde eine umgelenkte Sandbox beim ersten Start
+        // heimlich in das echte Documents\Johann schreiben (Fix-Runde 1).
+        var settingsDefaults = JohannEnvironment.HasHomeOverride()
+            ? new AppSettings
+            {
+                Quellverzeichnis = Path.Combine(johannHome, "Eingang"),
+                Archivverzeichnis = Path.Combine(johannHome, "Eingang", "Archiv"),
+                Ausgabeverzeichnis = Path.Combine(johannHome, "output"),
+            }
+            : null;
+        var jsonSettingsRepo = new JsonSettingsRepository(settingsDir, settingsDefaults);
         ISettingsRepository settingsRepo = jsonSettingsRepo;
 
         var startupFaults = new List<string>();
