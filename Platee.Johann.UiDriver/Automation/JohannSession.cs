@@ -178,37 +178,61 @@ public sealed class JohannSession : IDisposable
 
     public void Click(string idOrName, bool mouse = false)
     {
-        var element = this.Find(idOrName);
+        var (window, element) = this.FindWithWindow(idOrName);
         if (mouse || !element.Patterns.Invoke.IsSupported)
         {
             // Buttons opening modal WPF dialogs must be clicked with the mouse — Invoke can block.
+            this.EnsureSafeToClick(window, element);
             element.Click();
         }
         else
         {
+            // The Invoke pattern asks the element to invoke itself via UIA, not a simulated mouse
+            // click — it never touches the foreground window or the cursor, so none of the
+            // foreground/click-point safety checks below apply to it.
             element.Patterns.Invoke.Pattern.Invoke();
         }
     }
 
-    public void RightClick(string idOrName) => this.Find(idOrName).RightClick();
+    public void RightClick(string idOrName)
+    {
+        var (window, element) = this.FindWithWindow(idOrName);
+        this.EnsureSafeToClick(window, element);
+        element.RightClick();
+    }
 
-    public void DoubleClick(string idOrName) => this.Find(idOrName).DoubleClick();
+    public void DoubleClick(string idOrName)
+    {
+        var (window, element) = this.FindWithWindow(idOrName);
+        this.EnsureSafeToClick(window, element);
+        element.DoubleClick();
+    }
 
     public void Type(string idOrName, string text)
     {
-        var element = this.Find(idOrName);
+        var (window, element) = this.FindWithWindow(idOrName);
         if (element.Patterns.Value.IsSupported)
         {
+            // Sets the value via UIA's Value pattern — programmatic, not simulated keystrokes, so
+            // it needs no foreground switch.
             element.AsTextBox().Text = text;
         }
         else
         {
+            InputSafety.EnsureForeground(window, this.ProcessId);
             element.Focus();
             Keyboard.Type(text);
         }
     }
 
-    public void Key(string chord) => Keyboard.Type(KeyChord.Parse(chord));
+    public void Key(string chord)
+    {
+        // No element is targeted, so bring forward whichever Johann window is topmost — the last
+        // entry of Windows() (main window first, dialogs after, see Windows()'s own remarks).
+        var target = this.Windows().LastOrDefault() ?? this.MainWindow;
+        InputSafety.EnsureForeground(target, this.ProcessId);
+        Keyboard.Type(KeyChord.Parse(chord));
+    }
 
     public string Screenshot(string path, string? idOrName = null)
     {
@@ -301,6 +325,22 @@ public sealed class JohannSession : IDisposable
         catch (Exception)
         {
             // Best-effort cleanup — the process may already be gone.
+        }
+    }
+
+    /// <summary>
+    /// Brings <paramref name="window"/> to the foreground and, when the element has a clickable
+    /// point, verifies that point actually belongs to this session's process before a mouse click
+    /// is sent — see <see cref="InputSafety"/> for why both checks exist and are separate from
+    /// Invoke-pattern clicks, which never touch the foreground window or the cursor.
+    /// </summary>
+    private void EnsureSafeToClick(Window window, AutomationElement element)
+    {
+        InputSafety.EnsureForeground(window, this.ProcessId);
+
+        if (element.TryGetClickablePoint(out var point))
+        {
+            InputSafety.EnsureClickPointBelongsToProcess(point, this.ProcessId);
         }
     }
 

@@ -45,6 +45,14 @@ public static class KeyChord
             ["Enter"] = VirtualKeyShort.ENTER,
             ["Escape"] = VirtualKeyShort.ESCAPE,
             ["Space"] = VirtualKeyShort.SPACE,
+            ["PageDown"] = VirtualKeyShort.NEXT,
+            ["PageUp"] = VirtualKeyShort.PRIOR,
+            ["Home"] = VirtualKeyShort.HOME,
+            ["End"] = VirtualKeyShort.END,
+            ["Left"] = VirtualKeyShort.LEFT,
+            ["Right"] = VirtualKeyShort.RIGHT,
+            ["Up"] = VirtualKeyShort.UP,
+            ["Down"] = VirtualKeyShort.DOWN,
         };
 
         for (var digit = 0; digit <= 9; digit++)
@@ -56,6 +64,12 @@ public static class KeyChord
         for (var letter = 'A'; letter <= 'Z'; letter++)
         {
             map[letter.ToString(CultureInfo.InvariantCulture)] = Enum.Parse<VirtualKeyShort>($"KEY_{letter}");
+        }
+
+        for (var fKey = 1; fKey <= 24; fKey++)
+        {
+            var name = "F" + fKey.ToString(CultureInfo.InvariantCulture);
+            map[name] = Enum.Parse<VirtualKeyShort>(name);
         }
 
         return map;
