@@ -27,7 +27,8 @@
             CornerRadius="6"
             Margin="0,0,0,6"
             MinWidth="260"
-            MaxWidth="340">
+            MaxWidth="340"
+            AutomationProperties.AutomationId="Toast.Item">
         <Border.Effect>
             <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.15"/>
         </Border.Effect>
@@ -58,6 +59,7 @@
                         Content="×"
                         Command="{Binding DismissCommand}"
                         Style="{StaticResource CloseButtonStyle}"
+                        AutomationProperties.AutomationId="Toast.Dismiss"
                         VerticalAlignment="Top"/>
 
                 <!-- Running spinner -->
@@ -86,6 +88,7 @@
                     <Button Content="Details im Status-Log"
                             Margin="0,4,0,0"
                             Style="{StaticResource DetailsLinkStyle}"
+                            AutomationProperties.AutomationId="Toast.Details"
                             Visibility="{Binding ShowDetailsLink, Converter={StaticResource BoolToVis}}"
                             Command="{Binding DataContext.OpenProcessDetailCommand,
                                      RelativeSource={RelativeSource AncestorType=Window}}"/>
