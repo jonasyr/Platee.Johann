@@ -1,6 +1,7 @@
 namespace Platee.Johann.UiDriver.Tool;
 
 using System.Globalization;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using Platee.Johann.UiDriver.Audio;
 using Platee.Johann.UiDriver.Automation;
@@ -14,6 +15,13 @@ public static class Commands
 {
     private const string DefaultTeamPromptsPath = @"Z:\12_Tools\Peano\Johann\prompts.json";
 
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        // Default System.Text.Json escapes non-ASCII to \uXXXX — readable JSON beats a "valid but
+        // unreadable" terminal for a tool a human watches (e.g. "läuft" in the already-running error).
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
     public static int Run(string[] args)
     {
         try
@@ -23,7 +31,7 @@ public static class Commands
         }
         catch (Exception ex)
         {
-            Console.WriteLine(JsonSerializer.Serialize(new { error = ex.Message }));
+            Console.WriteLine(JsonSerializer.Serialize(new { error = ex.Message }, JsonOptions));
             return 1;
         }
     }
@@ -73,12 +81,12 @@ public static class Commands
             }),
             "screenshot" => Attach(session =>
             {
-                var path = session.Screenshot(FirstPositional(rest, "file"), CommandArgs.Option(rest, "--of"));
+                var path = session.Screenshot(FirstPositional(rest, "file", "--of"), CommandArgs.Option(rest, "--of"));
                 return Ok(new { path });
             }),
             "wait-for" => Attach(session =>
             {
-                session.Find(FirstPositional(rest, "id|name"), ParseTimeout(CommandArgs.Option(rest, "--timeout")));
+                session.Find(FirstPositional(rest, "id|name", "--timeout"), ParseTimeout(CommandArgs.Option(rest, "--timeout")));
                 return Ok(new { found = true });
             }),
             "clipboard" => Attach(_ => Ok(new { text = JohannSession.ReadClipboard() })),
@@ -158,15 +166,15 @@ public static class Commands
     private static string Attach(Func<JohannSession, string> action) =>
         action(JohannSession.Attach(SessionStore.LoadRunningPid()));
 
-    private static string FirstPositional(string[] args, string description) =>
-        CommandArgs.RequireAt(CommandArgs.PositionalsExcluding(args), 0, description);
+    private static string FirstPositional(string[] args, string description, params string[] valueOptionNames) =>
+        CommandArgs.RequireAt(CommandArgs.PositionalsExcluding(args, valueOptionNames), 0, description);
 
     private static TimeSpan? ParseTimeout(string? seconds) =>
         seconds is null ? null : TimeSpan.FromSeconds(double.Parse(seconds, CultureInfo.InvariantCulture));
 
     private static string Ok() => Ok(new { ok = true });
 
-    private static string Ok(object payload) => JsonSerializer.Serialize(payload);
+    private static string Ok(object payload) => JsonSerializer.Serialize(payload, JsonOptions);
 
     private static string DefaultExePath()
     {

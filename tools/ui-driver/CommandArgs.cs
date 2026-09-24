@@ -5,7 +5,7 @@ namespace Platee.Johann.UiDriver.Tool;
 /// <c>ui-driver</c> commands use — not a general CLI framework, just enough to keep
 /// <see cref="Commands"/> readable.
 /// </summary>
-internal static class CommandArgs
+public static class CommandArgs
 {
     public static string? Option(string[] args, string name)
     {

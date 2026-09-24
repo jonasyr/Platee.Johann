@@ -1,6 +1,7 @@
 namespace Platee.Johann.UiDriver.Automation;
 
 using System.Diagnostics;
+using System.Drawing;
 using System.Drawing.Imaging;
 using System.Windows.Forms;
 using FlaUI.Core.AutomationElements;
@@ -59,6 +60,12 @@ public sealed class JohannSession : IDisposable
         {
             psi.Environment["JOHANN_OPENAI_ENDPOINT"] = options.OpenAiRoot.AbsoluteUri;
         }
+        else
+        {
+            // Without an override, Johann must fall back to the real OpenAI endpoint on its own —
+            // an endpoint inherited from the parent shell's environment must never leak in.
+            psi.Environment.Remove("JOHANN_OPENAI_ENDPOINT");
+        }
 
         if (options.ApiKey is not null)
         {
@@ -73,7 +80,21 @@ public sealed class JohannSession : IDisposable
         var app = FlaUiApplication.Launch(psi);
         var automation = new UIA3Automation();
         var session = new JohannSession(app, automation);
-        session.mainWindow = session.WaitForMainWindow(timeout ?? TimeSpan.FromSeconds(30), expectDialogs);
+        try
+        {
+            session.mainWindow = session.WaitForMainWindow(timeout ?? TimeSpan.FromSeconds(30), expectDialogs);
+        }
+        catch
+        {
+            // A failed wait must not leave an orphan Johann process — it would block every later
+            // Launch with "läuft bereits" until someone finds and kills it by hand. The screenshot
+            // (if any) is already on disk by the time WaitForMainWindow throws.
+            TryKill(app);
+            automation.Dispose();
+            app.Dispose();
+            throw;
+        }
+
         return session;
     }
 
@@ -93,7 +114,11 @@ public sealed class JohannSession : IDisposable
         var thread = new Thread(() => text = Clipboard.ContainsText() ? Clipboard.GetText() : string.Empty);
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        if (!thread.Join(TimeSpan.FromSeconds(5)))
+        {
+            throw new InvalidOperationException("Zwischenablage nicht lesbar (gesperrt?).");
+        }
+
         return text ?? string.Empty;
     }
 
@@ -101,13 +126,16 @@ public sealed class JohannSession : IDisposable
 
     public AutomationElement Find(string idOrName, TimeSpan? timeout = null, Window? scope = null)
     {
-        var result = Retry.WhileNull(
-            () => this.SearchScope(scope)
-                .Select(window => window.FindFirstDescendant(cf => cf.ByAutomationId(idOrName).Or(cf.ByName(idOrName))))
-                .FirstOrDefault(element => element is not null),
-            timeout ?? TimeSpan.FromSeconds(5));
+        if (scope is not null)
+        {
+            var result = Retry.WhileNull(
+                () => scope.FindFirstDescendant(cf => cf.ByAutomationId(idOrName).Or(cf.ByName(idOrName))),
+                timeout ?? TimeSpan.FromSeconds(5));
 
-        return result.Result ?? throw new ElementNotFoundException(idOrName, this.Tree());
+            return result.Result ?? throw new ElementNotFoundException(idOrName, this.Tree());
+        }
+
+        return this.FindWithWindow(idOrName, timeout).Element;
     }
 
     public AutomationElement? TryFind(string idOrName, TimeSpan? timeout = null)
@@ -158,8 +186,32 @@ public sealed class JohannSession : IDisposable
 
     public string Screenshot(string path, string? idOrName = null)
     {
-        AutomationElement element = idOrName is null ? this.MainWindow : this.Find(idOrName);
-        element.Capture().Save(path, ImageFormat.Png);
+        Window window;
+        AutomationElement element;
+        if (idOrName is null)
+        {
+            window = this.MainWindow;
+            element = window;
+        }
+        else
+        {
+            (window, element) = this.FindWithWindow(idOrName);
+        }
+
+        using var windowBitmap = JohannWindows.CaptureWindow(window);
+        if (ReferenceEquals(element, window))
+        {
+            windowBitmap.Save(path, ImageFormat.Png);
+        }
+        else
+        {
+            using var cropped = JohannWindows.Crop(
+                windowBitmap,
+                window.Properties.BoundingRectangle.ValueOrDefault,
+                element.Properties.BoundingRectangle.ValueOrDefault);
+            cropped.Save(path, ImageFormat.Png);
+        }
+
         return path;
     }
 
@@ -207,7 +259,46 @@ public sealed class JohannSession : IDisposable
         this.app.Dispose();
     }
 
-    private IEnumerable<Window> SearchScope(Window? scope) => scope is not null ? [scope] : this.Windows();
+    private static void TryKill(FlaUiApplication app)
+    {
+        try
+        {
+            if (!app.HasExited)
+            {
+                app.Kill();
+            }
+        }
+        catch (Exception)
+        {
+            // Best-effort cleanup — the process may already be gone.
+        }
+    }
+
+    /// <summary>
+    /// Like <see cref="Find(string, TimeSpan?, Window?)"/> across all windows, but also returns
+    /// which window the match came from — needed by <see cref="Screenshot"/> to capture the right
+    /// window and crop relative to its bounds.
+    /// </summary>
+    private (Window Window, AutomationElement Element) FindWithWindow(string idOrName, TimeSpan? timeout = null)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(5));
+        do
+        {
+            foreach (var window in this.Windows())
+            {
+                var element = window.FindFirstDescendant(cf => cf.ByAutomationId(idOrName).Or(cf.ByName(idOrName)));
+                if (element is not null)
+                {
+                    return (window, element);
+                }
+            }
+
+            Thread.Sleep(100);
+        }
+        while (DateTime.UtcNow < deadline);
+
+        throw new ElementNotFoundException(idOrName, this.Tree());
+    }
 
     private Window WaitForMainWindow(TimeSpan timeout, bool expectDialogs)
     {
