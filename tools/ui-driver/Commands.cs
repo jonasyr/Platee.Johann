@@ -140,7 +140,8 @@ public static class Commands
         var endpoint = endpointRaw is null ? null : new Uri(endpointRaw);
 
         var options = new JohannLaunchOptions(exePath, layout, endpoint, ApiKey: null);
-        var session = JohannSession.Launch(options);
+        var expectDialogs = CommandArgs.Flag(args, "--expect-dialogs");
+        var session = JohannSession.Launch(options, expectDialogs: expectDialogs);
         SessionStore.Save(session.ProcessId, layout.Root);
         return Ok(new { pid = session.ProcessId, root = layout.Root, mainWindow = session.MainWindow.Title });
     }

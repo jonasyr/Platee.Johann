@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Windows.Forms;
 using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Definitions;
 using FlaUI.Core.Input;
 using FlaUI.Core.Tools;
 using FlaUI.UIA3;
@@ -131,7 +132,23 @@ public sealed class JohannSession : IDisposable
         return text ?? string.Empty;
     }
 
-    public IReadOnlyList<Window> Windows() => this.app.GetAllTopLevelWindows(this.automation);
+    /// <summary>
+    /// Top-level windows plus every <c>ControlType.Window</c> descendant of them, de-duplicated by
+    /// native handle. WPF modal dialogs with an <c>Owner</c> (e.g. release notes, a delete
+    /// confirmation, an owned settings window) are exposed by UIA as Window-typed CHILDREN of the
+    /// owning window, not as top-level windows in their own right — without this, they are
+    /// invisible to <see cref="Find"/>/<see cref="Screenshot"/>/<c>windows</c> even though a plain
+    /// Win32 <c>EnumWindows</c> shows them. Main window(s) come first, then each dialog in the
+    /// order the tree walk finds it.
+    /// </summary>
+    public IReadOnlyList<Window> Windows()
+    {
+        var topLevel = this.app.GetAllTopLevelWindows(this.automation);
+        var discovered = topLevel.Concat(topLevel.SelectMany(window =>
+            window.FindAllDescendants(cf => cf.ByControlType(ControlType.Window)).Select(d => d.AsWindow())));
+
+        return JohannWindows.DeduplicateByHandle(discovered, w => w.Properties.NativeWindowHandle.ValueOrDefault);
+    }
 
     public AutomationElement Find(string idOrName, TimeSpan? timeout = null, Window? scope = null)
     {
@@ -268,6 +285,10 @@ public sealed class JohannSession : IDisposable
         this.app.Dispose();
     }
 
+    private static bool MatchesWindow(Window window, string idOrName) =>
+        string.Equals(window.Properties.AutomationId.ValueOrDefault, idOrName, StringComparison.Ordinal)
+        || string.Equals(window.Title, idOrName, StringComparison.Ordinal);
+
     private static void TryKill(FlaUiApplication app)
     {
         try
@@ -286,14 +307,25 @@ public sealed class JohannSession : IDisposable
     /// <summary>
     /// Like <see cref="Find(string, TimeSpan?, Window?)"/> across all windows, but also returns
     /// which window the match came from — needed by <see cref="Screenshot"/> to capture the right
-    /// window and crop relative to its bounds.
+    /// window and crop relative to its bounds. A window matching <paramref name="idOrName"/> by
+    /// its own AutomationId/title wins over a descendant match in *any* window — this is what lets
+    /// <c>screenshot --of "Platé.Johann – Neuigkeiten"</c> capture that dialog's own HWND instead
+    /// of a crop of whichever window happened to expose it as a descendant.
     /// </summary>
     private (Window Window, AutomationElement Element) FindWithWindow(string idOrName, TimeSpan? timeout = null)
     {
         var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(5));
         do
         {
-            foreach (var window in this.Windows())
+            var windows = this.Windows();
+
+            var windowItself = windows.FirstOrDefault(w => MatchesWindow(w, idOrName));
+            if (windowItself is not null)
+            {
+                return (windowItself, windowItself);
+            }
+
+            foreach (var window in windows)
             {
                 var element = window.FindFirstDescendant(cf => cf.ByAutomationId(idOrName).Or(cf.ByName(idOrName)));
                 if (element is not null)

@@ -88,6 +88,31 @@ internal static class JohannWindows
         return windowBitmap.Clone(relative, windowBitmap.PixelFormat);
     }
 
+    /// <summary>
+    /// Removes duplicates by native window handle, keeping the first occurrence of each handle —
+    /// callers put top-level windows first and their <c>Window</c>-typed descendants after, so the
+    /// main window/each dialog's own entry wins over ever finding it again while walking the tree.
+    /// A handle of <see cref="IntPtr.Zero"/> (no native window, or the property is unsupported) is
+    /// never treated as a duplicate of another zero handle — there is nothing to de-dup by.
+    /// </summary>
+    public static IReadOnlyList<T> DeduplicateByHandle<T>(IEnumerable<T> items, Func<T, IntPtr> handleOf)
+    {
+        var seen = new HashSet<IntPtr>();
+        var result = new List<T>();
+        foreach (var item in items)
+        {
+            var handle = handleOf(item);
+            if (handle != IntPtr.Zero && !seen.Add(handle))
+            {
+                continue;
+            }
+
+            result.Add(item);
+        }
+
+        return result;
+    }
+
     public static UiNode BuildNode(AutomationElement element, int depth)
     {
         var children = depth <= 0
