@@ -250,13 +250,14 @@ public partial class App : System.Windows.Application
 
         // OpenAI providers — fall back to NoOp if no API key is configured
         var apiKey = ApiKeyProvider.TryGetOpenAiKey();
+        var openAiRoot = JohannEnvironment.OpenAiRoot();   // bereits beim Start geprüft (Task 2)
 
         ILlmProvider llmProvider = apiKey is not null
-            ? new OpenAiLlmProvider(apiKey)
+            ? new OpenAiLlmProvider(apiKey, openAiRoot)
             : new NoOpLlmProvider();
 
         IAudioTranscriber transcriber = apiKey is not null
-            ? new WhisperTranscriber(apiKey)
+            ? new WhisperTranscriber(apiKey, openAiRoot)
             : new NoOpAudioTranscriber();
 
         var summaryGenerator = new SummaryGenerator(llmProvider, runtimeSettingsHolder);
@@ -295,7 +296,7 @@ public partial class App : System.Windows.Application
         // Ohne Schluessel ist keine Pruefung moeglich; der Stub meldet das, statt zu scheitern.
         IModelAvailabilityProbe modelProbe = string.IsNullOrWhiteSpace(apiKey)
             ? new NoOpModelAvailabilityProbe()
-            : new OpenAiModelAvailabilityProbe(apiKey);
+            : new OpenAiModelAvailabilityProbe(apiKey, openAiRoot);
 
         // ── Mail (#57) ────────────────────────────────────────────────────────
         // Klassisches Outlook per COM, neues Outlook per .eml-Entwurf, sonst mailto mit dem PDF im
@@ -437,7 +438,10 @@ public partial class App : System.Windows.Application
             await settingsRepo.SaveAsync(updatedSettings);
         }
 
-        _ = CheckForUpdatesAsync(crashLogger);
+        if (!JohannEnvironment.SkipUpdateCheck())
+        {
+            _ = CheckForUpdatesAsync(crashLogger);
+        }
     }
 
     private static async Task CheckForUpdatesAsync(CrashLogWriter crashLogger)

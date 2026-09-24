@@ -1,5 +1,7 @@
 namespace Platee.Johann.Infrastructure.Llm;
 
+using System.ClientModel;
+using OpenAI;
 using OpenAI.Audio;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
@@ -36,9 +38,19 @@ public sealed class WhisperTranscriber : IAudioTranscriber
 
     public bool IsAvailable => true;
 
-    public WhisperTranscriber(string apiKey)
+    /// <param name="apiKey">Der OpenAI-Schlüssel.</param>
+    /// <param name="apiRoot">
+    /// Abweichende Basisadresse ohne <c>v1</c>, nur für Automationsläufe (#111). Unbelegt gilt
+    /// der reguläre OpenAI-Endpunkt.
+    /// </param>
+    public WhisperTranscriber(string apiKey, Uri? apiRoot = null)
     {
-        this.client = new AudioClient(ModelName, apiKey);
+        this.client = apiRoot is null
+            ? new AudioClient(ModelName, apiKey)
+            : new AudioClient(
+                ModelName,
+                new ApiKeyCredential(apiKey),
+                new OpenAIClientOptions { Endpoint = new Uri(apiRoot, "v1") });
     }
 
     public async Task<TranscriptionResult> TranscribeAsync(
