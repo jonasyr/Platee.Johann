@@ -3,6 +3,7 @@ namespace Platee.Johann.UiTests;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using FlaUI.Core.AutomationElements;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.UiDriver.Automation;
 using Platee.Johann.UiDriver.Sandbox;
@@ -77,56 +78,53 @@ public sealed class UiTestContext : IDisposable
     {
         var exePath = ExeLocator.Find();
         var lastSeenReleaseNotesVersion = firstRun ? null : TryReadAssemblyVersion(exePath);
-
         var fixtures = LoadFixtures(FixturesDirectory);
-        var stubServer = OpenAiStubServer.Start();
-        ApplyDefaultStubRules(stubServer, fixtures);
-        stub?.Invoke(stubServer);
-
         var root = Path.Combine(Path.GetTempPath(), "johann-ui", Guid.NewGuid().ToString("N"));
 
-        Func<JsonObject, JsonObject> adjust = json =>
+        var stubServer = OpenAiStubServer.Start();
+
+        // Everything from here on can throw (a test's own `stub` callback, sandbox creation, the
+        // launch itself) and must not leak the stub's HTTP listener or a half-written sandbox
+        // directory into the next test — one try/catch covers the whole sequence instead of
+        // guarding each step separately (a review found the previous version left the stub
+        // undisposed when `ApplyDefaultStubRules`/`stub?.Invoke` threw).
+        try
         {
-            if (teamFile)
+            ApplyDefaultStubRules(stubServer, fixtures);
+            stub?.Invoke(stubServer);
+
+            Func<JsonObject, JsonObject> adjust = json =>
             {
-                var teamPromptsPath = Path.Combine(root, "team", "prompts.json");
-                Directory.CreateDirectory(Path.GetDirectoryName(teamPromptsPath)!);
-                File.WriteAllText(teamPromptsPath, BuiltInTeamPromptsJson());
-                json["globalPromptFilePath"] = teamPromptsPath;
-            }
+                if (teamFile)
+                {
+                    var teamPromptsPath = Path.Combine(root, "team", "prompts.json");
+                    Directory.CreateDirectory(Path.GetDirectoryName(teamPromptsPath)!);
+                    File.WriteAllText(teamPromptsPath, BuiltInTeamPromptsJson());
+                    json["globalPromptFilePath"] = teamPromptsPath;
+                }
 
-            return adjustSettings is null ? json : adjustSettings(json);
-        };
+                return adjustSettings is null ? json : adjustSettings(json);
+            };
 
-        SandboxLayout sandbox;
-        try
-        {
-            sandbox = TestSandbox.Create(root, lastSeenReleaseNotesVersion, adjust);
-        }
-        catch
-        {
-            stubServer.Dispose();
-            throw;
-        }
+            var sandbox = TestSandbox.Create(root, lastSeenReleaseNotesVersion, adjust);
+            var options = new JohannLaunchOptions(exePath, sandbox, stubServer.Root, "sk-stub-not-a-real-key");
+            var app = JohannSession.Launch(options);
 
-        var options = new JohannLaunchOptions(exePath, sandbox, stubServer.Root, "sk-stub-not-a-real-key");
-        JohannSession app;
-        try
-        {
-            app = JohannSession.Launch(options);
+            return new UiTestContext(app, stubServer, sandbox, root, keepSandbox, fixtures);
         }
         catch
         {
             stubServer.Dispose();
             if (!keepSandbox)
             {
+                // Safe even when TestSandbox.Create never ran (root does not exist yet) or only
+                // partially created the sandbox before throwing — TryDeleteDirectory no-ops on a
+                // missing directory and swallows a locked one, it never masks the real exception.
                 TryDeleteDirectory(root);
             }
 
             throw;
         }
-
-        return new UiTestContext(app, stubServer, sandbox, root, keepSandbox, fixtures);
     }
 
     /// <summary>
@@ -151,18 +149,83 @@ public sealed class UiTestContext : IDisposable
         var expectedTitle = data.Full?.Title ?? FirstWords(data.Transcript, 5);
 
         var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
+        var lastSeen = new List<string>();
         while (DateTime.UtcNow < deadline)
         {
+            // Exact match first (AutomationId or Name equal to the title) — cheap, and correct if
+            // a later change gives list rows an explicit AutomationId/Name equal to the title.
             if (this.App.TryFind(expectedTitle) is not null)
             {
                 return expectedTitle;
             }
 
+            // Fallback: today's ListBoxItem has no such explicit id: its UIA Name (and/or its
+            // descendant Text runs, e.g. the "001 Projekt — Titel" line) merely *contains* the
+            // title. Walk the entry list directly and match by Contains instead of exact Name.
+            if (this.TryFindTitleInEntryList(expectedTitle, out var seen))
+            {
+                return expectedTitle;
+            }
+
+            lastSeen = seen;
             await Task.Delay(250).ConfigureAwait(false);
         }
 
+        var seenText = lastSeen.Count == 0 ? "(keine Einträge/Texte gesehen)" : string.Join(" | ", lastSeen);
         throw new TimeoutException(
-            $"Diktat '{fixture}' erschien nicht als Listeneintrag '{expectedTitle}' innerhalb von {timeout}.");
+            $"Diktat '{fixture}' erschien nicht als Listeneintrag '{expectedTitle}' innerhalb von {timeout}. "
+            + $"Zuletzt gesehene Eintragstexte: {seenText}");
+    }
+
+    /// <summary>
+    /// Looks for <paramref name="expectedTitle"/> as a substring of the entry list's row names or
+    /// their descendant text runs. <paramref name="seenNames"/> always carries every name observed
+    /// (even on a miss), so a timeout can report what was actually on screen.
+    /// </summary>
+    private bool TryFindTitleInEntryList(string expectedTitle, out List<string> seenNames)
+    {
+        seenNames = [];
+
+        var list = this.App.TryFind("Entries.List");
+        if (list is null)
+        {
+            return false;
+        }
+
+        foreach (var item in list.FindAllChildren())
+        {
+            var itemName = item.Properties.Name.ValueOrDefault;
+            if (!string.IsNullOrEmpty(itemName))
+            {
+                seenNames.Add(itemName);
+                if (itemName.Contains(expectedTitle, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var descendant in item.FindAllDescendants())
+            {
+                if (descendant.Properties.ControlType.ValueOrDefault != FlaUI.Core.Definitions.ControlType.Text)
+                {
+                    continue;
+                }
+
+                var text = descendant.Properties.Name.ValueOrDefault;
+                if (string.IsNullOrEmpty(text))
+                {
+                    continue;
+                }
+
+                seenNames.Add(text);
+                if (text.Contains(expectedTitle, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -239,9 +302,10 @@ public sealed class UiTestContext : IDisposable
             return result;
         }
 
-        for (var n = 1; n <= 6; n++)
+        // Discovered from whatever is actually on disk (D1, D2, … as far as fixture files exist)
+        // rather than a hard-coded count — adding a D7 fixture later needs no code change here.
+        foreach (var key in DiscoverFixtureKeys(fixturesDirectory))
         {
-            var key = $"D{n}";
             var statusPath = Path.Combine(fixturesDirectory, $"{key}_status.json");
             if (File.Exists(statusPath))
             {
@@ -258,6 +322,27 @@ public sealed class UiTestContext : IDisposable
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Finds every fixture key (e.g. <c>"D1"</c>, <c>"D12"</c>) present in
+    /// <paramref name="fixturesDirectory"/>, recognised from either a <c>D&lt;n&gt;-*.mp3</c>/
+    /// <c>D&lt;n&gt;-*.txt</c> pair or a <c>D&lt;n&gt;_status.json</c> file.
+    /// </summary>
+    private static IReadOnlyCollection<string> DiscoverFixtureKeys(string fixturesDirectory)
+    {
+        var keys = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var file in Directory.EnumerateFiles(fixturesDirectory))
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(
+                Path.GetFileName(file), @"^(D\d+)(?:-|_status\.json$)");
+            if (match.Success)
+            {
+                keys.Add(match.Groups[1].Value);
+            }
+        }
+
+        return keys;
     }
 
     private static string? ExtractFixtureKey(string fileName)

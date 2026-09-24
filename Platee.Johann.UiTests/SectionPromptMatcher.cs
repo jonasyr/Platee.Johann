@@ -35,19 +35,31 @@ public static class SectionPromptMatcher
     /// Returns the key of the entry in <paramref name="promptsByKey"/> whose fixed prefix
     /// (<see cref="PrefixOf"/>) starts <paramref name="userContent"/>, or <see langword="null"/>
     /// when none matches (e.g. a title request, or a prompt not covered by the caller's map).
+    /// <para>
+    /// When several prefixes match (one being a proper prefix of another — real
+    /// <c>SummaryPrompts</c> constants never do this today, see
+    /// <c>MatchSection_prefixes_are_mutually_unique_and_not_nested</c>, but nothing prevents a
+    /// future edit from creating the overlap), the <b>longest</b> matching prefix wins. This makes
+    /// the result independent of the caller's <see cref="IReadOnlyDictionary{TKey,TValue}"/>
+    /// enumeration order, which is not guaranteed to be insertion order.
+    /// </para>
     /// </summary>
     public static string? MatchSection(string userContent, IReadOnlyDictionary<string, string> promptsByKey)
     {
+        string? bestKey = null;
+        var bestLength = -1;
+
         foreach (var (key, prompt) in promptsByKey)
         {
             var prefix = PrefixOf(prompt);
-            if (prefix.Length > 0 && userContent.StartsWith(prefix, StringComparison.Ordinal))
+            if (prefix.Length > bestLength && userContent.StartsWith(prefix, StringComparison.Ordinal))
             {
-                return key;
+                bestKey = key;
+                bestLength = prefix.Length;
             }
         }
 
-        return null;
+        return bestKey;
     }
 
     /// <summary>

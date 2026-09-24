@@ -38,12 +38,46 @@ public sealed class SectionPromptMatcherTests
     }
 
     [Fact]
-    public void MatchSection_prefixes_are_mutually_unique()
+    public void MatchSection_prefixes_are_mutually_unique_and_not_nested()
     {
         var prefixes = PromptsByKey.Values.Select(SectionPromptMatcher.PrefixOf).ToList();
 
         prefixes.Should().OnlyHaveUniqueItems();
         prefixes.Should().OnlyContain(p => p.Length > 0);
+
+        // A future prompt edit that makes one section's prefix a proper prefix of another's would
+        // make MatchSection depend on longest-match tie-breaking between real sections instead of
+        // between a real section and unrelated text — still handled, but worth failing loudly here
+        // so it is a deliberate choice, not an accident.
+        foreach (var a in prefixes)
+        {
+            foreach (var b in prefixes)
+            {
+                if (ReferenceEquals(a, b) || a == b)
+                {
+                    continue;
+                }
+
+                a.StartsWith(b, StringComparison.Ordinal).Should().BeFalse(
+                    $"'{Shorten(b)}' should not be a proper prefix of '{Shorten(a)}'");
+            }
+        }
+    }
+
+    [Fact]
+    public void MatchSection_prefers_the_longest_matching_prefix_when_one_prefix_nests_another()
+    {
+        var prompts = new Dictionary<string, string>
+        {
+            ["short"] = "Hallo {x}",
+            ["long"] = "Hallo Welt, wie geht es dir {x}",
+        };
+        var userContent = "Hallo Welt, wie geht es dir heute?";
+
+        // Both prefixes ("Hallo " and "Hallo Welt, wie geht es dir ") are proper prefixes of
+        // userContent — the matcher must pick the longer, more specific one regardless of
+        // dictionary enumeration order.
+        SectionPromptMatcher.MatchSection(userContent, prompts).Should().Be("long");
     }
 
     [Fact]
@@ -71,4 +105,6 @@ public sealed class SectionPromptMatcherTests
         .Replace("{word_limit}", "40")
         .Replace("{transcript}", "Ein Beispieltranskript für den Test.")
         .Replace("{prose_summary}", "Eine Beispielzusammenfassung für den Test.");
+
+    private static string Shorten(string s) => s.Length <= 60 ? s : s[..60] + "…";
 }
