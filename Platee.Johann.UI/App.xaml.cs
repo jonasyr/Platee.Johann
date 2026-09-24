@@ -68,13 +68,16 @@ public partial class App : System.Windows.Application
 
         // Unter JOHANN_HOME (#111) muss auch eine fehlende oder unvollstaendige settings.json
         // unter dem Home-Ordner landen — sonst wuerde eine umgelenkte Sandbox beim ersten Start
-        // heimlich in das echte Documents\Johann schreiben (Fix-Runde 1).
+        // heimlich in das echte Documents\Johann schreiben (Fix-Runde 1). GlobalPromptFilePath
+        // bleibt null: eine Sandbox hat kein Team-File, solange ihre settings.json keins nennt —
+        // sonst zoege "Standard wiederherstellen" das echte Z:\...\prompts.json heran (Fix-Runde 2).
         var settingsDefaults = JohannEnvironment.HasHomeOverride()
             ? new AppSettings
             {
                 Quellverzeichnis = Path.Combine(johannHome, "Eingang"),
                 Archivverzeichnis = Path.Combine(johannHome, "Eingang", "Archiv"),
                 Ausgabeverzeichnis = Path.Combine(johannHome, "output"),
+                GlobalPromptFilePath = null,
             }
             : null;
         var jsonSettingsRepo = new JsonSettingsRepository(settingsDir, settingsDefaults);
@@ -307,7 +310,8 @@ public partial class App : System.Windows.Application
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
                                            settingsRepo, personalPromptRepo, persistedSettingsHolder,
                                            runtimeSettingsHolder, microphoneRecorder,
-                                           pathResolution.Issues, modelProbe, mailComposer);
+                                           pathResolution.Issues, modelProbe, mailComposer,
+                                           settingsDefaults);
 
         // Wired here rather than injected so the view models stay dialog-free in tests.
         viewModel.EmptySectionHintPrompt = () =>

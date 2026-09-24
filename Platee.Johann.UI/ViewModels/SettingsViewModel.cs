@@ -22,6 +22,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly SettingsHolder persistedHolder;
     private readonly SettingsHolder runtimeHolder;
 
+    // "Standard wiederherstellen" faellt hierauf zurueck statt auf AppSettings.Default (#111
+    // Fix-Runde 2): unter JOHANN_HOME sonst wuerde Reset + Speichern eine Sandbox heimlich auf
+    // die echten Documents\Johann-Pfade und das echte Team-Prompt-File auf Z: umbiegen.
+    private readonly AppSettings defaults;
+
     // ── User info ─────────────────────────────────────────────────────────────
     [ObservableProperty]
     private string name = string.Empty;
@@ -277,13 +282,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         SettingsHolder persistedHolder,
         SettingsHolder? runtimeHolder = null,
         IReadOnlyList<StartupPathIssue>? startupPathIssues = null,
-        IModelAvailabilityProbe? probe = null)
+        IModelAvailabilityProbe? probe = null,
+        AppSettings? defaults = null)
     {
         this.repository = repository;
         this.promptRepository = promptRepository;
         this.persistedHolder = persistedHolder;
         this.runtimeHolder = runtimeHolder ?? persistedHolder;
         this.probe = probe;
+        this.defaults = defaults ?? AppSettings.Default;
         this.Sections = BuildSections();
         this.BuiltInSectionModes = BuildBuiltInSectionModes(persistedHolder.Current.SectionModes);
 
@@ -513,7 +520,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void Reset()
     {
-        var d = AppSettings.Default;
+        var d = this.defaults;
         this.Name = d.Name;
         this.Firma = d.Firma;
         this.AufgabenMailText = d.AufgabenMailText;

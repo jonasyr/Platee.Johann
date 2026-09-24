@@ -26,6 +26,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly SettingsHolder runtimeSettingsHolder;
     private readonly IModelAvailabilityProbe? modelProbe;
     private readonly IReadOnlyList<StartupPathIssue> startupPathIssues;
+    private readonly AppSettings? settingsDefaults;
     private readonly List<DateItemViewModel> allDates = [];
     private bool suppressDateSelectionChanged;
 
@@ -353,7 +354,8 @@ public sealed partial class MainViewModel : ObservableObject
                          IMicrophoneRecorder microphoneRecorder,
                          IReadOnlyList<StartupPathIssue>? startupPathIssues = null,
                          IModelAvailabilityProbe? modelProbe = null,
-                         IMailComposer? mailComposer = null)
+                         IMailComposer? mailComposer = null,
+                         AppSettings? settingsDefaults = null)
     {
         this.modelProbe = modelProbe;
         this.repository = repository;
@@ -365,6 +367,7 @@ public sealed partial class MainViewModel : ObservableObject
         this.persistedSettingsHolder = persistedSettingsHolder;
         this.runtimeSettingsHolder = runtimeSettingsHolder;
         this.startupPathIssues = startupPathIssues ?? [];
+        this.settingsDefaults = settingsDefaults;
         this.microphoneRecorder = microphoneRecorder;
         this.detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, this.Sections,
             addLog: this.AddProcessLog,
@@ -989,7 +992,8 @@ public sealed partial class MainViewModel : ObservableObject
                 this.persistedSettingsHolder,
                 this.runtimeSettingsHolder,
                 this.startupPathIssues,
-                this.modelProbe);
+                this.modelProbe,
+                this.settingsDefaults);
 
             // Die Statusleiste nennt seit #71 das gewaehlte Modell. Das Fenster ist nicht
             // modal, also muss sie beim Speichern nachziehen und nicht erst beim Neustart.
