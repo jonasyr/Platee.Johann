@@ -315,9 +315,27 @@ public sealed class JohannSession : IDisposable
         this.app.Dispose();
     }
 
+    /// <summary>
+    /// Reads what <see cref="JohannWindows.SelectKeyTargetIndex"/> needs without ever throwing.
+    /// Untitled windows (WPF popups/tooltips) are skipped before any pattern is touched: they
+    /// lack the UIA Window pattern, and FlaUI's <c>Window.IsModal</c> then throws "The requested
+    /// pattern 'Window' is not supported" — which aborted every <c>key</c> command live (S7).
+    /// </summary>
+    private static (string Title, bool IsModal, bool IsMain) KeyTargetCandidate(Window window)
+    {
+        var title = TitleOf(window);
+        var isModal = title.Length > 0 && IsModalOf(window);
+        return (title, isModal, JohannWindows.IsMainWindow(title));
+    }
+
+    private static string TitleOf(Window window) => window.Properties.Name.ValueOrDefault ?? string.Empty;
+
+    private static bool IsModalOf(Window window) =>
+        window.Patterns.Window.PatternOrDefault is { } pattern && pattern.IsModal.ValueOrDefault;
+
     private static bool MatchesWindow(Window window, string idOrName) =>
         string.Equals(window.Properties.AutomationId.ValueOrDefault, idOrName, StringComparison.Ordinal)
-        || string.Equals(window.Title, idOrName, StringComparison.Ordinal);
+        || string.Equals(TitleOf(window), idOrName, StringComparison.Ordinal);
 
     private static void TryKill(FlaUiApplication app)
     {
@@ -351,7 +369,7 @@ public sealed class JohannSession : IDisposable
                 ?? throw new ElementNotFoundException(explicitTitle, this.Tree());
         }
 
-        var candidates = windows.Select(w => (w.Title, w.IsModal, JohannWindows.IsMainWindow(w.Title))).ToArray();
+        var candidates = windows.Select(KeyTargetCandidate).ToArray();
         var index = JohannWindows.SelectKeyTargetIndex(candidates);
         return index >= 0 ? windows[index] : this.MainWindow;
     }
