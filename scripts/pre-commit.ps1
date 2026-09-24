@@ -97,6 +97,7 @@ if ($csFiles) {
         'Platee.Johann.UI' = 'Platee.Johann.UI/Platee.Johann.UI.csproj'
         'Platee.Johann.UiDriver' = 'Platee.Johann.UiDriver/Platee.Johann.UiDriver.csproj'
         'Platee.Johann.Tests' = 'Platee.Johann.Tests/Platee.Johann.Tests.csproj'
+        'tools/ui-driver' = 'tools/ui-driver/UiDriverTool.csproj'
     }
 
     $filesByProject = @{}
