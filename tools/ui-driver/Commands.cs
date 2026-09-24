@@ -76,7 +76,7 @@ public static class Commands
             }),
             "key" => Attach(session =>
             {
-                session.Key(FirstPositional(rest, "chord"));
+                session.Key(FirstPositional(rest, "chord", "--window"), CommandArgs.Option(rest, "--window"));
                 return Ok();
             }),
             "screenshot" => Attach(session =>

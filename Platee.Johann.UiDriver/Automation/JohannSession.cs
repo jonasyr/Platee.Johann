@@ -225,11 +225,16 @@ public sealed class JohannSession : IDisposable
         }
     }
 
-    public void Key(string chord)
+    /// <summary>
+    /// Sends a key chord to the resolved <see cref="KeyTarget"/> — an open modal Johann dialog if
+    /// one exists, else the main window, or the window named by <paramref name="window"/> when
+    /// given explicitly (e.g. <c>--window "Einstellungen – Platé.Johann"</c> for the non-modal
+    /// Settings window, which is never picked automatically since it would otherwise steal
+    /// keystrokes meant for the main window's own <c>InputBindings</c>, e.g. <c>Ctrl+0</c>).
+    /// </summary>
+    public void Key(string chord, string? window = null)
     {
-        // No element is targeted, so bring forward whichever Johann window is topmost — the last
-        // entry of Windows() (main window first, dialogs after, see Windows()'s own remarks).
-        var target = this.Windows().LastOrDefault() ?? this.MainWindow;
+        var target = this.KeyTarget(window);
         InputSafety.EnsureForeground(target, this.ProcessId);
         Keyboard.Type(KeyChord.Parse(chord));
     }
@@ -326,6 +331,28 @@ public sealed class JohannSession : IDisposable
         {
             // Best-effort cleanup — the process may already be gone.
         }
+    }
+
+    /// <summary>
+    /// Resolves the window untargeted keyboard input (<see cref="Key"/>) should go to: the window
+    /// named by <paramref name="explicitTitle"/> when given, else an open MODAL Johann dialog if
+    /// one has a real title, else the main window. See
+    /// <see cref="JohannWindows.SelectKeyTargetIndex"/> for the pure selection rule and why a
+    /// non-modal dialog (Settings) and untitled windows (popups/tooltips) are never picked
+    /// automatically.
+    /// </summary>
+    private Window KeyTarget(string? explicitTitle)
+    {
+        var windows = this.Windows();
+        if (explicitTitle is not null)
+        {
+            return windows.FirstOrDefault(w => MatchesWindow(w, explicitTitle))
+                ?? throw new ElementNotFoundException(explicitTitle, this.Tree());
+        }
+
+        var candidates = windows.Select(w => (w.Title, w.IsModal, JohannWindows.IsMainWindow(w.Title))).ToArray();
+        var index = JohannWindows.SelectKeyTargetIndex(candidates);
+        return index >= 0 ? windows[index] : this.MainWindow;
     }
 
     /// <summary>

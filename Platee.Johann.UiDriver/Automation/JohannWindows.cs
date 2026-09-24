@@ -113,6 +113,38 @@ internal static class JohannWindows
         return result;
     }
 
+    /// <summary>
+    /// Picks which window keyboard input with no explicit target (<see cref="JohannSession.Key"/>,
+    /// and eventually anything else with nowhere more specific to send a keystroke) should go to:
+    /// an open MODAL Johann dialog if one has an actual title, else the main window. Never an
+    /// untitled window (empty title) — those are WPF popups/tooltips (status-log popup, combo-box
+    /// dropdowns, …), not something a keyboard shortcut like <c>Ctrl+0</c> should ever be aimed at,
+    /// and a NON-modal dialog (e.g. the Settings window, which the user can leave open while still
+    /// using the main window) must not steal keystrokes meant for the main window's own
+    /// <c>InputBindings</c>. Returns -1 (meaning: fall back to the main window) when no candidate
+    /// qualifies as either.
+    /// </summary>
+    public static int SelectKeyTargetIndex(IReadOnlyList<(string Title, bool IsModal, bool IsMain)> windows)
+    {
+        for (var i = 0; i < windows.Count; i++)
+        {
+            if (windows[i].IsModal && !string.IsNullOrEmpty(windows[i].Title))
+            {
+                return i;
+            }
+        }
+
+        for (var i = 0; i < windows.Count; i++)
+        {
+            if (windows[i].IsMain)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public static UiNode BuildNode(AutomationElement element, int depth)
     {
         var children = depth <= 0
