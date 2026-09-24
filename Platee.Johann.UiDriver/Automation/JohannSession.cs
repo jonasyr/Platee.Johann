@@ -24,6 +24,15 @@ public sealed class JohannSession : IDisposable
     private readonly UIA3Automation automation;
     private Window? mainWindow;
 
+    static JohannSession()
+    {
+        // Must run before any UIA/Win32 pixel-based call — GetWindowRect/PrintWindow and UIA's
+        // BoundingRectangle must agree on physical vs. logical pixels (see DpiAwareness). Running
+        // this from the static constructor also covers the xUnit test host, which never sees an
+        // app.manifest.
+        DpiAwareness.EnsurePerMonitorV2();
+    }
+
     private JohannSession(FlaUiApplication app, UIA3Automation automation)
     {
         this.app = app;

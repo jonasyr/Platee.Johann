@@ -10,4 +10,8 @@
     <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Lets Platee.Johann.Tests unit-test the pure crop math in the internal JohannWindows helper. -->
+    <InternalsVisibleTo Include="Platee.Johann.Tests" />
+  </ItemGroup>
 </Project>
