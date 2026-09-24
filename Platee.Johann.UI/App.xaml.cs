@@ -10,6 +10,7 @@ using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Infrastructure.Audio;
+using Platee.Johann.Infrastructure.Hosting;
 using Platee.Johann.Infrastructure.Json;
 using Platee.Johann.Infrastructure.Llm;
 using Platee.Johann.Infrastructure.Mail;
@@ -44,11 +45,26 @@ public partial class App : System.Windows.Application
             crashLogger.WriteCrashLog("TASK", ex.Exception);
         };
 
+        // JOHANN_HOME einmal früh auflösen: ein Tippfehler in der Automations-Umlenkung soll
+        // den Start verweigern statt erst beim ersten Diktat mit den echten Daten aufzufallen.
+        string johannHome;
+        try
+        {
+            johannHome = JohannEnvironment.HomeDirectory();
+            _ = JohannEnvironment.OpenAiRoot();
+        }
+        catch (InvalidOperationException ex)
+        {
+            crashLogger.WriteCrashLog("ENVIRONMENT", ex);
+            MessageBox.Show(ex.Message, "Platé.Johann – Start abgebrochen", MessageBoxButton.OK, MessageBoxImage.Error);
+            this.Shutdown(1);
+            return;
+        }
+
         base.OnStartup(e);
 
         // ── Settings ──────────────────────────────────────────────────────────
-        var settingsDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann");
+        var settingsDir = johannHome;
         var jsonSettingsRepo = new JsonSettingsRepository(settingsDir);
         ISettingsRepository settingsRepo = jsonSettingsRepo;
 
@@ -529,20 +545,16 @@ public partial class App : System.Windows.Application
 
     private static string ResolveDefaultOutputRoot()
     {
-        // Default: Documents\Johann\output — independent of the Python project location
-        var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Johann", "output");
+        // Default: <Johann-Home>\output — Documents\Johann, oder JOHANN_HOME (#111)
+        var path = Path.Combine(JohannEnvironment.HomeDirectory(), "output");
         Directory.CreateDirectory(path);
         return path;
     }
 
     private static string ResolveDefaultInputRoot()
     {
-        // Default: Documents\Johann\Eingang
-        var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Johann", "Eingang");
+        // Default: <Johann-Home>\Eingang — Documents\Johann, oder JOHANN_HOME (#111)
+        var path = Path.Combine(JohannEnvironment.HomeDirectory(), "Eingang");
         Directory.CreateDirectory(path);
         return path;
     }
