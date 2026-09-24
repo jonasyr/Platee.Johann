@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Platee.Johann.Domain\Platee.Johann.Domain.csproj" />
     <ProjectReference Include="..\Platee.Johann.Application\Platee.Johann.Application.csproj" />
     <ProjectReference Include="..\Platee.Johann.Infrastructure\Platee.Johann.Infrastructure.csproj" />
+    <ProjectReference Include="..\Platee.Johann.UiDriver\Platee.Johann.UiDriver.csproj" />
   </ItemGroup>
 
   <ItemGroup>
