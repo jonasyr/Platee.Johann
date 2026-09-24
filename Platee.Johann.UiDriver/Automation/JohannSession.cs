@@ -234,9 +234,10 @@ public sealed class JohannSession : IDisposable
     /// </summary>
     public void Key(string chord, string? window = null)
     {
+        var keys = KeyChord.Parse(chord);
         var target = this.KeyTarget(window);
         InputSafety.EnsureForeground(target, this.ProcessId);
-        Keyboard.Type(KeyChord.Parse(chord));
+        NativeKeyboard.SendChord(keys);
     }
 
     public string Screenshot(string path, string? idOrName = null)

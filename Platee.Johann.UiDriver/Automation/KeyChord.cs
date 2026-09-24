@@ -4,12 +4,57 @@ using System.Globalization;
 using FlaUI.Core.WindowsAPI;
 
 /// <summary>
-/// Parses a human-typed key combination such as "Ctrl+Plus" or "Shift+Tab" into the ordered
-/// <see cref="VirtualKeyShort"/> sequence <c>FlaUI.Core.Input.Keyboard.Type</c> expects.
+/// Parses a human-typed key combination such as "Ctrl+Plus" or "Shift+Tab" into its ordered
+/// <see cref="VirtualKeyShort"/> keys, and turns those into the down/up event sequence a chord
+/// needs (<see cref="ToEvents"/>). A chord is <b>not</b> a sequence of taps: FlaUI's
+/// <c>Keyboard.Type(params VirtualKeyShort[])</c> presses and releases each key in turn, so
+/// "Ctrl+0" became "tap Ctrl, then tap 0" and no <c>InputBinding</c> ever fired (S7).
 /// </summary>
 public static class KeyChord
 {
+    /// <summary>Keys whose scan code lives in the E0-prefixed block and need KEYEVENTF_EXTENDEDKEY.</summary>
+    private static readonly HashSet<VirtualKeyShort> ExtendedKeys =
+    [
+        VirtualKeyShort.RCONTROL,
+        VirtualKeyShort.RMENU,
+        VirtualKeyShort.INSERT,
+        VirtualKeyShort.DELETE,
+        VirtualKeyShort.HOME,
+        VirtualKeyShort.END,
+        VirtualKeyShort.PRIOR,
+        VirtualKeyShort.NEXT,
+        VirtualKeyShort.LEFT,
+        VirtualKeyShort.RIGHT,
+        VirtualKeyShort.UP,
+        VirtualKeyShort.DOWN,
+        VirtualKeyShort.NUMLOCK,
+        VirtualKeyShort.DIVIDE,
+        VirtualKeyShort.SNAPSHOT,
+        VirtualKeyShort.CANCEL,
+        VirtualKeyShort.LWIN,
+        VirtualKeyShort.RWIN,
+        VirtualKeyShort.APPS,
+    ];
+
     private static readonly IReadOnlyDictionary<string, VirtualKeyShort> Names = BuildNames();
+
+    /// <summary>
+    /// Pure: the ordered key events for a parsed chord — every key pressed in order (modifiers
+    /// first, so they are held for the whole chord), then released in reverse order.
+    /// <paramref name="scanCodeOf"/> maps a virtual key to its scan code (MapVirtualKey in
+    /// production, a fake in tests).
+    /// </summary>
+    public static IReadOnlyList<KeyEvent> ToEvents(IReadOnlyList<VirtualKeyShort> keys, Func<VirtualKeyShort, ushort> scanCodeOf)
+    {
+        ArgumentNullException.ThrowIfNull(keys);
+        ArgumentNullException.ThrowIfNull(scanCodeOf);
+
+        var downs = keys.Select(key => ToEvent(key, scanCodeOf, keyUp: false));
+        var ups = keys.Reverse().Select(key => ToEvent(key, scanCodeOf, keyUp: true));
+        return [.. downs, .. ups];
+    }
+
+    public static bool IsExtended(VirtualKeyShort key) => ExtendedKeys.Contains(key);
 
     public static VirtualKeyShort[] Parse(string chord)
     {
@@ -19,6 +64,9 @@ public static class KeyChord
             .Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(ParseKey)];
     }
+
+    private static KeyEvent ToEvent(VirtualKeyShort key, Func<VirtualKeyShort, ushort> scanCodeOf, bool keyUp) =>
+        new(key, scanCodeOf(key), IsExtended(key), keyUp);
 
     private static VirtualKeyShort ParseKey(string name)
     {
