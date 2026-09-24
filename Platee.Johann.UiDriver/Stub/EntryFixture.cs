@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 
 public sealed record EntryFixture(string Transcript, string Title, IReadOnlyDictionary<string, string> Sections)
 {
-    public static readonly string[] SectionKeys =
+    public static readonly IReadOnlyList<string> SectionKeys =
         ["abstract", "longSummary", "proseSummary", "emailText", "conversationNote", "taskList", "stundenzettelText", "analogText"];
 
     public static EntryFixture Load(string statusJsonPath)

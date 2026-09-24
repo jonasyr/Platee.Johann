@@ -63,6 +63,36 @@ public sealed class OpenAiStubServerTests
     }
 
     [Fact]
+    public async Task MalformedChatBody_Returns500_AndRecordsError()
+    {
+        using var stub = OpenAiStubServer.Start();
+        using var http = new HttpClient { BaseAddress = stub.Root };
+        using var malformed = new StringContent("{kaputt", Encoding.UTF8, "application/json");
+
+        var response = await http.PostAsync("v1/chat/completions", malformed);
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        stub.Errors.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Dispose_WhileRequestHanging_CompletesQuickly_AndRecordsNoError()
+    {
+        var stub = OpenAiStubServer.Start();
+        stub.Hang("/v1/chat/completions");
+        using var http = new HttpClient { BaseAddress = stub.Root };
+        _ = http.PostAsync("v1/chat/completions", Chat("a"));
+        await Task.Delay(100);
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        stub.Dispose();
+        sw.Stop();
+
+        sw.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(3));
+        stub.Errors.Should().BeEmpty();
+    }
+
+    [Fact]
     public void EntryFixture_ReadsSectionsFromStatusJson()
     {
         var path = Path.Combine(Directory.CreateTempSubdirectory("fx-").FullName, "x_status.json");

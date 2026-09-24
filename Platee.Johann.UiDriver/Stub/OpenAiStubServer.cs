@@ -11,9 +11,11 @@ public sealed class OpenAiStubServer : IDisposable
 {
     private readonly HttpListener listener = new();
     private readonly ConcurrentQueue<StubRequest> requests = new();
+    private readonly ConcurrentQueue<Exception> errors = new();
     private readonly ConcurrentDictionary<string, int> failNext = new();
     private readonly ConcurrentDictionary<string, bool> hanging = new();
     private readonly ConcurrentDictionary<string, bool> missingModels = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<Task, byte> inFlight = new();
     private readonly CancellationTokenSource stop = new();
     private Func<string, string?> chat = _ => null;
     private Func<string, string?> transcription = _ => null;
@@ -27,6 +29,8 @@ public sealed class OpenAiStubServer : IDisposable
     public Uri Root { get; }
 
     public IReadOnlyList<StubRequest> Requests => this.requests.ToArray();
+
+    public IReadOnlyList<Exception> Errors => this.errors.ToArray();
 
     public static OpenAiStubServer Start()
     {
@@ -55,6 +59,16 @@ public sealed class OpenAiStubServer : IDisposable
     {
         this.stop.Cancel();
         this.listener.Close();
+
+        try
+        {
+            Task.WhenAll(this.inFlight.Keys).Wait(TimeSpan.FromSeconds(2));
+        }
+        catch (AggregateException)
+        {
+            // Handlers unwind via the cancelled token or a closed listener during shutdown;
+            // any exception has already been recorded in this.errors where relevant.
+        }
     }
 
     private async Task LoopAsync()
@@ -71,11 +85,31 @@ public sealed class OpenAiStubServer : IDisposable
                 return;
             }
 
-            _ = Task.Run(() => this.HandleAsync(ctx));
+            var handler = Task.Run(() => this.HandleAsync(ctx));
+            this.inFlight[handler] = 0;
+            _ = handler.ContinueWith(t => this.inFlight.TryRemove(t, out _), TaskScheduler.Default);
         }
     }
 
     private async Task HandleAsync(HttpListenerContext ctx)
+    {
+        try
+        {
+            await this.HandleRequestAsync(ctx);
+        }
+        catch (Exception) when (this.stop.IsCancellationRequested)
+        {
+            // Caused by our own shutdown (cancellation, or the listener/response closed
+            // right after Dispose ran) — not a stub bug, so it is not recorded as an error.
+        }
+        catch (Exception ex)
+        {
+            this.errors.Enqueue(ex);
+            await TryWriteError(ctx, ex);
+        }
+    }
+
+    private async Task HandleRequestAsync(HttpListenerContext ctx)
     {
         var path = ctx.Request.Url!.AbsolutePath;
         using var reader = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding);
@@ -155,6 +189,19 @@ public sealed class OpenAiStubServer : IDisposable
     }
 
     private static string Shorten(string s) => s.Length <= 80 ? s : s[..80] + "…";
+
+    private static async Task TryWriteError(HttpListenerContext ctx, Exception ex)
+    {
+        try
+        {
+            await Write(ctx, 500, JsonSerializer.Serialize(new { error = new { message = ex.Message, type = "stub_error" } }));
+        }
+        catch (Exception)
+        {
+            // The response stream may already be closed or the connection gone; nothing more
+            // we can do to report it to the caller. It is still recorded in Errors.
+        }
+    }
 
     private static async Task Write(HttpListenerContext ctx, int status, string body)
     {
