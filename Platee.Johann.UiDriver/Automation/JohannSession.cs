@@ -47,7 +47,19 @@ public sealed class JohannSession : IDisposable
 
     public static JohannSession Launch(JohannLaunchOptions options, TimeSpan? timeout = null, bool expectDialogs = false)
     {
+        // A short grace period, not an immediate throw: the previous test's Dispose() already
+        // asked the process to close, but under CPU contention (many background dotnet/build-server
+        // processes — observed live, Task 11) its own up-to-10s wait can occasionally still be
+        // running when the very next test starts. Real "someone else is using Johann" cases settle
+        // this in the first iteration; only a genuinely still-running Johann exhausts the loop.
         var running = Process.GetProcessesByName(ProcessName);
+        var graceDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (running.Length > 0 && DateTime.UtcNow < graceDeadline)
+        {
+            Thread.Sleep(200);
+            running = Process.GetProcessesByName(ProcessName);
+        }
+
         if (running.Length > 0)
         {
             throw new InvalidOperationException($"Johann läuft bereits (PID {running[0].Id}) — bitte schließen.");
