@@ -36,6 +36,12 @@ dotnet run --project Platee.Johann.UI
 
 # Install vpk tool (once)
 dotnet tool install -g vpk
+
+# UI suite against the real EXE (#111) — takes over the desktop, Johann must be closed
+pwsh -NoProfile -File scripts/run-ui-tests.ps1 [-Filter "FullyQualifiedName~DetailFlowTests"]
+
+# Audit driver: sandbox, start, tree, click, type, key, screenshot (PrintWindow) …
+dotnet run --project tools/ui-driver --no-build -- sandbox new
 ```
 
 Version: **1.4.0**
@@ -48,7 +54,7 @@ Target: **.NET 10 / net10.0-windows** (UI), **net10.0** (all other projects)
 <!-- AUTO-MANAGED: architecture -->
 ## Architecture
 
-Clean Architecture with four projects + one test project:
+Clean Architecture with four projects, one test project and the UI-automation projects (#111):
 
 ```
 Platee.Johann.Domain/          # Core entities, no external deps
@@ -106,6 +112,15 @@ Platee.Johann.UI/              # WPF presentation layer (depends on all)
 
 Platee.Johann.Tests/
   Unit/                        # xUnit unit tests mirroring all layers
+
+Platee.Johann.UiDriver/        # net10.0-windows, FlaUI.UIA3, no product references (#111)
+  Stub/                        # OpenAiStubServer (HttpListener: chat, transcriptions, models/{id})
+  Sandbox/                     # SandboxLayout, SandboxGuard, AuditSandbox, TestSandbox
+  Automation/                  # JohannSession (start/click/type/key/screenshot), InputSafety,
+                               #   KeyChord + NativeKeyboard (SendInput), UiTreeDump
+Platee.Johann.UiTests/         # FlaUI suite; IsTestProject=false unless -p:RunUiTests=true
+tools/ui-driver/               # CLI over UiDriver for manual audits
+tests/fixtures/dictations/     # D1–D6 texts + TTS MP3s (scripts/new-dictation-fixtures.ps1)
 ```
 
 Dependency flow: `UI → Infrastructure → Application → Domain`
@@ -470,6 +485,20 @@ which half was rescued — prompt text is team-owned and survives only for the s
 - A **UI-only change is checked visually by the user before merging** (the PR carries a
   "Sichtprüfung" checklist); layout questions are settled with evidence from the running window,
   not by guessing (#96).
+- **UI automation (#111).** Three environment variables, resolved in `JohannEnvironment`
+  (Infrastructure/Hosting). Unset or blank = today's behaviour; set but invalid = Johann refuses to start:
+  `JOHANN_HOME` (replaces `Documents\Johann`, no `.env` walk-up, no default team file),
+  `JOHANN_OPENAI_ENDPOINT` (API root without `/v1`, points chat/transcription/model probe at the stub),
+  `JOHANN_NO_UPDATE_CHECK`.
+  - Rules: only sandboxes (the guard rejects `Z:\`, its UNC form and the real `Documents\Johann`);
+    the team file is only ever copied; Outlook only supervised, drafts only.
+  - ⚠ **Never run the UI suite from `dotnet test` or the pre-push hook**, and only with the user's go —
+    it needs an active, unlocked desktop and nobody typing. The CI job `ui-tests` is non-blocking.
+  - UIA pitfalls, each cost hours: owned modal dialogs are `Window` children of the main window; after
+    `ObservableCollection.Move` a row's control-view children go stale (read via the raw view — the row
+    is drawn fine); a plain `ContentControl`/`Border` has no automation peer, so an AutomationId on it
+    is invisible (`SectionHeaderControl`). Prove a suspected app bug with a `PrintWindow` screenshot first.
+  - Audit report with all findings: `docs/audit/2026-09-24-v1.5.0.md`; runbook `docs/ui-automation/`.
 
 <!-- Add project-specific notes here. This section is never auto-modified. -->
 
