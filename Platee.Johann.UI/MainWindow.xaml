@@ -1020,7 +1020,8 @@
                                     <ContextMenu>
                                         <MenuItem Header="PDF in Zwischenablage kopieren"
                                                   Command="{Binding PlacementTarget.DataContext.Detail.CopyPdfCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  AutomationProperties.AutomationId="Detail.CopyPdf"/>
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
@@ -1066,31 +1067,38 @@
                                     <MenuItem Header="Ausführliche Zusammenfassung neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.proseSummary"/>
+                                              CommandParameter="builtin.proseSummary"
+                                              AutomationProperties.AutomationId="Generate.builtin.proseSummary"/>
                                     <MenuItem Header="Zusammenfassung neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.longSummary"/>
+                                              CommandParameter="builtin.longSummary"
+                                              AutomationProperties.AutomationId="Generate.builtin.longSummary"/>
                                     <MenuItem Header="Aufgaben neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.taskList"/>
+                                              CommandParameter="builtin.taskList"
+                                              AutomationProperties.AutomationId="Generate.builtin.taskList"/>
                                     <MenuItem Header="Gesprächsnotiz neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.conversationNote"/>
+                                              CommandParameter="builtin.conversationNote"
+                                              AutomationProperties.AutomationId="Generate.builtin.conversationNote"/>
                                     <MenuItem Header="E-Mail neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.emailText"/>
+                                              CommandParameter="builtin.emailText"
+                                              AutomationProperties.AutomationId="Generate.builtin.emailText"/>
                                     <MenuItem Header="Stundenzettel neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.stundenzettel"/>
+                                              CommandParameter="builtin.stundenzettel"
+                                              AutomationProperties.AutomationId="Generate.builtin.stundenzettel"/>
                                     <MenuItem Header="Analog neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.analog"/>
+                                              CommandParameter="builtin.analog"
+                                              AutomationProperties.AutomationId="Generate.builtin.analog"/>
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>

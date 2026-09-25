@@ -10,6 +10,9 @@
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="8.8.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <!-- Official PdfPig (github.com/UglyToad/PdfPig, namespace UglyToad.PdfPig). The NuGet id
+         "UglyToad.PdfPig" is a different, unofficial upload (Task 12 report). -->
+    <PackageReference Include="PdfPig" Version="0.1.16" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>

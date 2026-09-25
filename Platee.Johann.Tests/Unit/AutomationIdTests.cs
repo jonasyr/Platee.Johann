@@ -52,6 +52,14 @@ public sealed class AutomationIdTests
             "Sections.ShowConversationNote", "Sections.ShowEmailText", "Sections.ShowStundenzettelText",
             "Sections.ShowAnalogText", "Sections.ShowTranscript", "Sections.Reset",
             "Copy.transcript", "Section.transcript",
+
+            // Task 12: built-in sections are generated on demand only through the context menu
+            // of "Neu generieren" (SectionRows covers custom categories only), and the PDF test
+            // renders through "PDF in Zwischenablage kopieren" — "PDF" itself opens a viewer.
+            "Detail.CopyPdf",
+            "Generate.builtin.proseSummary", "Generate.builtin.longSummary", "Generate.builtin.taskList",
+            "Generate.builtin.conversationNote", "Generate.builtin.emailText",
+            "Generate.builtin.stundenzettel", "Generate.builtin.analog",
         ],
         ["Views/SettingsView.xaml"] =
         [
@@ -155,6 +163,16 @@ public sealed class AutomationIdTests
         }
     }
 
+    [Fact]
+    public void SaveTarget_combo_box_items_carry_their_own_ids()
+    {
+        var document = LoadUiFile("Views/SettingsView.xaml");
+        var items = document.Descendants().Where(e => e.Name.LocalName == "ComboBoxItem").ToList();
+
+        items.Should().Contain(i => (string?)i.Attribute(AutomationId) == "Settings.SaveTarget.Personal");
+        items.Should().Contain(i => (string?)i.Attribute(AutomationId) == "Settings.SaveTarget.Global");
+    }
+
     /// <summary>
     /// Every AutomationId assigned in a file: both attributes set directly on an element, and
     /// ids assigned through a shared <c>Style</c>'s
@@ -178,16 +196,6 @@ public sealed class AutomationIdTests
             .Select(id => id!);
 
         return direct.Concat(viaSetter);
-    }
-
-    [Fact]
-    public void SaveTarget_combo_box_items_carry_their_own_ids()
-    {
-        var document = LoadUiFile("Views/SettingsView.xaml");
-        var items = document.Descendants().Where(e => e.Name.LocalName == "ComboBoxItem").ToList();
-
-        items.Should().Contain(i => (string?)i.Attribute(AutomationId) == "Settings.SaveTarget.Personal");
-        items.Should().Contain(i => (string?)i.Attribute(AutomationId) == "Settings.SaveTarget.Global");
     }
 
     private static string DescribeAttributes(XElement element) =>

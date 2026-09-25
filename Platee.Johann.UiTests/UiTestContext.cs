@@ -102,7 +102,8 @@ public sealed class UiTestContext : IDisposable
         Action<OpenAiStubServer>? stub = null,
         Func<JsonObject, JsonObject>? adjustSettings = null,
         bool teamFile = false,
-        bool keepSandbox = false)
+        bool keepSandbox = false,
+        Func<string, string?>? chatOverride = null)
     {
         var exePath = ExeLocator.Find();
         var lastSeenReleaseNotesVersion = firstRun ? null : TryReadAssemblyVersion(exePath);
@@ -118,7 +119,7 @@ public sealed class UiTestContext : IDisposable
         // undisposed when `ApplyDefaultStubRules`/`stub?.Invoke` threw).
         try
         {
-            ApplyDefaultStubRules(stubServer, fixtures);
+            ApplyDefaultStubRules(stubServer, fixtures, chatOverride);
             stub?.Invoke(stubServer);
 
             Func<JsonObject, JsonObject> adjust = json =>
@@ -325,6 +326,44 @@ public sealed class UiTestContext : IDisposable
         throw new TimeoutException($"Zeitüberschreitung ({timeout}) beim Warten auf: {because}.{lastState}");
     }
 
+    /// <summary>
+    /// Waits until <c>Detail.Reprocess</c> is enabled again. Only as strong as that button:
+    /// <c>ReprocessCommand</c>'s CanExecute is <c>CanReprocess</c>, which no other running command
+    /// (a section generation, a transcript regeneration) turns off — a caller must additionally
+    /// wait for the concrete end state it expects (Task 12 report).
+    /// </summary>
+    public Task WaitUntilIdleAsync(TimeSpan? timeout = null) =>
+        Task.Run(() => this.WaitUntil(
+            () => this.App.Find("Detail.Reprocess", TimeSpan.FromSeconds(1)).IsEnabled,
+            timeout ?? TimeSpan.FromSeconds(60),
+            "Detail.Reprocess ist wieder aktiviert"));
+
+    /// <summary>
+    /// Waits for a file matching <paramref name="pattern"/> anywhere below
+    /// <paramref name="directory"/> (recursive) and returns its path. With
+    /// <paramref name="changedAfterUtc"/>, only a file written after that instant counts — the
+    /// day folder already holds the PDF written during processing, and an export overwrites it
+    /// under the same name. The file must also open for reading, so a half-written file is not
+    /// returned while its writer still holds it.
+    /// </summary>
+    public Task<string> WaitForFileAsync(string directory, string pattern, DateTime? changedAfterUtc = null, TimeSpan? timeout = null) =>
+        Task.Run(() =>
+        {
+            string? found = null;
+            this.WaitUntil(
+                () =>
+                {
+                    found = Directory.Exists(directory)
+                        ? Directory.EnumerateFiles(directory, pattern, SearchOption.AllDirectories)
+                            .FirstOrDefault(f => (changedAfterUtc is null || File.GetLastWriteTimeUtc(f) > changedAfterUtc) && CanOpenForRead(f))
+                        : null;
+                    return found is not null;
+                },
+                timeout ?? TimeSpan.FromSeconds(30),
+                $"Datei '{pattern}' unter '{directory}'" + (changedAfterUtc is null ? string.Empty : $" geschrieben nach {changedAfterUtc:O}"));
+            return found!;
+        });
+
     public void Dispose()
     {
         if (this.disposed)
@@ -346,76 +385,6 @@ public sealed class UiTestContext : IDisposable
         {
             TryDeleteDirectory(this.sandboxRoot);
         }
-    }
-
-    /// <summary>
-    /// Looks for <paramref name="expectedTitle"/> as a substring of the entry list's row names or
-    /// their descendant text runs. <paramref name="seenNames"/> always carries every name observed
-    /// (even on a miss), so a timeout can report what was actually on screen.
-    /// </summary>
-    private bool TryFindTitleInEntryList(string expectedTitle, out List<string> seenNames)
-    {
-        seenNames = [];
-
-        var list = this.App.TryFind("Entries.List");
-        if (list is null)
-        {
-            return false;
-        }
-
-        foreach (var item in list.FindAllChildren())
-        {
-            var itemName = item.Properties.Name.ValueOrDefault;
-            if (!string.IsNullOrEmpty(itemName))
-            {
-                seenNames.Add(itemName);
-                if (itemName.Contains(expectedTitle, StringComparison.Ordinal))
-                {
-                    return true;
-                }
-            }
-
-            foreach (var descendant in item.FindAllDescendants())
-            {
-                if (descendant.Properties.ControlType.ValueOrDefault != FlaUI.Core.Definitions.ControlType.Text)
-                {
-                    continue;
-                }
-
-                var text = descendant.Properties.Name.ValueOrDefault;
-                if (string.IsNullOrEmpty(text))
-                {
-                    continue;
-                }
-
-                seenNames.Add(text);
-                if (text.Contains(expectedTitle, StringComparison.Ordinal))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private IReadOnlyList<EntryRow> EntryRows()
-    {
-        var list = this.App.TryFind("Entries.List");
-        if (list is null)
-        {
-            return [];
-        }
-
-        var rows = new List<EntryRow>();
-        foreach (var item in list.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.ListItem)))
-        {
-            var rowText = FindRowText(item);
-            var match = EntryRowPattern.Match(rowText);
-            rows.Add(new EntryRow(rowText, int.Parse(match.Groups["num"].Value), match.Groups["title"].Value));
-        }
-
-        return rows;
     }
 
     /// <summary>
@@ -476,7 +445,10 @@ public sealed class UiTestContext : IDisposable
         return texts;
     }
 
-    private static void ApplyDefaultStubRules(OpenAiStubServer stub, IReadOnlyDictionary<string, DictationFixture> fixtures)
+    private static void ApplyDefaultStubRules(
+        OpenAiStubServer stub,
+        IReadOnlyDictionary<string, DictationFixture> fixtures,
+        Func<string, string?>? chatOverride)
     {
         stub.OnTranscription(fileName =>
         {
@@ -488,6 +460,14 @@ public sealed class UiTestContext : IDisposable
 
         stub.OnChat(userContent =>
         {
+            // A test's own answer wins, and everything it does not answer still gets the fixture
+            // defaults — unlike a `stub` callback's OnChat, which replaces the default responder
+            // outright (Task 12: a regenerated, edited transcript matches no fixture).
+            if (chatOverride?.Invoke(userContent) is { } overridden)
+            {
+                return overridden;
+            }
+
             // Three passes across ALL fixtures, not one combined per-fixture OR condition: a title
             // request embeds header.RemainderText (EntryProcessingService.ProcessAudioAsync) — the
             // transcript with the leading "Projekt <Name>." (or other type/project) tokens already
@@ -641,18 +621,20 @@ public sealed class UiTestContext : IDisposable
         return json.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
-    private void TrySaveArtifacts()
+    private static bool CanOpenForRead(string path)
     {
         try
         {
-            var directory = Path.Combine("TestResults", "ui", $"{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(directory);
-            this.App.Screenshot(Path.Combine(directory, "screenshot.png"));
-            File.WriteAllText(Path.Combine(directory, "tree.json"), this.App.Tree());
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return stream.Length > 0;
         }
-        catch (Exception)
+        catch (IOException)
         {
-            // Diagnostics are best-effort — losing them must not hide the real test failure.
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 
@@ -668,6 +650,91 @@ public sealed class UiTestContext : IDisposable
         catch (Exception)
         {
             // Best-effort cleanup — a locked file (e.g. AV scan) must not fail the test itself.
+        }
+    }
+
+    /// <summary>
+    /// Looks for <paramref name="expectedTitle"/> as a substring of the entry list's row names or
+    /// their descendant text runs. <paramref name="seenNames"/> always carries every name observed
+    /// (even on a miss), so a timeout can report what was actually on screen.
+    /// </summary>
+    private bool TryFindTitleInEntryList(string expectedTitle, out List<string> seenNames)
+    {
+        seenNames = [];
+
+        var list = this.App.TryFind("Entries.List");
+        if (list is null)
+        {
+            return false;
+        }
+
+        foreach (var item in list.FindAllChildren())
+        {
+            var itemName = item.Properties.Name.ValueOrDefault;
+            if (!string.IsNullOrEmpty(itemName))
+            {
+                seenNames.Add(itemName);
+                if (itemName.Contains(expectedTitle, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var descendant in item.FindAllDescendants())
+            {
+                if (descendant.Properties.ControlType.ValueOrDefault != FlaUI.Core.Definitions.ControlType.Text)
+                {
+                    continue;
+                }
+
+                var text = descendant.Properties.Name.ValueOrDefault;
+                if (string.IsNullOrEmpty(text))
+                {
+                    continue;
+                }
+
+                seenNames.Add(text);
+                if (text.Contains(expectedTitle, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private IReadOnlyList<EntryRow> EntryRows()
+    {
+        var list = this.App.TryFind("Entries.List");
+        if (list is null)
+        {
+            return [];
+        }
+
+        var rows = new List<EntryRow>();
+        foreach (var item in list.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.ListItem)))
+        {
+            var rowText = FindRowText(item);
+            var match = EntryRowPattern.Match(rowText);
+            rows.Add(new EntryRow(rowText, int.Parse(match.Groups["num"].Value), match.Groups["title"].Value));
+        }
+
+        return rows;
+    }
+
+    private void TrySaveArtifacts()
+    {
+        try
+        {
+            var directory = Path.Combine("TestResults", "ui", $"{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(directory);
+            this.App.Screenshot(Path.Combine(directory, "screenshot.png"));
+            File.WriteAllText(Path.Combine(directory, "tree.json"), this.App.Tree());
+        }
+        catch (Exception)
+        {
+            // Diagnostics are best-effort — losing them must not hide the real test failure.
         }
     }
 

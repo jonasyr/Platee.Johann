@@ -136,6 +136,38 @@ public sealed class JohannSession : IDisposable
     }
 
     /// <summary>
+    /// Puts <paramref name="text"/> on the clipboard — a test sets a sentinel before a copy
+    /// action so it can wait for the clipboard to change instead of reading it once, because a
+    /// UIA Invoke on a WPF button runs the command asynchronously on the app's dispatcher.
+    /// </summary>
+    public static void WriteClipboard(string text)
+    {
+        Exception? error = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                Clipboard.SetText(text);
+            }
+            catch (Exception ex)
+            {
+                error = ex;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        if (!thread.Join(TimeSpan.FromSeconds(5)))
+        {
+            throw new InvalidOperationException("Zwischenablage nicht beschreibbar (gesperrt?).");
+        }
+
+        if (error is not null)
+        {
+            throw new InvalidOperationException("Zwischenablage nicht beschreibbar.", error);
+        }
+    }
+
+    /// <summary>
     /// Top-level windows plus every <c>ControlType.Window</c> descendant of them, de-duplicated by
     /// native handle. WPF modal dialogs with an <c>Owner</c> (e.g. release notes, a delete
     /// confirmation, an owned settings window) are exposed by UIA as Window-typed CHILDREN of the
