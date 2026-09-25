@@ -69,13 +69,28 @@
 
 ---
 
-## 📌 Aktueller Stand (2026-09-23)
+## 📌 Aktueller Stand (2026-09-25)
 
-**v1.5.0 ist fertig entwickelt, aber noch nicht veröffentlicht.** Alles liegt in
-`release/v1.5.0`, der Meilenstein hat keine offenen Issues mehr. Nutzer laufen auf
-**v1.4.0** (ausgeliefert 2026-09-10). Nächster Schritt: Release v1.5.0
-(`build-installer.ps1 -Version 1.5.0`, Johann dabei geschlossen, Auto-Update gegen v1.4.0
-prüfen, dann `release/v1.5.0` → `main` + Tag).
+**v1.5.0 ist entwickelt, aber noch nicht veröffentlicht.** Nutzer laufen auf **v1.4.0**
+(ausgeliefert 2026-09-10).
+
+**Neu seit 2026-09-24: UI-Automation und Audit ([#111](https://github.com/jonasyr/Platee.Johann/issues/111), PR #113).**
+- Die laufende App wurde in einer Sandbox mit Kopie der echten Daten durchgeprüft. Bericht mit
+  30 Befunden: `docs/audit/2026-09-24-v1.5.0.md`.
+- Dazu kommt eine FlaUI-Testsuite gegen die echte EXE: 23 Tests für Liste, Löschen, Detail,
+  Kopieren, PDF, Einstellungen, Fehler und Tastatur. Sie läuft lokal mit
+  `scripts/run-ui-tests.ps1` (belegt den Desktop) und als nicht blockierender CI-Job.
+- Gefunden und behoben: F28, der erste Eintrag eines neuen Tages erschien nicht in der Liste.
+
+**Vor dem Release noch offen (Meilenstein v1.5.0):**
+- [#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei. Seit v1.4.0
+  ausgeliefert; die echte Team-Datei ist noch sauber.
+- [#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede „Herr Thomas“ statt „Herr Berger“.
+- [#116](https://github.com/jonasyr/Platee.Johann/issues/116) Der Titel erfindet eine Wertung.
+- [#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript mit Zeilenumbruch nach jedem Satzende.
+
+Danach folgt der Release: `build-installer.ps1 -Version 1.5.0` mit geschlossenem Johann,
+Auto-Update gegen v1.4.0 prüfen, dann `release/v1.5.0` → `main` + Tag.
 
 Inhalt v1.5.0: Mail-Knöpfe für klassisches und neues Outlook, Einträge löschen mit
 Johann-Papierkorb, Kopiersymbol je Abschnitt, überarbeitete Prompts (−20 % Kosten),
@@ -289,9 +304,28 @@ könnten.
 ~~[#77](https://github.com/jonasyr/Platee.Johann/issues/77) Aufnahmen über 25 MB abfangen~~ **erledigt** (PR #105) ·
 ~~[#106](https://github.com/jonasyr/Platee.Johann/issues/106) Gescheitertes Diktat sichern statt löschen~~ **erledigt** (PR #108) ·
 ~~[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf~~ **erledigt** (PR #104) ·
-~~[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen~~ **erledigt** (PR #94)
+~~[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen~~ **erledigt** (PR #94) ·
+[#111](https://github.com/jonasyr/Platee.Johann/issues/111) UI-Automation + Audit — PR #113
+
+**Noch offen:** [#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei ·
+[#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen · [#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung ·
+[#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript: neue Zeile nach jedem Satzende
 
 ### v1.6.0 — Diktieren
+
+**Aus dem Audit v1.5.0** (`docs/audit/2026-09-24-v1.5.0.md`):
+- Inhalt: [#117](https://github.com/jonasyr/Platee.Johann/issues/117) Korrekturliste unzuverlässig · [#118](https://github.com/jonasyr/Platee.Johann/issues/118) erfundene Aufgaben und
+  Platzhalter.
+- Oberfläche:
+  - [#119](https://github.com/jonasyr/Platee.Johann/issues/119) Barrierefreiheit (Screenreader-Namen, Kontrast)
+  - [#120](https://github.com/jonasyr/Platee.Johann/issues/120) leere Aufnahme ohne Titel und Hinweis
+  - [#121](https://github.com/jonasyr/Platee.Johann/issues/121) PDF-Reihenfolge
+  - [#122](https://github.com/jonasyr/Platee.Johann/issues/122) Scrollposition
+  - [#123](https://github.com/jonasyr/Platee.Johann/issues/123) neue Vorlage erst nach Eintragswechsel
+  - [#124](https://github.com/jonasyr/Platee.Johann/issues/124) Viewer-Modus sperrt lokale Aktionen
+  - [#125](https://github.com/jonasyr/Platee.Johann/issues/125) Tab-Reihenfolge
+  - [#126](https://github.com/jonasyr/Platee.Johann/issues/126) englische Fehlermeldung
+- Sammel-Issues: [#127](https://github.com/jonasyr/Platee.Johann/issues/127) Kosmetik · [#128](https://github.com/jonasyr/Platee.Johann/issues/128) Vorschläge.
 
 Unabhängig davon: [#103](https://github.com/jonasyr/Platee.Johann/issues/103) `gpt-transcribe`
 mit Kontext (Korrekturliste als `keywords`, `languages`, `prompt`) — aus #77 abgespalten, nur mit
@@ -330,8 +364,7 @@ muss mitpausieren, sonst laufen angezeigte und gemessene Dauer auseinander.
 
 ## 🧠 Prompts: die Team-Datei ist die Wahrheit
 
-`Z:
-_Tools\Peano\Johann\prompts.json` besitzt den Wortlaut aller neun Prompts und
+`Z:\12_Tools\Peano\Johann\prompts.json` besitzt den Wortlaut aller neun Prompts und
 gewinnt zur Laufzeit immer. Die `SummaryPrompts`-Konstanten sind nur Startwert für
 Neuinstallationen und Rückfall ohne Share.
 
@@ -359,6 +392,8 @@ genau das und wurde in v1.4.0 gelöscht.
 
 ## 🚦 Vor jedem Release
 
-- Installer bauen: `.uild-installer.ps1 -Version 1.x.0`
+- Installer bauen: `.\build-installer.ps1 -Version 1.x.0`
 - Auto-Update gegen die zuletzt ausgelieferte Version prüfen
 - Sichtbare Verhaltensänderungen gehören in die Release Notes
+- UI-Suite grün: `pwsh scripts/run-ui-tests.ps1` (belegt den Desktop, nur wenn niemand tippt).
+  Der CI-Job `ui-tests` blockiert nicht und ersetzt den lokalen Lauf nicht.

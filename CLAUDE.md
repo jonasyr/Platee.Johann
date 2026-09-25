@@ -381,7 +381,8 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 ## Git Insights
 
-- **v1.5.0 complete, not yet released** (`release/v1.5.0`, 2026-09-23, milestone empty): #73 prompts for GPT-5.6 (PR #85) and the
+- **v1.5.0 developed, not yet released** (`release/v1.5.0`). Open as of 2026-09-25: #114, #115, #116
+  from the audit, plus #112. Done: #73 prompts for GPT-5.6 (PR #85) and the
   central markdown rule (PR #91); #83 nested lists in the PDF (PR #86); #57 mail buttons for classic
   and new Outlook (PR #87, #90); #88 Codex findings (PR #89). **Codex reviews every PR** — read its
   inline comments before merging; it found real bugs in five of six PRs that day (missing PDF
@@ -395,7 +396,9 @@ which half was rescued — prompt text is team-owned and survives only for the s
   (PR #104); #77 cut down to the 25-MB check (`AudioUploadLimit`, PR #105) — keywords/languages/
   prompt moved to #103 (v1.6.0, needs a measurement run); #106 a failed in-app dictation is rescued
   instead of deleted (PR #108); processing large files for real → #107 (v1.6.0). Handbook
-  (`README.md`, `HANDBUCH.html`) brought up to v1.5.0. **Next: the release** (see "Vor jedem
+  (`README.md`, `HANDBUCH.html`) brought up to v1.5.0. **Since 2026-09-24:** #111, a UI-automation audit
+  (`docs/audit/2026-09-24-v1.5.0.md`, 30 findings, filed as issues #114–#128) plus a FlaUI suite,
+  PR #113. **Next:** #114/#115/#116/#112, then the release (see "Vor jedem
   Release" in the Serena memory `backlog`).
 
 - **Column auto-fit (#96):** measure the rows **where they live** (`ItemsPresenter` of the real
