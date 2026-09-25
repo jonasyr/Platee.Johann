@@ -124,12 +124,35 @@ public sealed class JohannSession : IDisposable
     public static string ReadClipboard()
     {
         string? text = null;
-        var thread = new Thread(() => text = Clipboard.ContainsText() ? Clipboard.GetText() : string.Empty);
+        Exception? error = null;
+
+        // The exception is carried out of the STA thread: thrown there, an unhandled
+        // CLIPBRD_E_CANT_OPEN (another process holds the clipboard) crashed the whole test host
+        // (found live, Task 12 fix round 1) instead of reaching the caller's retry.
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                text = Clipboard.ContainsText() ? Clipboard.GetText() : string.Empty;
+            }
+            catch (Exception ex)
+            {
+                error = ex;
+            }
+        });
         thread.SetApartmentState(ApartmentState.STA);
+
+        // A clipboard call that hangs (another process holds it) must not keep the test host alive.
+        thread.IsBackground = true;
         thread.Start();
         if (!thread.Join(TimeSpan.FromSeconds(5)))
         {
             throw new InvalidOperationException("Zwischenablage nicht lesbar (gesperrt?).");
+        }
+
+        if (error is not null)
+        {
+            throw new InvalidOperationException("Zwischenablage nicht lesbar.", error);
         }
 
         return text ?? string.Empty;
@@ -155,6 +178,9 @@ public sealed class JohannSession : IDisposable
             }
         });
         thread.SetApartmentState(ApartmentState.STA);
+
+        // A clipboard call that hangs (another process holds it) must not keep the test host alive.
+        thread.IsBackground = true;
         thread.Start();
         if (!thread.Join(TimeSpan.FromSeconds(5)))
         {

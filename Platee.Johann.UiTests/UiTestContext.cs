@@ -70,6 +70,7 @@ public sealed class UiTestContext : IDisposable
     private readonly IReadOnlyDictionary<string, DictationFixture> fixtures;
     private readonly string sandboxRoot;
     private readonly bool keepSandbox;
+    private readonly string? savedClipboardText;
     private bool keepOnFailure;
     private bool disposed;
 
@@ -79,8 +80,10 @@ public sealed class UiTestContext : IDisposable
         SandboxLayout sandbox,
         string sandboxRoot,
         bool keepSandbox,
-        IReadOnlyDictionary<string, DictationFixture> fixtures)
+        IReadOnlyDictionary<string, DictationFixture> fixtures,
+        string? savedClipboardText)
     {
+        this.savedClipboardText = savedClipboardText;
         this.App = app;
         this.Stub = stub;
         this.Sandbox = sandbox;
@@ -109,6 +112,10 @@ public sealed class UiTestContext : IDisposable
         var lastSeenReleaseNotesVersion = firstRun ? null : TryReadAssemblyVersion(exePath);
         var fixtures = LoadFixtures(FixturesDirectory);
         var root = Path.Combine(Path.GetTempPath(), "johann-ui", Guid.NewGuid().ToString("N"));
+
+        // Copy tests overwrite the clipboard of the person whose desktop this runs on; their
+        // text comes back in Dispose (best effort — only text, and only if it can be read).
+        var savedClipboardText = TryReadClipboardText();
 
         var stubServer = OpenAiStubServer.Start();
 
@@ -139,7 +146,7 @@ public sealed class UiTestContext : IDisposable
             var options = new JohannLaunchOptions(exePath, sandbox, stubServer.Root, "sk-stub-not-a-real-key");
             var app = JohannSession.Launch(options);
 
-            return new UiTestContext(app, stubServer, sandbox, root, keepSandbox, fixtures);
+            return new UiTestContext(app, stubServer, sandbox, root, keepSandbox, fixtures, savedClipboardText);
         }
         catch
         {
@@ -380,6 +387,7 @@ public sealed class UiTestContext : IDisposable
 
         this.App.Dispose();
         this.Stub.Dispose();
+        TryRestoreClipboardText(this.savedClipboardText);
 
         if (!this.keepSandbox)
         {
@@ -619,6 +627,41 @@ public sealed class UiTestContext : IDisposable
         };
 
         return json.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    private static string? TryReadClipboardText()
+    {
+        string? text = null;
+        TryClipboard(() => text = JohannSession.ReadClipboard());
+        return string.IsNullOrEmpty(text) ? null : text;
+    }
+
+    private static void TryRestoreClipboardText(string? text)
+    {
+        if (text is not null)
+        {
+            TryClipboard(() => JohannSession.WriteClipboard(text));
+        }
+    }
+
+    /// <summary>
+    /// Best effort with a few short retries: the clipboard is briefly held by whichever process
+    /// last wrote it (CLIPBRD_E_CANT_OPEN), and a failure here must never fail a test.
+    /// </summary>
+    private static void TryClipboard(Action action)
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                action();
+                return;
+            }
+            catch (Exception)
+            {
+                Thread.Sleep(100);
+            }
+        }
     }
 
     private static bool CanOpenForRead(string path)

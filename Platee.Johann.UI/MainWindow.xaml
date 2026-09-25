@@ -7,6 +7,7 @@
         xmlns:settings="clr-namespace:Platee.Johann.Application.Settings;assembly=Platee.Johann.Application"
         xmlns:conv="clr-namespace:Platee.Johann.UI.Converters"
         xmlns:views="clr-namespace:Platee.Johann.UI.Views"
+        xmlns:controls="clr-namespace:Platee.Johann.UI.Controls"
         mc:Ignorable="d"
         Title="{Binding AppVersion, RelativeSource={RelativeSource Self}, StringFormat='Platé.Johann {0}'}"
         Height="700" Width="1200"
@@ -87,7 +88,7 @@
              rechtsbündig — so stehen alle Symbole in einer Spalte, unabhängig von der Länge der
              Überschrift. Die Abschnitts-Id kommt über Tag. Eine Vorlage für alle Abschnitte —
              auch die Grundlage für den „nicht umgesetzt“-Zustand aus #65. -->
-        <Style x:Key="SectionHeaderControlStyle" TargetType="ContentControl">
+        <Style x:Key="SectionHeaderControlStyle" TargetType="controls:SectionHeaderControl">
             <Setter Property="Focusable" Value="False"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
             <!-- Stabile Id je Abschnitt (#111): Tag trägt die Abschnitts-Id für alle Abschnitte,
@@ -1190,10 +1191,10 @@
                         <!-- Abstract — always shown when present, subtle highlight -->
                         <StackPanel Visibility="{Binding Detail.Entry.Abstract, Converter={StaticResource NullToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static vm:EntryDetailViewModel.AbstractSectionId}">
                                 <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="0,0,0,2"
                                     CornerRadius="2" Padding="12,10">
                                 <!-- Ebenfalls Markdown: das Modell setzt hier Fettungen,
@@ -1214,10 +1215,10 @@
                         <!-- Long Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowLongSummarySection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.LongSummary}">
                                 <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayLongSummary, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1233,10 +1234,10 @@
                         <!-- Prose Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowProseSummarySection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.ProseSummary}">
                                 <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <!-- Wie alle anderen erzeugten Abschnitte als Markdown gerendert.
                                  Stand hier bis v1.4.0 als roher TextBox: mit den schwaecheren
                                  Modellen kam ohnehin Fliesstext, mit gpt-5.6-luna standen
@@ -1256,10 +1257,10 @@
                         <!-- Task list -->
                         <StackPanel Visibility="{Binding Detail.ShowTaskListSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.TaskList}">
                                 <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayTaskList, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1275,10 +1276,10 @@
                         <!-- Conversation note -->
                         <StackPanel Visibility="{Binding Detail.ShowConversationNoteSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.ConversationNote}">
                                 <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayConversationNote, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1294,10 +1295,10 @@
                         <!-- Stundenzettel -->
                         <StackPanel Visibility="{Binding Detail.ShowStundenzettelSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.Stundenzettel}">
                                 <TextBlock Text="Stundenzettel" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayStundenzettelText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1313,10 +1314,10 @@
                         <!-- Analog -->
                         <StackPanel Visibility="{Binding Detail.ShowAnalogSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.Analog}">
                                 <TextBlock Text="Analog" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayAnalogText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1332,10 +1333,10 @@
                         <!-- E-Mail Text -->
                         <StackPanel Visibility="{Binding Detail.ShowEmailSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.EmailText}">
                                 <TextBlock Text="E-Mail" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayEmailText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1358,7 +1359,7 @@
                                 <DataTemplate>
                                     <StackPanel Margin="0,14,0,22"
                                                 Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
-                                        <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                        <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                                         Tag="{Binding Id}">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="{Binding Name}" Style="{StaticResource SectionHeaderStyle}"/>
@@ -1368,7 +1369,7 @@
                                                            ToolTip="Diese Vorlage wurde entfernt. Der erzeugte Text bleibt erhalten."
                                                            Visibility="{Binding IsOrphaned, Converter={StaticResource BoolToVis}}"/>
                                             </StackPanel>
-                                        </ContentControl>
+                                        </controls:SectionHeaderControl>
 
                                         <FlowDocumentScrollViewer
                                             Document="{Binding Text, Converter={StaticResource MdToDoc}}"
@@ -1429,20 +1430,27 @@
                                         Command="{Binding Detail.EditTranscriptCommand}"
                                         Visibility="{Binding Detail.IsNotEditingTranscript, Converter={StaticResource BoolToVis}}"
                                         IsEnabled="{Binding Detail.HasEntry}"/>
-                                <Border DockPanel.Dock="Left"
-                                        BorderThickness="0,0,0,1"
-                                        BorderBrush="{StaticResource AccentLineBrush}"
-                                        HorizontalAlignment="Left"
-                                        AutomationProperties.AutomationId="Section.transcript"
-                                        Padding="0,0,24,4">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
-                                        <TextBlock Text=" (bearbeitet)"
-                                                   FontSize="11" Foreground="#999" FontStyle="Italic"
-                                                   VerticalAlignment="Bottom" Margin="6,0,0,1"
-                                                   Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
-                                    </StackPanel>
-                                </Border>
+                                <!-- Nur Träger der Id Section.transcript (#111): ein Border hat keinen
+                                     Automation-Peer, SectionHeaderControl schon. Ohne Vorlage und
+                                     ohne Fokus — sichtbar bleibt allein der Border darin. -->
+                                <controls:SectionHeaderControl DockPanel.Dock="Left"
+                                                               HorizontalAlignment="Left"
+                                                               Focusable="False"
+                                                               IsTabStop="False"
+                                                               AutomationProperties.AutomationId="Section.transcript">
+                                    <Border BorderThickness="0,0,0,1"
+                                            BorderBrush="{StaticResource AccentLineBrush}"
+                                            HorizontalAlignment="Left"
+                                            Padding="0,0,24,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
+                                            <TextBlock Text=" (bearbeitet)"
+                                                       FontSize="11" Foreground="#999" FontStyle="Italic"
+                                                       VerticalAlignment="Bottom" Margin="6,0,0,1"
+                                                       Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </controls:SectionHeaderControl>
                             </DockPanel>
 
                             <!-- Read-only transcript (shown when NOT editing) -->

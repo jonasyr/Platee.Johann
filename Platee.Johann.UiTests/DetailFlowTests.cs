@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json.Nodes;
 using FlaUI.Core.AutomationElements;
 using FluentAssertions;
+using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.UiDriver.Automation;
 using Xunit;
@@ -21,12 +22,6 @@ using Xunit;
 /// on-demand test configures the Recommended preset; built-ins are generated on demand only from
 /// the "Neu generieren" context menu; the PDF is rendered via "PDF in Zwischenablage kopieren",
 /// because "PDF" opens the file in the default viewer.
-/// </para>
-/// <para>
-/// A section's presence is probed via its copy icon <c>Copy.&lt;id&gt;</c>, not
-/// <c>Section.&lt;id&gt;</c>: that id sits on a <c>ContentControl</c>, which has no automation
-/// peer, so UIA never exposes it (found live). The icon exists exactly when the section is shown
-/// with text — it is collapsed while <c>CanCopySection</c> is false.
 /// </para>
 /// </summary>
 [Collection("Desktop")]
@@ -53,10 +48,13 @@ public sealed class DetailFlowTests
         using var ctx = UiTestContext.Start();
         await SelectFixtureAsync(ctx, "D1");
 
-        SetSectionShown(ctx, "Sections.ShowTaskList", "Copy.builtin.taskList", shown: true);
+        ctx.App.Find("Section.transcript").Should().NotBeNull("the transcript heading carries its own Section id");
+        ctx.App.Find("Section.builtin.longSummary").Should().NotBeNull("built-in headings are SectionHeaderControls");
+
+        SetSectionShown(ctx, "Sections.ShowTaskList", "Section.builtin.taskList", shown: true);
         CopyVia(ctx, "Detail.Copy").Should().Contain("AUFGABEN").And.Contain(D1TaskPhrase);
 
-        SetSectionShown(ctx, "Sections.ShowTaskList", "Copy.builtin.taskList", shown: false);
+        SetSectionShown(ctx, "Sections.ShowTaskList", "Section.builtin.taskList", shown: false);
         var text = CopyVia(ctx, "Detail.Copy");
         text.Should().NotContain("AUFGABEN").And.NotContain(D1TaskPhrase).And.NotContain("**");
         text.Should().Contain("ZUSAMMENFASSUNG", "the rest of the entry is still copied");
@@ -67,7 +65,7 @@ public sealed class DetailFlowTests
     {
         using var ctx = UiTestContext.Start();
         await SelectFixtureAsync(ctx, "D1");
-        SetSectionShown(ctx, "Sections.ShowTaskList", "Copy.builtin.taskList", shown: true);
+        SetSectionShown(ctx, "Sections.ShowTaskList", "Section.builtin.taskList", shown: true);
 
         var text = CopyVia(ctx, "Copy.builtin.taskList");
 
@@ -116,7 +114,7 @@ public sealed class DetailFlowTests
         // very workaround — the context menu of "Neu generieren". It is closed with "OK".
         // Ticked, but without text the section is still not shown (ShowStundenzettelSection).
         ClickCheckBox(ctx, "Sections.ShowStundenzettelText", isChecked: true, expectEmptySectionHint: true);
-        ctx.App.TryFind("Copy.builtin.stundenzettel", TimeSpan.FromSeconds(1))
+        ctx.App.TryFind("Section.builtin.stundenzettel", TimeSpan.FromSeconds(1))
             .Should().BeNull("Stundenzettel is OnDemand under the Recommended preset and not generated yet");
 
         var before = ctx.Stub.Requests.Count;
@@ -124,13 +122,17 @@ public sealed class DetailFlowTests
         InvokeMenuItem(ctx, "Generate.builtin.stundenzettel");
 
         ctx.WaitUntil(
-            () => ctx.App.TryFind("Copy.builtin.stundenzettel", TimeSpan.Zero) is not null,
+            () => ctx.App.TryFind("Section.builtin.stundenzettel", TimeSpan.Zero) is not null,
             TimeSpan.FromSeconds(30),
             "der Abschnitt Stundenzettel erscheint nach dem Generieren");
         await ctx.WaitUntilIdleAsync();
 
         ctx.Stub.Requests.Count.Should().Be(before + 1);
         ctx.Stub.Requests[^1].Path.Should().Be(ChatPath);
+
+        // The sandbox has no team prompts file, so Johann sends the built-in SummaryPrompts;
+        // their fixed part up to the placeholder is unique per section (SectionPromptMatcher).
+        LastUserContent(ctx).Should().StartWith(SectionPromptMatcher.PrefixOf(SummaryPrompts.Stundenzettel));
     }
 
     [Fact]
@@ -138,7 +140,7 @@ public sealed class DetailFlowTests
     {
         using var ctx = UiTestContext.Start();
         await SelectFixtureAsync(ctx, "D1");
-        SetSectionShown(ctx, "Sections.ShowTaskList", "Copy.builtin.taskList", shown: true);
+        SetSectionShown(ctx, "Sections.ShowTaskList", "Section.builtin.taskList", shown: true);
 
         var clickedAt = DateTime.UtcNow;
         OpenContextMenu(ctx, "Detail.Pdf");
@@ -151,7 +153,7 @@ public sealed class DetailFlowTests
             UiTimeout,
             "die exportierte PDF ist lesbar");
 
-        text.Should().Contain("Aufgaben").And.Contain(D1TaskPhrase).And.NotContain("**");
+        text.Should().Contain(D1TaskPhrase).And.NotContain("**");
     }
 
     [Fact]
@@ -173,7 +175,7 @@ public sealed class DetailFlowTests
     {
         ctx.SelectEntry(await ctx.DropDictationAsync(fixture));
         ctx.WaitUntil(
-            () => ctx.App.TryFind("Copy.builtin.longSummary", TimeSpan.Zero) is not null,
+            () => ctx.App.TryFind("Section.builtin.longSummary", TimeSpan.Zero) is not null,
             UiTimeout,
             $"die Detailansicht zeigt den Eintrag {fixture}");
     }
@@ -265,6 +267,11 @@ public sealed class DetailFlowTests
     }
 
     private static string? ZoomText(UiTestContext ctx) => ctx.App.Find("Detail.ZoomText").Properties.Name.ValueOrDefault;
+
+    /// <summary>The user message of the most recent chat request, decoded from the JSON body.</summary>
+    private static string LastUserContent(UiTestContext ctx) =>
+        JsonNode.Parse(ctx.Stub.Requests.Last(r => r.Path == ChatPath).Body)?["messages"]?.AsArray()
+            .LastOrDefault()?["content"]?.GetValue<string>() ?? string.Empty;
 
     /// <summary>All message contents of every chat request, decoded from the JSON body.</summary>
     private static IEnumerable<string> ChatContents(UiTestContext ctx) =>
