@@ -21,6 +21,10 @@ public sealed class JohannSession : IDisposable
 {
     private const string ProcessName = "Platee.Johann.UI";
 
+    // The first start on a fresh CI runner (cold disk, first JIT) took over 30 s; locally it is
+    // a few seconds. Only an upper bound — a hang still fails, just later.
+    private static readonly TimeSpan MainWindowTimeout = TimeSpan.FromSeconds(90);
+
     private readonly FlaUiApplication app;
     private readonly UIA3Automation automation;
     private Window? mainWindow;
@@ -95,7 +99,7 @@ public sealed class JohannSession : IDisposable
         var session = new JohannSession(app, automation);
         try
         {
-            session.mainWindow = session.WaitForMainWindow(timeout ?? TimeSpan.FromSeconds(30), expectDialogs);
+            session.mainWindow = session.WaitForMainWindow(timeout ?? MainWindowTimeout, expectDialogs);
         }
         catch
         {
@@ -253,6 +257,37 @@ public sealed class JohannSession : IDisposable
             // foreground/click-point safety checks below apply to it.
             element.Patterns.Invoke.Pattern.Invoke();
         }
+    }
+
+    /// <summary>
+    /// Clicks a button of a Windows message box (Ja/Nein, Yes/No …) by its fixed control id
+    /// instead of its caption, which depends on the Windows display language — the CI runner is
+    /// English, so a search for "Ja" failed there. Only Win32 buttons match, never a WPF text that
+    /// happens to be named "6".
+    /// </summary>
+    public void ClickDialogButton(DialogButton button, TimeSpan? timeout = null)
+    {
+        var id = ((int)button).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(5));
+        do
+        {
+            foreach (var window in this.Windows())
+            {
+                var element = window.FindFirstDescendant(cf =>
+                    cf.ByAutomationId(id).And(cf.ByControlType(ControlType.Button)).And(cf.ByClassName("Button")));
+                if (element is not null)
+                {
+                    this.EnsureSafeToClick(window, element);
+                    element.Click();
+                    return;
+                }
+            }
+
+            Thread.Sleep(100);
+        }
+        while (DateTime.UtcNow < deadline);
+
+        throw new ElementNotFoundException($"Dialogknopf {button} (Id {id})", this.Tree());
     }
 
     public void RightClick(string idOrName)

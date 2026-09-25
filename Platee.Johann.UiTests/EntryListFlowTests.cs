@@ -2,6 +2,7 @@ namespace Platee.Johann.UiTests;
 
 using System.IO;
 using FluentAssertions;
+using Platee.Johann.UiDriver.Automation;
 using Xunit;
 
 /// <summary>
@@ -63,7 +64,7 @@ public sealed class EntryListFlowTests
 
         ctx.SelectEntry(t1);
         ctx.App.Key("Delete");
-        ctx.App.Click("Nein", mouse: true); // „Nein“ ist vorausgewählt (#55)
+        ctx.App.ClickDialogButton(DialogButton.No); // „Nein“ ist vorausgewählt (#55)
 
         // "Nein" must keep the entry not just in the instant after the click, but for a real
         // moment after — a delete that proceeded despite "Nein" would still show up here.
@@ -88,7 +89,7 @@ public sealed class EntryListFlowTests
 
         ctx.SelectEntry(t1);
         ctx.App.Click("Detail.Delete", mouse: true);
-        ctx.App.Click("Ja", mouse: true);
+        ctx.App.ClickDialogButton(DialogButton.Yes);
 
         ctx.WaitUntil(() => ctx.EntryTitles().Count == 0, TimeSpan.FromSeconds(10), "Entries.List wird nach dem Löschen leer");
         ctx.WaitUntil(() => ctx.DateItems().Count == 0, TimeSpan.FromSeconds(10), "der Tag verschwindet aus der Seitenleiste");
