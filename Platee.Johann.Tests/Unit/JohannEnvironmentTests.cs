@@ -71,10 +71,20 @@ public sealed class JohannEnvironmentTests
     [InlineData("localhost:5123")]
     [InlineData("ftp://localhost/")]
     [InlineData("nicht eine url")]
+    [InlineData("http://example.com/")]
     public void OpenAiRoot_Invalid_Throws_NamingTheVariable(string raw)
     {
         var act = () => JohannEnvironment.OpenAiRoot(Vars(("JOHANN_OPENAI_ENDPOINT", raw)));
         act.Should().Throw<InvalidOperationException>().WithMessage("*JOHANN_OPENAI_ENDPOINT*");
+    }
+
+    [Theory]
+    [InlineData("http://localhost:1234/", "http://localhost:1234/")]
+    [InlineData("http://127.0.0.1:1234/", "http://127.0.0.1:1234/")]
+    [InlineData("https://example.com/", "https://example.com/")]
+    public void OpenAiRoot_HttpOnlyAllowedForLoopback(string raw, string expected)
+    {
+        JohannEnvironment.OpenAiRoot(Vars(("JOHANN_OPENAI_ENDPOINT", raw)))!.AbsoluteUri.Should().Be(expected);
     }
 
     [Theory]

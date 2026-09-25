@@ -53,8 +53,11 @@ public static class JohannEnvironment
             return null;
         }
 
-        if (!Uri.TryCreate(raw, UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        // http is only safe against loopback — everything else would send the real API key
+        // in cleartext to whatever host the variable names.
+        var isAllowed = Uri.TryCreate(raw, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttps || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback));
+        if (!isAllowed)
         {
             throw new InvalidOperationException(
                 $"{OpenAiEndpointVariable} ist gesetzt, aber keine http(s)-Adresse: '{raw}'.");
