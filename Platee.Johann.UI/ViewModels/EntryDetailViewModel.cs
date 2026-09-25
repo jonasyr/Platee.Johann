@@ -65,7 +65,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     public string DisplayProseSummary => this.Entry?.ProseSummary ?? "—";
 
-    public string DisplayTranscript => this.Entry?.EffectiveTranscript ?? "—";
+    // One sentence per line for reading (#112). Display only: editing and „Kopieren“ use the
+    // stored text, so no artificial break ever reaches EditedTranscript or the clipboard.
+    public string DisplayTranscript => this.Entry?.EffectiveTranscript is { } transcript
+        ? Platee.Johann.Domain.Services.SentenceLines.Split(transcript)
+        : "—";
 
     public bool IsNotEditingTranscript => !IsEditingTranscript;
 

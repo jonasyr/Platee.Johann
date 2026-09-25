@@ -208,7 +208,9 @@ public sealed class PdfRenderer : IEntryRenderer
 
             if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
             {
-                col.Item().Element(c => Section(c, "Transkript", entry.EffectiveTranscript!, "#FAFAFA", "#E8E8E8"));
+                // One sentence per line, display only — the stored transcript is unchanged (#112).
+                var transcript = SentenceLines.Split(entry.EffectiveTranscript!);
+                col.Item().Element(c => Section(c, "Transkript", transcript, "#FAFAFA", "#E8E8E8"));
             }
         });
     }

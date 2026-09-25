@@ -83,11 +83,12 @@
 - Gefunden und behoben: F28, der erste Eintrag eines neuen Tages erschien nicht in der Liste.
 
 **Vor dem Release noch offen (Meilenstein v1.5.0):**
-- [#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei. Seit v1.4.0
-  ausgeliefert; die echte Team-Datei ist noch sauber.
+- ~~[#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei~~ **erledigt** (PR #129).
+  Belegt mit Unit-Tests (echte Dateien, Neustart) und UI-Tests gegen die echte App. Ältere,
+  verwandte Fälle beim Speicherort-Wechsel: [#130](https://github.com/jonasyr/Platee.Johann/issues/130) (v1.6.0).
 - [#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede „Herr Thomas“ statt „Herr Berger“.
 - [#116](https://github.com/jonasyr/Platee.Johann/issues/116) Der Titel erfindet eine Wertung.
-- [#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript mit Zeilenumbruch nach jedem Satzende.
+- [#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript mit einem Satz je Zeile: PR #131, wartet auf Sichtprüfung.
 
 Danach folgt der Release: `build-installer.ps1 -Version 1.5.0` mit geschlossenem Johann,
 Auto-Update gegen v1.4.0 prüfen, dann `release/v1.5.0` → `main` + Tag.
@@ -305,11 +306,12 @@ könnten.
 ~~[#106](https://github.com/jonasyr/Platee.Johann/issues/106) Gescheitertes Diktat sichern statt löschen~~ **erledigt** (PR #108) ·
 ~~[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf~~ **erledigt** (PR #104) ·
 ~~[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen~~ **erledigt** (PR #94) ·
-[#111](https://github.com/jonasyr/Platee.Johann/issues/111) UI-Automation + Audit — PR #113
+~~[#111](https://github.com/jonasyr/Platee.Johann/issues/111) UI-Automation + Audit~~ **erledigt** (PR #113)
 
-**Noch offen:** [#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei ·
-[#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen · [#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung ·
-[#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript: neue Zeile nach jedem Satzende
+~~[#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei~~ **erledigt** (PR #129) ·
+[#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript ein Satz je Zeile — PR #131
+
+**Noch offen:** [#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen · [#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung
 
 ### v1.6.0 — Diktieren
 
