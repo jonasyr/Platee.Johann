@@ -12,6 +12,8 @@ Ablauf des einmaligen Audits der laufenden App. Jeder Schritt nennt das **Soll**
 - Vor jedem `start`: kein anderer Johann läuft. Nach dem Lauf: echte Dateien per Prüfsumme
   gegen den Stand vorher vergleichen.
 - Tastatur-Schritte brauchen Johann im Vordergrund — der Nutzer tippt währenddessen nicht.
+- Nach dem Audit die Sandbox-Wurzel löschen: sie enthält eine Kopie der echten `.env` (API-Key)
+  und eine Kopie des echten Ausgabeverzeichnisses.
 
 ## Werkzeug
 

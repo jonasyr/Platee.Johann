@@ -488,12 +488,22 @@ which half was rescued — prompt text is team-owned and survives only for the s
 - **UI automation (#111).** Three environment variables, resolved in `JohannEnvironment`
   (Infrastructure/Hosting). Unset or blank = today's behaviour; set but invalid = Johann refuses to start:
   `JOHANN_HOME` (replaces `Documents\Johann`, no `.env` walk-up, no default team file),
-  `JOHANN_OPENAI_ENDPOINT` (API root without `/v1`, points chat/transcription/model probe at the stub),
-  `JOHANN_NO_UPDATE_CHECK`.
+  `JOHANN_OPENAI_ENDPOINT` (API root without `/v1`, points chat/transcription/model probe at the stub;
+  `http` is accepted only for a loopback host, everything else must be `https` — otherwise the real
+  API key could be sent in cleartext), `JOHANN_NO_UPDATE_CHECK` (only the values `1` or `true`,
+  case-insensitive, skip the update check — anything else, including unset, keeps it on).
   - Rules: only sandboxes (the guard rejects `Z:\`, its UNC form and the real `Documents\Johann`);
     the team file is only ever copied; Outlook only supervised, drafts only.
   - ⚠ **Never run the UI suite from `dotnet test` or the pre-push hook**, and only with the user's go —
     it needs an active, unlocked desktop and nobody typing. The CI job `ui-tests` is non-blocking.
+  - ⚠ **Crash and warning logs are not redirected by `JOHANN_HOME`** — `CrashLogWriter` always writes
+    to `C:\Peano\Platee.Johann\logs` (`App.xaml.cs`), a deliberate exception so a broken sandbox run
+    still leaves diagnostics somewhere findable. This means stub failures from UI runs (e.g.
+    `ErrorFlowTests`) show up in the machine's real crash log, not the sandbox.
+  - `JOHANN_UI_KEEP=1` (set unconditionally by `scripts/run-ui-tests.ps1`) makes `UiTestContext.Dispose`
+    save a screenshot and a UIA tree dump under `TestResults/ui/<timestamp>-<guid>/` on every run, pass
+    or fail — it does not by itself keep the sandbox directory (that is the separate `keepSandbox`/
+    `KeepOnFailure()` path).
   - UIA pitfalls, each cost hours: owned modal dialogs are `Window` children of the main window; after
     `ObservableCollection.Move` a row's control-view children go stale (read via the raw view — the row
     is drawn fine); a plain `ContentControl`/`Border` has no automation peer, so an AutomationId on it

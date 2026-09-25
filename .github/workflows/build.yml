@@ -44,7 +44,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
-          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"jonasyr_Platee.Johann" /o:"gitray-org" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" /d:sonar.exclusions="**/.github/**,**/scripts/**,**/docs/**,**/bin/**,**/obj/**" /d:sonar.test.inclusions="**/Platee.Johann.Tests/**"
+          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"jonasyr_Platee.Johann" /o:"gitray-org" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" /d:sonar.exclusions="**/.github/**,**/scripts/**,**/docs/**,**/bin/**,**/obj/**,**/Platee.Johann.UiTests/**,**/Platee.Johann.UiDriver/**,**/tools/ui-driver/**" /d:sonar.test.inclusions="**/Platee.Johann.Tests/**"
           dotnet build --no-incremental
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # --blame-hang-timeout aborts a hanging test run and names the tests that were running.
@@ -60,6 +60,8 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 25
     continue-on-error: true
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Build and run UI tests

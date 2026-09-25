@@ -5,6 +5,8 @@ using System.Text.Json.Nodes;
 
 public static class AuditSandbox
 {
+    // .env carries the real API key — delete the sandbox root after the audit (see
+    // docs/ui-automation/audit-runbook.md, "Sicherheitsregeln").
     private static readonly string[] HomeFilesToCopy = ["settings.json", "prompts.personal.json", ".env"];
 
     public static SandboxLayout Create(string root, string realHome, string? teamPromptFile) =>
