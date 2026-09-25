@@ -47,22 +47,13 @@ public sealed class JohannSession : IDisposable
 
     public static JohannSession Launch(JohannLaunchOptions options, TimeSpan? timeout = null, bool expectDialogs = false)
     {
-        // A short grace period, not an immediate throw: the previous test's Dispose() already
-        // asked the process to close, but under CPU contention (many background dotnet/build-server
-        // processes — observed live, Task 11) its own up-to-10s wait can occasionally still be
-        // running when the very next test starts. Real "someone else is using Johann" cases settle
-        // this in the first iteration; only a genuinely still-running Johann exhausts the loop.
-        var running = Process.GetProcessesByName(ProcessName);
-        var graceDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (running.Length > 0 && DateTime.UtcNow < graceDeadline)
+        // Grace period, not an immediate throw: the previous test's own Close()/Dispose() allows
+        // up to 10s to shut Johann down, and under CPU load that ordinary handover can still be in
+        // flight when the next test's Launch() runs. A genuinely already-running Johann (someone
+        // else has it open) still exhausts the loop below and throws.
+        if (!TryWaitForNoRunningInstance(TimeSpan.FromSeconds(5), out var stillRunningPid))
         {
-            Thread.Sleep(200);
-            running = Process.GetProcessesByName(ProcessName);
-        }
-
-        if (running.Length > 0)
-        {
-            throw new InvalidOperationException($"Johann läuft bereits (PID {running[0].Id}) — bitte schließen.");
+            throw new InvalidOperationException($"Johann läuft bereits (PID {stillRunningPid}) — bitte schließen.");
         }
 
         // The sandbox guard runs before every start, no exceptions — a start against a
@@ -348,6 +339,44 @@ public sealed class JohannSession : IDisposable
     private static bool MatchesWindow(Window window, string idOrName) =>
         string.Equals(window.Properties.AutomationId.ValueOrDefault, idOrName, StringComparison.Ordinal)
         || string.Equals(TitleOf(window), idOrName, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Polls <see cref="Process.GetProcessesByName(string)"/> for up to <paramref name="graceTimeout"/>
+    /// until no <c>Platee.Johann.UI</c> process remains. Every returned <see cref="Process"/> is
+    /// disposed each iteration regardless of outcome — the array itself is not disposable, but its
+    /// elements are.
+    /// </summary>
+    private static bool TryWaitForNoRunningInstance(TimeSpan graceTimeout, out int? stillRunningPid)
+    {
+        var deadline = DateTime.UtcNow + graceTimeout;
+        while (true)
+        {
+            var running = Process.GetProcessesByName(ProcessName);
+            try
+            {
+                if (running.Length == 0)
+                {
+                    stillRunningPid = null;
+                    return true;
+                }
+
+                if (DateTime.UtcNow >= deadline)
+                {
+                    stillRunningPid = running[0].Id;
+                    return false;
+                }
+            }
+            finally
+            {
+                foreach (var process in running)
+                {
+                    process.Dispose();
+                }
+            }
+
+            Thread.Sleep(200);
+        }
+    }
 
     private static void TryKill(FlaUiApplication app)
     {

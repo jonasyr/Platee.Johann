@@ -29,6 +29,14 @@ using Platee.Johann.UiDriver.Stub;
 /// </summary>
 public sealed class UiTestContext : IDisposable
 {
+    /// <summary>
+    /// A chat request only counts as matching one of a fixture's own already-generated section
+    /// outputs (see <see cref="ApplyDefaultStubRules"/>'s third pass) once that output is at least
+    /// this long — a short section value could otherwise appear as a coincidental substring of an
+    /// unrelated request and misattribute it.
+    /// </summary>
+    private const int MinSectionMatchLength = 40;
+
     private static readonly IReadOnlyDictionary<string, string> SectionPromptsByKey = new Dictionary<string, string>
     {
         ["abstract"] = SummaryPrompts.Abstract,
@@ -43,14 +51,21 @@ public sealed class UiTestContext : IDisposable
 
     /// <summary>
     /// Matches an entry row's concatenated title-line text, e.g.
-    /// <c>"003 Neubau — Offene Aufgaben Kita Sonnenschein"</c> (three WPF <c>Run</c>s: the
+    /// <c>"003   Neubau  —  Offene Aufgaben Kita Sonnenschein"</c> (three WPF <c>Run</c>s: the
     /// zero-padded <c>SequenceNumber</c>, a space, <c>ProjectName</c>, <c>" — "</c>, <c>Title</c>).
-    /// Used by <see cref="EntryRows"/>/<see cref="FindRowText"/> to find the title line among a
-    /// row's Text descendants — the <c>ListBoxItem</c>'s own UIA Name is useless (it is the
-    /// ViewModel's class name, F09), and the row also has a "✓" Text (only when done) and a
-    /// type/duration meta line, so the title line cannot be found by a fixed position.
+    /// Used by <see cref="FindRowText"/> to find the title line among a row's raw-view Text
+    /// children — the <c>ListBoxItem</c>'s own UIA Name is useless (it is the ViewModel's class
+    /// name, F09), and the row also has a "✓" Text (only when done) and a type/duration meta line,
+    /// so the title line cannot be found by a fixed position.
     /// </summary>
     private static readonly Regex EntryRowPattern = new(@"^(?<num>\d+)\s+(?<project>.+?)\s+—\s+(?<title>.+)$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Shared by <see cref="DiscoverFixtureKeys"/> (walking the Fixtures folder) and the stub's
+    /// transcription lookup (matching an uploaded mp3's filename) — one regex, one definition of
+    /// "this file belongs to fixture D&lt;n&gt;".
+    /// </summary>
+    private static readonly Regex FixtureFileNamePattern = new(@"^(D\d+)(?:-|_status\.json$)", RegexOptions.Compiled);
 
     private readonly IReadOnlyDictionary<string, DictationFixture> fixtures;
     private readonly string sandboxRoot;
@@ -194,6 +209,146 @@ public sealed class UiTestContext : IDisposable
     }
 
     /// <summary>
+    /// Marks this context so <see cref="Dispose"/> preserves a screenshot and the UI tree even
+    /// when <c>JOHANN_UI_KEEP</c> is not set — a test calls this from its own failure handling
+    /// (xUnit 2 has no built-in "on failure" hook).
+    /// </summary>
+    public void KeepOnFailure() => this.keepOnFailure = true;
+
+    /// <summary>Titles of every row currently shown in <c>Entries.List</c>, in list order.</summary>
+    public IReadOnlyList<string> EntryTitles() => this.EntryRows().Select(r => r.Title).ToList();
+
+    /// <summary>The <c>SequenceNumber</c> (e.g. 1, 2, 3) of every row currently shown, in list order.</summary>
+    public IReadOnlyList<int> EntryNumbers() => this.EntryRows().Select(r => r.Number).ToList();
+
+    /// <summary>
+    /// Selects the row whose title equals <paramref name="title"/> with a mouse click on its title
+    /// text (the <c>ListItem</c> has no Invoke pattern — <see cref="JohannSession.Click"/> already
+    /// falls back to a mouse click for that, but only once it has found the row by its exact,
+    /// number-prefixed row text).
+    /// </summary>
+    public void SelectEntry(string title)
+    {
+        var row = this.EntryRows().FirstOrDefault(r => r.Title == title)
+            ?? throw new InvalidOperationException($"Kein Eintrag mit Titel '{title}' in Entries.List gefunden.");
+        this.App.Click(row.RowText, mouse: true);
+    }
+
+    /// <summary>
+    /// The title of whichever row currently has UIA's <c>SelectionItem.IsSelected</c> set, or
+    /// <c>null</c> if none does. Uses <c>PatternOrDefault</c> throughout — a row without the
+    /// SelectionItem pattern (should not happen for a <c>ListBoxItem</c>, but this must never throw)
+    /// is simply skipped.
+    /// </summary>
+    public string? SelectedEntryTitle()
+    {
+        var list = this.App.TryFind("Entries.List");
+        if (list is null)
+        {
+            return null;
+        }
+
+        foreach (var item in list.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.ListItem)))
+        {
+            var selection = item.Patterns.SelectionItem.PatternOrDefault;
+            if (selection is null || !selection.IsSelected.ValueOrDefault)
+            {
+                continue;
+            }
+
+            var rowText = FindRowText(item);
+            return EntryRowPattern.Match(rowText).Groups["title"].Value;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The date labels shown in <c>Dates.List</c> (e.g. <c>"24.09."</c>), in list order. The list
+    /// is grouped (<c>CollectionViewSource</c>/<c>GroupStyle</c>), so rows are found via
+    /// <c>FindAllDescendants</c> rather than <c>FindAllChildren</c> — a direct child of the
+    /// <c>List</c> control here is a group container, not a row.
+    /// </summary>
+    public IReadOnlyList<string> DateItems()
+    {
+        var list = this.App.TryFind("Dates.List")
+            ?? throw new InvalidOperationException("Dates.List nicht gefunden.");
+
+        var result = new List<string>();
+        foreach (var item in list.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.ListItem)))
+        {
+            var text = item.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
+                .FirstOrDefault();
+            var name = text?.Properties.Name.ValueOrDefault;
+            if (!string.IsNullOrEmpty(name))
+            {
+                result.Add(name);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Polls <paramref name="condition"/> until it returns <see langword="true"/> or
+    /// <paramref name="timeout"/> elapses. Every assertion that follows an async UI action (a
+    /// delete, "Als erledigt markieren", a filter toggle) must poll like this rather than reading
+    /// state exactly once — MainViewModel's list reconciliation (#100) and any repository-backed
+    /// reload are never synchronous with the click that triggers them. <paramref name="condition"/>
+    /// may itself throw while state is transiently inconsistent (e.g. a row mid-move); that is
+    /// swallowed and retried, and reported as the "last observed state" if the whole wait times out.
+    /// </summary>
+    public void WaitUntil(Func<bool> condition, TimeSpan timeout, string because)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        Exception? lastError = null;
+        while (DateTime.UtcNow < deadline)
+        {
+            try
+            {
+                if (condition())
+                {
+                    return;
+                }
+
+                lastError = null;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+            }
+
+            Thread.Sleep(100);
+        }
+
+        var lastState = lastError is null ? string.Empty : $" Zuletzt beobachtet: {lastError.GetType().Name}: {lastError.Message}";
+        throw new TimeoutException($"Zeitüberschreitung ({timeout}) beim Warten auf: {because}.{lastState}");
+    }
+
+    public void Dispose()
+    {
+        if (this.disposed)
+        {
+            return;
+        }
+
+        this.disposed = true;
+
+        if (this.keepOnFailure || Environment.GetEnvironmentVariable("JOHANN_UI_KEEP") == "1")
+        {
+            this.TrySaveArtifacts();
+        }
+
+        this.App.Dispose();
+        this.Stub.Dispose();
+
+        if (!this.keepSandbox)
+        {
+            TryDeleteDirectory(this.sandboxRoot);
+        }
+    }
+
+    /// <summary>
     /// Looks for <paramref name="expectedTitle"/> as a substring of the entry list's row names or
     /// their descendant text runs. <paramref name="seenNames"/> always carries every name observed
     /// (even on a miss), so a timeout can report what was actually on screen.
@@ -244,9 +399,6 @@ public sealed class UiTestContext : IDisposable
         return false;
     }
 
-    /// <summary>See <see cref="EntryRowPattern"/> — one entry row's parsed title line.</summary>
-    private sealed record EntryRow(string RowText, int Number, string Title);
-
     private IReadOnlyList<EntryRow> EntryRows()
     {
         var list = this.App.TryFind("Entries.List");
@@ -255,165 +407,73 @@ public sealed class UiTestContext : IDisposable
             return [];
         }
 
-        // Retries briefly when a ListItem exists but its Text children are not there yet — found
-        // live (Task 11) right after a sort click: WPF can report the container in the UIA tree a
-        // layout pass before its DataTemplate's Text runs are populated, so a row is momentarily
-        // "present but empty". Real WPF timing, not a parsing bug — a short poll is the fix, not a
-        // longer one-shot wait, since the normal case (nothing pending) must stay fast.
-        for (var attempt = 0; attempt < 5; attempt++)
-        {
-            var items = list.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.ListItem));
-            var rows = new List<EntryRow>();
-            var allPopulated = true;
-            foreach (var item in items)
-            {
-                var rowText = FindRowText(item);
-                if (rowText is null)
-                {
-                    allPopulated = false;
-                    continue;
-                }
-
-                var match = EntryRowPattern.Match(rowText);
-                if (match.Success)
-                {
-                    rows.Add(new EntryRow(rowText, int.Parse(match.Groups["num"].Value), match.Groups["title"].Value));
-                }
-            }
-
-            if (allPopulated || attempt == 4)
-            {
-                return rows;
-            }
-
-            Thread.Sleep(200);
-        }
-
-        return [];
-    }
-
-    private static string? FindRowText(AutomationElement item)
-    {
-        foreach (var descendant in item.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text)))
-        {
-            var name = descendant.Properties.Name.ValueOrDefault;
-            if (!string.IsNullOrEmpty(name) && EntryRowPattern.IsMatch(name))
-            {
-                return name;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Marks this context so <see cref="Dispose"/> preserves a screenshot and the UI tree even
-    /// when <c>JOHANN_UI_KEEP</c> is not set — a test calls this from its own failure handling
-    /// (xUnit 2 has no built-in "on failure" hook).
-    /// </summary>
-    public void KeepOnFailure() => this.keepOnFailure = true;
-
-    /// <summary>Titles of every row currently shown in <c>Entries.List</c>, in list order.</summary>
-    public IReadOnlyList<string> EntryTitles() => this.EntryRows().Select(r => r.Title).ToList();
-
-    /// <summary>The <c>SequenceNumber</c> (e.g. 1, 2, 3) of every row currently shown, in list order.</summary>
-    public IReadOnlyList<int> EntryNumbers() => this.EntryRows().Select(r => r.Number).ToList();
-
-    /// <summary>
-    /// Selects the row whose title equals <paramref name="title"/> with a mouse click on its title
-    /// text (the <c>ListItem</c> has no Invoke pattern — <see cref="JohannSession.Click"/> already
-    /// falls back to a mouse click for that, but only once it has found the row by its exact,
-    /// number-prefixed row text).
-    /// </summary>
-    public void SelectEntry(string title)
-    {
-        var row = this.EntryRows().FirstOrDefault(r => r.Title == title)
-            ?? throw new InvalidOperationException($"Kein Eintrag mit Titel '{title}' in Entries.List gefunden.");
-        this.App.Click(row.RowText, mouse: true);
-    }
-
-    /// <summary>
-    /// The title of whichever row currently has UIA's <c>SelectionItem.IsSelected</c> set, or
-    /// <c>null</c> if none does. Uses <c>PatternOrDefault</c> throughout — a row without the
-    /// SelectionItem pattern (should not happen for a <c>ListBoxItem</c>, but this must never throw)
-    /// is simply skipped.
-    /// </summary>
-    public string? SelectedEntryTitle()
-    {
-        var list = this.App.TryFind("Entries.List");
-        if (list is null)
-        {
-            return null;
-        }
-
+        var rows = new List<EntryRow>();
         foreach (var item in list.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.ListItem)))
         {
-            var selection = item.Patterns.SelectionItem.PatternOrDefault;
-            if (selection is null || !selection.IsSelected.ValueOrDefault)
+            var rowText = FindRowText(item);
+            var match = EntryRowPattern.Match(rowText);
+            rows.Add(new EntryRow(rowText, int.Parse(match.Groups["num"].Value), match.Groups["title"].Value));
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// Finds the row's title-line text among its Text children, read via the UIA <b>raw view</b>
+    /// rather than the control view. Found live (fix round 1, #111): after
+    /// <c>MainViewModel.ArrangeRows</c> repositions an existing row via
+    /// <c>ObservableCollection.Move(...)</c> (the #100 reconcile-instead-of-rebuild optimisation),
+    /// WPF's automation peer leaves that row's OLD child peers behind as
+    /// <c>IsControlElement=False</c>, zero-bounds ghosts. The control view
+    /// (<c>FindAllDescendants</c>, even with a raw/true condition) then reports zero children for
+    /// that row — but PrintWindow screenshots confirmed the row is drawn correctly on screen the
+    /// whole time, and the raw view still walks straight to the real children, whose
+    /// <c>Name</c> is the live, correct text. This is a UIA peer bug, not a rendering bug — reading
+    /// through the raw view sidesteps it instead of waiting out something that never resolves.
+    /// <para>
+    /// Throws (rather than silently skipping the row) when none of a <c>ListItem</c>'s raw-view
+    /// Text children match <see cref="EntryRowPattern"/> — a row that genuinely has no title line
+    /// is a real problem a caller must see, not a row quietly missing from the result.
+    /// </para>
+    /// </summary>
+    private static string FindRowText(AutomationElement item)
+    {
+        var texts = RawViewChildTexts(item);
+        var match = texts.FirstOrDefault(t => EntryRowPattern.IsMatch(t));
+        if (match is not null)
+        {
+            return match;
+        }
+
+        throw new InvalidOperationException(
+            $"Zeile ohne Titeltext (Raw-View durchsucht) — gefundene Texte: [{string.Join(" | ", texts)}]");
+    }
+
+    /// <summary>
+    /// Walks <paramref name="item"/>'s children via the UIA raw view
+    /// (<c>TreeWalkerFactory.GetRawViewWalker()</c>) and returns every Text child's <c>Name</c>.
+    /// See <see cref="FindRowText"/> for why the raw view is used instead of
+    /// <c>FindAllDescendants</c>.
+    /// </summary>
+    private static IReadOnlyList<string> RawViewChildTexts(AutomationElement item)
+    {
+        var walker = item.Automation.TreeWalkerFactory.GetRawViewWalker();
+        var texts = new List<string>();
+        for (var child = walker.GetFirstChild(item); child is not null; child = walker.GetNextSibling(child))
+        {
+            if (child.Properties.ControlType.ValueOrDefault != FlaUI.Core.Definitions.ControlType.Text)
             {
                 continue;
             }
 
-            var rowText = FindRowText(item);
-            if (rowText is not null && EntryRowPattern.Match(rowText) is { Success: true } match)
-            {
-                return match.Groups["title"].Value;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// The date labels shown in <c>Dates.List</c> (e.g. <c>"24.09."</c>), in list order. The list
-    /// is grouped (<c>CollectionViewSource</c>/<c>GroupStyle</c>), so rows are found via
-    /// <c>FindAllDescendants</c> rather than <c>FindAllChildren</c> — a direct child of the
-    /// <c>List</c> control here is a group container, not a row.
-    /// </summary>
-    public IReadOnlyList<string> DateItems()
-    {
-        var list = this.App.TryFind("Dates.List");
-        if (list is null)
-        {
-            return [];
-        }
-
-        var result = new List<string>();
-        foreach (var item in list.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.ListItem)))
-        {
-            var text = item.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
-                .FirstOrDefault();
-            var name = text?.Properties.Name.ValueOrDefault;
+            var name = child.Properties.Name.ValueOrDefault;
             if (!string.IsNullOrEmpty(name))
             {
-                result.Add(name);
+                texts.Add(name);
             }
         }
 
-        return result;
-    }
-
-    public void Dispose()
-    {
-        if (this.disposed)
-        {
-            return;
-        }
-
-        this.disposed = true;
-
-        if (this.keepOnFailure || Environment.GetEnvironmentVariable("JOHANN_UI_KEEP") == "1")
-        {
-            this.TrySaveArtifacts();
-        }
-
-        this.App.Dispose();
-        this.Stub.Dispose();
-
-        if (!this.keepSandbox)
-        {
-            TryDeleteDirectory(this.sandboxRoot);
-        }
+        return texts;
     }
 
     private static void ApplyDefaultStubRules(OpenAiStubServer stub, IReadOnlyDictionary<string, DictationFixture> fixtures)
@@ -428,21 +488,31 @@ public sealed class UiTestContext : IDisposable
 
         stub.OnChat(userContent =>
         {
-            // A title request embeds header.RemainderText (EntryProcessingService.ProcessAudioAsync),
-            // i.e. the transcript with the leading "Projekt <Name>." (or other type/project) tokens
-            // already stripped by HeaderParser — NOT the full transcript. Most section requests embed
-            // the full transcript, but EmailText is chained on an earlier section's OWN output
-            // (SummaryGenerator.GenerateEmailTextAsync embeds {prose_summary} verbatim, not the
-            // transcript) — same shape for any future chained section. Matching only on the
-            // transcript made every title request AND the email request miss (real bug, found live,
-            // Task 11: both 500'd on every single dictation and aborted processing before an entry
-            // was ever saved), so the transcript, its header-stripped remainder, and every one of the
-            // fixture's own already-defined section outputs are all tried here.
+            // Three passes across ALL fixtures, not one combined per-fixture OR condition: a title
+            // request embeds header.RemainderText (EntryProcessingService.ProcessAudioAsync) — the
+            // transcript with the leading "Projekt <Name>." (or other type/project) tokens already
+            // stripped by HeaderParser, NOT the full transcript. EmailText (and any future chained
+            // section) embeds an earlier section's OWN output instead of the transcript at all
+            // (SummaryGenerator.GenerateEmailTextAsync embeds {prose_summary} verbatim). Matching
+            // only on the full transcript made every title request AND the email request miss (real
+            // bug, found live, Task 11: both 500'd on every single dictation and aborted processing
+            // before an entry was ever saved). Passes, in order of specificity, avoid a short
+            // section value coincidentally matching before the transcript itself is tried.
             var match = fixtures.Values.FirstOrDefault(f =>
-                userContent.Contains(f.Transcript, StringComparison.Ordinal)
-                || userContent.Contains(headerParser.Parse(f.Transcript).RemainderText, StringComparison.Ordinal)
-                || (f.Full is not null && f.Full.Sections.Values.Any(v =>
-                    !string.IsNullOrEmpty(v) && userContent.Contains(v, StringComparison.Ordinal))));
+                userContent.Contains(f.Transcript, StringComparison.Ordinal));
+
+            match ??= fixtures.Values.FirstOrDefault(f =>
+            {
+                var remainder = headerParser.Parse(f.Transcript).RemainderText;
+                return !string.IsNullOrEmpty(remainder) && userContent.Contains(remainder, StringComparison.Ordinal);
+            });
+
+            match ??= fixtures.Values.FirstOrDefault(f =>
+                f.Full is not null && f.Full.Sections.Values.Any(v =>
+                    !string.IsNullOrEmpty(v)
+                    && v.Length >= MinSectionMatchLength
+                    && userContent.Contains(v, StringComparison.Ordinal)));
+
             if (match is null)
             {
                 return null;
@@ -523,13 +593,6 @@ public sealed class UiTestContext : IDisposable
         return keys;
     }
 
-    /// <summary>
-    /// Shared by <see cref="DiscoverFixtureKeys"/> (walking the Fixtures folder) and the stub's
-    /// transcription lookup (matching an uploaded mp3's filename) — one regex, one definition of
-    /// "this file belongs to fixture D&lt;n&gt;".
-    /// </summary>
-    private static readonly Regex FixtureFileNamePattern = new(@"^(D\d+)(?:-|_status\.json$)", RegexOptions.Compiled);
-
     private static string? ExtractFixtureKey(string fileName)
     {
         var match = FixtureFileNamePattern.Match(Path.GetFileName(fileName));
@@ -607,6 +670,9 @@ public sealed class UiTestContext : IDisposable
             // Best-effort cleanup — a locked file (e.g. AV scan) must not fail the test itself.
         }
     }
+
+    /// <summary>See <see cref="EntryRowPattern"/> — one entry row's parsed title line.</summary>
+    private sealed record EntryRow(string RowText, int Number, string Title);
 
     private sealed record DictationFixture(string Transcript, EntryFixture? Full);
 }

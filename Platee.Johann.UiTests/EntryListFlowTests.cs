@@ -12,34 +12,26 @@ using Xunit;
 [Collection("Desktop")]
 public sealed class EntryListFlowTests
 {
-    [Fact(Skip =
-        "Befund (#111): MainViewModel.ArrangeRows bewegt eine vorhandene Zeile per " +
-        "ObservableCollection.Move(...), statt sie neu einzufügen (#100, Performance) — genau die " +
-        "per Move verschobene Zeile bleibt im echten Fenster als WPF-ListBoxItem ohne Text-Kinder " +
-        "stehen (UIA-Baum bestätigt es, reproduzierbar auch nach 10s, kein Timing). Hier bewegt " +
-        "\"Entries.SortById\" (schon aufsteigend sortiert → ein Klick kehrt um) genau eine Zeile. " +
-        "Der ViewModel-Zustand ist nachweislich korrekt (EntryListReconcileTests.Sorting_reorders_" +
-        "the_rows_in_memory_and_keeps_the_selected_object ist grün) — der Defekt liegt in der " +
-        "WPF-Darstellung von Move, nicht in Entries/ApplySort.")]
+    [Fact]
     public async Task WatchFolder_NewEntryAppears_InSortOrder()
     {
         using var ctx = UiTestContext.Start();
         await ctx.DropDictationAsync("D1");
         await ctx.DropDictationAsync("D3");
 
-        ctx.App.Click("Entries.SortById");
-
         ctx.EntryTitles().Should().HaveCount(2);
-        ctx.EntryNumbers().Should().BeInAscendingOrder();
+        ctx.EntryNumbers().Should().BeInAscendingOrder("the list starts sorted ascending by Nr");
+
+        ctx.App.Click("Entries.SortById");
+        ctx.WaitUntil(
+            () => ctx.EntryNumbers().SequenceEqual(ctx.EntryNumbers().OrderByDescending(n => n)),
+            TimeSpan.FromSeconds(5),
+            "Entries.List zeigt nach dem Klick auf 'Nr' absteigende Reihenfolge");
+
+        ctx.EntryNumbers().Should().BeInDescendingOrder("one click on an already-ascending list reverses it");
     }
 
-    [Fact(Skip =
-        "Befund (#111), selbe Ursache wie WatchFolder_NewEntryAppears_InSortOrder: \"Nur " +
-        "unerledigte\" lässt ArrangeRows die verbleibende Zeile per ObservableCollection.Move(...) " +
-        "an Position 0 verschieben — genau diese Zeile bleibt ohne Text-Kinder stehen (UIA-Baum " +
-        "bestätigt es, reproduzierbar auch nach 10s). Der ViewModel-Zustand ist nachweislich " +
-        "korrekt (EntryListReconcileTests.Marking_done_with_only_pending_shown_removes_the_row_" +
-        "and_selects_the_neighbour ist grün) — der Defekt liegt in der WPF-Darstellung von Move.")]
+    [Fact]
     public async Task MarkDone_KeepsSelection_AndOnlyOpenRemovesRow()
     {
         using var ctx = UiTestContext.Start();
@@ -48,11 +40,19 @@ public sealed class EntryListFlowTests
 
         ctx.SelectEntry(t1);
         ctx.App.Click("Detail.ToggleDone");
-        ctx.SelectedEntryTitle().Should().Be(t1); // #100 — die Zeile bleibt selektiert
+        ctx.WaitUntil(
+            () => ctx.SelectedEntryTitle() == t1,
+            TimeSpan.FromSeconds(5),
+            "die Auswahl bleibt nach 'Als erledigt markieren' auf t1"); // #100
 
         ctx.App.Click("Entries.OnlyOpen");
+        ctx.WaitUntil(
+            () => ctx.EntryTitles() is [var only] && only == t3,
+            TimeSpan.FromSeconds(5),
+            "Entries.List zeigt nach dem Filter nur noch t3");
+
         ctx.EntryTitles().Should().Equal(t3);
-        ctx.SelectedEntryTitle().Should().Be(t3); // die nächste Zeile rückt nach
+        ctx.SelectedEntryTitle().Should().Be(t3, "die nächste Zeile rückt nach");
     }
 
     [Fact]
@@ -65,7 +65,19 @@ public sealed class EntryListFlowTests
         ctx.App.Key("Delete");
         ctx.App.Click("Nein", mouse: true); // „Nein“ ist vorausgewählt (#55)
 
-        ctx.EntryTitles().Should().Contain(t1);
+        // "Nein" must keep the entry not just in the instant after the click, but for a real
+        // moment after — a delete that proceeded despite "Nein" would still show up here.
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+        while (DateTime.UtcNow < deadline)
+        {
+            ctx.EntryTitles().Should().Contain(t1);
+            await Task.Delay(200);
+        }
+
+        Directory.EnumerateFiles(ctx.Sandbox.Output, "*_status.json", SearchOption.AllDirectories)
+            .Should().ContainSingle("der Eintrag ist nicht gelöscht");
+        Directory.Exists(Path.Combine(ctx.Sandbox.Output, "_Papierkorb"))
+            .Should().BeFalse("'Nein' darf nichts in den Papierkorb verschieben");
     }
 
     [Fact]
@@ -78,13 +90,17 @@ public sealed class EntryListFlowTests
         ctx.App.Click("Detail.Delete", mouse: true);
         ctx.App.Click("Ja", mouse: true);
 
-        ctx.EntryTitles().Should().BeEmpty();
-        ctx.DateItems().Should().BeEmpty(); // Tag ohne Einträge verschwindet aus der Seitenleiste
+        ctx.WaitUntil(() => ctx.EntryTitles().Count == 0, TimeSpan.FromSeconds(10), "Entries.List wird nach dem Löschen leer");
+        ctx.WaitUntil(() => ctx.DateItems().Count == 0, TimeSpan.FromSeconds(10), "der Tag verschwindet aus der Seitenleiste");
 
-        Directory.EnumerateFiles(
-                Path.Combine(ctx.Sandbox.Output, "_Papierkorb"),
-                "geloescht.json",
-                SearchOption.AllDirectories)
+        var papierkorb = Path.Combine(ctx.Sandbox.Output, "_Papierkorb");
+        ctx.WaitUntil(
+            () => Directory.Exists(papierkorb)
+                && Directory.EnumerateFiles(papierkorb, "geloescht.json", SearchOption.AllDirectories).Any(),
+            TimeSpan.FromSeconds(10),
+            "_Papierkorb enthält geloescht.json"); // Directory.Exists guards EnumerateFiles against DirectoryNotFoundException
+
+        Directory.EnumerateFiles(papierkorb, "geloescht.json", SearchOption.AllDirectories)
             .Should().ContainSingle();
     }
 }
