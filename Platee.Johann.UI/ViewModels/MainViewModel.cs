@@ -26,6 +26,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly SettingsHolder runtimeSettingsHolder;
     private readonly IModelAvailabilityProbe? modelProbe;
     private readonly IReadOnlyList<StartupPathIssue> startupPathIssues;
+    private readonly AppSettings? settingsDefaults;
     private readonly List<DateItemViewModel> allDates = [];
     private bool suppressDateSelectionChanged;
 
@@ -353,7 +354,8 @@ public sealed partial class MainViewModel : ObservableObject
                          IMicrophoneRecorder microphoneRecorder,
                          IReadOnlyList<StartupPathIssue>? startupPathIssues = null,
                          IModelAvailabilityProbe? modelProbe = null,
-                         IMailComposer? mailComposer = null)
+                         IMailComposer? mailComposer = null,
+                         AppSettings? settingsDefaults = null)
     {
         this.modelProbe = modelProbe;
         this.repository = repository;
@@ -365,6 +367,7 @@ public sealed partial class MainViewModel : ObservableObject
         this.persistedSettingsHolder = persistedSettingsHolder;
         this.runtimeSettingsHolder = runtimeSettingsHolder;
         this.startupPathIssues = startupPathIssues ?? [];
+        this.settingsDefaults = settingsDefaults;
         this.microphoneRecorder = microphoneRecorder;
         this.detail = new EntryDetailViewModel(renderers, outputRoot, processor, repository, this.Sections,
             addLog: this.AddProcessLog,
@@ -989,7 +992,8 @@ public sealed partial class MainViewModel : ObservableObject
                 this.persistedSettingsHolder,
                 this.runtimeSettingsHolder,
                 this.startupPathIssues,
-                this.modelProbe);
+                this.modelProbe,
+                this.settingsDefaults);
 
             // Die Statusleiste nennt seit #71 das gewaehlte Modell. Das Fenster ist nicht
             // modal, also muss sie beim Speichern nachziehen und nicht erst beim Neustart.
@@ -1067,7 +1071,19 @@ public sealed partial class MainViewModel : ObservableObject
             var newDateItem = new DateItemViewModel(entryDate);
             this.allDates.Add(newDateItem);
             this.RefreshAvailableDatesView();
-            this.SelectedDateItem = this.AvailableDates.FirstOrDefault(d => d.Date == entryDate) ?? newDateItem;
+            var target = this.AvailableDates.FirstOrDefault(d => d.Date == entryDate) ?? newDateItem;
+
+            // RefreshAvailableDatesView() may already have auto-selected this sole/first date
+            // while notifications were suppressed, making the assignment below a same-reference
+            // no-op that would never load the entries (#111) — load explicitly in that case.
+            if (ReferenceEquals(this.SelectedDateItem, target))
+            {
+                await this.LoadEntriesAsync(entryDate);
+            }
+            else
+            {
+                this.SelectedDateItem = target;
+            }
         }
         else if (this.SelectedDateItem?.Date == entryDate)
         {

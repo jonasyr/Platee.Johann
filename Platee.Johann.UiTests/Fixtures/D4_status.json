@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 4,
+  "jobId": "260924_004_5c7b1d14",
+  "sequenceNumber": 4,
+  "type": "Projekt",
+  "projectName": "Allgemein",
+  "title": "Auftrag Dachkonstruktion: Offene Punkte",
+  "createdAt": "2026-09-24T15:12:08+01:00",
+  "sourceType": "audio",
+  "durationSeconds": 23.352,
+  "wordCount": 57,
+  "status": {
+    "transcribed": true,
+    "summarized": true,
+    "pdfCreated": true,
+    "archived": true,
+    "emailCreated": false
+  },
+  "transcript": "Mail an Thomas Berger von der Firma Holzbau Berger. Hallo Thomas, danke dir f\u00FCr das Angebot vom Montag. Wir w\u00FCrden gern den Auftrag f\u00FCr die Dachkonstruktion vergeben, brauchen aber noch zwei Dinge von dir: einen verbindlichen Liefertermin f\u00FCr das Brettschichtholz und eine Best\u00E4tigung, dass der Preis bis Ende Oktober gilt. Kannst du mir das bis Mittwoch schicken?",
+  "editedTranscript": "Mail an Thomas Berger von der Firma Holzbau Berger. Hallo Thomas, danke dir f\u00FCr das Angebot vom Montag. Wir w\u00FCrden gern den Auftrag f\u00FCr die Dachkonstruktion vergeben, brauchen aber noch zwei Dinge von dir: einen verbindlichen Liefertermin f\u00FCr das Brettschichtholz und eine Best\u00E4tigung, dass der Preis bis Ende Oktober gilt. Kannst du mir das bis Mittwoch schicken? Au\u00DFerdem brauchen wir die Montage bis sp\u00E4testens 15. November.",
+  "abstract": "Dachkonstruktionsauftrag vorbehaltlich verbindlichem Liefertermin, Preisg\u00FCltigkeit bis Ende Oktober; R\u00FCckmeldung bis Mittwoch, Montage bis 15. November.",
+  "longSummary": "### Kontext\n\n- Beauftragung der Firma Holzbau Berger mit der Dachkonstruktion auf Grundlage des Angebots vom Montag.\n\n### Kernaussagen\n\n- F\u00FCr die Vergabe werden noch folgende Angaben ben\u00F6tigt:\n  - ein verbindlicher Liefertermin f\u00FCr das Brettschichtholz,\n  - eine Best\u00E4tigung, dass der Preis bis Ende Oktober gilt.\n- Die Montage muss sp\u00E4testens am **15. November** abgeschlossen sein.\n\n### Offene Punkte / ToDos\n\n- **Thomas Berger** soll bis **Mittwoch**:\n  - den verbindlichen Liefertermin f\u00FCr das Brettschichtholz mitteilen,\n  - die Preisbindung bis Ende Oktober best\u00E4tigen.",
+  "proseSummary": "Hallo Thomas,\n\nvielen Dank f\u00FCr dein Angebot vom Montag. Wir w\u00FCrden den Auftrag f\u00FCr die Dachkonstruktion gern an dich vergeben, ben\u00F6tigen von dir jedoch noch zwei Angaben:\n\n- einen verbindlichen Liefertermin f\u00FCr das Brettschichtholz,\n- eine Best\u00E4tigung, dass der Preis bis Ende Oktober gilt.\n\nKannst du mir diese Informationen bitte bis Mittwoch zukommen lassen? Au\u00DFerdem ben\u00F6tigen wir die Montage bis sp\u00E4testens 15. November.",
+  "emailText": "Betreff: Vergabe der Dachkonstruktion \u2013 noch ben\u00F6tigte Angaben\n\nGuten Tag, Herr Thomas,\n\nvielen Dank f\u00FCr Ihr Angebot vom Montag. Wir w\u00FCrden den Auftrag f\u00FCr die Dachkonstruktion gern an Sie vergeben. Daf\u00FCr ben\u00F6tigen wir noch einen verbindlichen Liefertermin f\u00FCr das Brettschichtholz sowie Ihre Best\u00E4tigung, dass der angebotene Preis bis Ende Oktober gilt.\n\nBitte lassen Sie uns diese Informationen bis Mittwoch zukommen. Die Montage muss sp\u00E4testens bis zum 15. November abgeschlossen sein.\n\nVielen Dank. Bei R\u00FCckfragen k\u00F6nnen Sie sich jederzeit gern an mich wenden.",
+  "conversationNote": "Kein Gespr\u00E4ch dokumentiert.",
+  "taskList": "Die Nachricht richtet sich an Thomas Berger von der Firma Holzbau Berger. Es geht um die geplante Vergabe des Auftrags f\u00FCr die Dachkonstruktion auf Grundlage seines Angebots vom Montag. F\u00FCr die weitere Beauftragung werden noch verbindliche Angaben und eine termingerechte Ausf\u00FChrung ben\u00F6tigt.\n\n- Verbindlichen Liefertermin f\u00FCr das Brettschichtholz mitteilen (Thomas Berger, bis Mittwoch)\n- Best\u00E4tigen, dass der Preis bis Ende Oktober gilt (Thomas Berger, bis Mittwoch)\n- Montage der Dachkonstruktion bis sp\u00E4testens 15. November einplanen (Thomas Berger)",
+  "stundenzettelText": null,
+  "analogText": null,
+  "isDone": false,
+  "customSections": {
+    "custom.audit-baustellenbericht-3d6b": "- Das Angebot f\u00FCr die Dachkonstruktion von Holzbau Berger vom Montag liegt vor; der Auftrag soll vergeben werden.\n- Noch ben\u00F6tigt werden ein verbindlicher Liefertermin f\u00FCr das Brettschichtholz sowie die Best\u00E4tigung, dass der Preis bis Ende Oktober gilt.\n- Die ausstehenden Angaben sollen bis Mittwoch vorliegen; die Montage muss sp\u00E4testens am **15. November** abgeschlossen sein."
+  },
+  "customSectionNames": {
+    "custom.audit-baustellenbericht-3d6b": "Audit Baustellenbericht"
+  }
+}

@@ -28,6 +28,8 @@
     <ProjectReference Include="..\Platee.Johann.Domain\Platee.Johann.Domain.csproj" />
     <ProjectReference Include="..\Platee.Johann.Application\Platee.Johann.Application.csproj" />
     <ProjectReference Include="..\Platee.Johann.Infrastructure\Platee.Johann.Infrastructure.csproj" />
+    <ProjectReference Include="..\Platee.Johann.UiDriver\Platee.Johann.UiDriver.csproj" />
+    <ProjectReference Include="..\tools\ui-driver\UiDriverTool.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -60,6 +62,11 @@
     <Compile Include="..\Platee.Johann.UI\ViewModels\SortMode.cs" Link="ViewModels/SortMode.cs" />
     <Compile Include="..\Platee.Johann.UI\Views\SettingsView.xaml.cs" Link="Views/SettingsView.xaml.cs" />
     <Page Include="..\Platee.Johann.UI\Views\SettingsView.xaml" Link="Views/SettingsView.xaml" />
+    <!-- Pure helpers from Platee.Johann.UiTests, linked in so a change to their inputs
+         (SummaryPrompts wording, solution layout) is caught by the normal test suite instead of
+         only by the unrun UI smoke tests (#111). -->
+    <Compile Include="..\Platee.Johann.UiTests\SectionPromptMatcher.cs" Link="UiTests/SectionPromptMatcher.cs" />
+    <Compile Include="..\Platee.Johann.UiTests\ExeLocator.cs" Link="UiTests/ExeLocator.cs" />
   </ItemGroup>
 
 </Project>

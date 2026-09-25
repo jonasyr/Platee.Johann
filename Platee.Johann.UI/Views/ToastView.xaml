@@ -4,7 +4,8 @@
              xmlns:vm="clr-namespace:Platee.Johann.UI.ViewModels"
              xmlns:conv="clr-namespace:Platee.Johann.UI.Converters"
              MouseEnter="OnMouseEnter"
-             MouseLeave="OnMouseLeave">
+             MouseLeave="OnMouseLeave"
+             AutomationProperties.AutomationId="Toast.Item">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <conv:NullToVisibilityConverter x:Key="NullToVis"/>
@@ -21,6 +22,8 @@
         </Style>
     </UserControl.Resources>
 
+    <!-- Die Id „Toast.Item“ steht am UserControl, nicht am Border: ein Border hat keinen
+         Automation-Peer, UI Automation sah die Id dort nie (#111, Task 13). -->
     <Border Background="White"
             BorderBrush="#DDDDDD"
             BorderThickness="1"
@@ -58,6 +61,7 @@
                         Content="×"
                         Command="{Binding DismissCommand}"
                         Style="{StaticResource CloseButtonStyle}"
+                        AutomationProperties.AutomationId="Toast.Dismiss"
                         VerticalAlignment="Top"/>
 
                 <!-- Running spinner -->
@@ -86,6 +90,7 @@
                     <Button Content="Details im Status-Log"
                             Margin="0,4,0,0"
                             Style="{StaticResource DetailsLinkStyle}"
+                            AutomationProperties.AutomationId="Toast.Details"
                             Visibility="{Binding ShowDetailsLink, Converter={StaticResource BoolToVis}}"
                             Command="{Binding DataContext.OpenProcessDetailCommand,
                                      RelativeSource={RelativeSource AncestorType=Window}}"/>

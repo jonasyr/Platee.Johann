@@ -1,0 +1,38 @@
+Main.ReleaseNotes|Neuigkeiten|Button
+Main.Handbook|Handbuch|Button
+Sections.ShowProseSummary|Ausführlich|CheckBox
+Sections.ShowLongSummary|Zusammenfassung|CheckBox
+Sections.ShowTaskList|Aufgaben|CheckBox
+Sections.ShowConversationNote|Gesprächsnotiz|CheckBox
+Sections.ShowEmailText|E-Mail|CheckBox
+Sections.ShowStundenzettelText|Stundenzettel|CheckBox
+Sections.ShowAnalogText|Analog|CheckBox
+Sections.ShowTranscript|Transkript|CheckBox
+||List
+Sections.custom.testvorlage-12da|Testvorlage|CheckBox
+Sections.Reset|↻ Standard wiederherstellen|Button
+Dates.ShowAll|5 erledigte Tage ausgeblendet|Button
+|24.09.|ListItem
+||Thumb
+Entries.SortById|↑ Nr|Button
+Entries.SortByProject|Projekt|Button
+Entries.OnlyOpen|Nur unerledigte|CheckBox
+Entries.Dictate|🎙 Diktieren|Button
+|Platee.Johann.UI.ViewModels.EntryRowViewModel|ListItem
+Detail.Html|HTML|Button
+Detail.Pdf|PDF|Button
+Detail.TaskMail|Aufgaben|Button
+Detail.Email|E-Mail|Button
+Detail.Copy|Kopieren|Button
+Detail.Reprocess|↻ Neu generieren|Button
+Detail.ToggleDone||Button
+Detail.Delete|Eintrag löschen|Button
+Copy.abstract|Abschnitt kopieren|Button
+||Document
+Copy.builtin.longSummary|Abschnitt kopieren|Button
+Copy.builtin.proseSummary|Abschnitt kopieren|Button
+Generate.custom.testvorlage-12da|Generieren|Button
+Copy.custom.audit-baustellenbericht-3d6b|Abschnitt kopieren|Button
+Copy.transcript|Abschnitt kopieren|Button
+Detail.EditTranscript|Transkript bearbeiten|Button
+Detail.TranscriptView||Edit

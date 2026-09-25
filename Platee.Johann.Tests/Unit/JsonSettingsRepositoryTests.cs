@@ -247,4 +247,73 @@ public sealed class JsonSettingsRepositoryTests : IDisposable
         loaded.Korrekturliste[2].Wrong.Should().Be("JATJPT");
         loaded.Korrekturliste[3].Wrong.Should().Be("JGPT");
     }
+
+    // ── Injected defaults (#111 fix round 1) ──────────────────────────────────
+    // Unter JOHANN_HOME muss eine fehlende oder unvollstaendige settings.json auf Pfade
+    // unter dem Home-Ordner fallen, nicht auf die AppSettings-Feldinitialisierer
+    // (Documents\Johann) — sonst schriebe eine umgelenkte Sandbox heimlich ins echte Verzeichnis.
+    [Fact]
+    public async Task LoadAsync_WhenNoFileExists_AndDefaultsGiven_ReturnsGivenDefaults()
+    {
+        var customDefaults = new AppSettings
+        {
+            Quellverzeichnis = @"C:\Custom\Eingang",
+            Archivverzeichnis = @"C:\Custom\Eingang\Archiv",
+            Ausgabeverzeichnis = @"C:\Custom\output",
+        };
+        var repo = new JsonSettingsRepository(this.tempDir, customDefaults);
+
+        var loaded = await repo.LoadAsync();
+
+        loaded.Quellverzeichnis.Should().Be(@"C:\Custom\Eingang");
+        loaded.Archivverzeichnis.Should().Be(@"C:\Custom\Eingang\Archiv");
+        loaded.Ausgabeverzeichnis.Should().Be(@"C:\Custom\output");
+    }
+
+    [Fact]
+    public async Task LoadAsync_WhenFileLacksPathKeys_AndDefaultsGiven_FillsFromGivenDefaults()
+    {
+        var settingsPath = Path.Combine(this.tempDir, "settings.json");
+        await File.WriteAllTextAsync(settingsPath, """{"name":"Test"}""");
+
+        var customDefaults = new AppSettings
+        {
+            Quellverzeichnis = @"C:\Custom\Eingang",
+            Archivverzeichnis = @"C:\Custom\Eingang\Archiv",
+            Ausgabeverzeichnis = @"C:\Custom\output",
+        };
+        var repo = new JsonSettingsRepository(this.tempDir, customDefaults);
+
+        var loaded = await repo.LoadAsync();
+
+        loaded.Name.Should().Be("Test");
+        loaded.Quellverzeichnis.Should().Be(@"C:\Custom\Eingang");
+        loaded.Archivverzeichnis.Should().Be(@"C:\Custom\Eingang\Archiv");
+        loaded.Ausgabeverzeichnis.Should().Be(@"C:\Custom\output");
+    }
+
+    [Fact]
+    public async Task LoadAsync_WhenFileIsCorrupt_AndDefaultsGiven_ReturnsGivenDefaults()
+    {
+        var settingsPath = Path.Combine(this.tempDir, "settings.json");
+        await File.WriteAllTextAsync(settingsPath, "{ this is not valid json }}}");
+
+        var customDefaults = new AppSettings { Ausgabeverzeichnis = @"C:\Custom\output" };
+        var repo = new JsonSettingsRepository(this.tempDir, customDefaults);
+
+        var loaded = await repo.LoadAsync();
+
+        loaded.Ausgabeverzeichnis.Should().Be(@"C:\Custom\output");
+    }
+
+    [Fact]
+    public async Task LoadAsync_WithoutDefaultsGiven_KeepsAppSettingsDefaults()
+    {
+        // Kein `defaults`-Argument → unveraendertes Verhalten (Documents\Johann-Pfade).
+        var loaded = await this.sut.LoadAsync();
+
+        loaded.Quellverzeichnis.Should().Be(AppSettings.Default.Quellverzeichnis);
+        loaded.Archivverzeichnis.Should().Be(AppSettings.Default.Archivverzeichnis);
+        loaded.Ausgabeverzeichnis.Should().Be(AppSettings.Default.Ausgabeverzeichnis);
+    }
 }

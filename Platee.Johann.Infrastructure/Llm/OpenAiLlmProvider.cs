@@ -1,6 +1,8 @@
 namespace Platee.Johann.Infrastructure.Llm;
 
+using System.ClientModel;
 using System.Collections.Concurrent;
+using OpenAI;
 using OpenAI.Chat;
 using Platee.Johann.Application.Interfaces;
 using Platee.Johann.Application.Processing;
@@ -26,10 +28,17 @@ public sealed class OpenAiLlmProvider : ILlmProvider
     private readonly ConcurrentDictionary<string, ChatClient> clients = new(StringComparer.Ordinal);
 
     private readonly string apiKey;
+    private readonly Uri? apiRoot;
 
-    public OpenAiLlmProvider(string apiKey)
+    /// <param name="apiKey">Der OpenAI-Schlüssel.</param>
+    /// <param name="apiRoot">
+    /// Abweichende Basisadresse ohne <c>v1</c>, nur für Automationsläufe (#111). Unbelegt gilt
+    /// der reguläre OpenAI-Endpunkt.
+    /// </param>
+    public OpenAiLlmProvider(string apiKey, Uri? apiRoot = null)
     {
         this.apiKey = apiKey;
+        this.apiRoot = apiRoot;
     }
 
     public bool IsAvailable => true;
@@ -65,5 +74,10 @@ public sealed class OpenAiLlmProvider : ILlmProvider
     private ChatClient ResolveClient(string? model) =>
         this.clients.GetOrAdd(
             model ?? SummaryModelCatalog.Default.Id,
-            id => new ChatClient(id, this.apiKey));
+            id => this.apiRoot is null
+                ? new ChatClient(id, this.apiKey)
+                : new ChatClient(
+                    id,
+                    new ApiKeyCredential(this.apiKey),
+                    new OpenAIClientOptions { Endpoint = new Uri(this.apiRoot, "v1") }));
 }

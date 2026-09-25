@@ -44,10 +44,12 @@
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button x:Name="KeepAllButton"
                     Content="Wie bisher – alle automatisch"
+                    AutomationProperties.AutomationId="Migration.KeepCurrent"
                     Padding="14,7" FontSize="13" Margin="0,0,8,0"
                     Click="KeepAll_Click"/>
             <Button x:Name="RecommendedButton"
                     Content="Empfohlen – 4 Abschnitte automatisch"
+                    AutomationProperties.AutomationId="Migration.UseRecommended"
                     IsDefault="True"
                     Padding="14,7" FontSize="13"
                     Style="{StaticResource PrimaryButtonStyle}"

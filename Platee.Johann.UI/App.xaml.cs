@@ -10,6 +10,7 @@ using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Infrastructure.Audio;
+using Platee.Johann.Infrastructure.Hosting;
 using Platee.Johann.Infrastructure.Json;
 using Platee.Johann.Infrastructure.Llm;
 using Platee.Johann.Infrastructure.Mail;
@@ -44,12 +45,42 @@ public partial class App : System.Windows.Application
             crashLogger.WriteCrashLog("TASK", ex.Exception);
         };
 
+        // JOHANN_HOME einmal früh auflösen: ein Tippfehler in der Automations-Umlenkung soll
+        // den Start verweigern statt erst beim ersten Diktat mit den echten Daten aufzufallen.
+        string johannHome;
+        try
+        {
+            johannHome = JohannEnvironment.HomeDirectory();
+            _ = JohannEnvironment.OpenAiRoot();
+        }
+        catch (InvalidOperationException ex)
+        {
+            crashLogger.WriteCrashLog("ENVIRONMENT", ex);
+            MessageBox.Show(ex.Message, "Platé.Johann – Start abgebrochen", MessageBoxButton.OK, MessageBoxImage.Error);
+            this.Shutdown(1);
+            return;
+        }
+
         base.OnStartup(e);
 
         // ── Settings ──────────────────────────────────────────────────────────
-        var settingsDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann");
-        var jsonSettingsRepo = new JsonSettingsRepository(settingsDir);
+        var settingsDir = johannHome;
+
+        // Unter JOHANN_HOME (#111) muss auch eine fehlende oder unvollstaendige settings.json
+        // unter dem Home-Ordner landen — sonst wuerde eine umgelenkte Sandbox beim ersten Start
+        // heimlich in das echte Documents\Johann schreiben (Fix-Runde 1). GlobalPromptFilePath
+        // bleibt null: eine Sandbox hat kein Team-File, solange ihre settings.json keins nennt —
+        // sonst zoege "Standard wiederherstellen" das echte Z:\...\prompts.json heran (Fix-Runde 2).
+        var settingsDefaults = JohannEnvironment.HasHomeOverride()
+            ? new AppSettings
+            {
+                Quellverzeichnis = Path.Combine(johannHome, "Eingang"),
+                Archivverzeichnis = Path.Combine(johannHome, "Eingang", "Archiv"),
+                Ausgabeverzeichnis = Path.Combine(johannHome, "output"),
+                GlobalPromptFilePath = null,
+            }
+            : null;
+        var jsonSettingsRepo = new JsonSettingsRepository(settingsDir, settingsDefaults);
         ISettingsRepository settingsRepo = jsonSettingsRepo;
 
         var startupFaults = new List<string>();
@@ -219,13 +250,14 @@ public partial class App : System.Windows.Application
 
         // OpenAI providers — fall back to NoOp if no API key is configured
         var apiKey = ApiKeyProvider.TryGetOpenAiKey();
+        var openAiRoot = JohannEnvironment.OpenAiRoot();   // bereits beim Start geprüft (Task 2)
 
         ILlmProvider llmProvider = apiKey is not null
-            ? new OpenAiLlmProvider(apiKey)
+            ? new OpenAiLlmProvider(apiKey, openAiRoot)
             : new NoOpLlmProvider();
 
         IAudioTranscriber transcriber = apiKey is not null
-            ? new WhisperTranscriber(apiKey)
+            ? new WhisperTranscriber(apiKey, openAiRoot)
             : new NoOpAudioTranscriber();
 
         var summaryGenerator = new SummaryGenerator(llmProvider, runtimeSettingsHolder);
@@ -264,7 +296,7 @@ public partial class App : System.Windows.Application
         // Ohne Schluessel ist keine Pruefung moeglich; der Stub meldet das, statt zu scheitern.
         IModelAvailabilityProbe modelProbe = string.IsNullOrWhiteSpace(apiKey)
             ? new NoOpModelAvailabilityProbe()
-            : new OpenAiModelAvailabilityProbe(apiKey);
+            : new OpenAiModelAvailabilityProbe(apiKey, openAiRoot);
 
         // ── Mail (#57) ────────────────────────────────────────────────────────
         // Klassisches Outlook per COM, neues Outlook per .eml-Entwurf, sonst mailto mit dem PDF im
@@ -279,7 +311,8 @@ public partial class App : System.Windows.Application
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
                                            settingsRepo, personalPromptRepo, persistedSettingsHolder,
                                            runtimeSettingsHolder, microphoneRecorder,
-                                           pathResolution.Issues, modelProbe, mailComposer);
+                                           pathResolution.Issues, modelProbe, mailComposer,
+                                           settingsDefaults);
 
         // Wired here rather than injected so the view models stay dialog-free in tests.
         viewModel.EmptySectionHintPrompt = () =>
@@ -405,7 +438,10 @@ public partial class App : System.Windows.Application
             await settingsRepo.SaveAsync(updatedSettings);
         }
 
-        _ = CheckForUpdatesAsync(crashLogger);
+        if (!JohannEnvironment.SkipUpdateCheck())
+        {
+            _ = CheckForUpdatesAsync(crashLogger);
+        }
     }
 
     private static async Task CheckForUpdatesAsync(CrashLogWriter crashLogger)
@@ -529,20 +565,16 @@ public partial class App : System.Windows.Application
 
     private static string ResolveDefaultOutputRoot()
     {
-        // Default: Documents\Johann\output — independent of the Python project location
-        var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Johann", "output");
+        // Default: <Johann-Home>\output — Documents\Johann, oder JOHANN_HOME (#111)
+        var path = Path.Combine(JohannEnvironment.HomeDirectory(), "output");
         Directory.CreateDirectory(path);
         return path;
     }
 
     private static string ResolveDefaultInputRoot()
     {
-        // Default: Documents\Johann\Eingang
-        var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Johann", "Eingang");
+        // Default: <Johann-Home>\Eingang — Documents\Johann, oder JOHANN_HOME (#111)
+        var path = Path.Combine(JohannEnvironment.HomeDirectory(), "Eingang");
         Directory.CreateDirectory(path);
         return path;
     }

@@ -7,6 +7,7 @@
         xmlns:settings="clr-namespace:Platee.Johann.Application.Settings;assembly=Platee.Johann.Application"
         xmlns:conv="clr-namespace:Platee.Johann.UI.Converters"
         xmlns:views="clr-namespace:Platee.Johann.UI.Views"
+        xmlns:controls="clr-namespace:Platee.Johann.UI.Controls"
         mc:Ignorable="d"
         Title="{Binding AppVersion, RelativeSource={RelativeSource Self}, StringFormat='Platé.Johann {0}'}"
         Height="700" Width="1200"
@@ -87,9 +88,13 @@
              rechtsbündig — so stehen alle Symbole in einer Spalte, unabhängig von der Länge der
              Überschrift. Die Abschnitts-Id kommt über Tag. Eine Vorlage für alle Abschnitte —
              auch die Grundlage für den „nicht umgesetzt“-Zustand aus #65. -->
-        <Style x:Key="SectionHeaderControlStyle" TargetType="ContentControl">
+        <Style x:Key="SectionHeaderControlStyle" TargetType="controls:SectionHeaderControl">
             <Setter Property="Focusable" Value="False"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
+            <!-- Stabile Id je Abschnitt (#111): Tag trägt die Abschnitts-Id für alle Abschnitte,
+                 fest wie generiert, deshalb reicht ein Setter für Section.<Id> hier. -->
+            <Setter Property="AutomationProperties.AutomationId"
+                    Value="{Binding Tag, RelativeSource={RelativeSource Self}, StringFormat=Section.{0}}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ContentControl">
@@ -110,7 +115,8 @@
                             </Border>
                             <Button Grid.Column="1"
                                     Style="{StaticResource SectionCopyButtonStyle}"
-                                    CommandParameter="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                    CommandParameter="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                    AutomationProperties.AutomationId="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, StringFormat=Copy.{0}}"/>
                         </Grid>
                     </ControlTemplate>
                 </Setter.Value>
@@ -382,6 +388,7 @@
                                 Command="{Binding OpenProcessDetailCommand}"
                                 ToolTip="Status-Log öffnen (F2)"
                                 AutomationProperties.Name="Status-Log"
+                                AutomationProperties.AutomationId="Main.StatusLog"
                                 FontSize="14"
                                 Style="{StaticResource QuietButtonStyle}"
                                 Margin="0,0,8,0" Padding="4,0">
@@ -401,6 +408,7 @@
                         <!-- Leise Rolle (#97): keine lokale Farbe, sonst wirkt kein Überfahren. -->
                         <Button Content="⚙ Einstellungen" Command="{Binding OpenSettingsCommand}"
                                 ToolTip="Einstellungen öffnen (Strg+,)"
+                                AutomationProperties.AutomationId="Main.Settings"
                                 Style="{StaticResource QuietButtonStyle}"
                                 FontSize="12" Padding="6,2"/>
                         <!-- Release Notes jederzeit (#78). Nach dem Schließen der Notes pulsiert der
@@ -409,6 +417,7 @@
                                 Content="Neuigkeiten" Command="{Binding OpenReleaseNotesCommand}"
                                 ToolTip="Neuigkeiten dieser Version anzeigen"
                                 AutomationProperties.Name="Neuigkeiten"
+                                AutomationProperties.AutomationId="Main.ReleaseNotes"
                                 Style="{StaticResource QuietButtonStyle}"
                                 FontSize="12" Padding="6,2" Margin="4,0,0,0"
                                 RenderTransformOrigin="0.5,0.5">
@@ -419,6 +428,7 @@
                         <Button Content="?" Command="{Binding OpenHandbookCommand}"
                                 ToolTip="Handbuch öffnen (F1)"
                                 AutomationProperties.Name="Handbuch"
+                                AutomationProperties.AutomationId="Main.Handbook"
                                 Style="{StaticResource QuietButtonStyle}"
                                 FontSize="12" Padding="6,2" Margin="4,0,0,0"/>
                     </StackPanel>
@@ -443,8 +453,10 @@
                                     <DockPanel>
                                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                             <Button Content="Erledigte löschen" FontSize="10" Padding="6,2"
+                                                    AutomationProperties.AutomationId="ProcessLog.RemoveCompleted"
                                                     Cursor="Hand" Command="{Binding RemoveCompletedLogsCommand}"/>
                                             <Button Content="Alle löschen" FontSize="10" Padding="6,2" Margin="4,0,0,0"
+                                                    AutomationProperties.AutomationId="ProcessLog.ClearAll"
                                                     Cursor="Hand" Command="{Binding ClearProcessLogCommand}"/>
                                         </StackPanel>
                                         <TextBlock Text="Status-Log" FontWeight="SemiBold" FontSize="12"
@@ -510,6 +522,7 @@
                     </TextBlock>
                     <Button Content="Pfad ändern"
                             Command="{Binding OpenSettingsCommand}"
+                            AutomationProperties.AutomationId="Main.FixInputPath"
                             Style="{StaticResource SidebarLinkButtonStyle}"
                             VerticalAlignment="Center"/>
                 </DockPanel>
@@ -530,6 +543,7 @@
                                Margin="0,0,10,0"/>
                     <Button Content="Key hinterlegen"
                             Command="{Binding OpenSettingsCommand}"
+                            AutomationProperties.AutomationId="Main.SetApiKey"
                             Style="{StaticResource SidebarLinkButtonStyle}"
                             VerticalAlignment="Center"/>
                 </DockPanel>
@@ -564,14 +578,14 @@
                                        FontSize="10"
                                        Foreground="{StaticResource TextFaintBrush}"/>
                         </StackPanel>
-                        <CheckBox Content="Ausführlich"    IsChecked="{Binding Sections.ShowProseSummary}"      FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Zusammenfassung" IsChecked="{Binding Sections.ShowLongSummary}"     FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Aufgaben"       IsChecked="{Binding Sections.ShowTaskList}"          FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Gesprächsnotiz" IsChecked="{Binding Sections.ShowConversationNote}"  FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Ausführlich"    IsChecked="{Binding Sections.ShowProseSummary}"      AutomationProperties.AutomationId="Sections.ShowProseSummary"      FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Zusammenfassung" IsChecked="{Binding Sections.ShowLongSummary}"     AutomationProperties.AutomationId="Sections.ShowLongSummary"       FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Aufgaben"       IsChecked="{Binding Sections.ShowTaskList}"          AutomationProperties.AutomationId="Sections.ShowTaskList"          FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Gesprächsnotiz" IsChecked="{Binding Sections.ShowConversationNote}"  AutomationProperties.AutomationId="Sections.ShowConversationNote"  FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         AutomationProperties.AutomationId="Sections.ShowEmailText"         FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" AutomationProperties.AutomationId="Sections.ShowStundenzettelText" FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        AutomationProperties.AutomationId="Sections.ShowAnalogText"        FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         AutomationProperties.AutomationId="Sections.ShowTranscript"        FontSize="11" Margin="0,1"/>
                         <ToggleButton IsChecked="{Binding Sections.IsPersonalExpanded}"
                                       Visibility="{Binding Sections.HasPersonalSections, Converter={StaticResource BoolToVis}}"
                                       Style="{StaticResource SectionGroupToggleStyle}">
@@ -587,6 +601,7 @@
                                 <DataTemplate>
                                     <CheckBox IsChecked="{Binding IsVisible}"
                                               FontSize="11" Margin="0,1"
+                                              AutomationProperties.AutomationId="{Binding Id, StringFormat=Sections.{0}}"
                                               ToolTip="{Binding Name}">
                                         <TextBlock Text="{Binding Name}"
                                                    TextTrimming="CharacterEllipsis"/>
@@ -609,6 +624,7 @@
                                 <DataTemplate>
                                     <CheckBox IsChecked="{Binding IsVisible}"
                                               FontSize="11" Margin="0,1"
+                                              AutomationProperties.AutomationId="{Binding Id, StringFormat=Sections.{0}}"
                                               ToolTip="{Binding Name}">
                                         <TextBlock Text="{Binding Name}"
                                                    TextTrimming="CharacterEllipsis"/>
@@ -631,6 +647,7 @@
                                 <DataTemplate>
                                     <CheckBox IsChecked="{Binding IsVisible}"
                                               FontSize="11" Margin="0,1"
+                                              AutomationProperties.AutomationId="{Binding Id, StringFormat=Sections.{0}}"
                                               ToolTip="{Binding Name}">
                                         <TextBlock Text="{Binding Name}"
                                                    TextTrimming="CharacterEllipsis"/>
@@ -641,6 +658,7 @@
 
                         <Button Content="↻ Standard wiederherstellen"
                                 Command="{Binding ResetSectionsCommand}"
+                                AutomationProperties.AutomationId="Sections.Reset"
                                 Style="{StaticResource SidebarLinkButtonStyle}"
                                 Margin="0,6,0,0"/>
                     </StackPanel>
@@ -653,6 +671,7 @@
                         BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0">
                     <Button Command="{Binding ShowAllDatesCommand}"
+                            AutomationProperties.AutomationId="Dates.ShowAll"
                             Style="{StaticResource SidebarLinkButtonStyle}"
                             FontSize="11"
                             ToolTip="Filter „Nur unerledigte“ aufheben und alle Tage zeigen">
@@ -662,6 +681,7 @@
                 <ListBox x:Name="DateListBox"
                          ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
                          SelectedItem="{Binding SelectedDateItem}"
+                         AutomationProperties.AutomationId="Dates.List"
                          BorderThickness="0" Background="Transparent"
                          ItemContainerStyle="{StaticResource DateListBoxItemStyle}">
                     <ListBox.GroupStyle>
@@ -754,6 +774,7 @@
                                        Width="64"/>
                             <Button Content="{Binding SortByIdButtonLabel}"
                                     Command="{Binding SortByIdCommand}"
+                                    AutomationProperties.AutomationId="Entries.SortById"
                                     ToolTip="Nach Nummer sortieren">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource SortRailButtonStyle}">
@@ -779,6 +800,7 @@
                             </Button>
                             <Button Content="{Binding SortByProjectButtonLabel}"
                                     Command="{Binding SortByProjectCommand}"
+                                    AutomationProperties.AutomationId="Entries.SortByProject"
                                     Margin="0,0,0,0"
                                     ToolTip="Nach Projekt sortieren">
                                 <Button.Style>
@@ -811,6 +833,7 @@
                                        Width="64"/>
                             <CheckBox Content="Nur unerledigte"
                                       IsChecked="{Binding ShowOnlyPending}"
+                                      AutomationProperties.AutomationId="Entries.OnlyOpen"
                                       VerticalAlignment="Center"
                                       FontSize="11"/>
                         </StackPanel>
@@ -824,6 +847,7 @@
                         <Button Content="🎙 Diktieren" Command="{Binding StartDictationCommand}"
                                 Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVis}}"
                                 Style="{StaticResource ActionButtonStyle}"
+                                AutomationProperties.AutomationId="Entries.Dictate"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center"
                                 ToolTip="Mikrofon-Aufnahme starten"/>
@@ -833,6 +857,7 @@
                             <Button Content="■ Stop" Command="{Binding StopDictationCommand}"
                                     DockPanel.Dock="Right"
                                     Style="{StaticResource ActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Entries.StopDictation"
                                     ToolTip="Aufnahme beenden und transkribieren"/>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
                                 <Ellipse Width="8" Height="8"
@@ -873,6 +898,7 @@
                 <ListBox x:Name="EntryListBox"
                          ItemsSource="{Binding Entries}"
                          SelectedItem="{Binding SelectedEntry}"
+                         AutomationProperties.AutomationId="Entries.List"
                          IsEnabled="{Binding IsDeletingEntry, Converter={StaticResource InverseBool}}"
                          BorderThickness="0" Background="Transparent"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -899,7 +925,8 @@
                                                   Command="{Binding PlacementTarget.Tag.DeleteEntryCommand,
                                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}"
                                                   CommandParameter="{Binding PlacementTarget.DataContext,
-                                                                     RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                                                                     RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  AutomationProperties.AutomationId="Entries.Delete">
                                             <MenuItem.Icon>
                                                 <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                                            FontSize="13" VerticalAlignment="Center"/>
@@ -971,6 +998,7 @@
                             <Button Content="HTML"
                                     Command="{Binding Detail.GenerateHtmlCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.Html"
                                     BorderThickness="1,1,0,1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
                                     Tag="HTML-Datei erstellen und öffnen">
@@ -985,6 +1013,7 @@
                             <Button Content="PDF"
                                     Command="{Binding Detail.GeneratePdfCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.Pdf"
                                     BorderThickness="1,1,0,1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
                                     Tag="PDF-Datei erstellen und öffnen">
@@ -992,19 +1021,22 @@
                                     <ContextMenu>
                                         <MenuItem Header="PDF in Zwischenablage kopieren"
                                                   Command="{Binding PlacementTarget.DataContext.Detail.CopyPdfCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  AutomationProperties.AutomationId="Detail.CopyPdf"/>
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
                             <Button Content="Aufgaben"
                                     Command="{Binding Detail.OpenTaskMailCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.TaskMail"
                                     BorderThickness="1,1,0,1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
                                     Tag="Interne Aufgaben-Mail in Outlook öffnen – mit PDF im Anhang"/>
                             <Button Content="E-Mail"
                                     Command="{Binding Detail.OpenEmailCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.Email"
                                     BorderThickness="1,1,0,1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
                                     Tag="Externe E-Mail in Outlook öffnen – ohne Anhang">
@@ -1019,6 +1051,7 @@
                             <Button Content="Kopieren"
                                     Command="{Binding Detail.CopyCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.Copy"
                                     BorderThickness="1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
                                     Tag="Alle sichtbaren Sektionen in die Zwischenablage kopieren"/>
@@ -1027,6 +1060,7 @@
                         <Button Content="↻ Neu generieren"
                                 Command="{Binding Detail.ReprocessCommand}"
                                 Style="{StaticResource DetailReprocessActionButtonStyle}"
+                                AutomationProperties.AutomationId="Detail.Reprocess"
                                 IsEnabled="{Binding Detail.CanUseDetailActions}"
                                 Tag="GPT-Zusammenfassungen neu generieren">
                             <Button.ContextMenu>
@@ -1034,31 +1068,38 @@
                                     <MenuItem Header="Ausführliche Zusammenfassung neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.proseSummary"/>
+                                              CommandParameter="builtin.proseSummary"
+                                              AutomationProperties.AutomationId="Generate.builtin.proseSummary"/>
                                     <MenuItem Header="Zusammenfassung neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.longSummary"/>
+                                              CommandParameter="builtin.longSummary"
+                                              AutomationProperties.AutomationId="Generate.builtin.longSummary"/>
                                     <MenuItem Header="Aufgaben neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.taskList"/>
+                                              CommandParameter="builtin.taskList"
+                                              AutomationProperties.AutomationId="Generate.builtin.taskList"/>
                                     <MenuItem Header="Gesprächsnotiz neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.conversationNote"/>
+                                              CommandParameter="builtin.conversationNote"
+                                              AutomationProperties.AutomationId="Generate.builtin.conversationNote"/>
                                     <MenuItem Header="E-Mail neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.emailText"/>
+                                              CommandParameter="builtin.emailText"
+                                              AutomationProperties.AutomationId="Generate.builtin.emailText"/>
                                     <MenuItem Header="Stundenzettel neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.stundenzettel"/>
+                                              CommandParameter="builtin.stundenzettel"
+                                              AutomationProperties.AutomationId="Generate.builtin.stundenzettel"/>
                                     <MenuItem Header="Analog neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.analog"/>
+                                              CommandParameter="builtin.analog"
+                                              AutomationProperties.AutomationId="Generate.builtin.analog"/>
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>
@@ -1105,9 +1146,11 @@
                                  als der rechte Rand der Eintragsliste, der meist abgeschnitten ist (#96). -->
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                                 <Button Command="{Binding Detail.ToggleDoneCommand}"
+                                        AutomationProperties.AutomationId="Detail.ToggleDone"
                                         Style="{StaticResource DonePinnedButtonStyle}"/>
                                 <Button Margin="16,0,0,0"
                                         Command="{Binding DeleteEntryCommand}"
+                                        AutomationProperties.AutomationId="Detail.Delete"
                                         Style="{StaticResource DeleteEntryButtonStyle}"/>
                             </StackPanel>
                         </Border>
@@ -1148,10 +1191,10 @@
                         <!-- Abstract — always shown when present, subtle highlight -->
                         <StackPanel Visibility="{Binding Detail.Entry.Abstract, Converter={StaticResource NullToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static vm:EntryDetailViewModel.AbstractSectionId}">
                                 <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="0,0,0,2"
                                     CornerRadius="2" Padding="12,10">
                                 <!-- Ebenfalls Markdown: das Modell setzt hier Fettungen,
@@ -1172,10 +1215,10 @@
                         <!-- Long Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowLongSummarySection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.LongSummary}">
                                 <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayLongSummary, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1191,10 +1234,10 @@
                         <!-- Prose Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowProseSummarySection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.ProseSummary}">
                                 <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <!-- Wie alle anderen erzeugten Abschnitte als Markdown gerendert.
                                  Stand hier bis v1.4.0 als roher TextBox: mit den schwaecheren
                                  Modellen kam ohnehin Fliesstext, mit gpt-5.6-luna standen
@@ -1214,10 +1257,10 @@
                         <!-- Task list -->
                         <StackPanel Visibility="{Binding Detail.ShowTaskListSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.TaskList}">
                                 <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayTaskList, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1233,10 +1276,10 @@
                         <!-- Conversation note -->
                         <StackPanel Visibility="{Binding Detail.ShowConversationNoteSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.ConversationNote}">
                                 <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayConversationNote, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1252,10 +1295,10 @@
                         <!-- Stundenzettel -->
                         <StackPanel Visibility="{Binding Detail.ShowStundenzettelSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.Stundenzettel}">
                                 <TextBlock Text="Stundenzettel" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayStundenzettelText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1271,10 +1314,10 @@
                         <!-- Analog -->
                         <StackPanel Visibility="{Binding Detail.ShowAnalogSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.Analog}">
                                 <TextBlock Text="Analog" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayAnalogText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1290,10 +1333,10 @@
                         <!-- E-Mail Text -->
                         <StackPanel Visibility="{Binding Detail.ShowEmailSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                             Tag="{x:Static settings:BuiltInSections.EmailText}">
                                 <TextBlock Text="E-Mail" Style="{StaticResource SectionHeaderStyle}"/>
-                            </ContentControl>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayEmailText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1316,7 +1359,7 @@
                                 <DataTemplate>
                                     <StackPanel Margin="0,14,0,22"
                                                 Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
-                                        <ContentControl Style="{StaticResource SectionHeaderControlStyle}"
+                                        <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
                                                         Tag="{Binding Id}">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="{Binding Name}" Style="{StaticResource SectionHeaderStyle}"/>
@@ -1326,7 +1369,7 @@
                                                            ToolTip="Diese Vorlage wurde entfernt. Der erzeugte Text bleibt erhalten."
                                                            Visibility="{Binding IsOrphaned, Converter={StaticResource BoolToVis}}"/>
                                             </StackPanel>
-                                        </ContentControl>
+                                        </controls:SectionHeaderControl>
 
                                         <FlowDocumentScrollViewer
                                             Document="{Binding Text, Converter={StaticResource MdToDoc}}"
@@ -1347,6 +1390,7 @@
                                                     Command="{Binding DataContext.Detail.GenerateSectionCommand,
                                                               RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding Id}"
+                                                    AutomationProperties.AutomationId="{Binding Id, StringFormat=Generate.{0}}"
                                                     IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}"
                                                     ToolTip="Diesen Abschnitt jetzt erzeugen"/>
                                             <TextBlock Text="wird generiert…"
@@ -1372,36 +1416,47 @@
                                      Kopfzeile bleibt eigen, weil sie den Bearbeiten-Knopf trägt. -->
                                 <Button DockPanel.Dock="Right"
                                         Style="{StaticResource SectionCopyButtonStyle}"
-                                        CommandParameter="{x:Static vm:EntryDetailViewModel.TranscriptSectionId}"/>
+                                        CommandParameter="{x:Static vm:EntryDetailViewModel.TranscriptSectionId}"
+                                        AutomationProperties.AutomationId="Copy.transcript"/>
                                 <Button DockPanel.Dock="Right"
                                         Content="✏"
                                         FontSize="13"
                                         Style="{StaticResource QuietButtonStyle}"
                                         AutomationProperties.Name="Transkript bearbeiten"
+                                        AutomationProperties.AutomationId="Detail.EditTranscript"
                                         ToolTip="Transkript bearbeiten"
                                         HorizontalAlignment="Right"
                                         VerticalAlignment="Center"
                                         Command="{Binding Detail.EditTranscriptCommand}"
                                         Visibility="{Binding Detail.IsNotEditingTranscript, Converter={StaticResource BoolToVis}}"
                                         IsEnabled="{Binding Detail.HasEntry}"/>
-                                <Border DockPanel.Dock="Left"
-                                        BorderThickness="0,0,0,1"
-                                        BorderBrush="{StaticResource AccentLineBrush}"
-                                        HorizontalAlignment="Left"
-                                        Padding="0,0,24,4">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
-                                        <TextBlock Text=" (bearbeitet)"
-                                                   FontSize="11" Foreground="#999" FontStyle="Italic"
-                                                   VerticalAlignment="Bottom" Margin="6,0,0,1"
-                                                   Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
-                                    </StackPanel>
-                                </Border>
+                                <!-- Nur Träger der Id Section.transcript (#111): ein Border hat keinen
+                                     Automation-Peer, SectionHeaderControl schon. Ohne Vorlage und
+                                     ohne Fokus — sichtbar bleibt allein der Border darin. -->
+                                <controls:SectionHeaderControl DockPanel.Dock="Left"
+                                                               HorizontalAlignment="Left"
+                                                               Focusable="False"
+                                                               IsTabStop="False"
+                                                               AutomationProperties.AutomationId="Section.transcript">
+                                    <Border BorderThickness="0,0,0,1"
+                                            BorderBrush="{StaticResource AccentLineBrush}"
+                                            HorizontalAlignment="Left"
+                                            Padding="0,0,24,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
+                                            <TextBlock Text=" (bearbeitet)"
+                                                       FontSize="11" Foreground="#999" FontStyle="Italic"
+                                                       VerticalAlignment="Bottom" Margin="6,0,0,1"
+                                                       Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </controls:SectionHeaderControl>
                             </DockPanel>
 
                             <!-- Read-only transcript (shown when NOT editing) -->
                             <TextBox Text="{Binding Detail.DisplayTranscript, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"
+                                     AutomationProperties.AutomationId="Detail.TranscriptView"
                                      TextWrapping="Wrap" Foreground="#555"
                                      Visibility="{Binding Detail.IsNotEditingTranscript, Converter={StaticResource BoolToVis}}"/>
 
@@ -1413,6 +1468,7 @@
                                     Padding="8"
                                     Background="#FAFAFA">
                                 <TextBox Text="{Binding Detail.EditableTranscriptText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.AutomationId="Detail.TranscriptEditor"
                                          TextWrapping="Wrap"
                                          AcceptsReturn="True"
                                          AcceptsTab="False"
@@ -1431,11 +1487,13 @@
                                 <Button Content="↻ Neu generieren"
                                         Command="{Binding Detail.RegenerateFromTranscriptCommand}"
                                         Style="{StaticResource ActionButtonStyle}"
+                                        AutomationProperties.AutomationId="Detail.RegenerateFromTranscript"
                                         IsEnabled="{Binding Detail.CanUseDetailActions}"
                                         ToolTip="Alle KI-Abschnitte aus dem bearbeiteten Transkript neu generieren"/>
                                 <Button Content="Abbrechen"
                                         Command="{Binding Detail.CancelEditTranscriptCommand}"
                                         Style="{StaticResource ActionButtonStyle}"
+                                        AutomationProperties.AutomationId="Detail.CancelEditTranscript"
                                         Margin="8,0,0,0"/>
                             </StackPanel>
                         </StackPanel>
@@ -1469,11 +1527,14 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
                     <Button Content="−" Command="{Binding Detail.ZoomOutCommand}"
+                            AutomationProperties.AutomationId="Detail.ZoomOut"
                             ToolTip="Verkleinern (Strg+Minus)" Style="{StaticResource StatusBarZoomButtonStyle}"/>
                     <TextBlock Text="{Binding Detail.ZoomText}" MinWidth="38" TextAlignment="Center"
+                               AutomationProperties.AutomationId="Detail.ZoomText"
                                FontSize="11" Foreground="#666" VerticalAlignment="Center"
                                ToolTip="Zoom zurücksetzen: Strg+0 · Mausrad: Strg+Scrollen"/>
                     <Button Content="+" Command="{Binding Detail.ZoomInCommand}"
+                            AutomationProperties.AutomationId="Detail.ZoomIn"
                             ToolTip="Vergrößern (Strg+Plus)" Style="{StaticResource StatusBarZoomButtonStyle}"/>
                 </StackPanel>
             </Grid>
