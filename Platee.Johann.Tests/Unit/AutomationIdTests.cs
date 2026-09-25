@@ -174,6 +174,21 @@ public sealed class AutomationIdTests
     }
 
     /// <summary>
+    /// <c>Toast.Item</c> must sit on the <c>ToastView</c> UserControl itself: the Border inside
+    /// has no automation peer, so an id there is invisible to UI Automation (Task 13).
+    /// </summary>
+    [Fact]
+    public void Toast_item_id_sits_on_the_user_control_root()
+    {
+        var root = LoadUiFile("Views/ToastView.xaml").Root!;
+
+        root.Name.LocalName.Should().Be("UserControl");
+        ((string?)root.Attribute(AutomationId)).Should().Be("Toast.Item");
+        root.Descendants().Where(e => e.Name.LocalName == "Border")
+            .Should().OnlyContain(b => b.Attribute(AutomationId) == null, "a Border has no automation peer");
+    }
+
+    /// <summary>
     /// Every AutomationId assigned in a file: both attributes set directly on an element, and
     /// ids assigned through a shared <c>Style</c>'s
     /// <c>&lt;Setter Property="AutomationProperties.AutomationId"&gt;</c> — the mechanism the

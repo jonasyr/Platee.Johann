@@ -34,7 +34,7 @@ public sealed class TestSandboxTests : IDisposable
 
         using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(layout.SettingsFile));
         doc.RootElement.GetProperty("globalPromptFilePath").ValueKind
-            .Should().Be(System.Text.Json.JsonValueKind.Null, "an absent key means the real Z: path, an empty string a changed path on first save");
+            .Should().Be(System.Text.Json.JsonValueKind.Null, "null is what the app stores for no team file and marks the key as persisted; an empty string looks like a changed path on the first save");
     }
 
     [Fact]

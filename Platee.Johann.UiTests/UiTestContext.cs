@@ -75,6 +75,7 @@ public sealed class UiTestContext : IDisposable
     private readonly string sandboxRoot;
     private readonly bool keepSandbox;
     private readonly string? savedClipboardText;
+    private JohannSession? app;
     private bool keepOnFailure;
     private bool disposed;
 
@@ -90,7 +91,7 @@ public sealed class UiTestContext : IDisposable
     {
         this.savedClipboardText = savedClipboardText;
         this.exePath = exePath;
-        this.App = app;
+        this.app = app;
         this.Stub = stub;
         this.Sandbox = sandbox;
         this.sandboxRoot = sandboxRoot;
@@ -98,7 +99,12 @@ public sealed class UiTestContext : IDisposable
         this.fixtures = fixtures;
     }
 
-    public JohannSession App { get; private set; }
+    /// <summary>
+    /// The running Johann session. Throws once a <see cref="Restart"/> could not launch a new one
+    /// — the old session is disposed by then and must never be driven again.
+    /// </summary>
+    public JohannSession App => this.app
+        ?? throw new InvalidOperationException("Kein laufendes Johann — der Neustart ist fehlgeschlagen.");
 
     public OpenAiStubServer Stub { get; }
 
@@ -383,8 +389,10 @@ public sealed class UiTestContext : IDisposable
     /// </summary>
     public void Restart()
     {
-        this.App.Dispose();
-        this.App = JohannSession.Launch(new JohannLaunchOptions(this.exePath, this.Sandbox, this.Stub.Root, StubApiKey));
+        var previous = this.App;
+        this.app = null;
+        previous.Dispose();
+        this.app = JohannSession.Launch(new JohannLaunchOptions(this.exePath, this.Sandbox, this.Stub.Root, StubApiKey));
     }
 
     /// <summary>
@@ -461,20 +469,21 @@ public sealed class UiTestContext : IDisposable
     /// <summary>
     /// Waits for a <c>Toast.Item</c> that has finished (no running progress bar) and whose text
     /// satisfies <paramref name="accept"/> (default: any), returning its text — title and message
-    /// joined by a line break.
+    /// joined by a line break — together with the toast element itself, so a caller can look for
+    /// controls inside exactly that toast.
     /// </summary>
-    public Task<string> WaitForToastAsync(Func<string, bool>? accept = null, TimeSpan? timeout = null) =>
+    public Task<ToastSnapshot> WaitForToastAsync(Func<string, bool>? accept = null, TimeSpan? timeout = null) =>
         Task.Run(() =>
         {
-            string? found = null;
-            var seen = new List<string>();
+            ToastSnapshot? found = null;
+            var seen = new List<ToastSnapshot>();
             try
             {
                 this.WaitUntil(
                     () =>
                     {
-                        seen = this.FinishedToastTexts();
-                        found = seen.FirstOrDefault(t => accept?.Invoke(t) ?? true);
+                        seen = this.FinishedToasts();
+                        found = seen.FirstOrDefault(t => accept?.Invoke(t.Text) ?? true);
                         return found is not null;
                     },
                     timeout ?? TimeSpan.FromSeconds(60),
@@ -482,7 +491,7 @@ public sealed class UiTestContext : IDisposable
             }
             catch (TimeoutException ex)
             {
-                throw new TimeoutException($"{ex.Message} Gesehene Meldungen: [{string.Join(" | ", seen)}]", ex);
+                throw new TimeoutException($"{ex.Message} Gesehene Meldungen: [{string.Join(" | ", seen.Select(t => t.Text))}]", ex);
             }
 
             return found!;
@@ -490,7 +499,9 @@ public sealed class UiTestContext : IDisposable
 
     /// <summary>
     /// Presses Tab up to <paramref name="maxSteps"/> times in the main window and returns the
-    /// AutomationId of every element that received focus, in the order first reached.
+    /// AutomationId of every element that received focus, in the order first reached. Stops
+    /// early once focus is back on the first id reached — the tab order has wrapped around and
+    /// further steps would only repeat it.
     /// </summary>
     public IReadOnlyList<string> TabThroughWindow(int maxSteps)
     {
@@ -500,7 +511,17 @@ public sealed class UiTestContext : IDisposable
             this.App.Key("Tab");
             Thread.Sleep(60);
             var id = this.App.FocusedAutomationId();
-            if (!string.IsNullOrEmpty(id) && !reached.Contains(id, StringComparer.Ordinal))
+            if (string.IsNullOrEmpty(id))
+            {
+                continue;
+            }
+
+            if (reached.Count > 1 && string.Equals(id, reached[0], StringComparison.Ordinal))
+            {
+                break;
+            }
+
+            if (!reached.Contains(id, StringComparer.Ordinal))
             {
                 reached.Add(id);
             }
@@ -523,7 +544,7 @@ public sealed class UiTestContext : IDisposable
             this.TrySaveArtifacts();
         }
 
-        this.App.Dispose();
+        this.app?.Dispose();
         this.Stub.Dispose();
         TryRestoreClipboardText(this.savedClipboardText);
 
@@ -916,9 +937,9 @@ public sealed class UiTestContext : IDisposable
     /// shows one until its job completes), each as its direct Text children (title, message)
     /// joined by a line break.
     /// </summary>
-    private List<string> FinishedToastTexts()
+    private List<ToastSnapshot> FinishedToasts()
     {
-        var result = new List<string>();
+        var result = new List<ToastSnapshot>();
         foreach (var toast in this.App.MainWindow.FindAllDescendants(cf => cf.ByAutomationId("Toast.Item")))
         {
             if (toast.FindFirstDescendant(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.ProgressBar)) is not null)
@@ -931,7 +952,7 @@ public sealed class UiTestContext : IDisposable
             var texts = toast.FindAllChildren(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
                 .Select(t => t.Properties.Name.ValueOrDefault)
                 .Where(t => !string.IsNullOrEmpty(t));
-            result.Add(string.Join("\n", texts));
+            result.Add(new ToastSnapshot(string.Join("\n", texts), toast));
         }
 
         return result;
@@ -970,6 +991,9 @@ public sealed class UiTestContext : IDisposable
             // Diagnostics are best-effort — losing them must not hide the real test failure.
         }
     }
+
+    /// <summary>A finished toast: its title and message text, and the <c>Toast.Item</c> element.</summary>
+    public sealed record ToastSnapshot(string Text, AutomationElement Element);
 
     /// <summary>See <see cref="EntryRowPattern"/> — one entry row's parsed title line.</summary>
     private sealed record EntryRow(string RowText, int Number, string Title);

@@ -38,9 +38,11 @@ public static class TestSandbox
             ["ausgabeverzeichnis"] = layout.Output,
 
             // Explicit null, exactly what the app itself stores for "no team file"
-            // (SettingsViewModel.SaveAsync). An absent key would fall back to the real Z: path;
-            // an empty string made the first save look like a changed team path, which reloads
-            // the prompts and drops that save's template edits (found in Task 13).
+            // (SettingsViewModel.SaveAsync). Under JOHANN_HOME an absent key would also mean null
+            // (App.xaml.cs, sandbox defaults), but only an explicit value marks the key as
+            // persisted (JsonSettingsRepository.GlobalPromptFilePathWasPersisted). An empty string
+            // made the first save look like a changed team path, which reloads the prompts and
+            // drops that save's template edits (found in Task 13).
             ["globalPromptFilePath"] = null,
             ["sectionModesMigrationDone"] = true,
             ["summaryModel"] = "gpt-5.6-luna",
