@@ -304,6 +304,25 @@ public sealed class EntryListReconcileTests
         vm.SelectedEntry.Should().BeSameAs(selected);
     }
 
+    [Fact]
+    public async Task The_first_entry_of_a_brand_new_day_appears_in_the_list()
+    {
+        // Regression (#111): RefreshAvailableDatesView() auto-selects a sole/first date while
+        // change notifications are suppressed, so RefreshAfterEntryAsync's own SelectedDateItem
+        // assignment right after was a same-reference no-op — OnSelectedDateItemChanged (and so
+        // LoadEntriesAsync) never fired, and the entry never appeared even though the sidebar's
+        // pending count was already correct. Found live via UI automation on a fresh sandbox.
+        var vm = await this.CreateVmAsync(date: null, count: 0);
+        var entry = MakeEntry(Newer, 1);
+        this.store[Newer] = [entry];
+
+        vm.NotifyEntryProcessed(entry);
+        await Settle();
+
+        vm.Entries.Should().ContainSingle(r => r.JobId == entry.JobId);
+        vm.SelectedDateItem!.Date.Should().Be(Newer);
+    }
+
     // ── Hilfen ────────────────────────────────────────────────────────────────
     private void Seed(DateOnly date, int count) =>
         this.store[date] = Enumerable.Range(1, count).Select(i => MakeEntry(date, i)).ToList();

@@ -1071,7 +1071,19 @@ public sealed partial class MainViewModel : ObservableObject
             var newDateItem = new DateItemViewModel(entryDate);
             this.allDates.Add(newDateItem);
             this.RefreshAvailableDatesView();
-            this.SelectedDateItem = this.AvailableDates.FirstOrDefault(d => d.Date == entryDate) ?? newDateItem;
+            var target = this.AvailableDates.FirstOrDefault(d => d.Date == entryDate) ?? newDateItem;
+
+            // RefreshAvailableDatesView() may already have auto-selected this sole/first date
+            // while notifications were suppressed, making the assignment below a same-reference
+            // no-op that would never load the entries (#111) — load explicitly in that case.
+            if (ReferenceEquals(this.SelectedDateItem, target))
+            {
+                await this.LoadEntriesAsync(entryDate);
+            }
+            else
+            {
+                this.SelectedDateItem = target;
+            }
         }
         else if (this.SelectedDateItem?.Date == entryDate)
         {
