@@ -100,11 +100,11 @@ public sealed class SettingsFlowTests
 
     /// <summary>
     /// A personal template must stay out of the team file when a later save goes to „Global
-    /// (Team)“. It does not today: <c>SettingsViewModel.SaveAsync</c> collects every category,
-    /// the global save writes them all and <c>JsonPromptSettingsRepository</c>'s DTO mapping does
-    /// not filter by scope — only the personal save does (<c>SavePersonalPromptsAsync</c>).
+    /// (Team)“. Until #114 the global save wrote every category, personal ones included (audit
+    /// F29, shipped since v1.4.0); it now writes only global categories to the team file and
+    /// the personal ones to <c>prompts.personal.json</c> in the same save.
     /// </summary>
-    [Fact(Skip = "Befund (#111, F29): Speichern mit Ziel Global schreibt persönliche Vorlagen in die Team-Datei")]
+    [Fact]
     public void GlobalSave_DoesNotWritePersonalCategoriesToTeamFile()
     {
         using var ctx = UiTestContext.Start(teamFile: true);
@@ -128,6 +128,50 @@ public sealed class SettingsFlowTests
         var teamFile = File.ReadAllText(ctx.Sandbox.TeamPrompts);
         teamFile.Should().Contain("Teamvorlage F29", "the global save itself worked");
         teamFile.Should().NotContain("Meine Privatvorlage", "a personal template belongs in prompts.personal.json only");
+    }
+
+    /// <summary>
+    /// #114, the half of F29 that lost data: a personal template created in the same session
+    /// as a single save with target „Global“ never reached <c>prompts.personal.json</c> — it
+    /// lived only in the team file (as a global one) or, after a restart, nowhere as personal.
+    /// One save, then both files, then a real restart.
+    /// </summary>
+    [Fact]
+    public void GlobalSave_SingleSave_PutsEachTemplateInItsOwnFile_AndBothSurviveRestart()
+    {
+        using var ctx = UiTestContext.Start(teamFile: true);
+        var personalFile = Path.Combine(ctx.Sandbox.Home, "prompts.personal.json");
+
+        ctx.OpenSettingsSection("kategorien");
+        ctx.SelectComboItem(
+            "Settings.SaveTarget",
+            item => item.Properties.AutomationId.ValueOrDefault == "Settings.SaveTarget.Global",
+            "Settings.SaveTarget.Global");
+        ctx.App.Click("Settings.AddCategory");
+        ctx.App.Type("Settings.CategoryName", "Privat F29");
+        ctx.App.Type("Settings.CategoryPrompt", "Nur für mich: {transcript}");
+        ctx.App.Click("Settings.AddCategory");
+        ctx.App.Type("Settings.CategoryName", "Team F29");
+        ctx.App.Type("Settings.CategoryPrompt", "Für das Team: {transcript}");
+        ctx.App.Find("Settings.CategoryIsGlobal").AsCheckBox().IsChecked = true;
+        Save(ctx).Should().Be(GlobalSavedText);
+
+        var team = File.ReadAllText(ctx.Sandbox.TeamPrompts);
+        team.Should().Contain("Team F29");
+        team.Should().NotContain("Privat F29", "persönliche Vorlagen gehören nie in die Team-Datei");
+        ctx.WaitUntil(
+            () => File.Exists(personalFile) && File.ReadAllText(personalFile).Contains("Privat F29", StringComparison.Ordinal),
+            UiTimeout,
+            "prompts.personal.json enthält die persönliche Vorlage aus demselben Speichern");
+        File.ReadAllText(personalFile).Should().NotContain("Team F29", "globale Vorlagen stehen nur in der Team-Datei");
+
+        ctx.Restart();
+        ctx.OpenSettingsSection("kategorien");
+        ctx.WaitUntil(
+            () => CategoryNames(ctx).Contains("Privat F29") && CategoryNames(ctx).Contains("Team F29"),
+            UiTimeout,
+            "beide Vorlagen sind nach dem Neustart da");
+        File.ReadAllText(ctx.Sandbox.TeamPrompts).Should().NotContain("Privat F29", "der Neustart schreibt nichts um");
     }
 
     /// <summary>

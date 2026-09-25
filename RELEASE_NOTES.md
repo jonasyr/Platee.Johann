@@ -34,6 +34,10 @@
   landet die Aufnahme in `output\_Diktate (nicht verarbeitet)`, statt gelöscht zu werden.
 - **Sehr lange Aufnahmen** (über 25 MB, etwa 25 Minuten) meldet Johann vor dem Hochladen
   verständlich, statt mit einer technischen Fehlermeldung abzubrechen.
+- **Eigene Vorlagen bleiben privat** – wer mit Ziel „Global“ speicherte, schrieb bisher
+  auch seine persönlichen Vorlagen in die Team-Datei. Jetzt gehen nur globale Vorlagen dorthin.
+- **Neuer Tag erscheint sofort** – der erste Eintrag eines neuen Tages war erst nach dem
+  Wechsel auf einen anderen Tag in der Liste zu sehen.
 
 ## Version 1.4.0
 
