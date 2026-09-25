@@ -136,7 +136,8 @@ public sealed class HtmlRenderer : IEntryRenderer
         if (sections.Transcript && !string.IsNullOrWhiteSpace(entry.EffectiveTranscript))
         {
             sb.AppendLine("<details><summary class=\"transcript-toggle\">Transkript</summary>");
-            AppendSection(sb, null, entry.EffectiveTranscript!, "section-transcript", isPlainText: true);
+            // One sentence per line, display only — the stored transcript is unchanged (#112).
+            AppendSection(sb, null, SentenceLines.Split(entry.EffectiveTranscript!), "section-transcript", isPlainText: true);
             sb.AppendLine("</details>");
         }
 

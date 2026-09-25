@@ -27,6 +27,8 @@
   bleibt ausgewählt. Lange Titel enden mit „…“ statt die Liste zu verbreitern.
 - **„Kopieren“** nimmt jetzt genau das mit, was sichtbar ist – in derselben Reihenfolge.
 - **Knöpfe** sind kontrastreicher und zeigen den Tastaturfokus deutlich.
+- **Lesbares Transkript** – jeder Satz steht auf einer eigenen Zeile, in der Ansicht, im PDF
+  und in der HTML-Übersicht. Gespeichert, bearbeitet und kopiert wird weiter der Originaltext.
 
 ### Behoben
 
