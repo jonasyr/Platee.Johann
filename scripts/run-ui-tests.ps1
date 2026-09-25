@@ -21,6 +21,19 @@ $testArgs = @(
 )
 if ($Filter) { $testArgs += @('--filter', $Filter) }
 
-$env:JOHANN_UI_KEEP = '1'
-dotnet test @testArgs
-exit $LASTEXITCODE
+# Bildschirm bleibt während des Laufs an: nach dem Bildschirm-Timeout sperrt Windows, und auf dem
+# Sperrbildschirm lässt sich Johann nicht in den Vordergrund holen — jeder Klick-Test scheitert dann.
+Add-Type -Namespace Johann -Name Power -MemberDefinition @'
+[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint esFlags);
+'@
+$esContinuous = [uint32]'0x80000000'
+[void][Johann.Power]::SetThreadExecutionState($esContinuous -bor 0x3)   # SYSTEM_ + DISPLAY_REQUIRED
+try {
+    $env:JOHANN_UI_KEEP = '1'
+    dotnet test @testArgs
+    $code = $LASTEXITCODE
+}
+finally {
+    [void][Johann.Power]::SetThreadExecutionState($esContinuous)
+}
+exit $code
