@@ -453,10 +453,17 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         try
         {
+            // The team file owns the prompts and the global categories only. Writing every
+            // category here published the user's personal ones to the whole team (#114) —
+            // they go to the personal file in the same save instead.
+            var teamOnly = updatedPrompts with
+            {
+                CustomCategories = [.. updatedPrompts.CustomCategories.Where(c => c.Scope == CategoryScope.Global)],
+            };
+
             var globalRepo = JsonPromptSettingsRepository.FromFilePath(globalPath);
-            await globalRepo.SaveAsync(updatedPrompts);
-            this.persistedHolder.Update(this.persistedHolder.Current, updatedPrompts);
-            this.runtimeHolder.Update(this.runtimeHolder.Current, updatedPrompts);
+            await globalRepo.SaveAsync(teamOnly);
+            await this.SavePersonalPromptsAsync(updatedPrompts);
             this.StatusMessage = "✓ Globale Prompts für alle Mitarbeiter gespeichert.";
         }
         catch (Exception ex)

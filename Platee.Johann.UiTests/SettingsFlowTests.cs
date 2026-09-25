@@ -100,11 +100,11 @@ public sealed class SettingsFlowTests
 
     /// <summary>
     /// A personal template must stay out of the team file when a later save goes to „Global
-    /// (Team)“. It does not today: <c>SettingsViewModel.SaveAsync</c> collects every category,
-    /// the global save writes them all and <c>JsonPromptSettingsRepository</c>'s DTO mapping does
-    /// not filter by scope — only the personal save does (<c>SavePersonalPromptsAsync</c>).
+    /// (Team)“. Until #114 the global save wrote every category, personal ones included (audit
+    /// F29, shipped since v1.4.0); it now writes only global categories to the team file and
+    /// the personal ones to <c>prompts.personal.json</c> in the same save.
     /// </summary>
-    [Fact(Skip = "Befund (#111, F29): Speichern mit Ziel Global schreibt persönliche Vorlagen in die Team-Datei")]
+    [Fact]
     public void GlobalSave_DoesNotWritePersonalCategoriesToTeamFile()
     {
         using var ctx = UiTestContext.Start(teamFile: true);

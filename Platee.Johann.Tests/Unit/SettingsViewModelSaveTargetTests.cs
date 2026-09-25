@@ -52,6 +52,57 @@ public sealed class SettingsViewModelSaveTargetTests
         vm.PromptWarningText.Should().Contain("alle");
     }
 
+    /// <summary>
+    /// #114 (Audit F29): saving with target „Global" wrote every category into the team file,
+    /// the user's personal ones included — they then showed up for the whole team as global
+    /// templates, and a personal template created in the same session never reached the
+    /// personal file.
+    /// </summary>
+    [Fact]
+    public async Task GlobalSave_WritesOnlyGlobalCategoriesToTheTeamFile_AndPersonalOnesToThePersonalFile()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "johann-114-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var teamFile = Path.Combine(dir, "prompts.json");
+        try
+        {
+            var settings = AppSettings.Default with { GlobalPromptFilePath = teamFile };
+            var repo = Substitute.For<ISettingsRepository>();
+            repo.SaveAsync(Arg.Any<AppSettings>()).Returns(Task.CompletedTask);
+
+            PromptSettings? savedPersonal = null;
+            var promptRepo = Substitute.For<IPromptSettingsRepository>();
+            promptRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+            promptRepo
+                .SaveAsync(Arg.Do<PromptSettings>(p => savedPersonal = p), Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            var vm = new SettingsViewModel(repo, promptRepo, new SettingsHolder(settings, PromptSettings.Default));
+
+            vm.AddCategoryCommand.Execute(null);
+            vm.Categories[0].Name = "Meine Privatvorlage";
+            vm.AddCategoryCommand.Execute(null);
+            vm.Categories[1].Name = "Teamvorlage";
+            vm.Categories[1].IsGlobal = true;
+            vm.SaveTarget = CategoryScope.Global;
+
+            await vm.SaveCommand.ExecuteAsync(null);
+
+            vm.StatusMessage.Should().Be("✓ Globale Prompts für alle Mitarbeiter gespeichert.");
+            var team = File.ReadAllText(teamFile);
+            team.Should().Contain("Teamvorlage");
+            team.Should().NotContain("Meine Privatvorlage", "persönliche Vorlagen gehören nie in die Team-Datei");
+
+            savedPersonal.Should().NotBeNull("die persönliche Vorlage muss im selben Speichern in die persönliche Datei");
+            savedPersonal!.CustomCategories.Should().ContainSingle()
+                .Which.Name.Should().Be("Meine Privatvorlage");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     [Fact]
     public void PromptWarningText_DoesNotMentionAllUsers_WhenTargetIsPersonal()
     {
