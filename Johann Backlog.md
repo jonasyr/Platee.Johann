@@ -306,7 +306,7 @@ könnten.
 ~~[#106](https://github.com/jonasyr/Platee.Johann/issues/106) Gescheitertes Diktat sichern statt löschen~~ **erledigt** (PR #108) ·
 ~~[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf~~ **erledigt** (PR #104) ·
 ~~[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen~~ **erledigt** (PR #94) ·
-[#111](https://github.com/jonasyr/Platee.Johann/issues/111) UI-Automation + Audit — PR #113
+~~[#111](https://github.com/jonasyr/Platee.Johann/issues/111) UI-Automation + Audit~~ **erledigt** (PR #113)
 
 ~~[#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei~~ **erledigt** (PR #129) ·
 [#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript ein Satz je Zeile — PR #131
