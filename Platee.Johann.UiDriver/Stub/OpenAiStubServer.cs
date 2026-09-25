@@ -12,7 +12,7 @@ public sealed class OpenAiStubServer : IDisposable
     private readonly HttpListener listener = new();
     private readonly ConcurrentQueue<StubRequest> requests = new();
     private readonly ConcurrentQueue<Exception> errors = new();
-    private readonly ConcurrentDictionary<string, int> failNext = new();
+    private readonly ConcurrentDictionary<string, (int Status, int Remaining)> failNext = new();
     private readonly ConcurrentDictionary<string, bool> hanging = new();
     private readonly ConcurrentDictionary<string, bool> missingModels = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<Task, byte> inFlight = new();
@@ -49,7 +49,17 @@ public sealed class OpenAiStubServer : IDisposable
 
     public void OnTranscription(Func<string, string?> responder) => this.transcription = responder;
 
-    public void FailNext(string pathPrefix, int status) => this.failNext[pathPrefix] = status;
+    /// <summary>
+    /// Answers the next <paramref name="times"/> requests whose path starts with
+    /// <paramref name="pathPrefix"/> with <paramref name="status"/>. More than once is needed
+    /// wherever the OpenAI SDK sits in between: its default retry policy repeats a 5xx up to
+    /// three times, so a single failure never reaches Johann (Task 13).
+    /// </summary>
+    public void FailNext(string pathPrefix, int status, int times = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(times, 1);
+        this.failNext[pathPrefix] = (status, times);
+    }
 
     public void Hang(string pathPrefix) => this.hanging[pathPrefix] = true;
 
@@ -69,6 +79,55 @@ public sealed class OpenAiStubServer : IDisposable
             // Handlers unwind via the cancelled token or a closed listener during shutdown;
             // any exception has already been recorded in this.errors where relevant.
         }
+    }
+
+    private static string ChatCompletion(string text) => JsonSerializer.Serialize(new
+    {
+        id = "chatcmpl-stub",
+        @object = "chat.completion",
+        created = 0,
+        model = "stub",
+        choices = new[] { new { index = 0, message = new { role = "assistant", content = text }, finish_reason = "stop" } },
+        usage = new { prompt_tokens = 1, completion_tokens = 1, total_tokens = 2 },
+    });
+
+    private static string? MultipartFileName(string body)
+    {
+        const string marker = "filename=";
+        var i = body.IndexOf(marker, StringComparison.Ordinal);
+        if (i < 0)
+        {
+            return null;
+        }
+
+        var rest = body[(i + marker.Length)..].TrimStart('"');
+        var end = rest.IndexOfAny(['"', '\r', '\n', ';']);
+        return end < 0 ? rest : rest[..end];
+    }
+
+    private static string Shorten(string s) => s.Length <= 80 ? s : s[..80] + "…";
+
+    private static async Task TryWriteError(HttpListenerContext ctx, Exception ex)
+    {
+        try
+        {
+            await Write(ctx, 500, JsonSerializer.Serialize(new { error = new { message = ex.Message, type = "stub_error" } }));
+        }
+        catch (Exception)
+        {
+            // The response stream may already be closed or the connection gone; nothing more
+            // we can do to report it to the caller. It is still recorded in Errors.
+        }
+    }
+
+    private static async Task Write(HttpListenerContext ctx, int status, string body)
+    {
+        var bytes = Encoding.UTF8.GetBytes(body);
+        ctx.Response.StatusCode = status;
+        ctx.Response.ContentType = body.StartsWith('{') ? "application/json" : "text/plain; charset=utf-8";
+        ctx.Response.ContentLength64 = bytes.Length;
+        await ctx.Response.OutputStream.WriteAsync(bytes);
+        ctx.Response.Close();
     }
 
     private async Task LoopAsync()
@@ -127,7 +186,7 @@ public sealed class OpenAiStubServer : IDisposable
         }
 
         var fail = this.failNext.Keys.FirstOrDefault(p => path.StartsWith(p, StringComparison.Ordinal));
-        if (fail is not null && this.failNext.TryRemove(fail, out var status))
+        if (fail is not null && this.TryConsumeFailure(fail, out var status))
         {
             await Write(ctx, status, """{"error":{"message":"stub failure","type":"server_error"}}""");
             return;
@@ -164,52 +223,21 @@ public sealed class OpenAiStubServer : IDisposable
         await Write(ctx, 404, $"kein Stub für {ctx.Request.HttpMethod} {path}");
     }
 
-    private static string ChatCompletion(string text) => JsonSerializer.Serialize(new
+    private bool TryConsumeFailure(string pathPrefix, out int status)
     {
-        id = "chatcmpl-stub",
-        @object = "chat.completion",
-        created = 0,
-        model = "stub",
-        choices = new[] { new { index = 0, message = new { role = "assistant", content = text }, finish_reason = "stop" } },
-        usage = new { prompt_tokens = 1, completion_tokens = 1, total_tokens = 2 },
-    });
-
-    private static string? MultipartFileName(string body)
-    {
-        const string marker = "filename=";
-        var i = body.IndexOf(marker, StringComparison.Ordinal);
-        if (i < 0)
+        while (this.failNext.TryGetValue(pathPrefix, out var entry))
         {
-            return null;
+            var updated = entry.Remaining > 1
+                ? this.failNext.TryUpdate(pathPrefix, (entry.Status, entry.Remaining - 1), entry)
+                : this.failNext.TryRemove(new KeyValuePair<string, (int Status, int Remaining)>(pathPrefix, entry));
+            if (updated)
+            {
+                status = entry.Status;
+                return true;
+            }
         }
 
-        var rest = body[(i + marker.Length)..].TrimStart('"');
-        var end = rest.IndexOfAny(['"', '\r', '\n', ';']);
-        return end < 0 ? rest : rest[..end];
-    }
-
-    private static string Shorten(string s) => s.Length <= 80 ? s : s[..80] + "…";
-
-    private static async Task TryWriteError(HttpListenerContext ctx, Exception ex)
-    {
-        try
-        {
-            await Write(ctx, 500, JsonSerializer.Serialize(new { error = new { message = ex.Message, type = "stub_error" } }));
-        }
-        catch (Exception)
-        {
-            // The response stream may already be closed or the connection gone; nothing more
-            // we can do to report it to the caller. It is still recorded in Errors.
-        }
-    }
-
-    private static async Task Write(HttpListenerContext ctx, int status, string body)
-    {
-        var bytes = Encoding.UTF8.GetBytes(body);
-        ctx.Response.StatusCode = status;
-        ctx.Response.ContentType = body.StartsWith('{') ? "application/json" : "text/plain; charset=utf-8";
-        ctx.Response.ContentLength64 = bytes.Length;
-        await ctx.Response.OutputStream.WriteAsync(bytes);
-        ctx.Response.Close();
+        status = 0;
+        return false;
     }
 }

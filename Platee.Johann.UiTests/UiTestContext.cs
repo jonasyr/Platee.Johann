@@ -37,6 +37,9 @@ public sealed class UiTestContext : IDisposable
     /// </summary>
     private const int MinSectionMatchLength = 40;
 
+    /// <summary>The fake key every test launch uses — the stub accepts anything.</summary>
+    private const string StubApiKey = "sk-stub-not-a-real-key";
+
     private static readonly IReadOnlyDictionary<string, string> SectionPromptsByKey = new Dictionary<string, string>
     {
         ["abstract"] = SummaryPrompts.Abstract,
@@ -68,6 +71,7 @@ public sealed class UiTestContext : IDisposable
     private static readonly Regex FixtureFileNamePattern = new(@"^(D\d+)(?:-|_status\.json$)", RegexOptions.Compiled);
 
     private readonly IReadOnlyDictionary<string, DictationFixture> fixtures;
+    private readonly string exePath;
     private readonly string sandboxRoot;
     private readonly bool keepSandbox;
     private readonly string? savedClipboardText;
@@ -75,6 +79,7 @@ public sealed class UiTestContext : IDisposable
     private bool disposed;
 
     private UiTestContext(
+        string exePath,
         JohannSession app,
         OpenAiStubServer stub,
         SandboxLayout sandbox,
@@ -84,6 +89,7 @@ public sealed class UiTestContext : IDisposable
         string? savedClipboardText)
     {
         this.savedClipboardText = savedClipboardText;
+        this.exePath = exePath;
         this.App = app;
         this.Stub = stub;
         this.Sandbox = sandbox;
@@ -92,7 +98,7 @@ public sealed class UiTestContext : IDisposable
         this.fixtures = fixtures;
     }
 
-    public JohannSession App { get; }
+    public JohannSession App { get; private set; }
 
     public OpenAiStubServer Stub { get; }
 
@@ -143,10 +149,10 @@ public sealed class UiTestContext : IDisposable
             };
 
             var sandbox = TestSandbox.Create(root, lastSeenReleaseNotesVersion, adjust);
-            var options = new JohannLaunchOptions(exePath, sandbox, stubServer.Root, "sk-stub-not-a-real-key");
+            var options = new JohannLaunchOptions(exePath, sandbox, stubServer.Root, StubApiKey);
             var app = JohannSession.Launch(options);
 
-            return new UiTestContext(app, stubServer, sandbox, root, keepSandbox, fixtures, savedClipboardText);
+            return new UiTestContext(exePath, app, stubServer, sandbox, root, keepSandbox, fixtures, savedClipboardText);
         }
         catch
         {
@@ -371,6 +377,138 @@ public sealed class UiTestContext : IDisposable
             return found!;
         });
 
+    /// <summary>
+    /// Closes Johann and starts it again against the same sandbox and stub — what a user does
+    /// between two sessions. Everything the first session persisted must be read back from disk.
+    /// </summary>
+    public void Restart()
+    {
+        this.App.Dispose();
+        this.App = JohannSession.Launch(new JohannLaunchOptions(this.exePath, this.Sandbox, this.Stub.Root, StubApiKey));
+    }
+
+    /// <summary>
+    /// Copies the fixture MP3 (e.g. <c>"D1"</c>) into the watch folder without waiting for an
+    /// entry — for flows where processing is expected to fail.
+    /// </summary>
+    public void DropFile(string fixture)
+    {
+        var sourceMp3 = Directory.EnumerateFiles(FixturesDirectory, $"{fixture}-*.mp3").FirstOrDefault()
+            ?? throw new FileNotFoundException($"Fixture-MP3 '{fixture}' nicht gefunden unter '{FixturesDirectory}'.");
+
+        Directory.CreateDirectory(this.Sandbox.Eingang);
+        File.Copy(sourceMp3, Path.Combine(this.Sandbox.Eingang, Path.GetFileName(sourceMp3)), overwrite: true);
+    }
+
+    /// <summary>
+    /// Opens the settings window unless it is already open, then selects the left-nav section
+    /// <c>Settings.Section.&lt;key&gt;</c> (lower-case keys from <c>SettingsViewModel</c>, e.g.
+    /// <c>"kategorien"</c> for „Vorlagen“, <c>"ki-modell"</c>).
+    /// </summary>
+    public void OpenSettingsSection(string key)
+    {
+        if (this.App.TryFind("Settings.Save", TimeSpan.FromMilliseconds(300)) is null)
+        {
+            this.App.Click("Main.Settings", mouse: true);
+        }
+
+        // Selected through UIA's SelectionItem pattern, not a mouse click: the settings window
+        // may open on a monitor with negative coordinates, where a click can miss (known driver
+        // issue, Task 12 report).
+        var section = this.App.Find($"Settings.Section.{key}");
+        section.Patterns.SelectionItem.Pattern.Select();
+        this.WaitUntil(
+            () => this.App.Find($"Settings.Section.{key}").Patterns.SelectionItem.Pattern.IsSelected.ValueOrDefault,
+            TimeSpan.FromSeconds(5),
+            $"Settings.Section.{key} ist ausgewählt");
+    }
+
+    /// <summary>
+    /// Picks the summary model <paramref name="modelId"/> in <c>Settings.ModelPicker</c>: the
+    /// item whose name or text contains the model's display name (the picker shows
+    /// <c>DisplayName</c>, never the raw id).
+    /// </summary>
+    public void SelectModel(string modelId)
+    {
+        var displayName = SummaryModelCatalog.TryFind(modelId)?.DisplayName
+            ?? throw new InvalidOperationException($"Modell '{modelId}' steht nicht im SummaryModelCatalog.");
+        this.SelectComboItem("Settings.ModelPicker", item => ElementTexts(item).Any(t => t.Contains(displayName, StringComparison.Ordinal)), displayName);
+    }
+
+    /// <summary>
+    /// Selects an item of the combo box <paramref name="comboId"/> through UIA's SelectionItem
+    /// pattern (expand, select, collapse) instead of mouse clicks into the drop-down popup — the
+    /// popup is its own untitled window, which the foreground/click-point safety checks of
+    /// <see cref="JohannSession.Click"/> are not built for.
+    /// </summary>
+    public void SelectComboItem(string comboId, Func<AutomationElement, bool> match, string description)
+    {
+        var combo = this.App.Find(comboId).AsComboBox();
+        combo.Expand();
+        try
+        {
+            var item = combo.Items.FirstOrDefault(i => match(i))
+                ?? throw new InvalidOperationException(
+                    $"Kein Eintrag '{description}' in {comboId} — vorhanden: [{string.Join(" | ", combo.Items.Select(i => string.Join("/", ElementTexts(i))))}]");
+            item.Select();
+        }
+        finally
+        {
+            combo.Collapse();
+        }
+    }
+
+    /// <summary>
+    /// Waits for a <c>Toast.Item</c> that has finished (no running progress bar) and whose text
+    /// satisfies <paramref name="accept"/> (default: any), returning its text — title and message
+    /// joined by a line break.
+    /// </summary>
+    public Task<string> WaitForToastAsync(Func<string, bool>? accept = null, TimeSpan? timeout = null) =>
+        Task.Run(() =>
+        {
+            string? found = null;
+            var seen = new List<string>();
+            try
+            {
+                this.WaitUntil(
+                    () =>
+                    {
+                        seen = this.FinishedToastTexts();
+                        found = seen.FirstOrDefault(t => accept?.Invoke(t) ?? true);
+                        return found is not null;
+                    },
+                    timeout ?? TimeSpan.FromSeconds(60),
+                    "eine abgeschlossene Meldung (Toast.Item)");
+            }
+            catch (TimeoutException ex)
+            {
+                throw new TimeoutException($"{ex.Message} Gesehene Meldungen: [{string.Join(" | ", seen)}]", ex);
+            }
+
+            return found!;
+        });
+
+    /// <summary>
+    /// Presses Tab up to <paramref name="maxSteps"/> times in the main window and returns the
+    /// AutomationId of every element that received focus, in the order first reached.
+    /// </summary>
+    public IReadOnlyList<string> TabThroughWindow(int maxSteps)
+    {
+        var reached = new List<string>();
+        for (var step = 0; step < maxSteps; step++)
+        {
+            this.App.Key("Tab");
+            Thread.Sleep(60);
+            var id = this.App.FocusedAutomationId();
+            if (!string.IsNullOrEmpty(id) && !reached.Contains(id, StringComparer.Ordinal))
+            {
+                reached.Add(id);
+            }
+        }
+
+        return reached;
+    }
+
     public void Dispose()
     {
         if (this.disposed)
@@ -447,6 +585,32 @@ public sealed class UiTestContext : IDisposable
             if (!string.IsNullOrEmpty(name))
             {
                 texts.Add(name);
+            }
+        }
+
+        return texts;
+    }
+
+    /// <summary>
+    /// The element's own name plus the name of every Text descendant — a combo box item bound
+    /// to a record reports the record's <c>ToString()</c> as its name, and its visible text only
+    /// as a child.
+    /// </summary>
+    private static IReadOnlyList<string> ElementTexts(AutomationElement element)
+    {
+        var texts = new List<string>();
+        var name = element.Properties.Name.ValueOrDefault;
+        if (!string.IsNullOrEmpty(name))
+        {
+            texts.Add(name);
+        }
+
+        foreach (var text in element.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text)))
+        {
+            var value = text.Properties.Name.ValueOrDefault;
+            if (!string.IsNullOrEmpty(value))
+            {
+                texts.Add(value);
             }
         }
 
@@ -745,6 +909,32 @@ public sealed class UiTestContext : IDisposable
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Text of every shown <c>Toast.Item</c> without a visible progress bar (a running toast
+    /// shows one until its job completes), each as its direct Text children (title, message)
+    /// joined by a line break.
+    /// </summary>
+    private List<string> FinishedToastTexts()
+    {
+        var result = new List<string>();
+        foreach (var toast in this.App.MainWindow.FindAllDescendants(cf => cf.ByAutomationId("Toast.Item")))
+        {
+            if (toast.FindFirstDescendant(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.ProgressBar)) is not null)
+            {
+                continue;
+            }
+
+            // Direct Text children only: the close button's "×" and the details link carry
+            // Text descendants of their own, and "×" would come first.
+            var texts = toast.FindAllChildren(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Text))
+                .Select(t => t.Properties.Name.ValueOrDefault)
+                .Where(t => !string.IsNullOrEmpty(t));
+            result.Add(string.Join("\n", texts));
+        }
+
+        return result;
     }
 
     private IReadOnlyList<EntryRow> EntryRows()

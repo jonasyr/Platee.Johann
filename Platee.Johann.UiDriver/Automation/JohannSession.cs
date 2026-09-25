@@ -301,6 +301,25 @@ public sealed class JohannSession : IDisposable
         NativeKeyboard.SendChord(keys);
     }
 
+    /// <summary>
+    /// The AutomationId of the element that currently has keyboard focus (empty when it has
+    /// none), or <c>null</c> when nothing is focused or UIA cannot read it — the keyboard test
+    /// (Task 13) collects these after each Tab.
+    /// </summary>
+    public string? FocusedAutomationId()
+    {
+        try
+        {
+            return this.automation.FocusedElement()?.Properties.AutomationId.ValueOrDefault;
+        }
+        catch (Exception)
+        {
+            // A focus change mid-read (the element is gone) is not an error for a caller that
+            // just polls again after the next key.
+            return null;
+        }
+    }
+
     public string Screenshot(string path, string? idOrName = null)
     {
         Window window;

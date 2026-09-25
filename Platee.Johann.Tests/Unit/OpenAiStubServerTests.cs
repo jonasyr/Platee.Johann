@@ -9,10 +9,6 @@ using Xunit;
 
 public sealed class OpenAiStubServerTests
 {
-    private static StringContent Chat(string user) => new(
-        $$"""{"model":"gpt-5.6-luna","messages":[{"role":"system","content":"sys"},{"role":"user","content":{{System.Text.Json.JsonSerializer.Serialize(user)}}}]}""",
-        Encoding.UTF8, "application/json");
-
     [Fact]
     public async Task Chat_UsesResponder_AndLogsRequest()
     {
@@ -48,6 +44,22 @@ public sealed class OpenAiStubServerTests
         using var http = new HttpClient { BaseAddress = stub.Root };
 
         (await http.PostAsync("v1/chat/completions", Chat("a"))).StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        (await http.PostAsync("v1/chat/completions", Chat("a"))).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task FailNext_WithTimes_AppliesThatOften()
+    {
+        using var stub = OpenAiStubServer.Start();
+        stub.OnChat(_ => "ok");
+        stub.FailNext("/v1/chat/completions", 500, times: 3);
+        using var http = new HttpClient { BaseAddress = stub.Root };
+
+        for (var i = 0; i < 3; i++)
+        {
+            (await http.PostAsync("v1/chat/completions", Chat("a"))).StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        }
+
         (await http.PostAsync("v1/chat/completions", Chat("a"))).StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
@@ -104,4 +116,9 @@ public sealed class OpenAiStubServerTests
         fx.Transcript.Should().Be("Hallo");
         fx.Sections.Should().Contain("taskList", "- a").And.Contain("abstract", "kurz");
     }
+
+    private static StringContent Chat(string user) => new(
+        $$"""{"model":"gpt-5.6-luna","messages":[{"role":"system","content":"sys"},{"role":"user","content":{{System.Text.Json.JsonSerializer.Serialize(user)}}}]}""",
+        Encoding.UTF8,
+        "application/json");
 }

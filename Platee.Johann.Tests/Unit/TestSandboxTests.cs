@@ -28,6 +28,16 @@ public sealed class TestSandboxTests : IDisposable
     }
 
     [Fact]
+    public void Create_WritesExplicitNullTeamPath()
+    {
+        var layout = TestSandbox.Create(Path.Combine(this.tmp, "sb"), "1.5.0");
+
+        using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(layout.SettingsFile));
+        doc.RootElement.GetProperty("globalPromptFilePath").ValueKind
+            .Should().Be(System.Text.Json.JsonValueKind.Null, "an absent key means the real Z: path, an empty string a changed path on first save");
+    }
+
+    [Fact]
     public void Create_RootInsideInjectedForbiddenRoot_ThrowsAndCreatesNothing()
     {
         var forbiddenParent = Directory.CreateDirectory(Path.Combine(this.tmp, "forbidden")).FullName;
