@@ -103,6 +103,55 @@ public sealed class SettingsViewModelSaveTargetTests
         }
     }
 
+    /// <summary>
+    /// #114: a global category switched to personal must leave the team file and land in the
+    /// personal file — in exactly one of the two after a global save.
+    /// </summary>
+    [Fact]
+    public async Task GlobalSave_MovesACategorySwitchedToPersonalOutOfTheTeamFile()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "johann-114-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var teamFile = Path.Combine(dir, "prompts.json");
+        try
+        {
+            var existing = new CategoryDefinition
+            {
+                Id = "custom.baustelle-1a2b",
+                Name = "Baustellenbericht",
+                Prompt = "Fasse zusammen: {transcript}",
+                Scope = CategoryScope.Global,
+            };
+            var settings = AppSettings.Default with { GlobalPromptFilePath = teamFile };
+            var prompts = PromptSettings.Default with { CustomCategories = [existing] };
+
+            var repo = Substitute.For<ISettingsRepository>();
+            repo.SaveAsync(Arg.Any<AppSettings>()).Returns(Task.CompletedTask);
+
+            PromptSettings? savedPersonal = null;
+            var promptRepo = Substitute.For<IPromptSettingsRepository>();
+            promptRepo.LoadAsync(Arg.Any<CancellationToken>()).Returns(PromptSettings.Default);
+            promptRepo
+                .SaveAsync(Arg.Do<PromptSettings>(p => savedPersonal = p), Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            var vm = new SettingsViewModel(repo, promptRepo, new SettingsHolder(settings, prompts));
+            vm.Categories.Should().ContainSingle().Which.IsGlobal.Should().BeTrue();
+
+            vm.Categories[0].IsGlobal = false;
+            vm.SaveTarget = CategoryScope.Global;
+            await vm.SaveCommand.ExecuteAsync(null);
+
+            File.ReadAllText(teamFile).Should().NotContain("Baustellenbericht");
+            savedPersonal!.CustomCategories.Should().ContainSingle()
+                .Which.Id.Should().Be("custom.baustelle-1a2b");
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
     [Fact]
     public void PromptWarningText_DoesNotMentionAllUsers_WhenTargetIsPersonal()
     {

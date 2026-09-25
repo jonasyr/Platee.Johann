@@ -463,8 +463,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
             var globalRepo = JsonPromptSettingsRepository.FromFilePath(globalPath);
             await globalRepo.SaveAsync(teamOnly);
-            await this.SavePersonalPromptsAsync(updatedPrompts);
-            this.StatusMessage = "✓ Globale Prompts für alle Mitarbeiter gespeichert.";
         }
         catch (Exception ex)
         {
@@ -488,7 +486,13 @@ public sealed partial class SettingsViewModel : ObservableObject
             this.StatusMessage =
                 $"⚠ Globale Datei nicht schreibbar ({ex.Message}). "
                 + $"{rescued} gelten nur bis zum nächsten Neustart.";
+            return;
         }
+
+        // Outside the try: a failure writing the local personal file must not be reported as
+        // an unwritable team file — that one was written.
+        await this.SavePersonalPromptsAsync(updatedPrompts);
+        this.StatusMessage = "✓ Globale Prompts für alle Mitarbeiter gespeichert.";
     }
 
     /// <summary>
