@@ -282,6 +282,17 @@ in the detail view, the PDF and the mail. Every section prompt now says so expli
 
 Changing prompt wording therefore means changing **both**: edit the team file *and* update the matching constant. `TeamPromptDriftTests` guards this — it compares all nine constants against the team file and silently passes when the share is unreachable (CI, no VPN), so it never turns red for the wrong reason. Set `JOHANN_TEAM_PROMPTS` to point it elsewhere.
 
+**Transcript line breaks (v1.5.0, #112):** `SentenceLines.Split` (Domain/Services/) puts each sentence
+on its own line — **display only**: detail view (`EntryDetailViewModel.DisplayTranscript`), PDF and
+HTML. Stored text, edit mode, copy and the `.txt` keep the original. It breaks after `.`/`!`/`?` only
+when an uppercase letter or opening quote follows, and not after numbers, single letters, known
+abbreviations or dotted short forms; existing newlines stay. Checked on 29 real transcripts.
+
+**Global save writes only global categories (v1.5.0, #114):** `SettingsViewModel.SavePromptsAsync`
+with target Global writes the prompt text plus `Scope == Global` categories to the team file and the
+personal ones to `prompts.personal.json` in the same save. Before, every category went to the team
+file. `SettingsViewModelSaveTargetTests` covers it with real files and a restart.
+
 **Current wording (#73, 2026-09-21):** system message and six sections from the cleaned-up candidate
 K1; Gesprächsnotiz and E-Mail on the previous wording the blind reading preferred, plus decided rules
 (empty case „Kein Gespräch dokumentiert.“, always „Sie“, no unclear-marks, subject line as plain
@@ -389,8 +400,8 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 ## Git Insights
 
-- **v1.5.0 developed, not yet released** (`release/v1.5.0`). Open as of 2026-09-25: #114, #115, #116
-  from the audit, plus #112. Done: #73 prompts for GPT-5.6 (PR #85) and the
+- **v1.5.0 complete, release in progress (2026-09-28)** (`release/v1.5.0`, version bump PR #134).
+  Milestone empty. Done: #73 prompts for GPT-5.6 (PR #85) and the
   central markdown rule (PR #91); #83 nested lists in the PDF (PR #86); #57 mail buttons for classic
   and new Outlook (PR #87, #90); #88 Codex findings (PR #89). **Codex reviews every PR** — read its
   inline comments before merging; it found real bugs in five of six PRs that day (missing PDF
@@ -406,8 +417,11 @@ which half was rescued — prompt text is team-owned and survives only for the s
   instead of deleted (PR #108); processing large files for real → #107 (v1.6.0). Handbook
   (`README.md`, `HANDBUCH.html`) brought up to v1.5.0. **Since 2026-09-24:** #111, a UI-automation audit
   (`docs/audit/2026-09-24-v1.5.0.md`, 30 findings, filed as issues #114–#128) plus a FlaUI suite,
-  PR #113. **Next:** #114/#115/#116/#112, then the release (see "Vor jedem
-  Release" in the Serena memory `backlog`).
+  PR #113. **Then (2026-09-25/28):** #114 global save no longer writes personal templates to the team
+  file (PR #129; older scope-switch cases → #130, v1.6.0), #115/#116 greeting and title (PR #132),
+  #112 one sentence per line (PR #131). UI suite 24/24 locally; CI UI flakes collected in #133.
+  ⚠ Until every client runs 1.5.0, a 1.4.0 client saving with target „Global“ still leaks personal
+  templates into the team file (#114 is fixed only in the new client).
 
 - **Column auto-fit (#96):** measure the rows **where they live** (`ItemsPresenter` of the real
   list, unconstrained), never a detached copy of a row — that one measured without its bound title.
