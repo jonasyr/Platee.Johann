@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 4,
+  "jobId": "260924_003_b310d196",
+  "sequenceNumber": 3,
+  "type": "Projekt",
+  "projectName": "Neubau",
+  "title": "Offene Aufgaben Kita Sonnenschein",
+  "createdAt": "2026-09-24T15:11:59+01:00",
+  "sourceType": "audio",
+  "durationSeconds": 38.52,
+  "wordCount": 77,
+  "status": {
+    "transcribed": true,
+    "summarized": true,
+    "pdfCreated": true,
+    "archived": true,
+    "emailCreated": false
+  },
+  "transcript": "Projekt Neubau Kita Sonnenschein. Ich habe heute mit der Bauleitung gesprochen. Folgende Punkte sind offen: Erstens, die Fenster im Obergeschoss. Aufma\u00DF pr\u00FCfen, Angebot bei Firma Keller einholen und bis Freitag an die Bauherrin schicken. Zweitens, die Elektroplanung. Steckdosen im Gruppenraum nachz\u00E4hlen, dabei die H\u00F6he f\u00FCr Kindersicherung beachten und die \u00C4nderungen an Herrn Brandt weitergeben. Drittens, Termin f\u00FCr die Abnahme des Dachs mit dem Sachverst\u00E4ndigen vereinbaren. Wichtig ist, dass das Angebot f\u00FCr die Fenster wirklich bis Freitag rausgeht.",
+  "editedTranscript": null,
+  "abstract": "Beim Neubau der Kita Sonnenschein sind Fensteraufma\u00DF, Elektroplanung und Dachabnahme offen; das Fensterangebot muss bis Freitag an die Bauherrin gehen.",
+  "longSummary": "### Kontext\n\n- Projekt **Neubau Kita Sonnenschein**.\n- Abstimmung mit der Bauleitung zu offenen Punkten.\n\n### Kernaussagen\n\n- Offen sind Arbeiten zu den Fenstern im Obergeschoss, zur Elektroplanung und zur Dachabnahme.\n- Das Fensterangebot hat besondere Priorit\u00E4t und muss bis Freitag an die Bauherrin versendet werden.\n\n### Offene Punkte / ToDos\n\n- **Fenster im Obergeschoss:**\n  - Aufma\u00DF pr\u00FCfen.\n  - Angebot bei **Firma Keller** einholen.\n  - Angebot bis Freitag an die Bauherrin senden.\n- **Elektroplanung:**\n  - Steckdosen im Gruppenraum nachz\u00E4hlen.\n  - H\u00F6he im Hinblick auf die Kindersicherung pr\u00FCfen.\n  - \u00C4nderungen an **Herrn Brandt** weitergeben.\n- **Dachabnahme:**\n  - Termin mit dem Sachverst\u00E4ndigen vereinbaren.",
+  "proseSummary": "Ich habe heute mit der Bauleitung gesprochen. Folgende Punkte sind noch offen:\n\n1. **Fenster im Obergeschoss:** Das Aufma\u00DF ist zu pr\u00FCfen. Anschlie\u00DFend ist ein Angebot bei der Firma Keller einzuholen und bis Freitag an die Bauherrin zu senden.\n\n2. **Elektroplanung:** Die Steckdosen im Gruppenraum sind nachzuz\u00E4hlen. Dabei ist die H\u00F6he im Hinblick auf die Kindersicherung zu beachten. Die \u00C4nderungen sind an Herrn Brandt weiterzugeben.\n\n3. **Dachabnahme:** Ein Termin f\u00FCr die Abnahme des Dachs ist mit dem Sachverst\u00E4ndigen zu vereinbaren.\n\nWichtig ist, dass das Angebot f\u00FCr die Fenster tats\u00E4chlich bis Freitag versendet wird.",
+  "emailText": null,
+  "conversationNote": "- **Teilnehmer:**  \n  - Diktierende Person  \n  - Bauleitung des Projekts Neubau Kita Sonnenschein\n\n- **Themen:**  \n  - Fenster im Obergeschoss  \n  - Elektroplanung im Gruppenraum  \n  - Abnahme des Dachs\n\n- **Beschl\u00FCsse und offene Punkte:**  \n  - Das Aufma\u00DF der Fenster im Obergeschoss wird gepr\u00FCft. Anschlie\u00DFend wird ein Angebot bei der Firma Keller eingeholt.  \n  - Die Steckdosen im Gruppenraum werden nachgez\u00E4hlt. Dabei ist die erforderliche H\u00F6he f\u00FCr die Kindersicherung zu ber\u00FCcksichtigen.  \n  - F\u00FCr die Dachabnahme wird ein Termin mit dem Sachverst\u00E4ndigen vereinbart.\n\n- **Weiteres Vorgehen:**  \n  - Das Angebot der Firma Keller ist bis Freitag an die Bauherrin zu senden.  \n  - Die \u00C4nderungen an der Elektroplanung werden an Herrn Brandt weitergegeben.  \n  - Der Termin f\u00FCr die Dachabnahme wird mit dem Sachverst\u00E4ndigen abgestimmt.",
+  "taskList": "Im Projekt \u201ENeubau Kita Sonnenschein\u201C wurden heute mit der Bauleitung offene Punkte abgestimmt. Die Beteiligten sind die Bauherrin, die Firma Keller, Herr Brandt und der Sachverst\u00E4ndige. Die Abstimmungen betreffen die Fenster, die Elektroplanung und die Abnahme des Dachs.\n\n- Aufma\u00DF der Fenster im Obergeschoss pr\u00FCfen, Angebot bei Firma Keller einholen und bis Freitag an die Bauherrin senden\n- Steckdosen im Gruppenraum nachz\u00E4hlen, H\u00F6he f\u00FCr Kindersicherung beachten und \u00C4nderungen an Herrn Brandt weitergeben\n- Termin f\u00FCr die Abnahme des Dachs mit dem Sachverst\u00E4ndigen vereinbaren",
+  "stundenzettelText": null,
+  "analogText": null,
+  "isDone": false,
+  "customSections": {},
+  "customSectionNames": {}
+}

@@ -22,8 +22,23 @@ public static class ModelNames
     public const string Summaries = "gpt-5.6-luna";
 
     /// <summary>
-    /// What the status bar shows, e.g. <c>gpt-transcribe · gpt-5.6-luna</c>. The user asked
+    /// What the status bar shows, e.g. <c>gpt-transcribe · GPT-5.6 Luna</c>. The user asked
     /// to see which models are in use; naming both is more honest than naming one.
+    /// <para>
+    /// Seit #71 ist das Zusammenfassungs-Modell wählbar, also kann die Zeile nicht mehr aus
+    /// Konstanten bestehen — sie zeigte sonst dauerhaft Luna an, egal was eingestellt ist.
+    /// Der Anzeigename passt zur Auswahlliste in den Einstellungen; eine Id, die der Katalog
+    /// nicht kennt, wird roh gezeigt, damit sichtbar bleibt, dass etwas nicht stimmt.
+    /// </para>
     /// </summary>
-    public static string StatusBarLabel => $"{Transcription} · {Summaries}";
+    /// <param name="summaryModelId">Die eingestellte Modell-Id, oder <c>null</c>.</param>
+    /// <returns>Die Beschriftung für die Statusleiste.</returns>
+    public static string StatusBarLabelFor(string? summaryModelId)
+    {
+        var summary = summaryModelId is null
+            ? SummaryModelCatalog.Default.DisplayName
+            : SummaryModelCatalog.TryFind(summaryModelId)?.DisplayName ?? summaryModelId;
+
+        return $"{Transcription} · {summary}";
+    }
 }

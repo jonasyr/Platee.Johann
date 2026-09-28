@@ -47,6 +47,58 @@ public sealed class ToastQueueTests
     }
 
     [Fact]
+    public void Show_SameMessageTwice_KeepsOneToast()
+    {
+        // Schnell mehrfach „kopieren“ stapelte je Klick einen identischen Toast (#56).
+        var queue = new ToastQueue((_, _) => { });
+
+        var first = queue.Show("✓ Transkript kopiert!", ToastTone.Ok);
+        var second = queue.Show("✓ Transkript kopiert!", ToastTone.Ok);
+
+        queue.Items.Should().ContainSingle();
+        second.Should().BeSameAs(first);
+    }
+
+    [Fact]
+    public void Show_SameMessageAgain_ExtendsTheVisibleToast()
+    {
+        var pending = new List<Action>();
+        var queue = new ToastQueue((_, dismiss) => pending.Add(dismiss));
+        var first = queue.Show("✓ Kopiert", ToastTone.Ok);
+        queue.Show("✓ Kopiert", ToastTone.Ok);
+
+        pending[0]();
+        queue.Items.Should().ContainSingle("the repeat restarted the display time")
+            .Which.Should().BeSameAs(first);
+
+        pending[1]();
+        queue.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Show_DifferentMessageOrTone_StillStacks()
+    {
+        var queue = new ToastQueue((_, _) => { });
+
+        queue.Show("✓ Transkript kopiert!", ToastTone.Ok);
+        queue.Show("✓ Abstract kopiert!", ToastTone.Ok);
+        queue.Show("✓ Abstract kopiert!", ToastTone.Error);
+
+        queue.Items.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void Show_SameTitleAsARunningToast_DoesNotMergeIntoIt()
+    {
+        var queue = new ToastQueue((_, _) => { });
+        queue.ShowRunning("Läuft");
+
+        queue.Show("Läuft", ToastTone.Ok);
+
+        queue.Items.Should().HaveCount(2);
+    }
+
+    [Fact]
     public void DismissCommand_RemovesOnlyTargetedToast()
     {
         var queue = new ToastQueue(schedule: null);

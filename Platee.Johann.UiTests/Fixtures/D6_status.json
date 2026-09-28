@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 4,
+  "jobId": "260924_005_d144ca0d",
+  "sequenceNumber": 5,
+  "type": "Projekt",
+  "projectName": "Allgemein",
+  "title": "ChatGPT st\u00E4rker f\u00FCr Protokolle nutzen",
+  "createdAt": "2026-09-24T15:12:20+01:00",
+  "sourceType": "audio",
+  "durationSeconds": 12.552,
+  "wordCount": 29,
+  "status": {
+    "transcribed": true,
+    "summarized": true,
+    "pdfCreated": true,
+    "archived": true,
+    "emailCreated": false
+  },
+  "transcript": "Kurze Notiz f\u00FCr Piano intern. Ich habe mit Nele gesprochen. Wir wollen im Team ChatGPT st\u00E4rker f\u00FCr Protokolle nutzen. Nele bereitet dazu bis n\u00E4chste Woche eine kurze Anleitung vor.",
+  "editedTranscript": null,
+  "abstract": "Peano-intern: Das Team will ChatGPT st\u00E4rker f\u00FCr Protokolle nutzen; Neele erstellt bis n\u00E4chste Woche eine kurze Anleitung.",
+  "longSummary": "### Kontext\n\n- Interne Abstimmung zur st\u00E4rkeren Nutzung von ChatGPT im Team f\u00FCr Protokolle.\n\n### Entscheidungen\n\n- ChatGPT soll im Team k\u00FCnftig st\u00E4rker f\u00FCr die Erstellung von Protokollen genutzt werden.\n\n### Offene Punkte / ToDos\n\n- Neele erstellt bis n\u00E4chste Woche eine kurze Anleitung zur Nutzung von ChatGPT f\u00FCr Protokolle.",
+  "proseSummary": "Kurze Notiz f\u00FCr Peano intern:\n\nIch habe mit Neele gesprochen. Wir m\u00F6chten ChatGPT im Team k\u00FCnftig st\u00E4rker f\u00FCr die Erstellung von Protokollen nutzen. Neele bereitet dazu bis n\u00E4chste Woche eine kurze Anleitung vor.",
+  "emailText": null,
+  "conversationNote": "- **Teilnehmer:** Diktierender Mitarbeiter und Neele\n- **Thema:** Verst\u00E4rkte Nutzung von ChatGPT f\u00FCr Protokolle im Team\n- **Beschluss:** ChatGPT soll im Team k\u00FCnftig st\u00E4rker f\u00FCr die Erstellung von Protokollen eingesetzt werden.\n- **Weiteres Vorgehen:** Neele erstellt bis n\u00E4chste Woche eine kurze Anleitung.",
+  "taskList": "Es geht um die verst\u00E4rkte Nutzung von ChatGPT f\u00FCr Protokolle im Team. Dazu wurde mit Neele gesprochen, die eine kurze Anleitung vorbereitet.\n\n- Kurze Anleitung zur Nutzung von ChatGPT f\u00FCr Protokolle vorbereiten (Neele, bis n\u00E4chste Woche)",
+  "stundenzettelText": null,
+  "analogText": null,
+  "isDone": true,
+  "customSections": {},
+  "customSectionNames": {}
+}

@@ -3,6 +3,7 @@ namespace Platee.Johann.UI.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -21,11 +22,20 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly SettingsHolder persistedHolder;
     private readonly SettingsHolder runtimeHolder;
 
+    // "Standard wiederherstellen" faellt hierauf zurueck statt auf AppSettings.Default (#111
+    // Fix-Runde 2): unter JOHANN_HOME sonst wuerde Reset + Speichern eine Sandbox heimlich auf
+    // die echten Documents\Johann-Pfade und das echte Team-Prompt-File auf Z: umbiegen.
+    private readonly AppSettings defaults;
+
     // ── User info ─────────────────────────────────────────────────────────────
     [ObservableProperty]
     private string name = string.Empty;
     [ObservableProperty]
     private string firma = string.Empty;
+
+    /// <summary>Begleittext der internen Aufgaben-Mail (#57); {Projekt} wird ersetzt.</summary>
+    [ObservableProperty]
+    private string aufgabenMailText = string.Empty;
 
     // ── Directories ───────────────────────────────────────────────────────────
     [ObservableProperty]
@@ -86,6 +96,35 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string pathStatusMessage = string.Empty;
     [ObservableProperty]
     private SettingsSectionItem? selectedSection;
+    [ObservableProperty]
+    private SummaryModel selectedModel = SummaryModelCatalog.Default;
+
+    private readonly IModelAvailabilityProbe? probe;
+    private CancellationTokenSource? probeCts;
+    private Task probeTask = Task.CompletedTask;
+    private ProbeState modelStatus = ProbeState.Unchecked;
+
+    /// <summary>Der Anzeigezustand der Modellprüfung.</summary>
+    private enum ProbeState
+    {
+        /// <summary>Noch nichts geprüft — die Anzeige bleibt leer.</summary>
+        Unchecked,
+
+        /// <summary>Prüfung läuft.</summary>
+        Checking,
+
+        /// <summary>Modell ist erreichbar.</summary>
+        Available,
+
+        /// <summary>Modell existiert nicht mehr.</summary>
+        NotFound,
+
+        /// <summary>Prüfung war nicht möglich.</summary>
+        NetworkError,
+
+        /// <summary>Ohne Schlüssel nicht prüfbar.</summary>
+        NoApiKey,
+    }
 
     /// <summary>
     /// Gets or sets where a prompt or category edit is written. Replaces the former admin
@@ -97,6 +136,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     private CategoryScope saveTarget = CategoryScope.Personal;
 
     public IReadOnlyList<SettingsSectionItem> Sections { get; }
+
+    /// <summary>
+    /// Raised after the settings have been written and both holders updated.
+    /// <para>
+    /// Die Einstellungsansicht ist nicht modal, der Nutzer kann also speichern und das
+    /// Fenster offen lassen. Ohne dieses Signal zeigte die Statusleiste im Hauptfenster
+    /// bis zum naechsten Neustart das alte Modell.
+    /// </para>
+    /// </summary>
+    public event Action? SettingsSaved;
 
     /// <summary>Gets a value indicating whether edits are written to the shared team file.</summary>
     public bool IsGlobalTarget => this.SaveTarget == CategoryScope.Global;
@@ -134,6 +183,94 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public bool IsKategorienSelected => this.IsSelected(SectionKategorien);
 
+    public bool IsKiModellSelected => this.IsSelected(SectionKiModell);
+
+    /// <summary>Gets die Modelle, unter denen der Nutzer waehlen darf.</summary>
+    public IReadOnlyList<SummaryModel> AvailableModels { get; } = SummaryModelCatalog.All;
+
+    /// <summary>
+    /// Gets die Kostenangabe zum gewählten Modell, z. B. „ungefähr 2,7 Cent für 10 Diktate".
+    /// <para>
+    /// Bewusst auf zehn Diktate hochgerechnet statt je Diktat: Luna liegt bei 0,27 Cent, und
+    /// mit einer Nachkommastelle stünde dort „0,3 Cent", egal ob der Nutzer vier oder sechs
+    /// Abschnitte automatisch erzeugen lässt — die Rundung verschlucke genau den
+    /// Zusammenhang, den die Karte zeigen soll. Zehn Diktate lösen das auf und sind
+    /// obendrein die greifbarere Größe: Bruchteile eines Cents sagen niemandem etwas.
+    /// </para>
+    /// </summary>
+    public string ModelCostText =>
+        $"ungefähr {(this.CurrentEstimate().Cents * 10).ToString("0.0", CultureInfo.CurrentCulture)} Cent für 10 Diktate";
+
+    /// <summary>
+    /// Gets die Einordnung darunter: worauf sich die Zahl bezieht und wie das Modell zum
+    /// günstigsten steht.
+    /// <para>
+    /// Der Vergleich trägt die Auswahl — „18× teurer" sagt mehr als jede absolute Zahl,
+    /// wenn es darum geht, ob jemand dauerhaft auf Sol stehen bleiben will.
+    /// </para>
+    /// </summary>
+    public string ModelComparisonText
+    {
+        get
+        {
+            var mine = this.CurrentEstimate();
+            var basis = $"bei Ihren {mine.AutoSectionCount} automatischen Abschnitten "
+                      + "und einer Minute Aufnahme";
+
+            var cheapest = SummaryModelCatalog.All
+                .OrderBy(m => this.EstimateFor(m).Cents)
+                .First();
+
+            if (string.Equals(cheapest.Id, this.SelectedModel.Id, StringComparison.Ordinal))
+            {
+                return basis + " · günstigste Option";
+            }
+
+            var cheapestCents = this.EstimateFor(cheapest).Cents;
+            var factor = cheapestCents > 0 ? mine.Cents / cheapestCents : 0;
+
+            return basis + $" · rund {factor:0}× teurer als {cheapest.DisplayName}";
+        }
+    }
+
+    /// <summary>
+    /// Gets der Klartext neben der Auswahlliste: läuft die Prüfung, ist das Modell da,
+    /// oder war die Prüfung nicht möglich.
+    /// </summary>
+    public string ModelStatusText => this.modelStatus switch
+    {
+        ProbeState.Checking => "wird geprüft…",
+        ProbeState.Available => "✓ verfügbar",
+        ProbeState.NotFound => "✗ nicht verfügbar — bitte ein anderes Modell wählen",
+        ProbeState.NetworkError => "konnte gerade nicht geprüft werden",
+        ProbeState.NoApiKey => "ohne API-Schlüssel nicht prüfbar",
+        _ => string.Empty,
+    };
+
+    /// <summary>
+    /// Gets a value indicating whether das Speichern gesperrt ist.
+    /// <para>
+    /// Nur zwei Zustände sperren: eine laufende Prüfung und ein nachweislich fehlendes
+    /// Modell. Ein Netzwerkfehler oder ein fehlender Schlüssel <b>nicht</b> — beide sagen
+    /// nichts darüber aus, ob das Modell existiert, und wer ohne Verbindung die
+    /// Einstellungen öffnet, muss trotzdem speichern können.
+    /// </para>
+    /// </summary>
+    public bool IsSaveBlocked =>
+        this.modelStatus is ProbeState.Checking or ProbeState.NotFound;
+
+    /// <summary>Gets die gefüllten Punkte der Denkleistung.</summary>
+    public string ModelReasoningFilled => Filled(this.SelectedModel.Reasoning);
+
+    /// <summary>Gets die leeren Punkte der Denkleistung.</summary>
+    public string ModelReasoningEmpty => Empty(this.SelectedModel.Reasoning);
+
+    /// <summary>Gets die gefüllten Punkte des Tempos.</summary>
+    public string ModelSpeedFilled => Filled(this.SelectedModel.Speed);
+
+    /// <summary>Gets die leeren Punkte des Tempos.</summary>
+    public string ModelSpeedEmpty => Empty(this.SelectedModel.Speed);
+
     /// <summary>Gets a value indicating whether a category is selected for editing.</summary>
     public bool HasSelectedCategory => this.SelectedCategory is not null;
 
@@ -144,14 +281,30 @@ public sealed partial class SettingsViewModel : ObservableObject
         IPromptSettingsRepository promptRepository,
         SettingsHolder persistedHolder,
         SettingsHolder? runtimeHolder = null,
-        IReadOnlyList<StartupPathIssue>? startupPathIssues = null)
+        IReadOnlyList<StartupPathIssue>? startupPathIssues = null,
+        IModelAvailabilityProbe? probe = null,
+        AppSettings? defaults = null)
     {
         this.repository = repository;
         this.promptRepository = promptRepository;
         this.persistedHolder = persistedHolder;
         this.runtimeHolder = runtimeHolder ?? persistedHolder;
+        this.probe = probe;
+        this.defaults = defaults ?? AppSettings.Default;
         this.Sections = BuildSections();
         this.BuiltInSectionModes = BuildBuiltInSectionModes(persistedHolder.Current.SectionModes);
+
+        // Die Kostenangabe haengt an der Abschnitts-Auswahl, nicht nur am Modell.
+        foreach (var row in this.BuiltInSectionModes)
+        {
+            row.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName is nameof(SectionModeRowViewModel.Mode))
+                {
+                    this.NotifyCostChanged();
+                }
+            };
+        }
         this.LoadFromHolder();
         if (startupPathIssues is { Count: > 0 })
         {
@@ -161,7 +314,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.SelectedSection = this.Sections[0];
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
         // A category added in this session still carries the placeholder id minted from
@@ -174,6 +327,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             Name = this.Name.Trim(),
             Firma = this.Firma.Trim(),
+            AufgabenMailText = this.AufgabenMailText.Trim(),
             Quellverzeichnis = this.Quellverzeichnis.Trim(),
             Archivverzeichnis = this.Archivverzeichnis.Trim(),
             Ausgabeverzeichnis = this.Ausgabeverzeichnis.Trim(),
@@ -186,6 +340,9 @@ public sealed partial class SettingsViewModel : ObservableObject
             // Modes are always personal, whatever SaveTarget says: category definitions may
             // be shared, but nobody may change a colleague's waiting time.
             SectionModes = this.CollectSectionModes(),
+
+            // Ebenfalls immer persoenlich: welches Modell jemand bezahlt, entscheidet er selbst.
+            SummaryModel = this.SelectedModel.Id,
         };
 
         var updatedPrompts = this.runtimeHolder.Prompts with
@@ -218,6 +375,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         this.PathStatusMessage = string.Empty;
         this.OnPropertyChanged(nameof(this.HasPathStatusMessage));
+
+        this.SettingsSaved?.Invoke();
     }
 
     /// <summary>
@@ -294,11 +453,16 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         try
         {
+            // The team file owns the prompts and the global categories only. Writing every
+            // category here published the user's personal ones to the whole team (#114) —
+            // they go to the personal file in the same save instead.
+            var teamOnly = updatedPrompts with
+            {
+                CustomCategories = [.. updatedPrompts.CustomCategories.Where(c => c.Scope == CategoryScope.Global)],
+            };
+
             var globalRepo = JsonPromptSettingsRepository.FromFilePath(globalPath);
-            await globalRepo.SaveAsync(updatedPrompts);
-            this.persistedHolder.Update(this.persistedHolder.Current, updatedPrompts);
-            this.runtimeHolder.Update(this.runtimeHolder.Current, updatedPrompts);
-            this.StatusMessage = "✓ Globale Prompts für alle Mitarbeiter gespeichert.";
+            await globalRepo.SaveAsync(teamOnly);
         }
         catch (Exception ex)
         {
@@ -322,7 +486,13 @@ public sealed partial class SettingsViewModel : ObservableObject
             this.StatusMessage =
                 $"⚠ Globale Datei nicht schreibbar ({ex.Message}). "
                 + $"{rescued} gelten nur bis zum nächsten Neustart.";
+            return;
         }
+
+        // Outside the try: a failure writing the local personal file must not be reported as
+        // an unwritable team file — that one was written.
+        await this.SavePersonalPromptsAsync(updatedPrompts);
+        this.StatusMessage = "✓ Globale Prompts für alle Mitarbeiter gespeichert.";
     }
 
     /// <summary>
@@ -361,9 +531,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void Reset()
     {
-        var d = AppSettings.Default;
+        var d = this.defaults;
         this.Name = d.Name;
         this.Firma = d.Firma;
+        this.AufgabenMailText = d.AufgabenMailText;
         this.Quellverzeichnis = d.Quellverzeichnis;
         this.Archivverzeichnis = d.Archivverzeichnis;
         this.Ausgabeverzeichnis = d.Ausgabeverzeichnis;
@@ -570,6 +741,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var s = this.persistedHolder.Current;
         this.Name = s.Name;
         this.Firma = s.Firma;
+        this.AufgabenMailText = s.AufgabenMailText;
         this.Quellverzeichnis = s.Quellverzeichnis;
         this.Archivverzeichnis = s.Archivverzeichnis;
         this.Ausgabeverzeichnis = s.Ausgabeverzeichnis;
@@ -586,6 +758,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         this.GespraechsnotizPrompt = p.GespraechsnotizPrompt;
         this.StundenzettelPrompt = p.StundenzettelPrompt;
         this.AnalogPrompt = p.AnalogPrompt;
+
+        // Eine Id, die der Katalog nicht kennt, darf die Auswahlliste nicht leer lassen —
+        // der Nutzer kaeme sonst nicht mehr an ein gueltiges Modell heran.
+        this.SelectedModel = SummaryModelCatalog.TryFind(s.SummaryModel) ?? SummaryModelCatalog.Default;
 
         this.Korrekturen.Clear();
         foreach (var c in s.Korrekturliste)
@@ -615,6 +791,41 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// Collects the per-section modes from both toggle sources — the built-in rows and each
     /// category's own toggle — into the single map persisted in the local settings file.
     /// </summary>
+    /// <summary>
+    /// Die Skalen für Denkleistung und Tempo teilen sich bewusst dieselbe Punktform.
+    /// Zwei verschiedene Zeichen — etwa Punkte gegen Blitze — lesen sich als zwei
+    /// verschiedene Maßstäbe, und ein Emoji-Glyph rendert je nach Schrift anders.
+    /// Gefüllt und leer werden im XAML über getrennte <c>Run</c>-Elemente eingefärbt.
+    /// </summary>
+    private const int MeterSteps = 4;
+
+    private static string Filled(int value) => new('●', Math.Clamp(value, 0, MeterSteps));
+
+    private static string Empty(int value) =>
+        new('●', Math.Max(0, MeterSteps - Math.Clamp(value, 0, MeterSteps)));
+
+    private CostEstimate CurrentEstimate() => this.EstimateFor(this.SelectedModel);
+
+    private CostEstimate EstimateFor(SummaryModel model) =>
+        DictationCostEstimator.Estimate(
+            model,
+            this.runtimeHolder.Prompts,
+            this.persistedHolder.Current with { SectionModes = this.CollectSectionModes() },
+            DictationCostEstimator.TokensPerSpeechMinute);
+
+    /// <summary>
+    /// Meldet die von der Abschnitts-Auswahl abhängigen Anzeigen neu.
+    /// <para>
+    /// Ohne das bliebe die Kostenangabe stehen, während der Nutzer im Abschnitt „Vorlagen"
+    /// Häkchen umlegt — gerade der Zusammenhang, den die Karte sichtbar machen soll.
+    /// </para>
+    /// </summary>
+    private void NotifyCostChanged()
+    {
+        this.OnPropertyChanged(nameof(this.ModelCostText));
+        this.OnPropertyChanged(nameof(this.ModelComparisonText));
+    }
+
     private Dictionary<string, GenerationMode> CollectSectionModes()
     {
         var modes = new Dictionary<string, GenerationMode>(StringComparer.Ordinal);
@@ -641,6 +852,73 @@ public sealed partial class SettingsViewModel : ObservableObject
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
     }
 
+    partial void OnSelectedModelChanged(SummaryModel value)
+    {
+        this.NotifyCostChanged();
+        this.OnPropertyChanged(nameof(this.ModelReasoningFilled));
+        this.OnPropertyChanged(nameof(this.ModelReasoningEmpty));
+        this.OnPropertyChanged(nameof(this.ModelSpeedFilled));
+        this.OnPropertyChanged(nameof(this.ModelSpeedEmpty));
+
+        if (this.probe is null)
+        {
+            return;
+        }
+
+        this.probeCts?.Cancel();
+        this.probeCts?.Dispose();
+        this.probeCts = new CancellationTokenSource();
+        this.probeTask = this.RunProbeAsync(value, this.probeCts.Token);
+    }
+
+    /// <summary>
+    /// Testhaken: die laufende Prüfung, damit Tests nicht auf Zeit warten müssen.
+    /// <para>
+    /// Ohne ihn wären die Tests zeitabhängig und würden flackern. <c>internal</c> genügt,
+    /// weil das Testprojekt diese Datei per <c>Compile Include ... Link</c> einbindet.
+    /// </para>
+    /// </summary>
+    /// <returns>Die laufende oder zuletzt abgeschlossene Prüfung.</returns>
+    internal Task WaitForProbeAsync() => this.probeTask;
+
+    private async Task RunProbeAsync(SummaryModel model, CancellationToken ct)
+    {
+        this.SetProbeState(ProbeState.Checking);
+
+        try
+        {
+            var result = await this.probe!.ProbeAsync(model.Id, ct);
+
+            // Eine späte Antwort zu einem inzwischen abgewählten Modell verwerfen: sonst
+            // stünde „nicht verfügbar" an einem Modell, das in Ordnung ist.
+            if (!ct.IsCancellationRequested &&
+                string.Equals(this.SelectedModel.Id, model.Id, StringComparison.Ordinal))
+            {
+                this.SetProbeState(result switch
+                {
+                    ModelProbeResult.Available => ProbeState.Available,
+                    ModelProbeResult.NotFound => ProbeState.NotFound,
+                    ModelProbeResult.NoApiKey => ProbeState.NoApiKey,
+                    _ => ProbeState.NetworkError,
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Modellwechsel während der Prüfung: erwartet, der neue Lauf setzt den Zustand.
+        }
+    }
+
+    private bool CanSave() => !this.IsSaveBlocked;
+
+    private void SetProbeState(ProbeState state)
+    {
+        this.modelStatus = state;
+        this.OnPropertyChanged(nameof(this.ModelStatusText));
+        this.OnPropertyChanged(nameof(this.IsSaveBlocked));
+        this.SaveCommand.NotifyCanExecuteChanged();
+    }
+
     partial void OnSelectedSectionChanged(SettingsSectionItem? value)
     {
         OnPropertyChanged(nameof(HasPathStatusMessage));
@@ -658,6 +936,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsAnalogSelected));
         OnPropertyChanged(nameof(IsKorrekturlisteSelected));
         OnPropertyChanged(nameof(IsKategorienSelected));
+        OnPropertyChanged(nameof(IsKiModellSelected));
     }
 
     partial void OnSelectedCategoryChanged(CategoryEditorViewModel? value) =>
@@ -696,6 +975,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             new(SectionTeam, "Team-Prompts", "GRUNDDATEN"),
             new(SectionKorrekturliste, "Korrekturliste", "GRUNDDATEN"),
             new(SectionKategorien, "Vorlagen", "GRUNDDATEN"),
+            new(SectionKiModell, "KI-Modell", "GRUNDDATEN"),
             new(SectionSystemMessage, "System-Nachricht", "GLOBALE PROMPTS"),
             new(SectionAbstract, "Kurzfassung", "GLOBALE PROMPTS"),
             new(SectionStructured, "Zusammenfassung", "GLOBALE PROMPTS"),
@@ -741,6 +1021,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private const string SectionAnalog = "analog";
     private const string SectionKorrekturliste = "korrekturliste";
     private const string SectionKategorien = "kategorien";
+    private const string SectionKiModell = "ki-modell";
 }
 
 public sealed record SettingsSectionItem(string Key, string Label, string Group);

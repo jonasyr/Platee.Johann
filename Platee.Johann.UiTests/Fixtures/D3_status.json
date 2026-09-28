@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 4,
+  "jobId": "260924_002_5c6e9868",
+  "sequenceNumber": 2,
+  "type": "Projekt",
+  "projectName": "Rathausumbau",
+  "title": "Zeiterfassung Projekt Rathausumbau",
+  "createdAt": "2026-09-24T15:11:49+01:00",
+  "sourceType": "audio",
+  "durationSeconds": 23.1119999,
+  "wordCount": 38,
+  "status": {
+    "transcribed": true,
+    "summarized": true,
+    "pdfCreated": true,
+    "archived": true,
+    "emailCreated": false
+  },
+  "transcript": "Zeiterfassung f\u00FCr heute. Projekt Rathausumbau. Von 8 bis 10 Uhr Planbesprechung im B\u00FCro, zwei Stunden. Dann von 10:30 bis 12 Uhr Baustellenbegehung mit dem Statiker, eineinhalb Stunden. Am Nachmittag drei Stunden Ausschreibung Trockenbau geschrieben. Insgesamt also sechseinhalb Stunden.",
+  "editedTranscript": null,
+  "abstract": "Heute: Sechseinhalb Stunden f\u00FCr den Rathausumbau \u2013 Planbesprechung, Baustellenbegehung mit Statiker und Erstellung der Trockenbauausschreibung.",
+  "longSummary": "### Kontext\n\n- Zeiterfassung f\u00FCr heute im Projekt **Rathausumbau**.\n\n### Kernaussagen\n\n- **8:00\u201310:00 Uhr:** Planbesprechung im B\u00FCro, zwei Stunden.\n- **10:30\u201312:00 Uhr:** Baustellenbegehung mit dem Statiker, eineinhalb Stunden.\n- **Am Nachmittag:** Erstellung der Ausschreibung f\u00FCr den Trockenbau, drei Stunden.\n- **Gesamtaufwand:** sechseinhalb Stunden.",
+  "proseSummary": "F\u00FCr heute wurden im Projekt \u201ERathausumbau\u201C folgende T\u00E4tigkeiten erfasst:\n\nVon 8:00 bis 10:00 Uhr fand im B\u00FCro eine zweist\u00FCndige Planbesprechung statt. Anschlie\u00DFend erfolgte von 10:30 bis 12:00 Uhr eine eineinhalbst\u00FCndige Baustellenbegehung mit dem Statiker. Am Nachmittag wurden drei Stunden lang Ausschreibungsunterlagen f\u00FCr den Trockenbau erstellt.\n\nInsgesamt wurden sechseinhalb Stunden erfasst.",
+  "emailText": null,
+  "conversationNote": "Kein Gespr\u00E4ch dokumentiert.",
+  "taskList": "Keine Aufgaben genannt.",
+  "stundenzettelText": null,
+  "analogText": null,
+  "isDone": false,
+  "customSections": {},
+  "customSectionNames": {}
+}

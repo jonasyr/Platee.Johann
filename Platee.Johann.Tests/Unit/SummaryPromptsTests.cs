@@ -1,16 +1,95 @@
 namespace Platee.Johann.Tests.Unit;
 
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Platee.Johann.Application.Processing;
 using Platee.Johann.Application.Settings;
 
 public sealed class SummaryPromptsTests
 {
+    // ── Systemnachricht (#73, GPT-5.6) ────────────────────────────────────────
     [Fact]
-    public void SystemMessage_ContainsSpecializedBusinessCommunicationInstructions()
+    public void SystemMessage_DoesNotPrescribeThinkingSteps()
     {
-        SummaryPrompts.SystemMessage.Should().Contain("HOCHSPEZIALISIERTER EXPERTE");
-        SummaryPrompts.SystemMessage.Should().Contain("### WHAT NOT TO DO ###");
+        // Reasoning-Modelle denken selbst; ein vorgeschriebener Denkprozess kostete ~300 Token
+        // je Aufruf und enthielt die Widersprüche S-03/S-04 (Befundliste #73).
+        SummaryPrompts.SystemMessage.Should().NotContain("CHAIN OF THOUGHTS");
+        SummaryPrompts.SystemMessage.Should().NotContain("DENKPROZESS");
+    }
+
+    [Fact]
+    public void SystemMessage_IsWrittenInNormalCase()
+    {
+        // Durchgehende Versalien tokenisierten 37 % schlechter, ohne belegten Nutzen.
+        Regex.Matches(SummaryPrompts.SystemMessage, @"\b[A-ZÄÖÜ]{5,}\b").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SystemMessage_ResolvesUnclearContentWithOneDecisionRule()
+    {
+        // Früher: „Unklarheiten markieren" gegen „NIEMALS unklare Formulierungen stehen lassen".
+        SummaryPrompts.SystemMessage.Should().Contain("benenne es knapp als unklar");
+        SummaryPrompts.SystemMessage.Should().NotContain("NIEMALS");
+    }
+
+    [Fact]
+    public void SystemMessage_LeavesTheDegreeOfCompressionToTheSection()
+    {
+        // Sonst widerspricht „fasse zusammen" der vollständigen Aufbereitung (P-01).
+        SummaryPrompts.SystemMessage.Should().Contain("vollständige Aufbereitung");
+    }
+
+    [Fact]
+    public void SystemMessage_KeepsTheRegisterExamplePair()
+    {
+        // Formmuster, kein Aufgabenbeispiel — ausdrücklich behalten (S-08).
+        SummaryPrompts.SystemMessage.Should().Contain("Also wir haben irgendwie über das Projekt geredet");
+        SummaryPrompts.SystemMessage.Should().Contain("Es wurde der aktuelle Stand des Projekts besprochen");
+    }
+
+    [Theory]
+    [InlineData(nameof(SummaryPrompts.Abstract))]
+    [InlineData(nameof(SummaryPrompts.Structured))]
+    [InlineData(nameof(SummaryPrompts.Gespraechsnotiz))]
+    [InlineData(nameof(SummaryPrompts.Stundenzettel))]
+    [InlineData(nameof(SummaryPrompts.Analog))]
+    public void Section_prompts_do_not_claim_the_transcript_is_German(string name)
+    {
+        // Seit #58 bleibt das Transkript in der gesprochenen Sprache (B-01).
+        var prompt = name switch
+        {
+            nameof(SummaryPrompts.Abstract) => SummaryPrompts.Abstract,
+            nameof(SummaryPrompts.Structured) => SummaryPrompts.Structured,
+            nameof(SummaryPrompts.Gespraechsnotiz) => SummaryPrompts.Gespraechsnotiz,
+            nameof(SummaryPrompts.Stundenzettel) => SummaryPrompts.Stundenzettel,
+            nameof(SummaryPrompts.Analog) => SummaryPrompts.Analog,
+            _ => throw new ArgumentOutOfRangeException(nameof(name)),
+        };
+
+        prompt.Should().NotContain("auf Deutsch");
+    }
+
+    // ── Leerfälle (#73) ───────────────────────────────────────────────────────
+    [Fact]
+    public void Gespraechsnotiz_ReportsDictationsWithoutAConversation()
+    {
+        // Ohne diese Regel entstand auf 34 von 46 Diktaten ohne Gespräch eine Notiz.
+        SummaryPrompts.Gespraechsnotiz.Should().Contain("Kein Gespräch dokumentiert.");
+        SummaryPrompts.Gespraechsnotiz.Should().Contain("Aufgabenbeschreibungen");
+    }
+
+    [Fact]
+    public void Abstract_Stundenzettel_Analog_HaveAnExplicitEmptyCase()
+    {
+        SummaryPrompts.Abstract.Should().Contain("Kein zusammenfassbarer Inhalt.");
+        SummaryPrompts.Stundenzettel.Should().Contain("Keine Zeiten genannt.");
+        SummaryPrompts.Analog.Should().Contain("Kein Eintrag erkennbar.");
+    }
+
+    [Fact]
+    public void Abstract_KeepsTheWordLimitPlaceholder()
+    {
+        SummaryPrompts.Abstract.Should().Contain("{word_limit}");
     }
 
     // ── Structured ────────────────────────────────────────────────────────────
@@ -56,6 +135,45 @@ public sealed class SummaryPromptsTests
     {
         SummaryPrompts.Email.Should().Contain("siezen");
     }
+
+    [Fact]
+    public void Email_SiezenCoversRequestsWithAFormExample()
+    {
+        // „Lieber Jonas" zog die Mail ins Du; ein Du-Imperativ („bitte prüfe") sieht das
+        // Pronomen-Verbot nicht. Das Formmuster behebt beides (#73).
+        SummaryPrompts.Email.Should().Contain("„Bitte prüfen Sie …“, nicht „Bitte prüfe …“");
+    }
+
+    [Fact]
+    public void Email_DropsPassagesMarkedAsUnclear()
+    {
+        // Transkriptionslücken („[inhaltlich unklar]") gehören in den Eintrag, nicht in eine Kundenmail.
+        SummaryPrompts.Email.Should().Contain("als unklar kennzeichnet, lässt du weg");
+    }
+
+    [Fact]
+    public void SystemMessage_AsksForMarkdownWhereItCarriesMeaning()
+    {
+        // Zentrale Markdown-Regel (#73, S4): erst seit #57 Markdown in der Mail nach HTML wandelt
+        // und PDF wie Klartext-Kopien Fett und kursiv verstehen.
+        SummaryPrompts.SystemMessage.Should().Contain("Formatiere die Antwort in Markdown");
+        SummaryPrompts.SystemMessage.Should().Contain("Gibt der Abschnitt reinen Text oder eine andere Form vor, gilt seine Vorgabe");
+    }
+
+    [Fact]
+    public void Email_NoLongerForbidsMarkdown_ButStaysFlowingText()
+    {
+        // Der Text darf Markdown tragen (#57 wandelt es in HTML) ...
+        SummaryPrompts.Email.Should().NotContain("Reiner Text ohne Markdown");
+        SummaryPrompts.Email.Should().Contain("Fließtext, keine Stichpunkte");
+
+        // ... nur die Betreffzeile nicht: fett gesetzt fand Johann sie im Messlauf nicht mehr.
+        SummaryPrompts.Email.Should().Contain("die Betreffzeile steht als reiner Text ohne Markdown in der ersten Zeile");
+    }
+
+    [Fact]
+    public void Abstract_StaysPlainText_BecauseItShowsBelowTheTitle()
+        => SummaryPrompts.Abstract.Should().Contain("ohne Überschrift, Aufzählung oder Markdown-Zeichen");
 
     [Fact]
     public void Email_ContainsIchPerspektive()

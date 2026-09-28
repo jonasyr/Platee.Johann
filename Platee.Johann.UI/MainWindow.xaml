@@ -4,8 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Platee.Johann.UI.ViewModels"
+        xmlns:settings="clr-namespace:Platee.Johann.Application.Settings;assembly=Platee.Johann.Application"
         xmlns:conv="clr-namespace:Platee.Johann.UI.Converters"
         xmlns:views="clr-namespace:Platee.Johann.UI.Views"
+        xmlns:controls="clr-namespace:Platee.Johann.UI.Controls"
         mc:Ignorable="d"
         Title="{Binding AppVersion, RelativeSource={RelativeSource Self}, StringFormat='Platé.Johann {0}'}"
         Height="700" Width="1200"
@@ -13,25 +15,7 @@
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
-        <SolidColorBrush x:Key="AccentBrush" Color="#E63123"/>
-        <SolidColorBrush x:Key="AccentDarkBrush" Color="#C0392B"/>
-        <SolidColorBrush x:Key="AccentDeepBrush" Color="#C92D21"/>
-        <SolidColorBrush x:Key="AccentHoverBrush" Color="#FDF1F0"/>
-        <SolidColorBrush x:Key="BgBrush" Color="#F0F0F0"/>
-        <SolidColorBrush x:Key="BgPaneBrush" Color="#F9F9F9"/>
-        <SolidColorBrush x:Key="BgLightBrush" Color="#FAFAFA"/>
-        <SolidColorBrush x:Key="BorderBrush" Color="#E0E0E0"/>
-        <SolidColorBrush x:Key="TextBrush" Color="#333333"/>
-        <SolidColorBrush x:Key="TextMutedBrush" Color="#777777"/>
-        <SolidColorBrush x:Key="TextQuietBrush" Color="#666666"/>
-        <SolidColorBrush x:Key="TextFaintBrush" Color="#999999"/>
-        <SolidColorBrush x:Key="BorderMidBrush" Color="#CCCCCC"/>
-        <SolidColorBrush x:Key="AccentLineBrush" Color="#E7B1AC"/>
-        <SolidColorBrush x:Key="SuccessBrush" Color="#27AE60"/>
-        <SolidColorBrush x:Key="WarningBrush" Color="#B76E00"/>
-        <SolidColorBrush x:Key="WarningBgBrush" Color="#FFF8EC"/>
-        <SolidColorBrush x:Key="WarningBorderBrush" Color="#F2C879"/>
-        <SolidColorBrush x:Key="InfoBgBrush" Color="#F7F7F7"/>
+        <!-- Farben stehen in Themes/Controls.xaml (#97), für alle Fenster erreichbar. -->
         <FontFamily x:Key="MonoFamily">Consolas</FontFamily>
         <!-- Type badge colors -->
         <DataTemplate x:Key="DoneHeaderPendingTemplate">
@@ -67,6 +51,77 @@
             <Setter Property="Padding" Value="0,0,24,4"/>
             <Setter Property="Margin" Value="0,0,0,8"/>
         </Style>
+        <!-- Kopiersymbol je Abschnitt (#56). Verschwindet, wenn der Abschnitt nichts zu
+             kopieren hat (CopySectionCommand.CanExecute), z. B. „auf Knopfdruck“ noch leer. -->
+        <!-- Leise Rolle (#97): Symbol #595959 statt #999 (2,85:1), beim Überfahren grauer Grund. -->
+        <Style x:Key="SectionCopyButtonStyle" TargetType="Button" BasedOn="{StaticResource QuietButtonStyle}">
+            <Setter Property="Content" Value="&#xE8C8;"/>
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="ToolTip" Value="Abschnitt kopieren"/>
+            <Setter Property="AutomationProperties.Name" Value="Abschnitt kopieren"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Command"
+                    Value="{Binding DataContext.Detail.CopySectionCommand,
+                                    RelativeSource={RelativeSource AncestorType=Window}}"/>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                </Trigger>
+                <!-- Rückmeldung am geklickten Symbol: kurz ein grüner Haken, dann wieder das
+                     Kopiersymbol. FillBehavior="Stop" stellt den Ausgangszustand her. -->
+                <EventTrigger RoutedEvent="Button.Click">
+                    <BeginStoryboard>
+                        <Storyboard FillBehavior="Stop">
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Content" Duration="0:0:1.5">
+                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="&#xE73E;"/>
+                            </ObjectAnimationUsingKeyFrames>
+                            <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Foreground" Duration="0:0:1.5">
+                                <DiscreteObjectKeyFrame KeyTime="0:0:0" Value="{StaticResource ConfirmFgBrush}"/>
+                            </ObjectAnimationUsingKeyFrames>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Abschnitts-Kopfzeile: Titel (Inhalt) mit Unterstrich links, das Kopiersymbol
+             rechtsbündig — so stehen alle Symbole in einer Spalte, unabhängig von der Länge der
+             Überschrift. Die Abschnitts-Id kommt über Tag. Eine Vorlage für alle Abschnitte —
+             auch die Grundlage für den „nicht umgesetzt“-Zustand aus #65. -->
+        <Style x:Key="SectionHeaderControlStyle" TargetType="controls:SectionHeaderControl">
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <!-- Stabile Id je Abschnitt (#111): Tag trägt die Abschnitts-Id für alle Abschnitte,
+                 fest wie generiert, deshalb reicht ein Setter für Section.<Id> hier. -->
+            <Setter Property="AutomationProperties.AutomationId"
+                    Value="{Binding Tag, RelativeSource={RelativeSource Self}, StringFormat=Section.{0}}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContentControl">
+                        <!-- Grid statt DockPanel: die Auto-Spalte reserviert die Breite des
+                             Symbols, bevor die Überschrift vermessen wird. Ein langer Vorlagenname
+                             wird abgeschnitten, das Symbol bleibt erreichbar (Codex, PR #95). -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0"
+                                    HorizontalAlignment="Left"
+                                    BorderThickness="0,0,0,1"
+                                    BorderBrush="{StaticResource AccentLineBrush}"
+                                    Padding="0,0,24,4">
+                                <ContentPresenter/>
+                            </Border>
+                            <Button Grid.Column="1"
+                                    Style="{StaticResource SectionCopyButtonStyle}"
+                                    CommandParameter="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                    AutomationProperties.AutomationId="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}, StringFormat=Copy.{0}}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="ContentTextStyle" TargetType="TextBox">
             <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
@@ -75,28 +130,20 @@
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Padding" Value="0"/>
         </Style>
-        <Style x:Key="ActionButtonStyle" TargetType="Button">
+        <!-- Standard-Rolle aus Themes/Controls.xaml (#97); hier nur Maße. -->
+        <Style x:Key="ActionButtonStyle" TargetType="Button" BasedOn="{StaticResource StandardButtonStyle}">
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="Margin" Value="4,0"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Background" Value="#F0F0F0"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Cursor" Value="Hand"/>
         </Style>
         <Style x:Key="ExportClusterButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
             <Setter Property="Margin" Value="0"/>
         </Style>
-        <Style x:Key="ReprocessActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
-                    <Setter Property="Foreground" Value="{StaticResource AccentDarkBrush}"/>
-                </Trigger>
-            </Style.Triggers>
+        <!-- Rot umrandete Rolle (#97): Text #C0392B statt Markenrot (4,35:1), Überfahren wirkt jetzt. -->
+        <Style x:Key="ReprocessActionButtonStyle" TargetType="Button" BasedOn="{StaticResource OutlineButtonStyle}">
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="FontSize" Value="13"/>
         </Style>
         <Style x:Key="DetailExportActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ExportClusterButtonStyle}">
             <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
@@ -116,39 +163,37 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="DoneHeaderButtonStyle" TargetType="Button">
+        <!-- Erledigt: offen = Primär-Rolle, erledigt = Standard-Rolle (#97). Die Zustände kommen
+             aus den Rollen; hier wird nur für „erledigt“ auf die grauen Farben umgeschaltet. Die
+             Reihenfolge zählt: spätere Auslöser gewinnen, Gedrückt steht nach Überfahren. -->
+        <Style x:Key="DoneHeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
             <Setter Property="MinWidth" Value="200"/>
             <Setter Property="Padding" Value="14,7"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
             <Setter Property="ContentTemplate" Value="{StaticResource DoneHeaderPendingTemplate}"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Detail.DisplayIsDone}" Value="True">
-                    <Setter Property="Background" Value="{StaticResource BgBrush}"/>
-                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                    <Setter Property="BorderBrush" Value="{StaticResource BorderMidBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource ButtonBgBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource ButtonFgBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource ButtonBorderBrush}"/>
                     <Setter Property="ContentTemplate" Value="{StaticResource DoneHeaderCompletedTemplate}"/>
                 </DataTrigger>
-                <MultiDataTrigger>
-                    <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding Detail.DisplayIsDone}" Value="False"/>
-                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
-                    </MultiDataTrigger.Conditions>
-                    <Setter Property="Background" Value="{StaticResource AccentDarkBrush}"/>
-                </MultiDataTrigger>
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding Detail.DisplayIsDone}" Value="True"/>
                         <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
                     </MultiDataTrigger.Conditions>
-                    <Setter Property="Background" Value="#EAEAEA"/>
+                    <Setter Property="Background" Value="{StaticResource ButtonHoverBgBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource ButtonHoverFgBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource ButtonBorderBrush}"/>
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Detail.DisplayIsDone}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsPressed}" Value="True"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="{StaticResource ButtonPressedBgBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource ButtonBorderBrush}"/>
                 </MultiDataTrigger>
             </Style.Triggers>
         </Style>
@@ -158,23 +203,45 @@
             <Setter Property="Padding" Value="16,9"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
-        <Style x:Key="StatusBarZoomButtonStyle" TargetType="Button">
+        <!-- Eintrag löschen (#55): bewusst leise neben dem roten Erledigt-Knopf — grauer Rahmen,
+             erst beim Überfahren rot. Eigene Vorlage, weil die Standard-Vorlage beim Überfahren
+             ihre eigene Hintergrundfarbe setzt und das Rot verschlucken würde. -->
+        <Style x:Key="DeleteEntryButtonStyle" TargetType="Button" BasedOn="{StaticResource StandardButtonStyle}">
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource QuietFgBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="ToolTip" Value="Eintrag löschen (Entf)"/>
+            <Setter Property="AutomationProperties.Name" Value="Eintrag löschen"/>
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                       FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="Löschen" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource OutlineHoverFgBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource OutlineFgBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource OutlineHoverBgBrush}"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource OutlinePressedFgBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource OutlinePressedBgBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Leise Rolle (#97): die Überfahren-Farben wirken jetzt, statt vom Hellblau verdeckt zu werden. -->
+        <Style x:Key="StatusBarZoomButtonStyle" TargetType="Button" BasedOn="{StaticResource QuietButtonStyle}">
             <Setter Property="Width" Value="18"/>
             <Setter Property="Height" Value="18"/>
             <Setter Property="Padding" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="#555"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource BgPaneBrush}"/>
-                    <Setter Property="BorderBrush" Value="{StaticResource BorderMidBrush}"/>
-                    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
         <Style x:Key="DateListBoxItemStyle" TargetType="ListBoxItem">
             <Setter Property="Background" Value="Transparent"/>
@@ -244,37 +311,25 @@
             <Setter Property="Foreground" Value="{StaticResource TextQuietBrush}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-        <Style x:Key="SortRailButtonStyle" TargetType="Button">
+        <!-- Sortierknopf, inaktiv: Standard-Maße, beim Überfahren rot umrandet (#97). -->
+        <Style x:Key="SortRailButtonStyle" TargetType="Button" BasedOn="{StaticResource StandardButtonStyle}">
             <Setter Property="Padding" Value="10,3"/>
             <Setter Property="Margin" Value="0,0,6,0"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Background" Value="{StaticResource BgPaneBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderMidBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
-                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-                    <Setter Property="Foreground" Value="{StaticResource AccentDarkBrush}"/>
+                    <Setter Property="Background" Value="{StaticResource OutlineHoverBgBrush}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource OutlineFgBrush}"/>
+                    <Setter Property="Foreground" Value="{StaticResource OutlineHoverFgBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="LinkButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
+        <!-- Kleine Links in der Seitenleiste; das Verhalten kommt aus LinkButtonStyle (#97). -->
+        <Style x:Key="SidebarLinkButtonStyle" TargetType="Button" BasedOn="{StaticResource LinkButtonStyle}">
             <Setter Property="Padding" Value="4,0,0,0"/>
             <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Foreground" Value="{StaticResource AccentDarkBrush}"/>
-                    <Setter Property="TextBlock.TextDecorations" Value="Underline"/>
-                </Trigger>
-            </Style.Triggers>
         </Style>
         <CollectionViewSource x:Key="DatesGrouped" Source="{Binding AvailableDates}">
             <CollectionViewSource.GroupDescriptions>
@@ -333,9 +388,10 @@
                                 Command="{Binding OpenProcessDetailCommand}"
                                 ToolTip="Status-Log öffnen (F2)"
                                 AutomationProperties.Name="Status-Log"
+                                AutomationProperties.AutomationId="Main.StatusLog"
                                 FontSize="14"
-                                Background="Transparent" BorderThickness="0" Margin="0,0,8,0"
-                                Cursor="Hand" Padding="4,0">
+                                Style="{StaticResource QuietButtonStyle}"
+                                Margin="0,0,8,0" Padding="4,0">
                             <Grid Width="18" Height="18">
                                 <TextBlock Text="🔔" FontSize="13"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
@@ -349,15 +405,32 @@
                                          Visibility="{Binding HasRunningJobs, Converter={StaticResource BoolToVis}}"/>
                             </Grid>
                         </Button>
+                        <!-- Leise Rolle (#97): keine lokale Farbe, sonst wirkt kein Überfahren. -->
                         <Button Content="⚙ Einstellungen" Command="{Binding OpenSettingsCommand}"
                                 ToolTip="Einstellungen öffnen (Strg+,)"
-                                Background="Transparent" BorderThickness="0"
-                                FontSize="12" Padding="6,2" Cursor="Hand"/>
+                                AutomationProperties.AutomationId="Main.Settings"
+                                Style="{StaticResource QuietButtonStyle}"
+                                FontSize="12" Padding="6,2"/>
+                        <!-- Release Notes jederzeit (#78). Nach dem Schließen der Notes pulsiert der
+                             Knopf kurz, damit man sieht, wo man sie wiederfindet (MainWindow.xaml.cs). -->
+                        <Button x:Name="ReleaseNotesButton"
+                                Content="Neuigkeiten" Command="{Binding OpenReleaseNotesCommand}"
+                                ToolTip="Neuigkeiten dieser Version anzeigen"
+                                AutomationProperties.Name="Neuigkeiten"
+                                AutomationProperties.AutomationId="Main.ReleaseNotes"
+                                Style="{StaticResource QuietButtonStyle}"
+                                FontSize="12" Padding="6,2" Margin="4,0,0,0"
+                                RenderTransformOrigin="0.5,0.5">
+                            <Button.RenderTransform>
+                                <ScaleTransform/>
+                            </Button.RenderTransform>
+                        </Button>
                         <Button Content="?" Command="{Binding OpenHandbookCommand}"
                                 ToolTip="Handbuch öffnen (F1)"
                                 AutomationProperties.Name="Handbuch"
-                                Background="Transparent" BorderThickness="0"
-                                FontSize="12" Padding="6,2" Cursor="Hand" Margin="4,0,0,0"/>
+                                AutomationProperties.AutomationId="Main.Handbook"
+                                Style="{StaticResource QuietButtonStyle}"
+                                FontSize="12" Padding="6,2" Margin="4,0,0,0"/>
                     </StackPanel>
                     <!-- Process log popup (anchored to StatusTextButton) -->
                     <Popup x:Name="ProcessLogPopup"
@@ -380,8 +453,10 @@
                                     <DockPanel>
                                         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                                             <Button Content="Erledigte löschen" FontSize="10" Padding="6,2"
+                                                    AutomationProperties.AutomationId="ProcessLog.RemoveCompleted"
                                                     Cursor="Hand" Command="{Binding RemoveCompletedLogsCommand}"/>
                                             <Button Content="Alle löschen" FontSize="10" Padding="6,2" Margin="4,0,0,0"
+                                                    AutomationProperties.AutomationId="ProcessLog.ClearAll"
                                                     Cursor="Hand" Command="{Binding ClearProcessLogCommand}"/>
                                         </StackPanel>
                                         <TextBlock Text="Status-Log" FontWeight="SemiBold" FontSize="12"
@@ -447,7 +522,8 @@
                     </TextBlock>
                     <Button Content="Pfad ändern"
                             Command="{Binding OpenSettingsCommand}"
-                            Style="{StaticResource LinkButtonStyle}"
+                            AutomationProperties.AutomationId="Main.FixInputPath"
+                            Style="{StaticResource SidebarLinkButtonStyle}"
                             VerticalAlignment="Center"/>
                 </DockPanel>
             </Border>
@@ -467,7 +543,8 @@
                                Margin="0,0,10,0"/>
                     <Button Content="Key hinterlegen"
                             Command="{Binding OpenSettingsCommand}"
-                            Style="{StaticResource LinkButtonStyle}"
+                            AutomationProperties.AutomationId="Main.SetApiKey"
+                            Style="{StaticResource SidebarLinkButtonStyle}"
                             VerticalAlignment="Center"/>
                 </DockPanel>
             </Border>
@@ -476,15 +553,15 @@
         <!-- 3-pane layout -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="196" MinWidth="150"/>
+                <ColumnDefinition x:Name="DateColumn" Width="196" MinWidth="150"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="280" MinWidth="200"/>
+                <ColumnDefinition x:Name="EntryColumn" Width="280" MinWidth="200"/>
                 <ColumnDefinition Width="5"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="DetailColumn" Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- === LEFT: Date list === -->
-            <DockPanel Grid.Column="0" Background="#FAFAFA">
+            <DockPanel x:Name="DatePane" Grid.Column="0" Background="#FAFAFA">
                 <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
                     <TextBlock Text="Datum" Foreground="White" FontWeight="SemiBold"/>
                 </Border>
@@ -501,14 +578,14 @@
                                        FontSize="10"
                                        Foreground="{StaticResource TextFaintBrush}"/>
                         </StackPanel>
-                        <CheckBox Content="Ausführlich"    IsChecked="{Binding Sections.ShowProseSummary}"      FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Zusammenfassung" IsChecked="{Binding Sections.ShowLongSummary}"     FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Aufgaben"       IsChecked="{Binding Sections.ShowTaskList}"          FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Gesprächsnotiz" IsChecked="{Binding Sections.ShowConversationNote}"  FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        FontSize="11" Margin="0,1"/>
-                        <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Ausführlich"    IsChecked="{Binding Sections.ShowProseSummary}"      AutomationProperties.AutomationId="Sections.ShowProseSummary"      FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Zusammenfassung" IsChecked="{Binding Sections.ShowLongSummary}"     AutomationProperties.AutomationId="Sections.ShowLongSummary"       FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Aufgaben"       IsChecked="{Binding Sections.ShowTaskList}"          AutomationProperties.AutomationId="Sections.ShowTaskList"          FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Gesprächsnotiz" IsChecked="{Binding Sections.ShowConversationNote}"  AutomationProperties.AutomationId="Sections.ShowConversationNote"  FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="E-Mail"         IsChecked="{Binding Sections.ShowEmailText}"         AutomationProperties.AutomationId="Sections.ShowEmailText"         FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Stundenzettel"  IsChecked="{Binding Sections.ShowStundenzettelText}" AutomationProperties.AutomationId="Sections.ShowStundenzettelText" FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Analog"         IsChecked="{Binding Sections.ShowAnalogText}"        AutomationProperties.AutomationId="Sections.ShowAnalogText"        FontSize="11" Margin="0,1"/>
+                        <CheckBox Content="Transkript"     IsChecked="{Binding Sections.ShowTranscript}"         AutomationProperties.AutomationId="Sections.ShowTranscript"        FontSize="11" Margin="0,1"/>
                         <ToggleButton IsChecked="{Binding Sections.IsPersonalExpanded}"
                                       Visibility="{Binding Sections.HasPersonalSections, Converter={StaticResource BoolToVis}}"
                                       Style="{StaticResource SectionGroupToggleStyle}">
@@ -524,6 +601,7 @@
                                 <DataTemplate>
                                     <CheckBox IsChecked="{Binding IsVisible}"
                                               FontSize="11" Margin="0,1"
+                                              AutomationProperties.AutomationId="{Binding Id, StringFormat=Sections.{0}}"
                                               ToolTip="{Binding Name}">
                                         <TextBlock Text="{Binding Name}"
                                                    TextTrimming="CharacterEllipsis"/>
@@ -546,6 +624,7 @@
                                 <DataTemplate>
                                     <CheckBox IsChecked="{Binding IsVisible}"
                                               FontSize="11" Margin="0,1"
+                                              AutomationProperties.AutomationId="{Binding Id, StringFormat=Sections.{0}}"
                                               ToolTip="{Binding Name}">
                                         <TextBlock Text="{Binding Name}"
                                                    TextTrimming="CharacterEllipsis"/>
@@ -568,6 +647,7 @@
                                 <DataTemplate>
                                     <CheckBox IsChecked="{Binding IsVisible}"
                                               FontSize="11" Margin="0,1"
+                                              AutomationProperties.AutomationId="{Binding Id, StringFormat=Sections.{0}}"
                                               ToolTip="{Binding Name}">
                                         <TextBlock Text="{Binding Name}"
                                                    TextTrimming="CharacterEllipsis"/>
@@ -578,7 +658,8 @@
 
                         <Button Content="↻ Standard wiederherstellen"
                                 Command="{Binding ResetSectionsCommand}"
-                                Style="{StaticResource LinkButtonStyle}"
+                                AutomationProperties.AutomationId="Sections.Reset"
+                                Style="{StaticResource SidebarLinkButtonStyle}"
                                 Margin="0,6,0,0"/>
                     </StackPanel>
                 </Border>
@@ -590,14 +671,17 @@
                         BorderThickness="0,1,0,0"
                         BorderBrush="#E0E0E0">
                     <Button Command="{Binding ShowAllDatesCommand}"
-                            Style="{StaticResource LinkButtonStyle}"
+                            AutomationProperties.AutomationId="Dates.ShowAll"
+                            Style="{StaticResource SidebarLinkButtonStyle}"
                             FontSize="11"
                             ToolTip="Filter „Nur unerledigte“ aufheben und alle Tage zeigen">
                         <TextBlock Text="{Binding HiddenDatesLabel}" TextWrapping="Wrap"/>
                     </Button>
                 </Border>
-                <ListBox ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
+                <ListBox x:Name="DateListBox"
+                         ItemsSource="{Binding Source={StaticResource DatesGrouped}}"
                          SelectedItem="{Binding SelectedDateItem}"
+                         AutomationProperties.AutomationId="Dates.List"
                          BorderThickness="0" Background="Transparent"
                          ItemContainerStyle="{StaticResource DateListBoxItemStyle}">
                     <ListBox.GroupStyle>
@@ -668,11 +752,14 @@
                 </ListBox>
             </DockPanel>
 
+            <!-- Doppelklick passt die Spalte links an ihren breitesten Inhalt an, wie in Excel (#96). -->
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
-                          Background="#E0E0E0"/>
+                          Background="#E0E0E0"
+                          ToolTip="Ziehen zum Verbreitern – Doppelklick: an den Inhalt anpassen"
+                          MouseDoubleClick="DateSplitter_MouseDoubleClick"/>
 
             <!-- === CENTER: Entry list === -->
-            <DockPanel Grid.Column="2" Background="White">
+            <DockPanel x:Name="EntryPane" Grid.Column="2" Background="White">
                 <Border DockPanel.Dock="Top" Background="#E63123" Padding="12,10">
                     <TextBlock Text="{Binding SelectedDateDisplay}" Foreground="White" FontWeight="SemiBold"/>
                 </Border>
@@ -687,14 +774,15 @@
                                        Width="64"/>
                             <Button Content="{Binding SortByIdButtonLabel}"
                                     Command="{Binding SortByIdCommand}"
+                                    AutomationProperties.AutomationId="Entries.SortById"
                                     ToolTip="Nach Nummer sortieren">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource SortRailButtonStyle}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsSortById}" Value="True">
-                                                <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-                                                <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
+                                                <Setter Property="Background" Value="{StaticResource PrimaryBgBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBgBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource PrimaryFgBrush}"/>
                                                 <Setter Property="FontWeight" Value="SemiBold"/>
                                             </DataTrigger>
                                             <MultiDataTrigger>
@@ -702,9 +790,9 @@
                                                     <Condition Binding="{Binding IsSortById}" Value="True"/>
                                                     <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
                                                 </MultiDataTrigger.Conditions>
-                                                <Setter Property="Background" Value="{StaticResource AccentDarkBrush}"/>
-                                                <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
+                                                <Setter Property="Background" Value="{StaticResource PrimaryHoverBgBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryHoverBgBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource PrimaryFgBrush}"/>
                                             </MultiDataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -712,6 +800,7 @@
                             </Button>
                             <Button Content="{Binding SortByProjectButtonLabel}"
                                     Command="{Binding SortByProjectCommand}"
+                                    AutomationProperties.AutomationId="Entries.SortByProject"
                                     Margin="0,0,0,0"
                                     ToolTip="Nach Projekt sortieren">
                                 <Button.Style>
@@ -719,9 +808,9 @@
                                         <Setter Property="Margin" Value="0"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsSortByProject}" Value="True">
-                                                <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-                                                <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
+                                                <Setter Property="Background" Value="{StaticResource PrimaryBgBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBgBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource PrimaryFgBrush}"/>
                                                 <Setter Property="FontWeight" Value="SemiBold"/>
                                             </DataTrigger>
                                             <MultiDataTrigger>
@@ -729,9 +818,9 @@
                                                     <Condition Binding="{Binding IsSortByProject}" Value="True"/>
                                                     <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
                                                 </MultiDataTrigger.Conditions>
-                                                <Setter Property="Background" Value="{StaticResource AccentDarkBrush}"/>
-                                                <Setter Property="BorderBrush" Value="{StaticResource AccentDeepBrush}"/>
-                                                <Setter Property="Foreground" Value="White"/>
+                                                <Setter Property="Background" Value="{StaticResource PrimaryHoverBgBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryHoverBgBrush}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource PrimaryFgBrush}"/>
                                             </MultiDataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -744,6 +833,7 @@
                                        Width="64"/>
                             <CheckBox Content="Nur unerledigte"
                                       IsChecked="{Binding ShowOnlyPending}"
+                                      AutomationProperties.AutomationId="Entries.OnlyOpen"
                                       VerticalAlignment="Center"
                                       FontSize="11"/>
                         </StackPanel>
@@ -757,6 +847,7 @@
                         <Button Content="🎙 Diktieren" Command="{Binding StartDictationCommand}"
                                 Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVis}}"
                                 Style="{StaticResource ActionButtonStyle}"
+                                AutomationProperties.AutomationId="Entries.Dictate"
                                 HorizontalAlignment="Stretch"
                                 HorizontalContentAlignment="Center"
                                 ToolTip="Mikrofon-Aufnahme starten"/>
@@ -766,6 +857,7 @@
                             <Button Content="■ Stop" Command="{Binding StopDictationCommand}"
                                     DockPanel.Dock="Right"
                                     Style="{StaticResource ActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Entries.StopDictation"
                                     ToolTip="Aufnahme beenden und transkribieren"/>
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0">
                                 <Ellipse Width="8" Height="8"
@@ -806,27 +898,68 @@
                 <ListBox x:Name="EntryListBox"
                          ItemsSource="{Binding Entries}"
                          SelectedItem="{Binding SelectedEntry}"
+                         AutomationProperties.AutomationId="Entries.List"
+                         IsEnabled="{Binding IsDeletingEntry, Converter={StaticResource InverseBool}}"
                          BorderThickness="0" Background="Transparent"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="False"
                          PreviewMouseLeftButtonDown="EntryListBox_PreviewMouseLeftButtonDown"
                          PreviewMouseMove="EntryListBox_PreviewMouseMove">
+                    <!-- Löschen (#55): Entf nur hier, nicht fensterweit — sonst löschte die Taste
+                         beim Bearbeiten des Transkripts einen Eintrag. Entf löscht die Auswahl. -->
+                    <ListBox.InputBindings>
+                        <KeyBinding Key="Delete" Command="{Binding DeleteEntryCommand}"/>
+                    </ListBox.InputBindings>
+                    <!-- Das Menü hängt an der Zeile und übergibt genau diese Zeile — nicht die
+                         Auswahl: ob ein Rechtsklick eine Zeile vorher auswählt, ist kein Vertrag,
+                         und dann würde ein anderer Eintrag gelöscht (Codex, PR #98). Tag trägt
+                         das MainViewModel hinüber, weil das Menü nicht im visuellen Baum liegt. -->
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource ListRowItemStyle}">
+                            <Setter Property="Tag"
+                                    Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}"/>
+                            <Setter Property="ContextMenu">
+                                <Setter.Value>
+                                    <ContextMenu>
+                                        <MenuItem Header="Eintrag löschen…" InputGestureText="Entf"
+                                                  Command="{Binding PlacementTarget.Tag.DeleteEntryCommand,
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  CommandParameter="{Binding PlacementTarget.DataContext,
+                                                                     RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  AutomationProperties.AutomationId="Entries.Delete">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                           FontSize="13" VerticalAlignment="Center"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </ContextMenu>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="4,2">
                                 <DockPanel>
-                                    <TextBlock DockPanel.Dock="Right" Text="✓" Foreground="#27AE60" FontSize="12"
-                                               FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"
+                                    <!-- Rechts angedockt; sichtbar bleibt der Haken nur, weil die Liste
+                                         nicht waagerecht scrollt und der Titel sonst gekürzt wird (#96). -->
+                                    <TextBlock DockPanel.Dock="Right" Text="✓" Foreground="{StaticResource ListItemDoneFgBrush}"
+                                               FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="4,0,0,0"
+                                               ToolTip="Erledigt"
                                                Visibility="{Binding IsDone, Converter={StaticResource BoolToVis}}"/>
-                                    <TextBlock TextTrimming="CharacterEllipsis" FontSize="13">
+                                    <TextBlock TextTrimming="CharacterEllipsis" FontSize="13"
+                                               ToolTip="{Binding Title, Mode=OneWay}">
                                         <Run Text="{Binding SequenceNumber, StringFormat='{}{0:D3}', Mode=OneWay}"
-                                             FontStyle="Italic" Foreground="#AAAAAA"/>
+                                             FontStyle="Italic" Foreground="{StaticResource ListItemMetaFgBrush}"/>
                                         <Run Text=" "/>
                                         <Run Text="{Binding ProjectName, Mode=OneWay}"
-                                             FontWeight="Bold" Foreground="#C0392B"/>
+                                             FontWeight="Bold" Foreground="{StaticResource ListItemProjectFgBrush}"/>
                                         <Run Text=" — "/>
                                         <Run Text="{Binding Title, Mode=OneWay}"/>
                                     </TextBlock>
                                 </DockPanel>
-                                <TextBlock FontSize="10" Foreground="#888">
+                                <TextBlock FontSize="10" Foreground="{StaticResource ListItemMetaFgBrush}"
+                                           TextTrimming="CharacterEllipsis">
                                     <Run Text="{Binding TypeBadge, Mode=OneWay}"/>
                                     <Run Text=" · "/>
                                     <Run Text="{Binding FormattedDuration, Mode=OneWay}"/>
@@ -838,7 +971,9 @@
             </DockPanel>
 
             <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
-                          Background="#E0E0E0"/>
+                          Background="#E0E0E0"
+                          ToolTip="Ziehen zum Verbreitern – Doppelklick: an den Inhalt anpassen"
+                          MouseDoubleClick="EntrySplitter_MouseDoubleClick"/>
 
             <!-- Toast tray — stacked top-right over the right pane -->
             <ItemsControl Grid.Column="4" Panel.ZIndex="8"
@@ -856,12 +991,14 @@
             <DockPanel Grid.Column="4" Background="White">
                 <!-- Action toolbar -->
                 <Border DockPanel.Dock="Bottom" Padding="8,6" BorderThickness="0,1,0,0"
-                        BorderBrush="#E0E0E0">
+                        BorderBrush="#E0E0E0"
+                        IsEnabled="{Binding IsDeletingEntry, Converter={StaticResource InverseBool}}">
                     <StackPanel Orientation="Horizontal">
                         <StackPanel Orientation="Horizontal">
                             <Button Content="HTML"
                                     Command="{Binding Detail.GenerateHtmlCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.Html"
                                     BorderThickness="1,1,0,1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
                                     Tag="HTML-Datei erstellen und öffnen">
@@ -876,6 +1013,7 @@
                             <Button Content="PDF"
                                     Command="{Binding Detail.GeneratePdfCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.Pdf"
                                     BorderThickness="1,1,0,1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
                                     Tag="PDF-Datei erstellen und öffnen">
@@ -883,20 +1021,29 @@
                                     <ContextMenu>
                                         <MenuItem Header="PDF in Zwischenablage kopieren"
                                                   Command="{Binding PlacementTarget.DataContext.Detail.CopyPdfCommand,
-                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                            RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  AutomationProperties.AutomationId="Detail.CopyPdf"/>
                                     </ContextMenu>
                                 </Button.ContextMenu>
                             </Button>
-                            <Button Content="E-Mail"
-                                    Command="{Binding Detail.CopyEmailCommand}"
+                            <Button Content="Aufgaben"
+                                    Command="{Binding Detail.OpenTaskMailCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.TaskMail"
                                     BorderThickness="1,1,0,1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
-                                    Tag="E-Mail-Text in Zwischenablage kopieren">
+                                    Tag="Interne Aufgaben-Mail in Outlook öffnen – mit PDF im Anhang"/>
+                            <Button Content="E-Mail"
+                                    Command="{Binding Detail.OpenEmailCommand}"
+                                    Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.Email"
+                                    BorderThickness="1,1,0,1"
+                                    IsEnabled="{Binding Detail.CanUseDetailActions}"
+                                    Tag="Externe E-Mail in Outlook öffnen – ohne Anhang">
                                 <Button.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="In Outlook öffnen"
-                                                  Command="{Binding PlacementTarget.DataContext.Detail.OpenInOutlookCommand,
+                                        <MenuItem Header="E-Mail-Text in Zwischenablage kopieren"
+                                                  Command="{Binding PlacementTarget.DataContext.Detail.CopyEmailCommand,
                                                             RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                                     </ContextMenu>
                                 </Button.ContextMenu>
@@ -904,6 +1051,7 @@
                             <Button Content="Kopieren"
                                     Command="{Binding Detail.CopyCommand}"
                                     Style="{StaticResource DetailExportActionButtonStyle}"
+                                    AutomationProperties.AutomationId="Detail.Copy"
                                     BorderThickness="1"
                                     IsEnabled="{Binding Detail.CanUseDetailActions}"
                                     Tag="Alle sichtbaren Sektionen in die Zwischenablage kopieren"/>
@@ -912,6 +1060,7 @@
                         <Button Content="↻ Neu generieren"
                                 Command="{Binding Detail.ReprocessCommand}"
                                 Style="{StaticResource DetailReprocessActionButtonStyle}"
+                                AutomationProperties.AutomationId="Detail.Reprocess"
                                 IsEnabled="{Binding Detail.CanUseDetailActions}"
                                 Tag="GPT-Zusammenfassungen neu generieren">
                             <Button.ContextMenu>
@@ -919,31 +1068,38 @@
                                     <MenuItem Header="Ausführliche Zusammenfassung neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.proseSummary"/>
+                                              CommandParameter="builtin.proseSummary"
+                                              AutomationProperties.AutomationId="Generate.builtin.proseSummary"/>
                                     <MenuItem Header="Zusammenfassung neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.longSummary"/>
+                                              CommandParameter="builtin.longSummary"
+                                              AutomationProperties.AutomationId="Generate.builtin.longSummary"/>
                                     <MenuItem Header="Aufgaben neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.taskList"/>
+                                              CommandParameter="builtin.taskList"
+                                              AutomationProperties.AutomationId="Generate.builtin.taskList"/>
                                     <MenuItem Header="Gesprächsnotiz neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.conversationNote"/>
+                                              CommandParameter="builtin.conversationNote"
+                                              AutomationProperties.AutomationId="Generate.builtin.conversationNote"/>
                                     <MenuItem Header="E-Mail neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.emailText"/>
+                                              CommandParameter="builtin.emailText"
+                                              AutomationProperties.AutomationId="Generate.builtin.emailText"/>
                                     <MenuItem Header="Stundenzettel neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.stundenzettel"/>
+                                              CommandParameter="builtin.stundenzettel"
+                                              AutomationProperties.AutomationId="Generate.builtin.stundenzettel"/>
                                     <MenuItem Header="Analog neu generieren"
                                               Command="{Binding PlacementTarget.DataContext.Detail.GenerateSectionCommand,
                                                         RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                              CommandParameter="builtin.analog"/>
+                                              CommandParameter="builtin.analog"
+                                              AutomationProperties.AutomationId="Generate.builtin.analog"/>
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>
@@ -970,8 +1126,10 @@
                         </StackPanel>
                     </Grid>
 
-                    <!-- Detail content — filled -->
-                    <Grid Visibility="{Binding Detail.HasEntry, Converter={StaticResource BoolToVis}}">
+                    <!-- Detail content — filled. Locked while an entry is being deleted, so no
+                         save or export can reach it half way through (#55). -->
+                    <Grid Visibility="{Binding Detail.HasEntry, Converter={StaticResource BoolToVis}}"
+                          IsEnabled="{Binding IsDeletingEntry, Converter={StaticResource InverseBool}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
@@ -984,9 +1142,17 @@
                                 BorderBrush="{StaticResource BorderMidBrush}"
                                 BorderThickness="0,0,0,1"
                                 Padding="24,10">
-                            <Button HorizontalAlignment="Left"
-                                    Command="{Binding Detail.ToggleDoneCommand}"
-                                    Style="{StaticResource DonePinnedButtonStyle}"/>
+                            <!-- Löschen (#55) sitzt hier, weil die Leiste immer sichtbar ist — anders
+                                 als der rechte Rand der Eintragsliste, der meist abgeschnitten ist (#96). -->
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Button Command="{Binding Detail.ToggleDoneCommand}"
+                                        AutomationProperties.AutomationId="Detail.ToggleDone"
+                                        Style="{StaticResource DonePinnedButtonStyle}"/>
+                                <Button Margin="16,0,0,0"
+                                        Command="{Binding DeleteEntryCommand}"
+                                        AutomationProperties.AutomationId="Detail.Delete"
+                                        Style="{StaticResource DeleteEntryButtonStyle}"/>
+                            </StackPanel>
                         </Border>
 
                         <ScrollViewer Grid.Row="1" x:Name="DetailScrollViewer"
@@ -1025,9 +1191,10 @@
                         <!-- Abstract — always shown when present, subtle highlight -->
                         <StackPanel Visibility="{Binding Detail.Entry.Abstract, Converter={StaticResource NullToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static vm:EntryDetailViewModel.AbstractSectionId}">
                                 <TextBlock Text="Abstract" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </controls:SectionHeaderControl>
                             <Border Background="#FFF5F4" BorderBrush="#FFDBD8" BorderThickness="0,0,0,2"
                                     CornerRadius="2" Padding="12,10">
                                 <!-- Ebenfalls Markdown: das Modell setzt hier Fettungen,
@@ -1048,9 +1215,10 @@
                         <!-- Long Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowLongSummarySection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.LongSummary}">
                                 <TextBlock Text="Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayLongSummary, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1066,9 +1234,10 @@
                         <!-- Prose Summary -->
                         <StackPanel Visibility="{Binding Detail.ShowProseSummarySection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.ProseSummary}">
                                 <TextBlock Text="Ausführliche Zusammenfassung" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </controls:SectionHeaderControl>
                             <!-- Wie alle anderen erzeugten Abschnitte als Markdown gerendert.
                                  Stand hier bis v1.4.0 als roher TextBox: mit den schwaecheren
                                  Modellen kam ohnehin Fliesstext, mit gpt-5.6-luna standen
@@ -1088,9 +1257,10 @@
                         <!-- Task list -->
                         <StackPanel Visibility="{Binding Detail.ShowTaskListSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.TaskList}">
                                 <TextBlock Text="Aufgaben" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayTaskList, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1106,9 +1276,10 @@
                         <!-- Conversation note -->
                         <StackPanel Visibility="{Binding Detail.ShowConversationNoteSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.ConversationNote}">
                                 <TextBlock Text="Gesprächsnotiz" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayConversationNote, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1124,9 +1295,10 @@
                         <!-- Stundenzettel -->
                         <StackPanel Visibility="{Binding Detail.ShowStundenzettelSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.Stundenzettel}">
                                 <TextBlock Text="Stundenzettel" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayStundenzettelText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1142,9 +1314,10 @@
                         <!-- Analog -->
                         <StackPanel Visibility="{Binding Detail.ShowAnalogSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.Analog}">
                                 <TextBlock Text="Analog" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayAnalogText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1160,9 +1333,10 @@
                         <!-- E-Mail Text -->
                         <StackPanel Visibility="{Binding Detail.ShowEmailSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
-                            <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                            <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
+                                            Tag="{x:Static settings:BuiltInSections.EmailText}">
                                 <TextBlock Text="E-Mail" Style="{StaticResource SectionHeaderStyle}"/>
-                            </Border>
+                            </controls:SectionHeaderControl>
                             <FlowDocumentScrollViewer
                                 Document="{Binding Detail.DisplayEmailText, Converter={StaticResource MdToDoc}}"
                                 VerticalScrollBarVisibility="Disabled"
@@ -1185,7 +1359,8 @@
                                 <DataTemplate>
                                     <StackPanel Margin="0,14,0,22"
                                                 Visibility="{Binding IsVisible, Converter={StaticResource BoolToVis}}">
-                                        <Border Style="{StaticResource SectionHeaderBorderStyle}">
+                                        <controls:SectionHeaderControl Style="{StaticResource SectionHeaderControlStyle}"
+                                                        Tag="{Binding Id}">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="{Binding Name}" Style="{StaticResource SectionHeaderStyle}"/>
                                                 <TextBlock Text=" · Nicht mehr konfiguriert"
@@ -1194,7 +1369,7 @@
                                                            ToolTip="Diese Vorlage wurde entfernt. Der erzeugte Text bleibt erhalten."
                                                            Visibility="{Binding IsOrphaned, Converter={StaticResource BoolToVis}}"/>
                                             </StackPanel>
-                                        </Border>
+                                        </controls:SectionHeaderControl>
 
                                         <FlowDocumentScrollViewer
                                             Document="{Binding Text, Converter={StaticResource MdToDoc}}"
@@ -1215,6 +1390,7 @@
                                                     Command="{Binding DataContext.Detail.GenerateSectionCommand,
                                                               RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding Id}"
+                                                    AutomationProperties.AutomationId="{Binding Id, StringFormat=Generate.{0}}"
                                                     IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}"
                                                     ToolTip="Diesen Abschnitt jetzt erzeugen"/>
                                             <TextBlock Text="wird generiert…"
@@ -1231,38 +1407,56 @@
                         <StackPanel Visibility="{Binding Detail.ShowTranscriptSection, Converter={StaticResource BoolToVis}}"
                                     Margin="0,14,0,22">
                             <!-- Header row: label + edit button -->
-                            <DockPanel Margin="0,0,0,8">
-                                <Border DockPanel.Dock="Left"
-                                        BorderThickness="0,0,0,1"
-                                        BorderBrush="{StaticResource AccentLineBrush}"
-                                        HorizontalAlignment="Left"
-                                        Padding="0,0,24,4">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
-                                        <TextBlock Text=" (bearbeitet)"
-                                                   FontSize="11" Foreground="#999" FontStyle="Italic"
-                                                   VerticalAlignment="Bottom" Margin="6,0,0,1"
-                                                   Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
-                                    </StackPanel>
-                                </Border>
+                            <!-- Die Knöpfe stehen vor der Überschrift, weil ein DockPanel in
+                                 Reihenfolge vermisst: so bekommen sie ihre Breite zuerst und werden
+                                 bei schmalem Fenster nicht abgeschnitten (Codex, PR #95). -->
+                            <DockPanel Margin="0,0,0,8" LastChildFill="False">
+                                <!-- Kopiersymbol in derselben rechten Spalte wie an den anderen
+                                     Abschnitten (#56), der Bearbeiten-Knopf links daneben. Die
+                                     Kopfzeile bleibt eigen, weil sie den Bearbeiten-Knopf trägt. -->
+                                <Button DockPanel.Dock="Right"
+                                        Style="{StaticResource SectionCopyButtonStyle}"
+                                        CommandParameter="{x:Static vm:EntryDetailViewModel.TranscriptSectionId}"
+                                        AutomationProperties.AutomationId="Copy.transcript"/>
                                 <Button DockPanel.Dock="Right"
                                         Content="✏"
                                         FontSize="13"
-                                        Padding="6,2"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Cursor="Hand"
+                                        Style="{StaticResource QuietButtonStyle}"
+                                        AutomationProperties.Name="Transkript bearbeiten"
+                                        AutomationProperties.AutomationId="Detail.EditTranscript"
                                         ToolTip="Transkript bearbeiten"
                                         HorizontalAlignment="Right"
                                         VerticalAlignment="Center"
                                         Command="{Binding Detail.EditTranscriptCommand}"
                                         Visibility="{Binding Detail.IsNotEditingTranscript, Converter={StaticResource BoolToVis}}"
                                         IsEnabled="{Binding Detail.HasEntry}"/>
+                                <!-- Nur Träger der Id Section.transcript (#111): ein Border hat keinen
+                                     Automation-Peer, SectionHeaderControl schon. Ohne Vorlage und
+                                     ohne Fokus — sichtbar bleibt allein der Border darin. -->
+                                <controls:SectionHeaderControl DockPanel.Dock="Left"
+                                                               HorizontalAlignment="Left"
+                                                               Focusable="False"
+                                                               IsTabStop="False"
+                                                               AutomationProperties.AutomationId="Section.transcript">
+                                    <Border BorderThickness="0,0,0,1"
+                                            BorderBrush="{StaticResource AccentLineBrush}"
+                                            HorizontalAlignment="Left"
+                                            Padding="0,0,24,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Transkript" Style="{StaticResource SectionHeaderStyle}"/>
+                                            <TextBlock Text=" (bearbeitet)"
+                                                       FontSize="11" Foreground="#999" FontStyle="Italic"
+                                                       VerticalAlignment="Bottom" Margin="6,0,0,1"
+                                                       Visibility="{Binding Detail.HasTranscriptBeenEdited, Converter={StaticResource BoolToVis}}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </controls:SectionHeaderControl>
                             </DockPanel>
 
                             <!-- Read-only transcript (shown when NOT editing) -->
                             <TextBox Text="{Binding Detail.DisplayTranscript, Mode=OneWay}"
                                      Style="{StaticResource ContentTextStyle}"
+                                     AutomationProperties.AutomationId="Detail.TranscriptView"
                                      TextWrapping="Wrap" Foreground="#555"
                                      Visibility="{Binding Detail.IsNotEditingTranscript, Converter={StaticResource BoolToVis}}"/>
 
@@ -1274,6 +1468,7 @@
                                     Padding="8"
                                     Background="#FAFAFA">
                                 <TextBox Text="{Binding Detail.EditableTranscriptText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         AutomationProperties.AutomationId="Detail.TranscriptEditor"
                                          TextWrapping="Wrap"
                                          AcceptsReturn="True"
                                          AcceptsTab="False"
@@ -1292,11 +1487,13 @@
                                 <Button Content="↻ Neu generieren"
                                         Command="{Binding Detail.RegenerateFromTranscriptCommand}"
                                         Style="{StaticResource ActionButtonStyle}"
+                                        AutomationProperties.AutomationId="Detail.RegenerateFromTranscript"
                                         IsEnabled="{Binding Detail.CanUseDetailActions}"
                                         ToolTip="Alle KI-Abschnitte aus dem bearbeiteten Transkript neu generieren"/>
                                 <Button Content="Abbrechen"
                                         Command="{Binding Detail.CancelEditTranscriptCommand}"
                                         Style="{StaticResource ActionButtonStyle}"
+                                        AutomationProperties.AutomationId="Detail.CancelEditTranscript"
                                         Margin="8,0,0,0"/>
                             </StackPanel>
                         </StackPanel>
@@ -1330,11 +1527,14 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,10,0" VerticalAlignment="Center">
                     <Button Content="−" Command="{Binding Detail.ZoomOutCommand}"
+                            AutomationProperties.AutomationId="Detail.ZoomOut"
                             ToolTip="Verkleinern (Strg+Minus)" Style="{StaticResource StatusBarZoomButtonStyle}"/>
                     <TextBlock Text="{Binding Detail.ZoomText}" MinWidth="38" TextAlignment="Center"
+                               AutomationProperties.AutomationId="Detail.ZoomText"
                                FontSize="11" Foreground="#666" VerticalAlignment="Center"
                                ToolTip="Zoom zurücksetzen: Strg+0 · Mausrad: Strg+Scrollen"/>
                     <Button Content="+" Command="{Binding Detail.ZoomInCommand}"
+                            AutomationProperties.AutomationId="Detail.ZoomIn"
                             ToolTip="Vergrößern (Strg+Plus)" Style="{StaticResource StatusBarZoomButtonStyle}"/>
                 </StackPanel>
             </Grid>

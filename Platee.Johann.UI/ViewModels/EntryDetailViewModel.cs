@@ -5,12 +5,21 @@ using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Platee.Johann.Application.Interfaces;
+using Platee.Johann.Application.Mail;
 using Platee.Johann.Application.Processing;
+using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Services;
 using Platee.Johann.Domain.Entities;
 
 public sealed partial class EntryDetailViewModel : ObservableObject
 {
+    /// <summary>Section id of the abstract for <see cref="CopySectionCommand"/> (#56).</summary>
+    public const string AbstractSectionId = "abstract";
+
+    /// <summary>Section id of the transcript for <see cref="CopySectionCommand"/> (#56).</summary>
+    public const string TranscriptSectionId = "transcript";
+
     private readonly IEnumerable<IEntryRenderer> renderers;
     private readonly IEntryProcessor? processor;
     private readonly IEntryRepository? repository;
@@ -19,6 +28,10 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     private readonly Func<string, bool, ProcessLogItem>? addLog;
     private readonly Action<ProcessLogItem, string>? completeLog;
     private readonly Action<string>? updateStatus;
+    private readonly IMailComposer? mailComposer;
+
+    /// <summary>Reads the task-mail intro at click time, so a changed setting applies at once.</summary>
+    private readonly Func<string> taskMailIntro;
 
     /// <summary>
     /// Resolves the current section catalog. A delegate rather than a snapshot so a
@@ -52,7 +65,11 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     public string DisplayProseSummary => this.Entry?.ProseSummary ?? "—";
 
-    public string DisplayTranscript => this.Entry?.EffectiveTranscript ?? "—";
+    // One sentence per line for reading (#112). Display only: editing and „Kopieren“ use the
+    // stored text, so no artificial break ever reaches EditedTranscript or the clipboard.
+    public string DisplayTranscript => this.Entry?.EffectiveTranscript is { } transcript
+        ? Platee.Johann.Domain.Services.SentenceLines.Split(transcript)
+        : "—";
 
     public bool IsNotEditingTranscript => !IsEditingTranscript;
 
@@ -101,6 +118,24 @@ public sealed partial class EntryDetailViewModel : ObservableObject
 
     public bool HasEntry => this.Entry is not null;
 
+    /// <summary>
+    /// Gets a value indicating whether a command that reads or writes the entry is still
+    /// running. Deleting then would race it (#55): an export writes a file named after the
+    /// entry after the others have gone to the trash. Saves are refused by the processor's
+    /// guard as well; checking here spares the user a confirmation that is then refused.
+    /// </summary>
+    public bool IsBusy =>
+        this.ToggleDoneCommand.IsRunning
+        || this.ReprocessCommand.IsRunning
+        || this.GenerateSectionCommand.IsRunning
+        || this.RegenerateFromTranscriptCommand.IsRunning
+        || this.GeneratePdfCommand.IsRunning
+        || this.GenerateHtmlCommand.IsRunning
+        || this.CopyPdfCommand.IsRunning
+        || this.CopyHtmlCommand.IsRunning
+        || this.OpenTaskMailCommand.IsRunning
+        || this.OpenEmailCommand.IsRunning;
+
     public bool HasNoEntry => this.Entry is null;
 
     public bool IsAudio => this.Entry?.SourceType == "audio";
@@ -143,9 +178,13 @@ public sealed partial class EntryDetailViewModel : ObservableObject
                                 Func<string, bool, ProcessLogItem>? addLog = null,
                                 Action<ProcessLogItem, string>? completeLog = null,
                                 Action<string>? updateStatus = null,
-                                Func<IReadOnlyList<SectionDescriptor>>? sectionCatalog = null)
+                                Func<IReadOnlyList<SectionDescriptor>>? sectionCatalog = null,
+                                IMailComposer? mailComposer = null,
+                                Func<string>? taskMailIntro = null)
     {
         this.sectionCatalog = sectionCatalog ?? (static () => []);
+        this.mailComposer = mailComposer;
+        this.taskMailIntro = taskMailIntro ?? (static () => MailDraftBuilder.DefaultTaskMailIntro);
         this.renderers = renderers;
         this.outputRoot = outputRoot;
         this.processor = processor;
@@ -191,8 +230,10 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         GeneratePdfCommand.NotifyCanExecuteChanged();
         GenerateHtmlCommand.NotifyCanExecuteChanged();
         CopyEmailCommand.NotifyCanExecuteChanged();
-        OpenInOutlookCommand.NotifyCanExecuteChanged();
+        OpenEmailCommand.NotifyCanExecuteChanged();
+        OpenTaskMailCommand.NotifyCanExecuteChanged();
         CopyCommand.NotifyCanExecuteChanged();
+        CopySectionCommand.NotifyCanExecuteChanged();
         ReprocessCommand.NotifyCanExecuteChanged();
         CopyPdfCommand.NotifyCanExecuteChanged();
         CopyHtmlCommand.NotifyCanExecuteChanged();
@@ -282,15 +323,36 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(HasEntry))]
     private async Task ToggleDoneAsync()
     {
-        if (this.Entry is null || this.repository is null)
+        if (this.Entry is null || (this.processor is null && this.repository is null))
         {
             return;
         }
 
-        var updated = this.Entry with { IsDone = !this.Entry.IsDone };
-        await this.repository.SaveAsync(updated);
+        Entry updated;
+        try
+        {
+            // Through the processor, so the deletion guard covers this save as well (#55);
+            // the repository only when no processor is wired.
+            updated = this.processor is not null
+                ? await this.processor.SetDoneAsync(this.Entry, !this.Entry.IsDone)
+                : await SaveDirectlyAsync(this.repository!, this.Entry with { IsDone = !this.Entry.IsDone });
+        }
+        catch (Exception ex)
+        {
+            // Never let it escape the command: an unhandled exception here ends the app.
+            this.addLog?.Invoke($"Fehler: „Erledigt“ wurde nicht gespeichert: {ex.Message}", false);
+            return;
+        }
+
         this.Entry = updated;
         this.EntryStatusChanged?.Invoke(updated);
+
+        static async Task<Entry> SaveDirectlyAsync(IEntryRepository repository, Entry entry)
+        {
+            // Update, never Save: it must not recreate an entry deleted meanwhile (#55).
+            await repository.UpdateAsync(entry);
+            return entry;
+        }
     }
 
     /// <summary>
@@ -308,7 +370,9 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         var text = !string.IsNullOrWhiteSpace(this.Entry.EmailText)
             ? this.Entry.EmailText
             : BuildBasicEmailText(this.Entry);
-        System.Windows.Clipboard.SetText(text);
+
+        // The mail text is markdown (#73); pasted as plain text it would show literal asterisks.
+        System.Windows.Clipboard.SetText(InlineMarkdown.ToPlainText(text));
         this.addLog?.Invoke("✓ E-Mail in Zwischenablage kopiert!", false);
     }
 
@@ -316,27 +380,108 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     /// Opens the default mail client (Outlook) with subject and body pre-filled via mailto:.
     /// Subject is extracted from the "Betreff:" line of the email text when present.
     /// </summary>
+    /// <summary>
+    /// Opens the internal task mail (#57): intro from the settings, then the task section, with
+    /// the entry's PDF attached. A missing task section is generated first.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task completing once the mail is open or the reason was reported.</returns>
     [RelayCommand(CanExecute = nameof(HasEntry))]
-    private void OpenInOutlook()
+    private async Task OpenTaskMailAsync(CancellationToken ct)
     {
-        if (this.Entry is null)
+        var entry = await this.EnsureSectionAsync(BuiltInSections.TaskList, e => e.TaskList, ct);
+        if (entry is null)
         {
             return;
         }
 
-        var emailText = !string.IsNullOrWhiteSpace(this.Entry.EmailText) ? this.Entry.EmailText : BuildBasicEmailText(this.Entry);
-        var subject = Uri.EscapeDataString(ExtractBetreff(emailText) ?? $"{this.Entry.ProjectName}: {this.Entry.Title}");
-        var body = Uri.EscapeDataString(StripBetreffLine(emailText));
-        var mailto = $"mailto:?subject={subject}&body={body}";
+        if (string.IsNullOrWhiteSpace(entry.TaskList))
+        {
+            this.addLog?.Invoke("Keine Aufgaben vorhanden – die Aufgaben-Mail wurde nicht geöffnet.", false);
+            return;
+        }
+
+        // The intro announces the PDF, so a mail without it would mislead the recipients.
+        // RenderPdfForDragAsync already reported why it failed (or stayed quiet on cancel).
+        var pdf = await this.RenderPdfForDragAsync(entry, ct);
+        if (pdf is null)
+        {
+            if (!ct.IsCancellationRequested)
+            {
+                this.addLog?.Invoke("Aufgaben-Mail nicht geöffnet, weil das PDF fehlt – bitte erneut versuchen.", false);
+            }
+
+            return;
+        }
+
+        var draft = MailDraftBuilder.ForTasks(entry, this.taskMailIntro(), pdf);
+        await this.ComposeMailAsync(draft, "Aufgaben-Mail", ct);
+    }
+
+    /// <summary>
+    /// Opens the external, formal mail (#57) without attachment. A missing mail text is generated
+    /// first; without a processor a basic text from the summaries stands in.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task completing once the mail is open or the reason was reported.</returns>
+    [RelayCommand(CanExecute = nameof(HasEntry))]
+    private async Task OpenEmailAsync(CancellationToken ct)
+    {
+        var entry = await this.EnsureSectionAsync(BuiltInSections.EmailText, e => e.EmailText, ct);
+        if (entry is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(entry.EmailText))
+        {
+            entry = entry with { EmailText = BuildBasicEmailText(entry) };
+        }
+
+        await this.ComposeMailAsync(MailDraftBuilder.ForExternal(entry), "E-Mail", ct);
+    }
+
+    /// <summary>Generates <paramref name="sectionId"/> if its text is still empty.</summary>
+    private async Task<Entry?> EnsureSectionAsync(string sectionId, Func<Entry, string?> text, CancellationToken ct)
+    {
+        if (this.Entry is null)
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(text(this.Entry)) && this.processor is not null)
+        {
+            // Reports a failure itself and leaves the entry unchanged.
+            await this.GenerateSectionAsync(sectionId, ct);
+        }
+
+        return this.Entry;
+    }
+
+    private async Task ComposeMailAsync(MailDraft draft, string label, CancellationToken ct)
+    {
+        if (this.mailComposer is null)
+        {
+            this.addLog?.Invoke($"Fehler: {label} kann nicht geöffnet werden – kein Mailprogramm angebunden.", false);
+            return;
+        }
+
         try
         {
-            System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(mailto) { UseShellExecute = true });
-            this.addLog?.Invoke("✓ Outlook geöffnet.", false);
+            var result = await this.mailComposer.ComposeAsync(draft, ct);
+            var message = result.Channel == MailChannel.Outlook || draft.Attachments.Count == 0
+                ? $"✓ {label} in Outlook geöffnet."
+                : $"✓ {label} ohne Anhang geöffnet, weil Outlook nicht automatisiert werden kann. " +
+                  "Das PDF ist im Explorer markiert – bitte in die Mail ziehen.";
+            this.addLog?.Invoke(message, false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Closing Johann mid-way is not a failure worth reporting.
         }
         catch (Exception ex)
         {
-            this.addLog?.Invoke($"Fehler: {ex.Message}", false);
+            this.addLog?.Invoke($"Fehler: {label} konnte nicht geöffnet werden: {ex.Message}", false);
         }
     }
 
@@ -358,6 +503,39 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Copies one section with its heading — the copy icon in each section header (#56).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanCopySection))]
+    private void CopySection(string? sectionId)
+    {
+        var text = sectionId is null ? null : this.BuildSectionCopyText(sectionId);
+        if (text is null)
+        {
+            return;
+        }
+
+        System.Windows.Clipboard.SetText(text);
+        this.addLog?.Invoke($"✓ {this.CopyLabelOf(sectionId!)} kopiert!", false);
+    }
+
+    // Also hides the icon (see SectionCopyButtonStyle): a section "auf Knopfdruck" that was
+    // never generated has nothing to copy.
+    private bool CanCopySection(string? sectionId) =>
+        sectionId is not null && this.BuildSectionCopyText(sectionId) is not null;
+
+    // The transcript copy follows the edit buffer, so its icon must re-evaluate as it changes.
+    partial void OnIsEditingTranscriptChanged(bool value) => this.CopySectionCommand.NotifyCanExecuteChanged();
+
+    partial void OnEditableTranscriptTextChanged(string value) => this.CopySectionCommand.NotifyCanExecuteChanged();
+
+    private string CopyLabelOf(string sectionId) => sectionId switch
+    {
+        AbstractSectionId => "Abstract",
+        TranscriptSectionId => "Transkript",
+        _ => this.CustomSectionNames().TryGetValue(sectionId, out var name) ? name : this.DisplayNameOf(sectionId),
+    };
+
+    /// <summary>
     /// Builds the clipboard text. Split out from <see cref="Copy"/> so the section
     /// selection can be tested without an STA thread and a real clipboard.
     /// </summary>
@@ -375,61 +553,12 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         sb.AppendLine(new string('─', 60));
         sb.AppendLine();
 
-        // Abstract
-        if (!string.IsNullOrWhiteSpace(this.Entry.Abstract))
+        // Every section the detail view shows, in its order and under its visibility rules —
+        // built from the same pieces as the per-section copy icons (#56), so the two never
+        // disagree. Custom categories use the name rules of the HTML and PDF renderers.
+        foreach (var section in this.CopyParts(visibleOnly: true))
         {
-            sb.AppendLine("ABSTRACT");
-            sb.AppendLine(this.Entry.Abstract);
-            sb.AppendLine();
-        }
-
-        // TaskList (Aufgabe)
-        if (!string.IsNullOrWhiteSpace(this.Entry.TaskList))
-        {
-            sb.AppendLine("AUFGABEN");
-            sb.AppendLine(this.Entry.TaskList);
-            sb.AppendLine();
-        }
-
-        // ConversationNote (Gesprächsnotiz)
-        if (!string.IsNullOrWhiteSpace(this.Entry.ConversationNote))
-        {
-            sb.AppendLine("GESPRÄCHSNOTIZ");
-            sb.AppendLine(this.Entry.ConversationNote);
-            sb.AppendLine();
-        }
-
-        // Zusammenfassung
-        if (!string.IsNullOrWhiteSpace(this.Entry.LongSummary))
-        {
-            sb.AppendLine("ZUSAMMENFASSUNG");
-            sb.AppendLine(this.Entry.LongSummary);
-            sb.AppendLine();
-        }
-
-        // Ausführliche Zusammenfassung
-        if (!string.IsNullOrWhiteSpace(this.Entry.ProseSummary))
-        {
-            sb.AppendLine("AUSFÜHRLICHE ZUSAMMENFASSUNG");
-            sb.AppendLine(this.Entry.ProseSummary);
-            sb.AppendLine();
-        }
-
-        // Custom categories — same name and visibility rules the HTML and PDF
-        // renderers use, so the clipboard never disagrees with the export.
-        var names = this.CustomSectionNames();
-        foreach (var (id, text) in this.OrderedCustomSections())
-        {
-            sb.AppendLine((names.TryGetValue(id, out var name) ? name : id).ToUpperInvariant());
-            sb.AppendLine(text);
-            sb.AppendLine();
-        }
-
-        // Transcript — only when checkbox is checked
-        if (this.sections.ShowTranscript && !string.IsNullOrWhiteSpace(this.Entry.EffectiveTranscript))
-        {
-            sb.AppendLine(this.Entry.EditedTranscript is not null ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT");
-            sb.AppendLine(this.Entry.EffectiveTranscript!);
+            sb.AppendLine(FormatCopyPart(section));
             sb.AppendLine();
         }
 
@@ -440,9 +569,79 @@ public sealed partial class EntryDetailViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Builds the clipboard text of one section, heading included (#56). Visibility is not
+    /// checked: the copy icon only exists on a section the detail view shows.
+    /// </summary>
+    internal string? BuildSectionCopyText(string sectionId)
+    {
+        var section = this.CopyParts(visibleOnly: false)
+            .FirstOrDefault(s => string.Equals(s.Id, sectionId, StringComparison.Ordinal));
+        return section is null ? null : FormatCopyPart(section);
+    }
+
+    private static string FormatCopyPart(CopyPart part) =>
+        part.Heading + Environment.NewLine + part.Body;
+
+    /// <summary>
+    /// The sections with text, in detail-view order: abstract, built-ins, custom categories,
+    /// transcript last. Generated sections are plain text — they carry markdown since #73
+    /// (PR #91); the transcript stays verbatim, it is the record of what was said.
+    /// </summary>
+    private IEnumerable<CopyPart> CopyParts(bool visibleOnly)
+    {
+        var entry = this.Entry;
+        if (entry is null)
+        {
+            yield break;
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.Abstract))
+        {
+            yield return new CopyPart(AbstractSectionId, "ABSTRACT", InlineMarkdown.ToPlainText(entry.Abstract));
+        }
+
+        (string Id, string? Text, bool Shown)[] builtIns =
+        [
+            (BuiltInSections.LongSummary, entry.LongSummary, this.sections.ShowLongSummary),
+            (BuiltInSections.ProseSummary, entry.ProseSummary, this.sections.ShowProseSummary),
+            (BuiltInSections.TaskList, entry.TaskList, this.sections.ShowTaskList),
+            (BuiltInSections.ConversationNote, entry.ConversationNote, this.sections.ShowConversationNote),
+            (BuiltInSections.Stundenzettel, entry.StundenzettelText, this.sections.ShowStundenzettelText),
+            (BuiltInSections.Analog, entry.AnalogText, this.sections.ShowAnalogText),
+            (BuiltInSections.EmailText, entry.EmailText, this.sections.ShowEmailText),
+        ];
+        foreach (var (id, text, shown) in builtIns)
+        {
+            if (!string.IsNullOrWhiteSpace(text) && (shown || !visibleOnly))
+            {
+                yield return new CopyPart(
+                    id, this.DisplayNameOf(id).ToUpperInvariant(), InlineMarkdown.ToPlainText(text));
+            }
+        }
+
+        var names = this.CustomSectionNames();
+        foreach (var (id, text) in this.OrderedCustomSections(visibleOnly))
+        {
+            var name = names.TryGetValue(id, out var recorded) ? recorded : id;
+            yield return new CopyPart(id, name.ToUpperInvariant(), InlineMarkdown.ToPlainText(text));
+        }
+
+        // While editing, the view shows the edit buffer — copy what the user sees, not the
+        // stored text (Codex, PR #95).
+        var transcript = this.IsEditingTranscript ? this.EditableTranscriptText : entry.EffectiveTranscript;
+        if ((this.sections.ShowTranscript || !visibleOnly) && !string.IsNullOrWhiteSpace(transcript))
+        {
+            var edited = entry.EditedTranscript is not null
+                || (this.IsEditingTranscript && !string.Equals(transcript, entry.Transcript, StringComparison.Ordinal));
+            var heading = edited ? "TRANSKRIPT (BEARBEITET)" : "ORIGINALTRANSKRIPT";
+            yield return new CopyPart(TranscriptSectionId, heading, transcript!);
+        }
+    }
+
+    /// <summary>
     /// The entry's non-empty custom sections that are currently ticked, in catalog order.
     /// </summary>
-    private IEnumerable<(string Id, string Text)> OrderedCustomSections()
+    private IEnumerable<(string Id, string Text)> OrderedCustomSections(bool visibleOnly)
     {
         if (this.Entry is null)
         {
@@ -454,13 +653,13 @@ public sealed partial class EntryDetailViewModel : ObservableObject
             .Select((d, i) => (d.Id, Index: i))
             .ToDictionary(x => x.Id, x => x.Index, StringComparer.Ordinal);
 
-        var visible = this.Entry.CustomSections
+        var sections = this.Entry.CustomSections
             .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
-            .Where(kv => !visibility.TryGetValue(kv.Key, out var shown) || shown)
+            .Where(kv => !visibleOnly || !visibility.TryGetValue(kv.Key, out var shown) || shown)
             .OrderBy(kv => order.TryGetValue(kv.Key, out var i) ? i : int.MaxValue)
             .ThenBy(kv => kv.Key, StringComparer.Ordinal);
 
-        foreach (var kv in visible)
+        foreach (var kv in sections)
         {
             yield return (kv.Key, kv.Value);
         }
@@ -901,45 +1100,7 @@ public sealed partial class EntryDetailViewModel : ObservableObject
         return sb.ToString();
     }
 
-    /// <summary>Removes the "Betreff: ..." line (and any immediately following blank line) from the body.</summary>
-    private static string StripBetreffLine(string emailText)
-    {
-        var lines = emailText.Split('\n').ToList();
-        var idx = lines.FindIndex(l => l.Trim().StartsWith("Betreff:", StringComparison.OrdinalIgnoreCase));
-        if (idx < 0)
-        {
-            return emailText;
-        }
-
-        lines.RemoveAt(idx);
-
-        // Also remove the blank line that typically follows the Betreff line
-        if (idx < lines.Count && string.IsNullOrWhiteSpace(lines[idx]))
-        {
-            lines.RemoveAt(idx);
-        }
-
-        return string.Join('\n', lines).TrimStart();
-    }
-
-    /// <summary>Returns the text after "Betreff:" from the first matching line, or null.</summary>
-    private static string? ExtractBetreff(string? emailText)
-    {
-        if (string.IsNullOrWhiteSpace(emailText))
-        {
-            return null;
-        }
-
-        foreach (var line in emailText.Split('\n'))
-        {
-            var t = line.Trim();
-            if (t.StartsWith("Betreff:", StringComparison.OrdinalIgnoreCase))
-            {
-                return t["Betreff:".Length..].Trim();
-            }
-        }
-
-        return null;
-    }
+    /// <summary>One copyable section: id as used by the copy icon, heading and plain text.</summary>
+    private sealed record CopyPart(string Id, string Heading, string Body);
 
 }

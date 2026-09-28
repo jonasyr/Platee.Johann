@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build and analyze
     runs-on: windows-latest
+    # A normal run takes ~4 min. Without a limit a hanging test held the runner for up to 6 h (PR #101).
+    timeout-minutes: 20
     steps:
       - name: Set up JDK 17
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
@@ -42,7 +44,36 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
-          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"jonasyr_Platee.Johann" /o:"gitray-org" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" /d:sonar.exclusions="**/.github/**,**/scripts/**,**/docs/**,**/bin/**,**/obj/**" /d:sonar.test.inclusions="**/Platee.Johann.Tests/**"
+          ${{ runner.temp }}\scanner\dotnet-sonarscanner begin /k:"jonasyr_Platee.Johann" /o:"gitray-org" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" /d:sonar.exclusions="**/.github/**,**/scripts/**,**/docs/**,**/bin/**,**/obj/**,**/Platee.Johann.UiTests/**,**/Platee.Johann.UiDriver/**,**/tools/ui-driver/**" /d:sonar.test.inclusions="**/Platee.Johann.Tests/**"
           dotnet build --no-incremental
-          dotnet test --no-build --collect:"XPlat Code Coverage" --results-directory TestResults -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # --blame-hang-timeout aborts a hanging test run and names the tests that were running.
+          dotnet test --no-build --blame-hang-timeout 5m --collect:"XPlat Code Coverage" --results-directory TestResults -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+          # PowerShell steps only fail on the LAST command's exit code, so failed tests used to pass the job.
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ${{ runner.temp }}\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+  ui-tests:
+    # FlaUI suite against the real EXE with an OpenAI stub (#111). Non-blocking until it has
+    # proven stable over several runs; then drop continue-on-error.
+    name: UI tests (FlaUI, non-blocking)
+    runs-on: windows-latest
+    timeout-minutes: 25
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Build and run UI tests
+        shell: powershell
+        run: |
+          dotnet build Platee.Johann.slnx
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test Platee.Johann.UiTests --no-build -p:RunUiTests=true --blame-hang-timeout 3m --results-directory TestResults
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload UI test artefacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ui-test-results
+          path: TestResults/

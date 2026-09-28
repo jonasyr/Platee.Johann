@@ -34,7 +34,10 @@
 Alle Tage mit Einträgen, neueste zuerst. Klick auf ein Datum filtert die Liste.
 
 **Mitte – Einträge des Tages**
-Nummer, Projektname und erste Wörter des Titels. Badge darunter zeigt den Typ.
+Nummer, Projektname und Titel, darunter Typ und Dauer; erledigte Einträge tragen rechts einen grünen Haken. Lange Titel enden mit „…“ – beim Darüberfahren erscheint der volle Titel. Oben lässt sich nach **Nr** oder **Projekt** sortieren (erneuter Klick kehrt die Reihenfolge um) und mit **Nur unerledigte** filtern; die Auswahl bleibt dabei erhalten.
+
+**Spaltenbreite**
+Die Trennlinien zwischen den Spalten lassen sich ziehen. Ein **Doppelklick auf eine Trennlinie** passt die Spalte links davon an ihren breitesten Inhalt an – wie in Excel.
 
 **Rechts – Detailansicht**
 Vollständiger Inhalt: alle KI-Abschnitte, Exportbuttons und das aufklappbare Transkript.
@@ -50,6 +53,12 @@ MP3 in `Dokumente\Johann\Eingang` legen – Johann erkennt die Datei automatisch
 ### Direkt diktieren (Mikrofon)
 
 **🎙 Diktieren**-Button in der Eintrags-Liste klicken, sprechen, dann **■ Stop** klicken. Johann transkribiert und erstellt die Zusammenfassung wie gewohnt. Erfordert ein angeschlossenes Mikrofon und einen konfigurierten API-Schlüssel.
+
+Scheitert die Verarbeitung – etwa ohne Internet –, geht die Aufnahme nicht verloren: Johann legt sie unter `output\_Diktate (nicht verarbeitet)` ab und nennt den Pfad in der Fehlermeldung. Von dort lässt sie sich später in den Eingangsordner legen.
+
+### Sehr lange Aufnahmen
+
+Die Transkription nimmt höchstens **25 MB** je Datei an – bei MP3 etwa 25 Minuten. Größere Aufnahmen lehnt Johann vor dem Hochladen mit einem Hinweis ab; bitte in kürzere Teile aufteilen und einzeln einlesen.
 
 ### Fortschritt verfolgen
 
@@ -108,17 +117,19 @@ unter **Vorlagen** ein; sie gelten nur für dich.
 
 Die Checkbox-Vorauswahl links richtet sich nach dem Typ und kann jederzeit angepasst werden.
 
+Neben jeder Abschnittsüberschrift sitzt ein **Kopiersymbol**: Es kopiert genau diesen Abschnitt samt Überschrift in die Zwischenablage – auch das Transkript.
+
 | Abschnitt | Inhalt | Standard aktiv bei |
 |---|---|---|
 | **Ausführlich** | Fließtext-Zusammenfassung | Alle Typen |
 | **Zusammenfassung** | Strukturierte Gliederung (Markdown) | Alle Typen |
 | **Kurzfassung** | Ein-Satz-Zusammenfassung | Alle Typen |
 | **Aufgaben** | Aufgabenliste | Typ „Aufgabe" |
-| **Gesprächsnotiz** | Gesprächsprotokoll | Typ „Gesprächsnotiz" |
-| **E-Mail** | Fertiger E-Mail-Text | Typ „E-Mail" |
+| **Gesprächsnotiz** | Gesprächsprotokoll – nur wenn das Diktat ein Gespräch schildert, sonst „Kein Gespräch dokumentiert." | Typ „Gesprächsnotiz" |
+| **E-Mail** | Fertiger E-Mail-Text, immer in der Sie-Form | Typ „E-Mail" |
 | **Stundenzettel** | Zeiterfassung | Typ „Stundenzettel" |
 | **Analog** | Freitext-Abschnitt | Typ „Analog" |
-| **Transkript** | Vollständiger Originaltext (ausklappbar) | Alle Typen |
+| **Transkript** | Vollständiger Originaltext, ein Satz je Zeile (ausklappbar) | Alle Typen |
 | **Eigene Vorlagen** | Frei definierbar, siehe unten | Nach Konfiguration |
 
 ### Aktions-Buttons
@@ -127,10 +138,26 @@ Die Checkbox-Vorauswahl links richtet sich nach dem Typ und kann jederzeit angep
 |---|---|---|
 | **HTML** | HTML-Datei erstellen und im Browser öffnen; aktualisiert Tages-Übersicht | HTML-Inhalt in Zwischenablage kopieren |
 | **PDF** | PDF erstellen und öffnen | PDF-Datei in Zwischenablage kopieren (als Datei, direkt einfügbar) |
-| **E-Mail** | E-Mail-Text in Zwischenablage kopieren | In Outlook öffnen (mailto-Link mit Betreff und Text) |
+| **Aufgaben** | Interne Aufgaben-Mail in Outlook öffnen: Begleittext (Einstellungen → Allgemein), darunter die Aufgaben, PDF im Anhang, Signatur darunter | – |
+| **E-Mail** | Externe, förmliche E-Mail in Outlook öffnen – ohne Anhang, mit Signatur | E-Mail-Text in Zwischenablage kopieren |
 | **Kopieren** | Alle sichtbaren Abschnitte mit Überschriften in Zwischenablage | — |
 | **↻ Neu generieren** | Alle KI-Abschnitte neu generieren | Einzelne Abschnitte wählen (Ausführlich, Zusammenfassung, Aufgaben, …) |
 | **Als erledigt markieren** | Eintrag abschließen – grünes Häkchen in der Liste | — |
+| **🗑 Löschen** (neben „Als erledigt markieren“) | Eintrag nach Rückfrage in den Johann-Papierkorb verschieben | — |
+
+### Einträge löschen
+
+Ein Eintrag lässt sich auf drei Wegen löschen – immer mit Rückfrage, „Nein“ ist vorausgewählt:
+
+- **Rechtsklick** auf den Eintrag in der Liste → *Eintrag löschen…*
+- Knopf **Löschen** neben *Als erledigt markieren*
+- Taste **Entf**, wenn die Eintragsliste den Fokus hat
+
+Gelöscht wird der Eintrag mit allen seinen Dateien (PDF, HTML, Transkript, Audio-Kopie). Sie wandern in den **Johann-Papierkorb** `Dokumente\Johann\output\_Papierkorb\` und bleiben dort **30 Tage**; danach entfernt Johann sie beim Start endgültig. Die **Original-Aufnahme im Archiv bleibt immer erhalten**.
+
+**Zurückholen:** den Inhalt des Ordners `_Papierkorb\<Nummer>\` zurück in den Tagesordner schieben (PDF/HTML in den Tagesordner, `_raw\` in dessen `_raw\`) und Johann neu starten. Die Datei `geloescht.json` im Ordner nennt Tag, Titel und die ursprünglichen Pfade.
+
+Ist eine Datei des Eintrags gerade in einem anderen Programm geöffnet (z. B. das PDF), wird **nichts** gelöscht und Johann sagt, welche Datei es war. Während für den Eintrag noch etwas läuft (Neu generieren, PDF-Export, Mail), wartet das Löschen, bis es fertig ist. Die laufende Nummer eines gelöschten Eintrags wird nie wieder vergeben; ein Tag ohne Einträge verschwindet aus der Liste.
 
 ### Transkript bearbeiten
 
@@ -141,6 +168,8 @@ Das Transkript kann direkt in der Detailansicht korrigiert werden:
 3. **Neu generieren** klicken → alle KI-Abschnitte werden aus dem korrigierten Text neu erstellt.
 
 Der korrigierte Text wird sofort angezeigt und bleibt auch nach einem Neustart erhalten. Das Original-Transkript wird intern als Referenz aufbewahrt. Bearbeitete Transkripte sind mit „(bearbeitet)" gekennzeichnet. PDF, HTML und Kopieren verwenden automatisch den korrigierten Text.
+
+In der Ansicht, im PDF und in der HTML-Übersicht steht jeder Satz auf einer eigenen Zeile. Gespeichert, bearbeitet und kopiert wird der Text so, wie er erkannt wurde – ohne diese Umbrüche.
 
 Mit **Abbrechen** wird die Bearbeitung verworfen und der zuletzt gespeicherte Text wiederhergestellt.
 
@@ -240,7 +269,7 @@ HTML und beim Kopieren.
 
 ## Neuigkeiten nach Updates
 
-Nach jedem Update erscheint beim ersten Start ein Fenster mit den Neuerungen der Version. Es wird nur einmal pro Version angezeigt.
+Nach jedem Update erscheint beim ersten Start ein Fenster mit den Neuerungen der Version. Danach öffnet der Knopf **Neuigkeiten** oben rechts (neben „?“) es jederzeit wieder; beim Schließen pulsiert er kurz, damit man sieht, wo man die Neuigkeiten wiederfindet.
 
 ---
 
@@ -248,14 +277,18 @@ Nach jedem Update erscheint beim ersten Start ein Fenster mit den Neuerungen der
 
 ```
 Dokumente\Johann\output\
-└── 2026-03-17\
-    ├── _ItemÜbersicht.html
-    ├── 260317_001_Johann_App_anpassen.pdf
-    ├── 260317_001_Johann_App_anpassen.html
-    └── _raw\
-        ├── …_status.json      ← Datenspeicher
-        ├── …_original.mp3     ← Audio-Kopie
-        └── …_transcript.txt   ← Transkript
+├── 2026-03-17\
+│   ├── _ItemÜbersicht.html
+│   ├── 260317_001_Johann_App_anpassen.pdf
+│   ├── 260317_001_Johann_App_anpassen.html   ← nur nach „HTML“-Export
+│   └── _raw\
+│       ├── _counter.json                       ← laufende Nummer des Tages
+│       ├── 260317_001_Johann_App_anpassen_status.json   ← Datenspeicher
+│       ├── 260317_001_Johann_App_anpassen.html
+│       ├── 260317_001_Johann_App_anpassen.mp3  ← Audio-Kopie
+│       └── 260317_001_Johann_App_anpassen.txt  ← Transkript
+├── _Papierkorb\                                ← gelöschte Einträge, 30 Tage
+└── _Diktate (nicht verarbeitet)\               ← Diktate, deren Verarbeitung scheiterte
 ```
 
 Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren oder auf OneDrive synchronisieren lassen.
@@ -284,11 +317,14 @@ Kein Server, keine Datenbank – normale Dateien, die sich kopieren, archivieren
 | MP3 im Eingangsordner wird nicht erkannt | Dateiformat prüfen (`.mp3`), Eingangsordner in Einstellungen kontrollieren |
 | Eintrag hat falschen Typ | Diktat-Einstieg anpassen, dann **↻ Neu generieren** |
 | KI-Abschnitte leer | API-Schlüssel und Internetverbindung prüfen, Status-Log prüfen |
-| Absturz | Crash-Logs unter `%LOCALAPPDATA%\Platee\Johann\logs\crash-*.log` mit Zeitstempel und Fehlertext |
+| Absturz | Crash-Logs unter `C:\Peano\Platee.Johann\logs\johann-crash-*.log` (falls dort nicht schreibbar: `%LOCALAPPDATA%\Peano\Platee.Johann\logs\`) mit Zeitstempel und Fehlertext |
+| „Aufnahme ist … MB groß“ | Über 25 MB nimmt die Transkription nicht an → Aufnahme in kürzere Teile aufteilen und einzeln einlesen |
+| Diktat fehlgeschlagen – wo ist die Aufnahme? | Unter `output\_Diktate (nicht verarbeitet)`; der genaue Pfad steht in der Fehlermeldung und im Status-Log. Später in den Eingangsordner legen |
+| Titel in der Liste abgeschnitten | Maus darüber zeigt den vollen Titel; Doppelklick auf die Trennlinie rechts der Liste verbreitert die Spalte passend |
 | Prompts nicht aktuell | App neu starten – Prompts werden beim Start vom Netzlaufwerk geladen |
 | Korrekturen nicht aktiv | Einstellungen → Korrekturliste prüfen, Speichern klicken |
 | Transkript-Bearbeitung verloren | Bei API-Fehler bleibt der korrigierte Text erhalten → erneut „↻ Neu generieren" klicken |
 
 ---
 
-*Platé.Johann v1.3.0 · Windows 10/11 · Daten bleiben lokal*
+*Platé.Johann v1.5.0 · Windows 10/11 · Daten bleiben lokal*

@@ -36,9 +36,15 @@ dotnet run --project Platee.Johann.UI
 
 # Install vpk tool (once)
 dotnet tool install -g vpk
+
+# UI suite against the real EXE (#111) — takes over the desktop, Johann must be closed
+pwsh -NoProfile -File scripts/run-ui-tests.ps1 [-Filter "FullyQualifiedName~DetailFlowTests"]
+
+# Audit driver: sandbox, start, tree, click, type, key, screenshot (PrintWindow) …
+dotnet run --project tools/ui-driver --no-build -- sandbox new
 ```
 
-Version: **1.4.0**
+Version: **1.5.0**
 
 Test framework: **xUnit 2.9** · Mocking: **NSubstitute 5.3** · Assertions: **FluentAssertions 8.8**
 Target: **.NET 10 / net10.0-windows** (UI), **net10.0** (all other projects)
@@ -48,7 +54,7 @@ Target: **.NET 10 / net10.0-windows** (UI), **net10.0** (all other projects)
 <!-- AUTO-MANAGED: architecture -->
 ## Architecture
 
-Clean Architecture with four projects + one test project:
+Clean Architecture with four projects, one test project and the UI-automation projects (#111):
 
 ```
 Platee.Johann.Domain/          # Core entities, no external deps
@@ -63,9 +69,11 @@ Platee.Johann.Domain/          # Core entities, no external deps
 Platee.Johann.Application/     # Use-cases, interfaces (depends on Domain only)
   Interfaces/                  # IEntryRepository (incl. MigrateJobIdsAsync),
                                #   ILlmProvider, IAudioTranscriber, IPromptSettingsRepository,
-                               #   IMicrophoneRecorder
+                               #   IMicrophoneRecorder, IModelAvailabilityProbe
   Processing/                  # EntryProcessingService, SummaryGenerator, AudioWatcherService,
-                               #   SectionCatalog (SectionDescriptor)
+                               #   SectionCatalog (SectionDescriptor), ModelNames,
+                               #   SummaryModelCatalog, SummaryModelResolver,
+                               #   DictationCostEstimator
   Services/                    # PromptSettingsLoader (local/global fallback)
   Settings/                    # AppSettings, PromptSettings, SettingsHolder,
                                #   SettingsSplitMigration,
@@ -77,14 +85,18 @@ Platee.Johann.Infrastructure/  # Concrete adapters (depends on Application + Dom
                                #   NoOpMicrophoneRecorder stub, AudioDurationReader
   Json/                        # JsonRepository (file-backed), JsonSettingsRepository,
                                #   JsonPromptSettingsRepository, migration
-  Llm/                         # OpenAiLlmProvider (gpt-5.6-luna), WhisperTranscriber
-                               #   (gpt-transcribe), NoOp stubs
+  Llm/                         # OpenAiLlmProvider (ChatClient per model id),
+                               #   WhisperTranscriber (gpt-transcribe), ApiKeyProvider,
+                               #   OpenAiModelAvailabilityProbe, NoOp stubs,
+                               #   AudioUploadLimit (25-MB check before upload, #77)
   Renderers/                   # HtmlRenderer, PdfRenderer, EmailRenderer, HtmlOverviewService
 
 Platee.Johann.UI/              # WPF presentation layer (depends on all)
   Assets/                      # RELEASE_NOTES.md, HANDBUCH.html (embedded resources,
                                #   auto-copied from repo root via CopyDocsToAssets MSBuild target)
-  Helpers/                     # DurationFormatter, ReleaseNotesHelper — pure static helpers
+  Helpers/                     # DurationFormatter, ReleaseNotesHelper, ColumnAutoFit (#96),
+                               #   DictationRescue (#106) — static helpers, linked into tests
+  Themes/                      # Controls.xaml — every brush and the one button template (#97)
   ViewModels/                  # MainViewModel, SettingsViewModel, NewEntryViewModel,
                                #   CorrectionEntryViewModel, CategoryEditorViewModel,
                                #   SectionRowViewModel, SectionVisibilityViewModel,
@@ -100,6 +112,15 @@ Platee.Johann.UI/              # WPF presentation layer (depends on all)
 
 Platee.Johann.Tests/
   Unit/                        # xUnit unit tests mirroring all layers
+
+Platee.Johann.UiDriver/        # net10.0-windows, FlaUI.UIA3, no product references (#111)
+  Stub/                        # OpenAiStubServer (HttpListener: chat, transcriptions, models/{id})
+  Sandbox/                     # SandboxLayout, SandboxGuard, AuditSandbox, TestSandbox
+  Automation/                  # JohannSession (start/click/type/key/screenshot), InputSafety,
+                               #   KeyChord + NativeKeyboard (SendInput), UiTreeDump
+Platee.Johann.UiTests/         # FlaUI suite; IsTestProject=false unless -p:RunUiTests=true
+tools/ui-driver/               # CLI over UiDriver for manual audits
+tests/fixtures/dictations/     # D1–D6 texts + TTS MP3s (scripts/new-dictation-fixtures.ps1)
 ```
 
 Dependency flow: `UI → Infrastructure → Application → Domain`
@@ -131,13 +152,24 @@ Data flow: MP3 file → `AudioWatcherService` → `EntryProcessingService` → `
 <!-- AUTO-MANAGED: patterns -->
 ## Detected Patterns
 
-**Models (v1.4.0)**: `ModelNames` (Application/Processing/) holds both OpenAI model ids in one
-place — `gpt-transcribe` for speech-to-text, `gpt-5.6-luna` for every generated section. Choosing
-a model is an application decision, calling the SDK with it is infrastructure, so the constants
-live in Application: that lets the status bar name the models without a view model reaching into
-`Infrastructure`, and keeps the id from being written twice. `ModelSelectionTests` pins both — a
-silently reverted model would fail nothing, the app would just get worse and more expensive.
-#71 turns `Summaries` into a per-user setting.
+**Models (v1.5.0, #71)**: `ModelNames` holds the transcription id (`gpt-transcribe`);
+`SummaryModelCatalog` (Application/Processing/) owns the **three** summary models the user may
+pick from — `gpt-5.6-luna` (default), `gpt-5.6-terra`, `gpt-5.6-sol`. Choosing a model is an
+application decision, calling the SDK with it is infrastructure, so both live in Application.
+The chosen id travels per call in `LlmOptions.Model`; `OpenAiLlmProvider` caches one `ChatClient`
+per id, because `ChatClient` binds the model in its constructor. `SummaryGenerator.Options()` is
+the single place that injects it, so `WithSnapshot()` freezes the model per run for free.
+
+⚠ **Per token ≠ per dictation.** `gpt-5-nano` was in the catalog as "the cheap option" and was
+removed on 2026-09-11 after measurement: it burns 2 496 reasoning tokens to produce 514 visible
+ones and therefore costs **more per dictation than Luna**, at lower quality. `gpt-5-mini` (59 %
+reasoning) and `gpt-5.4-mini` (3.5× Luna) are dominated too — hence three models, not four.
+
+Each catalog entry carries two **measured** constants (`OutputBase`, `OutputSlope`) from which
+`DictationCostEstimator` computes the cost shown in the settings card. Everything else is counted
+locally, which is why **custom categories need no special handling** — their prompt text is right
+there in `prompts.json`. ⚠ The constants were measured **without** a `reasoning_effort`; setting
+one (#73) invalidates them.
 
 **Audio duration is measured locally**: `whisper-1` reported it in its Verbose response;
 `gpt-transcribe` answers with plain `json` and carries neither duration nor timestamps.
@@ -159,6 +191,79 @@ editable. It keeps per-bullet indentation and compares indents relatively, so tw
 markdown both nest — until v1.4.0 it detected bullets on the trimmed line and flattened every
 outline into one level. That only became visible with a model strong enough to nest.
 
+**Markdown in every output (v1.5.0, #73 S4, PR #91):** the system message asks for markdown where
+it carries meaning, so every way a section leaves Johann must understand it. `InlineMarkdown`
+(Domain/Services/) splits a line into normal/bold/italic runs and yields plain text;
+`BulletOutline` (same folder, #83) assigns list levels by *relative* indentation — the same rule as
+`MarkdownFlowDocumentConverter`, so PDF and detail view nest alike. The **PDF** renders every section
+(also Aufgaben, Gesprächsnotiz, Stundenzettel, Analog, E-Mail — previously raw text) through
+`RenderMarkdown` with real bold/italic; **copy to clipboard** and the `.txt` mail give plain text
+(the transcript stays verbatim); HTML/overview use `MarkdownHelper`. A new output path must do the
+same, or literal asterisks reach the user.
+
+**Mail buttons (v1.5.0, #57):** „Aufgaben“ = internal mail (intro from `AppSettings.AufgabenMailText`
+with `{Projekt}`, then the task section, **PDF attached**); „E-Mail“ = external, formal mail, **no
+attachment**, subject from the „Betreff:“ line (also recognised when wrapped in markdown — the model
+set it bold). `MailDraftBuilder` (Application/Mail/) builds both; `IMailComposer` →
+`OutlookMailComposer` (Infrastructure/Mail/) tries **classic Outlook via late-bound COM** on its own
+STA thread (`Display()` first so Outlook inserts the signature, then content after `<body>`), then
+**new Outlook via an `.eml` draft** (`EmlDraft`: `X-Unsent: 1` + own `Message-ID`, opened with the
+`olk.exe` app alias by ShellExecute — new Outlook has neither COM nor MAPI), then `mailto:` with the
+PDF selected in Explorer. `OutlookEnvironment` reads `UseNewOutlook`; new Outlook is used only if
+active or the only one installed. A missing PDF aborts the internal mail (its intro announces it).
+Live tests: `ClassicOutlookLiveTests` with `JOHANN_OUTLOOK_LIVE=1` (they open real drafts).
+
+**Deleting entries (v1.5.0, #55):** `IEntryProcessor.DeleteAsync` → `IEntryRepository.DeleteAsync`
+moves every file of the entry into `{output}/_Papierkorb/{JobId}/` (same layout as the day folder,
+plus `geloescht.json` with the original paths) — **all or nothing**: `EntryTrash` rolls every move
+back if one file is locked and names it. Files are matched by **exact** name from the stem of the
+`_status.json` actually found (by JobId in the content, never by rebuilding the name) plus the
+`FilenameBuilder` stem. ⚠ **Never touch `_raw/_counter.json`, `_raw` or the day folder**: without the
+counter the next number is re-seeded as max+1, a deleted top number comes back with the same file
+stem, and `ArchiveRawFilesAsync` skips an existing MP3 — a foreign recording would attach to the new
+entry. ⚠ **Every generation ends with a full `SaveAsync`**, which would silently resurrect a deleted
+entry; `EntryWorkGuard` (Application/Processing) refuses deletion while Reprocess / section /
+transcript regeneration runs for that JobId and refuses those afterwards (`EntryBusyException`,
+`EntryDeletedException`). **Every save of an existing entry must go through the guard** — "erledigt"
+therefore uses `IEntryProcessor.SetDoneAsync`, not the repository (a review found the bypass: a
+click during the delete wrote the status file back). ⚠ **Changes use `IEntryRepository.UpdateAsync`,
+never `SaveAsync`**: it finds the existing status file by JobId and opens it with `FileMode.Truncate`,
+so it can never recreate a file — that is what makes deletion hold across **two Johann processes**
+on one output folder, where the in-process guard sees nothing (Codex, PR #98). `SaveAsync` is only
+for the first save of a new entry in `ProcessAudioAsync`. A status file that is busy (being written)
+is retried, never skipped like a corrupt one — skipping made a deletion report "not found". Exports bypass the processor, so
+`MainViewModel` refuses while `EntryDetailViewModel.IsBusy` and, while the files move, disables list,
+detail and action bar via `IsDeletingEntry`. `GetAvailableDatesAsync` lists only days with a `*_status.json`.
+Startup purges trash folders older than `TrashPolicy.Retention` (30 days) — only those with a
+`geloescht.json`. The archived original MP3 has no link from the entry and stays. UI: right-click
+menu and `Entf` on the entry list (not window-wide — it would fire while editing the transcript),
+button next to "Als erledigt markieren" (the list's right edge is usually clipped, #96).
+`EntryDeletionLiveTests` replays every deletion against a copy of a real output folder
+(`JOHANN_DELETE_LIVE_SOURCE`).
+
+**Entry list is reconciled, never rebuilt (v1.5.0, #100):** sorting, „erledigt“, the „Nur
+unerledigte“ filter and a day switch no longer clear `MainViewModel.Entries`. `LoadEntriesAsync`
+reads first, then `ReconcileEntries` reuses the row of every JobId still shown (`ArrangeRows`:
+`Move`/`Insert`, the selection moves before stale rows go), so `SelectedEntry` stays the same
+object — a new row object re-runs `OnSelectedEntryChanged`, which resets the section ticks to the
+type defaults and rebuilds the detail view. A `loadGeneration` counter lets only the newest load
+write the list (loads are fire-and-forget; an older, slower one used to win). Sorting is in memory
+(`SortRows`); „erledigt“ updates the row and adjusts the day's count by one only if the row's state
+really changed; under the filter the row leaves via `RemoveRow` (next row, else previous — shared
+with deleting). `IsLoading` is startup only. ⚠ **Never go back to `Entries.Clear()` + new rows**
+for an in-place change.
+
+**Controls and colours (v1.5.0, #97):** `UI/Themes/Controls.xaml` (merged in `App.xaml`) holds every
+brush and one button template (`ButtonChromeTemplate`) with five roles — implicit Standard,
+`PrimaryButtonStyle`, `OutlineButtonStyle`, `QuietButtonStyle`, `LinkButtonStyle` — plus
+`ListRowItemStyle` and a keyboard-only `FocusVisual`. The WPF default template paints its own light
+blue on hover/press over any background, so a style's hover colours never showed. ⚠ **Never set
+`Background`/`Foreground`/`BorderBrush` directly on a button** — local values beat style triggers
+and the hover state dies; pick a role. Primary red is `#C0392B` (white 5.4:1), not brand `#E63123`
+(4.35:1). `ControlContrastTests` reads the brushes from the XAML and checks WCAG AA on every
+surface, and applies each role to a real control (a broken reference inside a template only fails
+when it is applied).
+
 ⚠ **Prompts must not name their own section.** The app already renders the heading; a prompt that
 tells the model to "create a Gesprächsnotiz" gets one titled that way, and it then appears twice
 in the detail view, the PDF and the mail. Every section prompt now says so explicitly.
@@ -167,7 +272,7 @@ in the detail view, the PDF and the mail. Every section prompt now says so expli
 
 **No-Op stubs**: `NoOpLlmProvider`, `NoOpAudioTranscriber`, and `NoOpMicrophoneRecorder` in Infrastructure allow the app to run without an API key or audio hardware configured. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) returns `false` for `IsMicrophoneAvailable` and throws `InvalidOperationException` on `StartAsync`.
 
-**In-app dictation (microphone recording)**: `IMicrophoneRecorder` interface (Application/Interfaces/) with `IsMicrophoneAvailable`, `StartAsync(string outputFilePath, CancellationToken)`, `StopAsync()`. `WindowsMicrophoneRecorder` (Infrastructure/Audio/) is the concrete implementation using NAudio 2.2.1 `WasapiCapture` + `WaveFileWriter` to capture WASAPI PCM into a temporary `.tmp.wav` file (`Path.ChangeExtension(outputFilePath, ".tmp.wav")`). `StopAsync()` is truly async: wires a `TaskCompletionSource<bool>` to `WasapiCapture.RecordingStopped`, awaits it, flushes/disposes the writer, then on a background thread encodes the temp WAV to MP3 at `outputFilePath` via `MediaFoundationEncoder.EncodeToMp3` (NAudio MediaFoundation) and deletes the temp WAV. The caller always receives an MP3, never a raw WAV. `Dispose()` cleans up capture/writer and deletes the temp WAV if present. `IsMicrophoneAvailable` gracefully returns `false` on any exception (no hardware). `StartAsync` throws `InvalidOperationException("Recording is already in progress.")` on double-start. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) is the offline stub injected in tests. `MainViewModel` exposes `IsRecording` (`[ObservableProperty]`), `RecordingDuration` (live `mm:ss` string updated via `DispatcherTimer`), `StartDictationCommand` (CanExecute = `!IsRecording`; checks `processor.CanProcess` and `microphoneRecorder.IsMicrophoneAvailable`; sets `tempRecordingPath` to an `.mp3` path in `Path.GetTempPath()`), and `StopDictationCommand` (CanExecute = `IsRecording` property directly; stops timer + recorder — recorder internally converts WAV→MP3 — then pipes the MP3 through `processor.ProcessAudioAsync`). Flow: microphone → temp WAV (internal) → MP3 at temp path → `ProcessAudioAsync` → `RefreshAfterEntryAsync`. Tested in `MicrophoneRecordingViewModelTests.cs`. UI: bottom bar of the entry list pane is dual-state — idle shows a full-width "🎙 Diktieren" button (visibility via `InverseBoolToVis`; "+ Neues Element" and `NewEntryView` were removed in v1.4.0); recording shows a pulsing red ellipse (WPF Storyboard, Opacity 1→0.15, 0.8 s, AutoReverse, Forever), "REC" label in `AccentBrush`, `RecordingDuration` timer in `MonoFamily`, and "■ Stop" button docked right (visibility via `BoolToVis`).
+**In-app dictation (microphone recording)**: `IMicrophoneRecorder` interface (Application/Interfaces/) with `IsMicrophoneAvailable`, `StartAsync(string outputFilePath, CancellationToken)`, `StopAsync()`. `WindowsMicrophoneRecorder` (Infrastructure/Audio/) is the concrete implementation using NAudio 2.2.1 `WasapiCapture` + `WaveFileWriter` to capture WASAPI PCM into a temporary `.tmp.wav` file (`Path.ChangeExtension(outputFilePath, ".tmp.wav")`). `StopAsync()` is truly async: wires a `TaskCompletionSource<bool>` to `WasapiCapture.RecordingStopped`, awaits it, flushes/disposes the writer, then on a background thread encodes the temp WAV to MP3 at `outputFilePath` via `MediaFoundationEncoder.EncodeToMp3` (NAudio MediaFoundation) and deletes the temp WAV. The caller always receives an MP3, never a raw WAV. `Dispose()` cleans up capture/writer and deletes the temp WAV if present. `IsMicrophoneAvailable` gracefully returns `false` on any exception (no hardware). `StartAsync` throws `InvalidOperationException("Recording is already in progress.")` on double-start. `NoOpMicrophoneRecorder` (Infrastructure/Audio/) is the offline stub injected in tests. `MainViewModel` exposes `IsRecording` (`[ObservableProperty]`), `RecordingDuration` (live `mm:ss` string updated via `DispatcherTimer`), `StartDictationCommand` (CanExecute = `!IsRecording`; checks `processor.CanProcess` and `microphoneRecorder.IsMicrophoneAvailable`; sets `tempRecordingPath` to an `.mp3` path in `Path.GetTempPath()`), and `StopDictationCommand` (CanExecute = `IsRecording` property directly; stops timer + recorder — recorder internally converts WAV→MP3 — then pipes the MP3 through `processor.ProcessAudioAsync`). Flow: microphone → temp WAV (internal) → MP3 at temp path → `ProcessAudioAsync` → `RefreshAfterEntryAsync`. The temp MP3 is deleted **only after success**; on failure `DictationRescue.Save` moves it to `{output}\_Diktate (nicht verarbeitet)\Diktat_<yyyy-MM-dd_HHmmss>.mp3` and the error names the path (#106 — before, a failed dictation was deleted). Files over 25 MB are refused before upload by `AudioUploadLimit` in `WhisperTranscriber` (#77); actually processing them is #107. Tested in `MicrophoneRecordingViewModelTests.cs`. UI: bottom bar of the entry list pane is dual-state — idle shows a full-width "🎙 Diktieren" button (visibility via `InverseBoolToVis`; "+ Neues Element" and `NewEntryView` were removed in v1.4.0); recording shows a pulsing red ellipse (WPF Storyboard, Opacity 1→0.15, 0.8 s, AutoReverse, Forever), "REC" label in `AccentBrush`, `RecordingDuration` timer in `MonoFamily`, and "■ Stop" button docked right (visibility via `BoolToVis`).
 
 **Schema versioning**: `Entry.SchemaVersion` (currently **4**) + `JsonMigrator` handle forward migration of persisted JSON files. v2→v3 added `EditedTranscript`; v3→v4 added `CustomSections` and `CustomSectionNames`. `EntryDto` carries `[JsonExtensionData]` so unknown fields survive a round-trip. **`EntryDto`/`EntryMapper`, `SettingsDto` and `PromptDto` are hand-written mappers — every new field must be added to the DTO *and* both mapping directions. This has silently eaten a field three times (`CustomCategories`, `SectionModes`, `CustomSections`); always add a round-trip test.**
 
@@ -176,6 +281,33 @@ in the detail view, the PDF and the mail. Every section prompt now says so expli
 **Prompt text: the team file is the single source of truth.** The team's `prompts.json` (`AppSettings.GlobalPromptFilePath`, typically `Z:\12_Tools\Peano\Johann\prompts.json`) owns the wording of all nine prompts. It always wins at runtime — `JsonPromptSettingsRepository` maps every field as `dto.X ?? defaults.X`, and `ToDto` writes all nine back on every save, so once a file exists its text is authoritative forever. The `SummaryPrompts` constants are **only** the seed for fresh installs and the fallback when the share is unreachable.
 
 Changing prompt wording therefore means changing **both**: edit the team file *and* update the matching constant. `TeamPromptDriftTests` guards this — it compares all nine constants against the team file and silently passes when the share is unreachable (CI, no VPN), so it never turns red for the wrong reason. Set `JOHANN_TEAM_PROMPTS` to point it elsewhere.
+
+**Transcript line breaks (v1.5.0, #112):** `SentenceLines.Split` (Domain/Services/) puts each sentence
+on its own line — **display only**: detail view (`EntryDetailViewModel.DisplayTranscript`), PDF and
+HTML. Stored text, edit mode, copy and the `.txt` keep the original. It breaks after `.`/`!`/`?` only
+when an uppercase letter or opening quote follows, and not after numbers, single letters, known
+abbreviations or dotted short forms; existing newlines stay. Checked on 29 real transcripts.
+
+**Global save writes only global categories (v1.5.0, #114):** `SettingsViewModel.SavePromptsAsync`
+with target Global writes the prompt text plus `Scope == Global` categories to the team file and the
+personal ones to `prompts.personal.json` in the same save. Before, every category went to the team
+file. `SettingsViewModelSaveTargetTests` covers it with real files and a restart.
+
+**Current wording (#73, 2026-09-21):** system message and six sections from the cleaned-up candidate
+K1; Gesprächsnotiz and E-Mail on the previous wording the blind reading preferred, plus decided rules
+(empty case „Kein Gespräch dokumentiert.“, always „Sie“, no unclear-marks, subject line as plain
+text) and the central markdown rule. −20 % cost per dictation. The constants are **generated** from
+the sandbox candidate (`summary_prompts_schreiben.py`), never typed by hand. Evidence and the
+measurement tools (`tools/prompt-eval`: `messlauf.py`, `format_checks.py`, `build_pair_artifact.py`)
+are in `docs/prompting/kandidaten-73.md`; real dictations and prompt text stay in the sandbox.
+
+**Since 2026-09-28 (#115, #116):** the e-mail greeting uses the surname („Guten Tag Herr Berger,“)
+or neutral „Guten Tag,“ — never the first name. This lives in the team file and the constants. The
+**title prompt is not a team prompt**: it is `SummaryGenerator.TitleInstruction`, and
+`DictationCostEstimator` counts that same constant. It now forbids judgments. A rare nonsense
+adjective at the end of a title (~0.5–1 %) is a model quirk that wording did not fix.
+Measurement: `docs/prompting/titel-anrede-115-116.md` (`tools/prompt-eval/vergleich_115_116.py`).
+Sandbox candidate v8; team-file backup `prompts.vor-115-2026-09-28.json`.
 
 ⚠ **Never make a client rewrite the team file automatically.** `PromptDefaultsMigration` was exactly that idea — a revision integer that bulk-replaced prompts — and it was deleted in v1.4.0: it was never wired up, would never have fired (`PromptDefaultsRevision` defaults to the current revision, so the guard always short-circuits), and had it worked it would have overwritten curated team wording from whichever machine happened to load the file first. That is the same failure mode as a v1.3.2 client stripping `customCategories`. `PromptSettings.PromptDefaultsRevision` survives only so the JSON key round-trips instead of being stripped on the next save.
 
@@ -207,7 +339,7 @@ Changing prompt wording therefore means changing **both**: edit the team file *a
 
 **Settings view section navigation**: `SettingsView.xaml` uses a `CollectionViewSource` with `PropertyGroupDescription` for grouped left-sidebar section navigation. Sections are bound to `SettingsViewModel.Sections`; selected section toggles content panel visibility via `Is<Section>Selected` properties.
 
-**Release notes window**: `ReleaseNotesHelper` in `UI/Helpers/` loads `RELEASE_NOTES.md` (embedded resource) and renders it via `MarkdownHelper.ToHtml()` into a styled HTML document displayed in `ReleaseNotesWindow` (WPF `WebBrowser`). `ShouldShow(lastSeenVersion, currentVersion)` gates display to once per version update.
+**Release notes window**: `ReleaseNotesHelper` in `UI/Helpers/` loads `RELEASE_NOTES.md` (embedded resource) and renders it via `MarkdownHelper.ToHtml()` into a styled HTML document displayed in `ReleaseNotesWindow` (WPF `WebBrowser`). `ShouldShow(lastSeenVersion, currentVersion)` gates the automatic display to once per version update. Since #78 the „Neuigkeiten“ button (next to „?“) reopens them any time: `MainViewModel.OpenReleaseNotesCommand` invokes the settable callback `ShowReleaseNotes`, which `MainWindow` wires to its `ShowReleaseNotes()` — load, show, then pulse the button (scale 1→1.2, twice; skipped when `SystemParameters.ClientAreaAnimation` is off). `App.OnStartup` uses the same method, so the first showing already points at the button.
 
 **Embedded user handbook**: `HANDBUCH.html` is an embedded resource in `UI/Assets/`. `MainViewModel.ExtractHandbook()` extracts it to a temp file (`Platee.Johann.HANDBUCH.html`) for display in the default browser. `README.md` (repo root) is the Markdown version of the same handbook content.
 
@@ -268,6 +400,42 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 ## Git Insights
 
+- **v1.5.0 complete, release in progress (2026-09-28)** (`release/v1.5.0`, version bump PR #134).
+  Milestone empty. Done: #73 prompts for GPT-5.6 (PR #85) and the
+  central markdown rule (PR #91); #83 nested lists in the PDF (PR #86); #57 mail buttons for classic
+  and new Outlook (PR #87, #90); #88 Codex findings (PR #89). **Codex reviews every PR** — read its
+  inline comments before merging; it found real bugs in five of six PRs that day (missing PDF
+  announced in the mail, list base level, retry of failed calls, round binding, raw markdown in
+  copies). **Since then (2026-09-22/23):** #84 (PR #93), #79 (PR #94), #56 (PR #95), #55 deleting
+  entries (PR #98), #97 one button template + contrast tests (PR #99, merged without a Codex
+  review — Codex never answered), #100 list reconciled instead of reloaded (PR #101), #96 entry list
+  no longer scrolls sideways — title trimmed, done tick always visible, row colours from the theme
+  and contrast-tested (`EntryListLayoutTests`), plus double-click on either column divider fits the
+  column to its widest content (PR #102); #78 „Neuigkeiten“ button, pulses after the notes close
+  (PR #104); #77 cut down to the 25-MB check (`AudioUploadLimit`, PR #105) — keywords/languages/
+  prompt moved to #103 (v1.6.0, needs a measurement run); #106 a failed in-app dictation is rescued
+  instead of deleted (PR #108); processing large files for real → #107 (v1.6.0). Handbook
+  (`README.md`, `HANDBUCH.html`) brought up to v1.5.0. **Since 2026-09-24:** #111, a UI-automation audit
+  (`docs/audit/2026-09-24-v1.5.0.md`, 30 findings, filed as issues #114–#128) plus a FlaUI suite,
+  PR #113. **Then (2026-09-25/28):** #114 global save no longer writes personal templates to the team
+  file (PR #129; older scope-switch cases → #130, v1.6.0), #115/#116 greeting and title (PR #132),
+  #112 one sentence per line (PR #131). UI suite 24/24 locally; CI UI flakes collected in #133.
+  ⚠ Until every client runs 1.5.0, a 1.4.0 client saving with target „Global“ still leaks personal
+  templates into the team file (#114 is fixed only in the new client).
+
+- **Column auto-fit (#96):** measure the rows **where they live** (`ItemsPresenter` of the real
+  list, unconstrained), never a detached copy of a row — that one measured without its bound title.
+  The chrome between column edge and rows is **measured** (column width − presenter width): the
+  ListBox template pads rows by a fixed 1 px no property shows, and 2 px short trimmed the title
+  again. Both mistakes were found only by a diagnostic log in the running window — a replica in a
+  real `Window` (STA thread, resources inlined into the parsed XAML, **no `Application` object**)
+  is the way to reproduce WPF layout in a test.
+- **Failed dictations (#106, found during #77):** `StopDictation` used to delete the temp recording
+  in `finally`, also on failure — a failed dictation was lost. Now it deletes only after success;
+  on failure `DictationRescue.Save` moves it to `{output}\_Diktate (nicht verarbeitet)\` and the
+  message names the path (if even that fails, the temp path). Watch-folder files never had the
+  problem — they stay in the input folder. Nothing re-processes rescued files automatically (#107).
+
 - **v1.4.0** (2026-09-10, released): the first release since v1.3.2. Renumbered from the
   unreleased v1.3.3 under the new rule — minor for anything users see, patch for developer
   intermediates — so the category rework shipped inside it rather than getting its own release.
@@ -323,7 +491,49 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 - Install repo hooks with `./scripts/install-hooks.ps1`.
 - Pre-commit runs quick hygiene checks and auto-formats staged C# files via `dotnet-format` (run `dotnet tool restore` once).
-- Pre-push runs `dotnet build` and `dotnet test` with `--no-restore`.
+- Pre-push runs `dotnet build` and `dotnet test` with `--no-restore`. A running Johann (Debug)
+  locks the UI DLLs and makes the push fail — close it first.
+- ⚠ **WPF tests that load XAML must not run in parallel** (`[Collection(WpfXamlCollection.Name)]`,
+  `DisableParallelization`). `XamlReader.Load` on one thread and first-time WPF construction on
+  another deadlock on WPF's schema-context lock vs. a static constructor (`ContentPresenter`).
+  It hung CI for 10+ min about once in 20 runs (PR #101). CI now has `timeout-minutes: 20` and
+  `--blame-hang-timeout 5m`; a local hang is found with
+  `dotnet test --blame-hang-timeout 60s` + `dotnet-dump analyze <dmp> -c "clrstack -all"`.
+- ⚠ **CI only failed on the last command** of the PowerShell step (sonarscanner end) until PR #101
+  — failing tests left it green. Every command in that step now checks `$LASTEXITCODE`.
+- Codex did not react to `@codex review` on PR #99 and #101–#108 (not even 👀) — the trigger was
+  not picked up; it does not depend on our CI. Check the Codex GitHub connector before relying on it.
+- ⚠ **Verify with a full `dotnet build`, not only `dotnet test`.** The UI project (WPF) has **no**
+  implicit `using System.IO`; the test project does. A UI helper linked into the tests
+  (`<Compile Include=… Link=…/>`) therefore compiled and passed its tests while the app did not
+  build (#106 — caught by the pre-push hook).
+- A **UI-only change is checked visually by the user before merging** (the PR carries a
+  "Sichtprüfung" checklist); layout questions are settled with evidence from the running window,
+  not by guessing (#96).
+- **UI automation (#111).** Three environment variables, resolved in `JohannEnvironment`
+  (Infrastructure/Hosting). Unset or blank = today's behaviour; set but invalid = Johann refuses to start:
+  `JOHANN_HOME` (replaces `Documents\Johann`, no `.env` walk-up, no default team file),
+  `JOHANN_OPENAI_ENDPOINT` (API root without `/v1`, points chat/transcription/model probe at the stub;
+  `http` is accepted only for a loopback host, everything else must be `https` — otherwise the real
+  API key could be sent in cleartext), `JOHANN_NO_UPDATE_CHECK` (only the values `1` or `true`,
+  case-insensitive, skip the update check — anything else, including unset, keeps it on).
+  - Rules: only sandboxes (the guard rejects `Z:\`, its UNC form and the real `Documents\Johann`);
+    the team file is only ever copied; Outlook only supervised, drafts only.
+  - ⚠ **Never run the UI suite from `dotnet test` or the pre-push hook**, and only with the user's go —
+    it needs an active, unlocked desktop and nobody typing. The CI job `ui-tests` is non-blocking.
+  - ⚠ **Crash and warning logs are not redirected by `JOHANN_HOME`** — `CrashLogWriter` always writes
+    to `C:\Peano\Platee.Johann\logs` (`App.xaml.cs`), a deliberate exception so a broken sandbox run
+    still leaves diagnostics somewhere findable. This means stub failures from UI runs (e.g.
+    `ErrorFlowTests`) show up in the machine's real crash log, not the sandbox.
+  - `JOHANN_UI_KEEP=1` (set unconditionally by `scripts/run-ui-tests.ps1`) makes `UiTestContext.Dispose`
+    save a screenshot and a UIA tree dump under `TestResults/ui/<timestamp>-<guid>/` on every run, pass
+    or fail — it does not by itself keep the sandbox directory (that is the separate `keepSandbox`/
+    `KeepOnFailure()` path).
+  - UIA pitfalls, each cost hours: owned modal dialogs are `Window` children of the main window; after
+    `ObservableCollection.Move` a row's control-view children go stale (read via the raw view — the row
+    is drawn fine); a plain `ContentControl`/`Border` has no automation peer, so an AutomationId on it
+    is invisible (`SectionHeaderControl`). Prove a suspected app bug with a `PrintWindow` screenshot first.
+  - Audit report with all findings: `docs/audit/2026-09-24-v1.5.0.md`; runbook `docs/ui-automation/`.
 
 <!-- Add project-specific notes here. This section is never auto-modified. -->
 

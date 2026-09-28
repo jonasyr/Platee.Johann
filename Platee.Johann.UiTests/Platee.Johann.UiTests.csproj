@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <!-- Nie Teil von "dotnet test" der Lösung oder des Pre-Push-Hooks: belegt den Desktop (#111). -->
+    <IsTestProject Condition="'$(RunUiTests)' != 'true'">false</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="8.8.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <!-- Official PdfPig (github.com/UglyToad/PdfPig, namespace UglyToad.PdfPig). The NuGet id
+         "UglyToad.PdfPig" is a different, unofficial upload (Task 12 report). -->
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Platee.Johann.UiDriver\Platee.Johann.UiDriver.csproj" />
+    <ProjectReference Include="..\Platee.Johann.Application\Platee.Johann.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\tests\fixtures\dictations\*.mp3" LinkBase="Fixtures" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Transcript text next to each fixture MP3 — the default stub answers transcription with
+         it whenever no per-entry D<n>_status.json exists yet (see UiTestContext). -->
+    <None Include="..\tests\fixtures\dictations\*.txt" LinkBase="Fixtures" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

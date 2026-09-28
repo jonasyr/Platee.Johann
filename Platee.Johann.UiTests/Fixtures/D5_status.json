@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 4,
+  "jobId": "260924_006_a6d63c4e",
+  "sequenceNumber": 6,
+  "type": "Projekt",
+  "projectName": "Allgemein",
+  "title": "\u00DCberarbeitete Grundrisse und Fluchtwegpr\u00FCfung",
+  "createdAt": "2026-09-24T15:12:30+01:00",
+  "sourceType": "audio",
+  "durationSeconds": 17.16,
+  "wordCount": 54,
+  "status": {
+    "transcribed": true,
+    "summarized": true,
+    "pdfCreated": true,
+    "archived": true,
+    "emailCreated": false
+  },
+  "transcript": "Quick note after the call with the client from Rotterdam, they want the revised floor plans by next Tuesday. The main change is the second staircase on the east side. We also need to check whether the fire exit width still meets the regulations. I will ask our engineer to confirm the structural impact.",
+  "editedTranscript": null,
+  "abstract": "\u00DCberarbeitete Grundrisse f\u00FCr Rotterdam bis n\u00E4chsten Dienstag; zweite \u00F6stliche Treppe, Fluchtwegbreite und statische Auswirkungen sind zu pr\u00FCfen.",
+  "longSummary": "### Kontext\n\n- Nach dem Gespr\u00E4ch mit dem Kunden aus Rotterdam sollen die Grundrisse \u00FCberarbeitet werden.\n\n### Kernaussagen\n\n- Die wesentliche \u00C4nderung betrifft ein zweites Treppenhaus auf der Ostseite.\n- Es muss gepr\u00FCft werden, ob die Breite des Fluchtwegs weiterhin den Vorschriften entspricht.\n\n### Offene Punkte / ToDos\n\n- Die \u00FCberarbeiteten Grundrisse sollen bis n\u00E4chsten Dienstag an den Kunden aus Rotterdam \u00FCbermittelt werden.\n- Der Statiker soll die strukturellen Auswirkungen des zweiten Treppenhauses best\u00E4tigen.\n- Es soll gepr\u00FCft werden, ob die Breite des Fluchtwegs weiterhin den geltenden Vorschriften entspricht.",
+  "proseSummary": "Nach dem Gespr\u00E4ch mit dem Kunden aus Rotterdam noch eine kurze Information: Die \u00FCberarbeiteten Grundrisse werden bis kommenden Dienstag ben\u00F6tigt. Die wesentliche \u00C4nderung betrifft das zweite Treppenhaus auf der Ostseite. Au\u00DFerdem muss gepr\u00FCft werden, ob die Breite des Fluchtwegs weiterhin den geltenden Vorschriften entspricht. Ich werde unseren Ingenieur bitten, die statischen Auswirkungen zu best\u00E4tigen.",
+  "emailText": null,
+  "conversationNote": "- **Teilnehmer:** Kunde aus Rotterdam; weitere Gespr\u00E4chsteilnehmer wurden nicht benannt.\n- **Themen:**\n  - \u00DCberarbeitung der Grundrisspl\u00E4ne\n  - Erg\u00E4nzung eines zweiten Treppenhauses auf der Ostseite\n  - Pr\u00FCfung, ob die Breite des Fluchtwegs weiterhin den geltenden Vorschriften entspricht\n- **Beschl\u00FCsse:**\n  - Die \u00FCberarbeiteten Grundrisspl\u00E4ne werden bis kommenden Dienstag ben\u00F6tigt.\n  - Das zweite Treppenhaus auf der Ostseite wird in die Planung aufgenommen.\n- **Weiteres Vorgehen:**\n  - Pr\u00FCfung der erforderlichen Fluchtwegbreite gem\u00E4\u00DF den geltenden Vorschriften.\n  - Der Ingenieur wird gebeten, die statischen Auswirkungen zu best\u00E4tigen.",
+  "taskList": "Nach dem Gespr\u00E4ch mit dem Kunden aus Rotterdam geht es um die \u00DCberarbeitung der Grundrisse. Im Mittelpunkt stehen die geplante zweite Treppe auf der Ostseite, die Einhaltung der Vorschriften zur Breite des Fluchtwegs und die statischen Auswirkungen. Der Ingenieur soll die konstruktiven Auswirkungen best\u00E4tigen.\n\n- \u00DCberarbeitete Grundrisse bis n\u00E4chsten Dienstag bereitstellen\n- Breite des Fluchtwegs auf Einhaltung der Vorschriften pr\u00FCfen\n- Konstruktive Auswirkungen der zweiten Treppe best\u00E4tigen lassen (Ingenieur)",
+  "stundenzettelText": null,
+  "analogText": null,
+  "isDone": false,
+  "customSections": {},
+  "customSectionNames": {}
+}

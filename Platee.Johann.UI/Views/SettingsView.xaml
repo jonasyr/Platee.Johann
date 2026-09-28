@@ -49,7 +49,7 @@
             <Setter Property="SpellCheck.IsEnabled"    Value="False"/>
             <Setter Property="HorizontalAlignment"     Value="Stretch"/>
         </Style>
-        <Style x:Key="BrowseButton" TargetType="Button">
+        <Style x:Key="BrowseButton" TargetType="Button" BasedOn="{StaticResource StandardButtonStyle}">
             <Setter Property="Padding"    Value="10,4"/>
             <Setter Property="FontSize"   Value="12"/>
             <Setter Property="Margin"     Value="6,0,0,0"/>
@@ -95,6 +95,14 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Setter Property="AutomationProperties.AutomationId"
+                    Value="{Binding Key, StringFormat=Settings.Section.{0}}"/>
+        </Style>
+        <!-- Eigene Vorlagen (#50): eigene Kontrollkästchen-Zeile für die stabile Id je Kategorie,
+             ohne die geteilte ListRowItemStyle für andere Listen (Eintragsliste) zu verändern. -->
+        <Style x:Key="CategoryListItemStyle" TargetType="ListBoxItem" BasedOn="{StaticResource ListRowItemStyle}">
+            <Setter Property="AutomationProperties.AutomationId"
+                    Value="{Binding Id, StringFormat=Settings.Category.{0}}"/>
         </Style>
     </Window.Resources>
 
@@ -119,6 +127,7 @@
                 <DockPanel LastChildFill="True">
                     <ListBox ItemsSource="{Binding Source={StaticResource GroupedSections}}"
                              SelectedItem="{Binding SelectedSection, Mode=TwoWay}"
+                             AutomationProperties.AutomationId="Settings.SectionList"
                              BorderThickness="0"
                              Background="Transparent"
                              ItemContainerStyle="{StaticResource SectionNavItemStyle}"
@@ -162,11 +171,24 @@
 
                             <TextBlock Style="{StaticResource LabelStyle}" Text="Name"/>
                             <TextBox Style="{StaticResource FieldBox}"
+                                     AutomationProperties.AutomationId="Settings.Name"
                                      Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
 
                             <TextBlock Style="{StaticResource LabelStyle}" Text="Firma"/>
                             <TextBox Style="{StaticResource FieldBox}"
+                                     AutomationProperties.AutomationId="Settings.Firma"
                                      Text="{Binding Firma, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Style="{StaticResource LabelStyle}" Text="Begleittext der Aufgaben-Mail"/>
+                            <TextBlock Style="{StaticResource HintStyle}"
+                                       Text="Steht über den Aufgaben, wenn Sie „Aufgaben“ in Outlook öffnen. {Projekt} wird durch das Projekt ersetzt. Leer lassen für keinen Begleittext."/>
+                            <TextBox Style="{StaticResource FieldBox}"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     MinHeight="64"
+                                     VerticalContentAlignment="Top"
+                                     AutomationProperties.AutomationId="Settings.AufgabenMailText"
+                                     Text="{Binding AufgabenMailText, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
                     </ScrollViewer>
 
@@ -186,8 +208,10 @@
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource BrowseButton}"
                                         Content="Durchsuchen…"
+                                        AutomationProperties.AutomationId="Settings.BrowseQuell"
                                         Command="{Binding BrowseQuellCommand}"/>
                                 <TextBox Style="{StaticResource FieldBox}"
+                                         AutomationProperties.AutomationId="Settings.Quellverzeichnis"
                                          Text="{Binding Quellverzeichnis, UpdateSourceTrigger=PropertyChanged}"/>
                             </DockPanel>
 
@@ -195,8 +219,10 @@
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource BrowseButton}"
                                         Content="Durchsuchen…"
+                                        AutomationProperties.AutomationId="Settings.BrowseArchiv"
                                         Command="{Binding BrowseArchivCommand}"/>
                                 <TextBox Style="{StaticResource FieldBox}"
+                                         AutomationProperties.AutomationId="Settings.Archivverzeichnis"
                                          Text="{Binding Archivverzeichnis, UpdateSourceTrigger=PropertyChanged}"/>
                             </DockPanel>
 
@@ -204,8 +230,10 @@
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource BrowseButton}"
                                         Content="Durchsuchen…"
+                                        AutomationProperties.AutomationId="Settings.BrowseAusgabe"
                                         Command="{Binding BrowseAusgabeCommand}"/>
                                 <TextBox Style="{StaticResource FieldBox}"
+                                         AutomationProperties.AutomationId="Settings.Ausgabeverzeichnis"
                                          Text="{Binding Ausgabeverzeichnis, UpdateSourceTrigger=PropertyChanged}"/>
                             </DockPanel>
                         </StackPanel>
@@ -223,13 +251,86 @@
                             <DockPanel>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource BrowseButton}"
                                         Content="Durchsuchen&#x2026;"
+                                        AutomationProperties.AutomationId="Settings.BrowseGlobalPromptFile"
                                         Command="{Binding BrowseGlobalPromptFileCommand}"/>
                                 <TextBox Style="{StaticResource FieldBox}"
+                                         AutomationProperties.AutomationId="Settings.GlobalPromptFilePath"
                                          Text="{Binding GlobalPromptFilePath, UpdateSourceTrigger=PropertyChanged}"/>
                             </DockPanel>
 
                             <TextBlock Style="{StaticResource HintStyle}" Margin="0,8,0,0"
                                        Text="{Binding GlobalPromptStatus}"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Margin="12,10,12,8"
+                                  Visibility="{Binding IsKiModellSelected, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource HintStyle}"
+                                       Text="Legt fest, welches KI-Modell die Zusammenfassungen erzeugt. Die Einstellung gilt nur für Sie — Ihre Kollegen sind davon nicht betroffen."/>
+
+                            <TextBlock Style="{StaticResource LabelStyle}"
+                                       Margin="0,10,0,2"
+                                       Text="Modell für Zusammenfassungen"/>
+                            <StackPanel Orientation="Horizontal">
+                                <ComboBox ItemsSource="{Binding AvailableModels}"
+                                          SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                                          AutomationProperties.AutomationId="Settings.ModelPicker"
+                                          DisplayMemberPath="DisplayName"
+                                          MinWidth="260"/>
+                                <TextBlock Text="{Binding ModelStatusText}"
+                                           FontSize="11" Foreground="#888"
+                                           VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            </StackPanel>
+
+                            <Border Margin="0,12,0,0" Padding="12,10" CornerRadius="3"
+                                    Background="#FAFAFA" BorderBrush="#CCC" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding SelectedModel.DisplayName}"
+                                               FontSize="13" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding SelectedModel.OneLiner}"
+                                               FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"/>
+
+                                    <Grid Margin="0,10,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Denkleistung"
+                                                   FontSize="11" Foreground="#888"
+                                                   Margin="0,0,10,3" MinWidth="74"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" FontSize="11" Margin="0,0,0,3">
+                                            <Run Text="{Binding ModelReasoningFilled, Mode=OneWay}" Foreground="#E63123"/><Run Text="{Binding ModelReasoningEmpty, Mode=OneWay}" Foreground="#D8D8D8"/>
+                                        </TextBlock>
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Tempo"
+                                                   FontSize="11" Foreground="#888"
+                                                   Margin="0,0,10,0" MinWidth="74"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="1" FontSize="11">
+                                            <Run Text="{Binding ModelSpeedFilled, Mode=OneWay}" Foreground="#E63123"/><Run Text="{Binding ModelSpeedEmpty, Mode=OneWay}" Foreground="#D8D8D8"/>
+                                        </TextBlock>
+                                    </Grid>
+
+                                    <TextBlock Text="{Binding ModelCostText}"
+                                               AutomationProperties.AutomationId="Settings.ModelCost"
+                                               FontSize="13" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding ModelComparisonText}"
+                                               FontSize="11" Foreground="#888"
+                                               Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Style="{StaticResource HintStyle}"
+                                       Margin="0,14,0,0"
+                                       Text="Die Änderung gilt ab der nächsten Verarbeitung. Ein laufender Vorgang wird nicht umgestellt."/>
                         </StackPanel>
                     </ScrollViewer>
 
@@ -265,16 +366,23 @@
                                                 <ColumnDefinition Width="30"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBox Grid.Column="0" Style="{StaticResource FieldBox}" Margin="0"
+                                                     AutomationProperties.AutomationId="{Binding Wrong, StringFormat=Settings.CorrectionWrong.{0}}"
                                                      Text="{Binding Wrong, UpdateSourceTrigger=PropertyChanged}"/>
                                             <TextBox Grid.Column="2" Style="{StaticResource FieldBox}" Margin="0"
+                                                     AutomationProperties.AutomationId="{Binding Correct, StringFormat=Settings.CorrectionCorrect.{0}}"
                                                      Text="{Binding Correct, UpdateSourceTrigger=PropertyChanged}"
                                                      KeyDown="CorrectionCorrectField_KeyDown"/>
+                                            <!-- Leise Rolle (#97). IsTabStop bleibt aus: Tab/Enter im Feld
+                                                 „richtig“ springt per MoveFocus in die neue Zeile, ein
+                                                 erreichbares ✕ läge genau dazwischen. -->
                                             <Button Grid.Column="3" Content="✕" FontSize="11" Padding="4,2"
+                                                    Style="{StaticResource QuietButtonStyle}"
                                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                                     Command="{Binding DataContext.RemoveCorrectionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding}"
-                                                    Background="Transparent" BorderThickness="0"
-                                                    Foreground="#999" Cursor="Hand" IsTabStop="False"
+                                                    IsTabStop="False"
+                                                    AutomationProperties.Name="Korrektur entfernen"
+                                                    AutomationProperties.AutomationId="{Binding Wrong, StringFormat=Settings.RemoveCorrection.{0}}"
                                                     ToolTip="Eintrag entfernen"/>
                                         </Grid>
                                     </DataTemplate>
@@ -283,6 +391,7 @@
 
                             <Button Content="+ Korrektur hinzufügen"
                                     Command="{Binding AddCorrectionCommand}"
+                                    AutomationProperties.AutomationId="Settings.AddCorrection"
                                     HorizontalAlignment="Left"
                                     Padding="12,6" Margin="0,4,0,0"
                                     FontSize="12"/>
@@ -293,7 +402,9 @@
                                   VerticalScrollBarVisibility="Auto"
                                   Margin="12,10,12,8"
                                   Visibility="{Binding IsKategorienSelected, Converter={StaticResource BoolToVisibility}}">
-                        <StackPanel>
+                        <!-- Rechter Rand: Abstand der „Automatisch“-Spalte zur Bildlaufleiste,
+                             mit und ohne sichtbare Leiste gleich (#79). -->
+                        <StackPanel Margin="0,0,12,0">
                             <TextBlock Style="{StaticResource HintStyle}"
                                        Text="Eigene Vorlagen erzeugen zusätzliche Abschnitte aus dem Transkript. Pro Abschnitt legen Sie fest, ob er automatisch nach jeder Aufnahme entsteht oder erst auf Knopfdruck im Eintrag."/>
 
@@ -315,6 +426,7 @@
                                                       FontSize="12"
                                                       VerticalAlignment="Center"
                                                       IsChecked="{Binding IsAuto, Mode=TwoWay}"
+                                                      AutomationProperties.AutomationId="{Binding Id, StringFormat=Settings.BuiltInMode.{0}}"
                                                       ToolTip="Aus = nur auf Knopfdruck im Eintrag"/>
                                         </Grid>
                                     </DataTemplate>
@@ -325,12 +437,15 @@
                             <Border BorderBrush="#DADADA" BorderThickness="1" Padding="0" Margin="0,0,0,6">
                                 <ListBox ItemsSource="{Binding Categories}"
                                          SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                                         AutomationProperties.AutomationId="Settings.CategoryList"
                                          MaxHeight="150"
                                          BorderThickness="0"
-                                         HorizontalContentAlignment="Stretch">
+                                         HorizontalContentAlignment="Stretch"
+                                         ItemContainerStyle="{StaticResource CategoryListItemStyle}">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid Margin="0,2">
+                                            <!-- Abstand zu Rahmen und eigener Bildlaufleiste der Liste (#79). -->
+                                            <Grid Margin="4,2,8,2">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
@@ -344,6 +459,7 @@
                                                           FontSize="12"
                                                           VerticalAlignment="Center"
                                                           IsChecked="{Binding IsAuto, Mode=TwoWay}"
+                                                          AutomationProperties.AutomationId="{Binding Id, StringFormat=Settings.CategoryMode.{0}}"
                                                           ToolTip="Aus = nur auf Knopfdruck im Eintrag"/>
                                             </Grid>
                                         </DataTemplate>
@@ -353,25 +469,30 @@
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                 <Button Content="+ Vorlage" Padding="10,5" FontSize="12"
-                                        Command="{Binding AddCategoryCommand}"/>
+                                        Command="{Binding AddCategoryCommand}"
+                                        AutomationProperties.AutomationId="Settings.AddCategory"/>
                                 <Button Content="Duplizieren" Padding="10,5" FontSize="12" Margin="6,0,0,0"
                                         Command="{Binding DuplicateCategoryCommand}"
                                         CommandParameter="{Binding SelectedCategory}"
-                                        IsEnabled="{Binding HasSelectedCategory}"/>
+                                        IsEnabled="{Binding HasSelectedCategory}"
+                                        AutomationProperties.AutomationId="Settings.DuplicateCategory"/>
                                 <Button Content="Löschen" Padding="10,5" FontSize="12" Margin="6,0,0,0"
                                         Command="{Binding RemoveCategoryCommand}"
                                         CommandParameter="{Binding SelectedCategory}"
                                         IsEnabled="{Binding HasSelectedCategory}"
+                                        AutomationProperties.AutomationId="Settings.RemoveCategory"
                                         ToolTip="Bereits erzeugte Texte bleiben erhalten und erscheinen im Eintrag als „Nicht mehr konfiguriert“."/>
                                 <Button Content="▲" Padding="10,5" FontSize="12" Margin="6,0,0,0"
                                         Command="{Binding MoveCategoryUpCommand}"
                                         CommandParameter="{Binding SelectedCategory}"
                                         IsEnabled="{Binding HasSelectedCategory}"
+                                        AutomationProperties.AutomationId="Settings.MoveCategoryUp"
                                         ToolTip="Nach oben"/>
                                 <Button Content="▼" Padding="10,5" FontSize="12" Margin="6,0,0,0"
                                         Command="{Binding MoveCategoryDownCommand}"
                                         CommandParameter="{Binding SelectedCategory}"
                                         IsEnabled="{Binding HasSelectedCategory}"
+                                        AutomationProperties.AutomationId="Settings.MoveCategoryDown"
                                         ToolTip="Nach unten"/>
                             </StackPanel>
 
@@ -381,11 +502,13 @@
                                                      Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock Style="{StaticResource LabelStyle}" Text="Name"/>
                                 <TextBox Style="{StaticResource FieldBox}"
+                                         AutomationProperties.AutomationId="Settings.CategoryName"
                                          Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
 
                                 <TextBlock Style="{StaticResource LabelStyle}" Text="Speicherort"/>
                                 <CheckBox Content="Global (Team) – für alle Kollegen sichtbar"
                                           FontSize="12" Margin="0,2,0,0"
+                                          AutomationProperties.AutomationId="Settings.CategoryIsGlobal"
                                           IsChecked="{Binding IsGlobal, Mode=TwoWay}"/>
                                 <TextBlock Style="{StaticResource HintStyle}" Margin="0,4,0,0"
                                            Text="Globale Vorlagen werden nur geschrieben, wenn unten „Speichern nach: Global (Team)“ gewählt ist."/>
@@ -396,6 +519,7 @@
                                            Text="⚠ Der Prompt enthält keinen Platzhalter {transcript}. Ohne ihn erhält die KI das Transkript nicht und der Abschnitt wird unbrauchbar."
                                            Visibility="{Binding IsPromptInvalid, Converter={StaticResource BoolToVisibility}}"/>
                                 <TextBox Style="{StaticResource PromptBox}" MinHeight="140"
+                                         AutomationProperties.AutomationId="Settings.CategoryPrompt"
                                          Text="{Binding Prompt, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                         </StackPanel>
@@ -412,6 +536,7 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Globale Rolle/Persönlichkeit für alle GPT-Aufrufe (system message)."/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
+                                 AutomationProperties.AutomationId="Settings.SystemMessagePrompt"
                                  Text="{Binding SystemMessage, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -426,6 +551,7 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Kurzfassung. Platzhalter: {word_limit}, {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
+                                 AutomationProperties.AutomationId="Settings.AbstractPrompt"
                                  Text="{Binding AbstractPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -440,6 +566,7 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die strukturierte Zusammenfassung. Platzhalter: {word_limit}, {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
+                                 AutomationProperties.AutomationId="Settings.StructuredPrompt"
                                  Text="{Binding StructuredPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -454,6 +581,7 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die Fließtext-Zusammenfassung. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
+                                 AutomationProperties.AutomationId="Settings.ProsePrompt"
                                  Text="{Binding ProsePrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -468,6 +596,7 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für die E-Mail-Generierung. Platzhalter: {prose_summary}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
+                                 AutomationProperties.AutomationId="Settings.EmailPrompt"
                                  Text="{Binding EmailPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -482,6 +611,7 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Aufgaben-Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
+                                 AutomationProperties.AutomationId="Settings.AufgabePrompt"
                                  Text="{Binding AufgabePrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -496,6 +626,7 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Gesprächsnotiz-Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
+                                 AutomationProperties.AutomationId="Settings.GespraechsnotizPrompt"
                                  Text="{Binding GespraechsnotizPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -510,6 +641,7 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für Stundenzettel-Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
+                                 AutomationProperties.AutomationId="Settings.StundenzettelPrompt"
                                  Text="{Binding StundenzettelPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
 
@@ -524,6 +656,7 @@
                         <TextBlock Grid.Row="1" Style="{StaticResource HintStyle}"
                                    Text="Prompt für analoge Einträge. Platzhalter: {transcript}"/>
                         <TextBox Grid.Row="2" Style="{StaticResource PromptBox}"
+                                 AutomationProperties.AutomationId="Settings.AnalogPrompt"
                                  Text="{Binding AnalogPrompt, UpdateSourceTrigger=LostFocus}"/>
                     </Grid>
                 </Grid>
@@ -538,24 +671,30 @@
                            VerticalAlignment="Center" Margin="0,0,6,0"/>
                 <ComboBox MinWidth="140" FontSize="12" Padding="6,3"
                           SelectedValuePath="Tag"
+                          AutomationProperties.AutomationId="Settings.SaveTarget"
                           SelectedValue="{Binding SaveTarget, Mode=TwoWay}">
-                    <ComboBoxItem Content="Persönlich" Tag="{x:Static settings:CategoryScope.Personal}"/>
-                    <ComboBoxItem Content="Global (Team)" Tag="{x:Static settings:CategoryScope.Global}"/>
+                    <ComboBoxItem Content="Persönlich" Tag="{x:Static settings:CategoryScope.Personal}"
+                                  AutomationProperties.AutomationId="Settings.SaveTarget.Personal"/>
+                    <ComboBoxItem Content="Global (Team)" Tag="{x:Static settings:CategoryScope.Global}"
+                                  AutomationProperties.AutomationId="Settings.SaveTarget.Global"/>
                 </ComboBox>
             </StackPanel>
             <TextBlock DockPanel.Dock="Left"
                        Text="{Binding StatusMessage}"
+                       AutomationProperties.AutomationId="Settings.Status"
                        Foreground="#27AE60" FontSize="12"
                        VerticalAlignment="Center"/>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                 <Button Content="Standard wiederherstellen"
                         Command="{Binding ResetCommand}"
+                        AutomationProperties.AutomationId="Settings.Reset"
                         Padding="12,6" Margin="0,0,8,0" FontSize="13"/>
+                <!-- Primär-Rolle (#97) statt lokaler Farben: Überfahren wirkt, Weiß auf Rot 5,4:1. -->
                 <Button Content="Speichern"
                         Command="{Binding SaveCommand}"
-                        Padding="14,6" FontSize="13"
-                        Background="#E63123" Foreground="White"
-                        BorderThickness="0"/>
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        AutomationProperties.AutomationId="Settings.Save"
+                        Padding="14,6" FontSize="13"/>
             </StackPanel>
         </DockPanel>
     </Grid>

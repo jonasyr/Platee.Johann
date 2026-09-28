@@ -29,6 +29,7 @@
         <Button Content="OK"
                 Click="Ok_Click"
                 IsDefault="True"
+                Style="{StaticResource PrimaryButtonStyle}"
                 HorizontalAlignment="Right"
                 Padding="24,6"
                 MinWidth="90"/>

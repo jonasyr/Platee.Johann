@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Platee.Johann.Application.Processing;
 using Platee.Johann.Infrastructure.Llm;
 using Xunit;
 
@@ -22,11 +23,12 @@ public sealed class ModelSelectionTests
     }
 
     [Fact]
-    public void Summaries_use_gpt_5_6_luna()
+    public void Summaries_use_gpt_5_6_luna_by_default()
     {
         // Von OpenAI ausdruecklich fuer "summarization, drafting, classification"
-        // positioniert — genau Johanns Aufgabe.
-        OpenAiLlmProvider.ModelName.Should().Be("gpt-5.6-luna");
+        // positioniert — genau Johanns Aufgabe. Seit #71 ist das der Standard und nicht
+        // mehr die einzige Moeglichkeit; still zurueckgedreht faellt es sonst niemandem auf.
+        SummaryModelCatalog.Default.Id.Should().Be("gpt-5.6-luna");
     }
 
     [Fact]

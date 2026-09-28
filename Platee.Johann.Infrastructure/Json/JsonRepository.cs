@@ -12,8 +12,12 @@ using Platee.Johann.Domain.Services;
 /// </summary>
 public sealed class JsonRepository : IEntryRepository
 {
+    /// <summary>Name of the Johann trash folder under the output root (#55).</summary>
+    public const string TrashFolderName = EntryTrash.FolderName;
+
     private readonly string outputRoot;
     private readonly SemaphoreSlim seqLock = new(1, 1);
+    private readonly Func<DateTimeOffset> utcNow;
 
     private static readonly JsonSerializerOptions WriteOptions = new()
     {
@@ -26,9 +30,10 @@ public sealed class JsonRepository : IEntryRepository
         PropertyNameCaseInsensitive = true,
     };
 
-    public JsonRepository(string outputRoot)
+    public JsonRepository(string outputRoot, Func<DateTimeOffset>? utcNow = null)
     {
         this.outputRoot = outputRoot;
+        this.utcNow = utcNow ?? (() => DateTimeOffset.UtcNow);
     }
 
     public Task<IReadOnlyList<DateOnly>> GetAvailableDatesAsync(CancellationToken ct = default)
@@ -43,7 +48,10 @@ public sealed class JsonRepository : IEntryRepository
         foreach (var dir in Directory.EnumerateDirectories(this.outputRoot))
         {
             var name = Path.GetFileName(dir);
-            if (DateOnly.TryParseExact(name, "yyyy-MM-dd", out var date))
+
+            // A day whose last entry was deleted keeps its folder — and with it the
+            // sequence counter, so no number is ever reused — but is no longer listed (#55).
+            if (DateOnly.TryParseExact(name, "yyyy-MM-dd", out var date) && HasEntries(dir))
             {
                 dates.Add(date);
             }
@@ -51,6 +59,12 @@ public sealed class JsonRepository : IEntryRepository
 
         dates.Sort((a, b) => b.CompareTo(a)); // newest first
         return Task.FromResult<IReadOnlyList<DateOnly>>(dates);
+    }
+
+    private static bool HasEntries(string dayDir)
+    {
+        var rawDir = Path.Combine(dayDir, "_raw");
+        return Directory.Exists(rawDir) && Directory.EnumerateFiles(rawDir, "*_status.json").Any();
     }
 
     public async Task<IReadOnlyList<Entry>> GetEntriesForDateAsync(
@@ -156,6 +170,32 @@ public sealed class JsonRepository : IEntryRepository
 
         await using var stream = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None);
         await JsonSerializer.SerializeAsync(stream, dto, WriteOptions, ct);
+    }
+
+    public async Task UpdateAsync(Entry entry, CancellationToken ct = default)
+    {
+        var lookup = await this.FindStatusFileAsync(entry.JobId, ct);
+        if (lookup.Path is null)
+        {
+            throw lookup.BusyFile is null
+                ? new EntryDeletedException()
+                : new IOException(
+                    $"„{Path.GetFileName(lookup.BusyFile)}“ wird gerade von einem anderen Programm verwendet.");
+        }
+
+        // Serialised up front, so a cancellation can never leave a truncated file behind.
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(EntryMapper.ToDto(entry), WriteOptions);
+        try
+        {
+            // Truncate, not Create: the file must still exist. Moved to the trash in the
+            // meantime — possibly by another Johann — means deleted, not "write it anew" (#55).
+            await using var stream = new FileStream(lookup.Path, FileMode.Truncate, FileAccess.Write, FileShare.None);
+            await stream.WriteAsync(bytes, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            throw new EntryDeletedException();
+        }
     }
 
     private static async Task<Entry?> LoadFileAsync(string path, CancellationToken ct)
@@ -322,8 +362,148 @@ public sealed class JsonRepository : IEntryRepository
         return new JobIdMigrationResult(migrated, skipped);
     }
 
+    public async Task<EntryDeletionResult> DeleteAsync(string jobId, CancellationToken ct = default)
+    {
+        var lookup = await this.FindStatusFileAsync(jobId, ct);
+        if (lookup.Path is null)
+        {
+            return lookup.BusyFile is null
+                ? EntryDeletionResult.NotFound
+                : throw new EntryDeletionException(
+                    $"„{Path.GetFileName(lookup.BusyFile)}“ wird gerade von einem anderen Programm verwendet. "
+                    + "Es wurde nichts gelöscht; bitte kurz warten und erneut löschen.",
+                    lookup.BusyFile);
+        }
+
+        // Past this point the move is not cancellable: stopping half way is exactly the
+        // partial deletion the trash's roll-back exists to prevent.
+        var statusPath = lookup.Path;
+        var entry = lookup.Entry!;
+        var rawDir = Path.GetDirectoryName(statusPath)!;
+        var date = DateOnly.FromDateTime(entry.CreatedAt.DateTime);
+        var files = CollectEntryFiles(statusPath, entry);
+
+        return new EntryTrash(this.outputRoot, this.utcNow).Move(entry, date, rawDir, files);
+    }
+
+    public Task<TrashPurgeResult> PurgeTrashAsync(DateTimeOffset deletedBefore, CancellationToken ct = default) =>
+        Task.FromResult(new EntryTrash(this.outputRoot, this.utcNow).Purge(deletedBefore, ct));
+
+    /// <summary>
+    /// Like <see cref="GetByJobIdAsync"/>, but returns the file as well and skips unreadable
+    /// neighbours: a corrupt file next to the entry must not make it undeletable.
+    /// </summary>
+    private async Task<StatusLookup> FindStatusFileAsync(string jobId, CancellationToken ct)
+    {
+        // A file another process is writing cannot be read. Skipping it like a corrupt file
+        // would report "not found" — and a deletion would then claim success (#55). So a busy
+        // file is retried briefly and, if it stays busy, reported as such.
+        const int Attempts = 20;
+        for (var attempt = 1; ; attempt++)
+        {
+            var lookup = await this.ScanForStatusFileAsync(jobId, ct);
+            if (lookup.Path is not null || lookup.BusyFile is null || attempt == Attempts)
+            {
+                return lookup;
+            }
+
+            await Task.Delay(25, ct);
+        }
+    }
+
+    private async Task<StatusLookup> ScanForStatusFileAsync(string jobId, CancellationToken ct)
+    {
+        if (!Directory.Exists(this.outputRoot))
+        {
+            return default;
+        }
+
+        var rawDirs = new List<string>();
+        if (TryParseDateFromJobId(jobId, out var date))
+        {
+            rawDirs.Add(this.GetRawDir(date));
+        }
+
+        rawDirs.AddRange(Directory.EnumerateDirectories(this.outputRoot).Select(d => Path.Combine(d, "_raw")));
+
+        string? busy = null;
+        foreach (var rawDir in rawDirs.Distinct(StringComparer.OrdinalIgnoreCase).Where(Directory.Exists))
+        {
+            foreach (var file in Directory.EnumerateFiles(rawDir, "*_status.json"))
+            {
+                ct.ThrowIfCancellationRequested();
+                Entry? entry;
+                try
+                {
+                    entry = await LoadFileAsync(file, ct);
+                }
+                catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+                {
+                    // Moved away since it was listed — by a deletion, possibly in another process.
+                    continue;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    busy ??= file;
+                    continue;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Corrupt neighbour: it must not make this entry undeletable.
+                    continue;
+                }
+
+                if (entry?.JobId == jobId)
+                {
+                    return new StatusLookup(file, entry, null);
+                }
+            }
+        }
+
+        return new StatusLookup(null, null, busy);
+    }
+
+    /// <summary>
+    /// Every file of the entry, matched by exact name — never by wildcard, which would also
+    /// catch longer names sharing the prefix. The stem is taken from the status file actually
+    /// found (legacy entries may be named differently) and from <see cref="FilenameBuilder"/>,
+    /// which today's renderers use. The status file comes last, so an interrupted run leaves
+    /// the entry in place rather than orphaned artefacts without an entry.
+    /// </summary>
+    private static List<string> CollectEntryFiles(string statusPath, Entry entry)
+    {
+        const string StatusSuffix = "_status.json";
+        var rawDir = Path.GetDirectoryName(statusPath)!;
+        var dayDir = Path.GetDirectoryName(rawDir)!;
+        var statusName = Path.GetFileName(statusPath);
+        var stems = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            statusName[..^StatusSuffix.Length],
+            FilenameBuilder.Build(entry),
+        };
+
+        bool BelongsToEntry(string file)
+        {
+            var name = Path.GetFileName(file);
+            return !name.StartsWith('_')
+                && !name.EndsWith(StatusSuffix, StringComparison.OrdinalIgnoreCase)
+                && (stems.Contains(Path.GetFileNameWithoutExtension(name))
+                    || stems.Any(s => name.Equals(s + "_email.txt", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        var files = Directory.EnumerateFiles(dayDir).Where(BelongsToEntry)
+            .Concat(Directory.EnumerateFiles(rawDir).Where(BelongsToEntry))
+            .ToList();
+        files.Add(statusPath);
+        return files;
+    }
+
     private string GetRawDir(DateOnly date) =>
         Path.Combine(this.outputRoot, date.ToString("yyyy-MM-dd"), "_raw");
+
+    /// <summary>Where an entry's status file is — or which file could not be read to tell.</summary>
+    private readonly record struct StatusLookup(string? Path, Entry? Entry, string? BusyFile);
 }
 
 file sealed record CounterDoc(int Next);
+

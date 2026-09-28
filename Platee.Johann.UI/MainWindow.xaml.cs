@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
+using Platee.Johann.UI.Helpers;
 using Platee.Johann.UI.ViewModels;
 
 public partial class MainWindow : Window
@@ -22,6 +23,50 @@ public partial class MainWindow : Window
         this.InitializeComponent();
         this.viewModel = viewModel;
         this.DataContext = viewModel;
+        viewModel.ShowReleaseNotes = this.ShowReleaseNotes;
+    }
+
+    /// <summary>
+    /// Shows the release notes — after an update at startup, and from the „Neuigkeiten“ button
+    /// (#78). Afterwards the button pulses briefly, so the user sees where to find them again.
+    /// </summary>
+    public void ShowReleaseNotes()
+    {
+        var markdown = ReleaseNotesHelper.LoadMarkdown(typeof(App).Assembly);
+        if (string.IsNullOrWhiteSpace(markdown))
+        {
+            MessageBox.Show(
+                this,
+                "Die Neuigkeiten konnten nicht geladen werden.",
+                "Neuigkeiten",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        new Views.ReleaseNotesWindow(ReleaseNotesHelper.RenderToHtml(markdown)) { Owner = this }.ShowDialog();
+        this.PulseReleaseNotesButton();
+    }
+
+    /// <summary>
+    /// Scales the button up and back twice. The simple variant from #78: a window cannot be
+    /// animated into an element of another window, and a pulse serves the same purpose.
+    /// Skipped when Windows animations are switched off.
+    /// </summary>
+    private void PulseReleaseNotesButton()
+    {
+        if (!SystemParameters.ClientAreaAnimation || this.ReleaseNotesButton.RenderTransform is not ScaleTransform scale)
+        {
+            return;
+        }
+
+        var pulse = new System.Windows.Media.Animation.DoubleAnimation(1.0, 1.2, TimeSpan.FromMilliseconds(220))
+        {
+            AutoReverse = true,
+            RepeatBehavior = new System.Windows.Media.Animation.RepeatBehavior(2),
+        };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, pulse);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, pulse);
     }
 
     protected override async void OnContentRendered(EventArgs e)
@@ -130,5 +175,86 @@ public partial class MainWindow : Window
             sv.ScrollToVerticalOffset(sv.VerticalOffset - (e.Delta / 3.0));
             e.Handled = true;
         }
+    }
+
+    // ── Spaltenbreite an den Inhalt anpassen (Doppelklick auf die Trennlinie, #96) ──────────
+
+    /// <summary>What the detail view keeps when a list column is widened to fit its content.</summary>
+    private const double DetailMinWidth = 360;
+
+    private void DateSplitter_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        this.FitColumnToContent(this.DateColumn, this.DatePane, this.DateListBox);
+        e.Handled = true;
+    }
+
+    private void EntrySplitter_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        this.FitColumnToContent(this.EntryColumn, this.EntryPane, this.EntryListBox);
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// Like double-clicking a column border in Excel: the column takes the width of its widest
+    /// content — every list row, the group
+    /// headers, and the rest of the pane (header bar, the "Im Eintrag anzeigen" ticks). The
+    /// space comes from the detail view, which keeps <see cref="DetailMinWidth"/>.
+    /// </summary>
+    private void FitColumnToContent(ColumnDefinition column, Panel pane, ListBox list)
+    {
+        // The rows are measured where they live — with their bindings, fonts and styles. A
+        // detached copy of a row measured without its bound title and came out far too narrow.
+        // All rows exist: the entry list does not virtualise, and a grouped list never does.
+        var presenter = FindDescendant<ItemsPresenter>(list);
+
+        // Everything between the column edge and the rows, measured rather than added up: the
+        // ListBox template pads its rows by a fixed 1 px that no property shows, and those 2 px
+        // were enough to trim the title again (#96). A visible scroll bar is included as well.
+        var chrome = presenter is null ? 0 : column.ActualWidth - presenter.ActualWidth;
+        var rows = presenter is null ? 0 : MeasureUnconstrained(presenter);
+        var rest = pane.Children.OfType<FrameworkElement>()
+            .Where(child => !ReferenceEquals(child, list) && child.Visibility == Visibility.Visible)
+            .Select(MeasureUnconstrained)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        // Measuring live elements unconstrained leaves them with the wrong desired size until
+        // they are measured again.
+        list.InvalidateMeasure();
+        pane.InvalidateMeasure();
+
+        var widest = Math.Max(rows > 0 ? rows + chrome : 0, rest);
+        var max = column.ActualWidth + this.DetailColumn.ActualWidth - DetailMinWidth;
+        var width = ColumnAutoFit.Width(widest, chrome: 0, column.MinWidth, max);
+        if (width is not null)
+        {
+            column.Width = new GridLength(width.Value);
+        }
+    }
+
+    private static double MeasureUnconstrained(FrameworkElement element)
+    {
+        element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return element.DesiredSize.Width + element.Margin.Left + element.Margin.Right;
+    }
+
+    private static T? FindDescendant<T>(DependencyObject parent)
+        where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match)
+            {
+                return match;
+            }
+
+            if (FindDescendant<T>(child) is { } nested)
+            {
+                return nested;
+            }
+        }
+
+        return null;
     }
 }

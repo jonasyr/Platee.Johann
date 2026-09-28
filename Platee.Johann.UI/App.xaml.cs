@@ -10,8 +10,10 @@ using Platee.Johann.Application.Services;
 using Platee.Johann.Application.Settings;
 using Platee.Johann.Domain.Parsing;
 using Platee.Johann.Infrastructure.Audio;
+using Platee.Johann.Infrastructure.Hosting;
 using Platee.Johann.Infrastructure.Json;
 using Platee.Johann.Infrastructure.Llm;
+using Platee.Johann.Infrastructure.Mail;
 using Platee.Johann.Infrastructure.Renderers;
 using Platee.Johann.UI.Helpers;
 using Platee.Johann.UI.ViewModels;
@@ -43,12 +45,42 @@ public partial class App : System.Windows.Application
             crashLogger.WriteCrashLog("TASK", ex.Exception);
         };
 
+        // JOHANN_HOME einmal früh auflösen: ein Tippfehler in der Automations-Umlenkung soll
+        // den Start verweigern statt erst beim ersten Diktat mit den echten Daten aufzufallen.
+        string johannHome;
+        try
+        {
+            johannHome = JohannEnvironment.HomeDirectory();
+            _ = JohannEnvironment.OpenAiRoot();
+        }
+        catch (InvalidOperationException ex)
+        {
+            crashLogger.WriteCrashLog("ENVIRONMENT", ex);
+            MessageBox.Show(ex.Message, "Platé.Johann – Start abgebrochen", MessageBoxButton.OK, MessageBoxImage.Error);
+            this.Shutdown(1);
+            return;
+        }
+
         base.OnStartup(e);
 
         // ── Settings ──────────────────────────────────────────────────────────
-        var settingsDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Johann");
-        var jsonSettingsRepo = new JsonSettingsRepository(settingsDir);
+        var settingsDir = johannHome;
+
+        // Unter JOHANN_HOME (#111) muss auch eine fehlende oder unvollstaendige settings.json
+        // unter dem Home-Ordner landen — sonst wuerde eine umgelenkte Sandbox beim ersten Start
+        // heimlich in das echte Documents\Johann schreiben (Fix-Runde 1). GlobalPromptFilePath
+        // bleibt null: eine Sandbox hat kein Team-File, solange ihre settings.json keins nennt —
+        // sonst zoege "Standard wiederherstellen" das echte Z:\...\prompts.json heran (Fix-Runde 2).
+        var settingsDefaults = JohannEnvironment.HasHomeOverride()
+            ? new AppSettings
+            {
+                Quellverzeichnis = Path.Combine(johannHome, "Eingang"),
+                Archivverzeichnis = Path.Combine(johannHome, "Eingang", "Archiv"),
+                Ausgabeverzeichnis = Path.Combine(johannHome, "output"),
+                GlobalPromptFilePath = null,
+            }
+            : null;
+        var jsonSettingsRepo = new JsonSettingsRepository(settingsDir, settingsDefaults);
         ISettingsRepository settingsRepo = jsonSettingsRepo;
 
         var startupFaults = new List<string>();
@@ -123,7 +155,14 @@ public partial class App : System.Windows.Application
             ResolveDefaultInputRoot,
             ResolveDefaultOutputRoot);
 
-        var effectiveSettings = pathResolution.EffectiveSettings;
+        // #71: ein abgekuendigtes Modell wuerde sonst jedes Diktat scheitern lassen. Die
+        // gespeicherte Wahl bleibt unangetastet, sie wird nur zur Laufzeit ueberstimmt —
+        // genau wie ein unerreichbares Verzeichnis.
+        var modelResolution = SummaryModelResolver.Resolve(persistedSettings);
+        var effectiveSettings = pathResolution.EffectiveSettings with
+        {
+            SummaryModel = modelResolution.EffectiveModelId,
+        };
         var outputRoot = effectiveSettings.Ausgabeverzeichnis;
 
 
@@ -141,6 +180,17 @@ public partial class App : System.Windows.Application
             MessageBox.Show(
                 BuildSettingsFaultMessage(startupFaults),
                 "Platé.Johann – Einstellungen konnten nicht geladen werden",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+
+        if (modelResolution.Issue is { } modelIssue)
+        {
+            crashLogger.WriteCrashLog("MODELL", modelIssue);
+
+            MessageBox.Show(
+                modelIssue,
+                "Platé.Johann – Modell angepasst",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
@@ -163,6 +213,25 @@ public partial class App : System.Windows.Application
                     Environment.NewLine + string.Join(Environment.NewLine, jobIdMigration.Skipped)));
         }
 
+        // Johann-Papierkorb (#55): what has been there longer than the retention goes for good.
+        // Only ever logged — a trash that cannot be emptied today is emptied on the next start.
+        try
+        {
+            var purge = await repository.PurgeTrashAsync(DateTimeOffset.UtcNow - TrashPolicy.Retention);
+            if (purge.Skipped.Count > 0)
+            {
+                crashLogger.WriteCrashLog(
+                    "PAPIERKORB",
+                    new InvalidOperationException(
+                        $"{purge.Skipped.Count} Ordner im Papierkorb konnten nicht geleert werden:" +
+                        Environment.NewLine + string.Join(Environment.NewLine, purge.Skipped)));
+            }
+        }
+        catch (Exception ex)
+        {
+            crashLogger.WriteCrashLog("PAPIERKORB", ex);
+        }
+
         // HTML overview service — regenerates _ItemÜbersicht.html after every save.
         // The name resolver is a delegate rather than a snapshot so a category renamed in
         // the settings view takes effect on the next overview without an app restart;
@@ -181,13 +250,14 @@ public partial class App : System.Windows.Application
 
         // OpenAI providers — fall back to NoOp if no API key is configured
         var apiKey = ApiKeyProvider.TryGetOpenAiKey();
+        var openAiRoot = JohannEnvironment.OpenAiRoot();   // bereits beim Start geprüft (Task 2)
 
         ILlmProvider llmProvider = apiKey is not null
-            ? new OpenAiLlmProvider(apiKey)
+            ? new OpenAiLlmProvider(apiKey, openAiRoot)
             : new NoOpLlmProvider();
 
         IAudioTranscriber transcriber = apiKey is not null
-            ? new WhisperTranscriber(apiKey)
+            ? new WhisperTranscriber(apiKey, openAiRoot)
             : new NoOpAudioTranscriber();
 
         var summaryGenerator = new SummaryGenerator(llmProvider, runtimeSettingsHolder);
@@ -223,10 +293,26 @@ public partial class App : System.Windows.Application
         }
 
         // ── Window ────────────────────────────────────────────────────────────
+        // Ohne Schluessel ist keine Pruefung moeglich; der Stub meldet das, statt zu scheitern.
+        IModelAvailabilityProbe modelProbe = string.IsNullOrWhiteSpace(apiKey)
+            ? new NoOpModelAvailabilityProbe()
+            : new OpenAiModelAvailabilityProbe(apiKey, openAiRoot);
+
+        // ── Mail (#57) ────────────────────────────────────────────────────────
+        // Klassisches Outlook per COM, neues Outlook per .eml-Entwurf, sonst mailto mit dem PDF im
+        // Explorer. Warum ein Weg scheiterte, steht im Log — der Nutzer bekommt trotzdem eine Mail.
+        IMailComposer mailComposer = new OutlookMailComposer(
+            new OutlookEnvironment(),
+            new ClassicOutlookChannel(),
+            new NewOutlookChannel(),
+            new MailtoChannel(),
+            logWarning: message => crashLogger.WriteCrashLog("MAIL", new InvalidOperationException(message)));
+
         var viewModel = new MainViewModel(repository, renderers, outputRoot, processor,
                                            settingsRepo, personalPromptRepo, persistedSettingsHolder,
                                            runtimeSettingsHolder, microphoneRecorder,
-                                           pathResolution.Issues);
+                                           pathResolution.Issues, modelProbe, mailComposer,
+                                           settingsDefaults);
 
         // Wired here rather than injected so the view models stay dialog-free in tests.
         viewModel.EmptySectionHintPrompt = () =>
@@ -237,6 +323,18 @@ public partial class App : System.Windows.Application
             };
             dialog.ShowDialog();
             return dialog.Suppress;
+        };
+
+        // Löschen (#55): "Nein" is the default button, so Enter never deletes by accident.
+        var trashDirectory = Path.Combine(outputRoot, JsonRepository.TrashFolderName);
+        viewModel.ConfirmDeleteEntry = entry =>
+        {
+            var owner = System.Windows.Application.Current.MainWindow;
+            var text = EntryDeletionPrompt.MessageFor(entry, trashDirectory);
+            var answer = owner is null
+                ? MessageBox.Show(text, EntryDeletionPrompt.Title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
+                : MessageBox.Show(owner, text, EntryDeletionPrompt.Title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            return answer == MessageBoxResult.Yes;
         };
 
         // Track per-file log items for the watcher
@@ -330,13 +428,9 @@ public partial class App : System.Windows.Application
         var currentVersion = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
         if (ReleaseNotesHelper.ShouldShow(persistedSettings.LastSeenReleaseNotesVersion, currentVersion))
         {
-            var markdown = ReleaseNotesHelper.LoadMarkdown(typeof(App).Assembly);
-            if (!string.IsNullOrWhiteSpace(markdown))
-            {
-                var html = ReleaseNotesHelper.RenderToHtml(markdown);
-                var notesWindow = new ReleaseNotesWindow(html) { Owner = mainWindow };
-                notesWindow.ShowDialog();
-            }
+            // Same path as the „Neuigkeiten“ button: afterwards the button pulses, so the first
+            // showing already tells the user where to find the notes again (#78).
+            mainWindow.ShowReleaseNotes();
 
             var updatedSettings = persistedSettings with { LastSeenReleaseNotesVersion = currentVersion };
             persistedSettingsHolder.Update(updatedSettings, persistedSettingsHolder.Prompts);
@@ -344,7 +438,10 @@ public partial class App : System.Windows.Application
             await settingsRepo.SaveAsync(updatedSettings);
         }
 
-        _ = CheckForUpdatesAsync(crashLogger);
+        if (!JohannEnvironment.SkipUpdateCheck())
+        {
+            _ = CheckForUpdatesAsync(crashLogger);
+        }
     }
 
     private static async Task CheckForUpdatesAsync(CrashLogWriter crashLogger)
@@ -468,20 +565,16 @@ public partial class App : System.Windows.Application
 
     private static string ResolveDefaultOutputRoot()
     {
-        // Default: Documents\Johann\output — independent of the Python project location
-        var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Johann", "output");
+        // Default: <Johann-Home>\output — Documents\Johann, oder JOHANN_HOME (#111)
+        var path = Path.Combine(JohannEnvironment.HomeDirectory(), "output");
         Directory.CreateDirectory(path);
         return path;
     }
 
     private static string ResolveDefaultInputRoot()
     {
-        // Default: Documents\Johann\Eingang
-        var path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Johann", "Eingang");
+        // Default: <Johann-Home>\Eingang — Documents\Johann, oder JOHANN_HOME (#111)
+        var path = Path.Combine(JohannEnvironment.HomeDirectory(), "Eingang");
         Directory.CreateDirectory(path);
         return path;
     }

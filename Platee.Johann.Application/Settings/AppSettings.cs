@@ -62,6 +62,27 @@ public sealed record AppSettings
     /// </summary>
     public bool HideEmptySectionHint { get; init; }
 
+    /// <summary>
+    /// Gets die Id des Modells, das die Zusammenfassungen erzeugt.
+    /// <para>
+    /// Bewusst persoenlich und in der lokalen Einstellungsdatei: Prompts gehoeren dem Team,
+    /// aber wie viel jemand fuer seine eigenen Zusammenfassungen ausgeben will, entscheidet
+    /// er selbst. Eine Id, die <see cref="Processing.SummaryModelCatalog"/> nicht kennt, wird
+    /// beim Start auf den Standard ueberstimmt statt hier repariert zu werden — sonst verloere
+    /// der Nutzer seine Wahl still, sobald er einmal mit einer aelteren Version startet.
+    /// </para>
+    /// </summary>
+    public string SummaryModel { get; init; } = Processing.ModelNames.Summaries;
+
+    /// <summary>
+    /// Gets den Begleittext der internen Aufgaben-Mail (#57); <c>{Projekt}</c> wird ersetzt.
+    /// <para>
+    /// Persoenlich statt im Team-File, weil jeder seine Kollegen anders anschreibt. Ein leerer
+    /// Text ist eine Wahl („kein Begleittext") und wird nicht durch den Standard ersetzt.
+    /// </para>
+    /// </summary>
+    public string AufgabenMailText { get; init; } = Mail.MailDraftBuilder.DefaultTaskMailIntro;
+
     /// <summary>Gets a fresh instance with all default values.</summary>
     public static AppSettings Default => new();
 }

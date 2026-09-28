@@ -14,8 +14,11 @@
     <PackageReference Include="FluentAssertions" Version="8.8.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="NSubstitute" Version="5.3.0" />
+    <!-- Official PdfPig (namespace UglyToad.PdfPig), reads rendered PDFs back (#112). -->
+    <PackageReference Include="PdfPig" Version="0.1.16" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.85" />
   </ItemGroup>
 
   <ItemGroup>
@@ -27,6 +30,8 @@
     <ProjectReference Include="..\Platee.Johann.Domain\Platee.Johann.Domain.csproj" />
     <ProjectReference Include="..\Platee.Johann.Application\Platee.Johann.Application.csproj" />
     <ProjectReference Include="..\Platee.Johann.Infrastructure\Platee.Johann.Infrastructure.csproj" />
+    <ProjectReference Include="..\Platee.Johann.UiDriver\Platee.Johann.UiDriver.csproj" />
+    <ProjectReference Include="..\tools\ui-driver\UiDriverTool.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,6 +39,7 @@
     <Compile Include="..\Platee.Johann.UI\ViewModels\Finding04State.cs" Link="ViewModels/Finding04State.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\DateListFilter.cs" Link="ViewModels/DateListFilter.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\EmptySectionHint.cs" Link="ViewModels/EmptySectionHint.cs" />
+    <Compile Include="..\Platee.Johann.UI\ViewModels\EntryDeletionPrompt.cs" Link="ViewModels/EntryDeletionPrompt.cs" />
     <Compile Include="..\Platee.Johann.UI\Converters\MarkdownFlowDocumentConverter.cs" Link="Converters/MarkdownFlowDocumentConverter.cs" />
     <Compile Include="..\Platee.Johann.UI\StartupPathResolver.cs" Link="StartupPathResolver.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\EntryRowViewModel.cs" Link="ViewModels/EntryRowViewModel.cs" />
@@ -51,11 +57,18 @@
     <Compile Include="..\Platee.Johann.UI\ViewModels\CustomSectionToggleViewModel.cs" Link="ViewModels/CustomSectionToggleViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\ProcessLogItem.cs" Link="ViewModels/ProcessLogItem.cs" />
     <Compile Include="..\Platee.Johann.UI\Helpers\ReleaseNotesHelper.cs" Link="Helpers/ReleaseNotesHelper.cs" />
+    <Compile Include="..\Platee.Johann.UI\Helpers\ColumnAutoFit.cs" Link="Helpers/ColumnAutoFit.cs" />
+    <Compile Include="..\Platee.Johann.UI\Helpers\DictationRescue.cs" Link="Helpers/DictationRescue.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\MainViewModel.cs" Link="ViewModels/MainViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\ToastsViewModel.cs" Link="ViewModels/ToastsViewModel.cs" />
     <Compile Include="..\Platee.Johann.UI\ViewModels\SortMode.cs" Link="ViewModels/SortMode.cs" />
     <Compile Include="..\Platee.Johann.UI\Views\SettingsView.xaml.cs" Link="Views/SettingsView.xaml.cs" />
     <Page Include="..\Platee.Johann.UI\Views\SettingsView.xaml" Link="Views/SettingsView.xaml" />
+    <!-- Pure helpers from Platee.Johann.UiTests, linked in so a change to their inputs
+         (SummaryPrompts wording, solution layout) is caught by the normal test suite instead of
+         only by the unrun UI smoke tests (#111). -->
+    <Compile Include="..\Platee.Johann.UiTests\SectionPromptMatcher.cs" Link="UiTests/SectionPromptMatcher.cs" />
+    <Compile Include="..\Platee.Johann.UiTests\ExeLocator.cs" Link="UiTests/ExeLocator.cs" />
   </ItemGroup>
 
 </Project>

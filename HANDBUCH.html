@@ -317,13 +317,16 @@
       </div>
       <div class="card">
         <strong style="color:var(--accent)">Mitte – Einträge</strong>
-        <p style="font-size:13px;margin:0;">Nummer, Projektname, erste Wörter des Titels, Typ-Badge. Unten öffnet <strong>🎙 Diktieren</strong> über die volle Breite die Mikrofon-Aufnahme.</p>
+        <p style="font-size:13px;margin:0;">Nummer, Projektname und Titel, darunter Typ und Dauer; erledigte Einträge tragen rechts einen grünen Haken. Lange Titel enden mit „…“, beim Darüberfahren erscheint der volle Titel. Oben sortieren Sie nach <strong>Nr</strong> oder <strong>Projekt</strong> (erneuter Klick kehrt um) und filtern mit <strong>Nur unerledigte</strong> – die Auswahl bleibt erhalten. Unten öffnet <strong>🎙 Diktieren</strong> über die volle Breite die Mikrofon-Aufnahme.</p>
       </div>
       <div class="card">
         <strong style="color:var(--accent)">Rechts – Detail</strong>
         <p style="font-size:13px;margin:0;">Vollständiger Inhalt: alle KI-Abschnitte, Exportbuttons und aufklappbares Transkript.</p>
       </div>
     </div>
+
+    <h3>Spaltenbreite</h3>
+    <p>Die Trennlinien zwischen den Spalten lassen sich ziehen. Ein <strong>Doppelklick auf eine Trennlinie</strong> passt die Spalte links davon an ihren breitesten Inhalt an – wie in Excel. So sind lange Titel mit einem Klick ganz lesbar.</p>
 
     <h3>Statusleiste</h3>
     <p>Die Leiste oben zeigt laufende Verarbeitungen. Das <strong>🔔 Status-Log</strong> (oben rechts) öffnet alle Einträge inklusive Fehlerhinweise.</p>
@@ -352,6 +355,13 @@
       <span class="icon">💡</span>
       <p>Erfordert ein angeschlossenes Mikrofon und einen konfigurierten API-Schlüssel. Ohne Mikrofon oder API-Key ist der Button deaktiviert.</p>
     </div>
+    <div class="tip">
+      <span class="icon">🛟</span>
+      <p>Scheitert die Verarbeitung – etwa ohne Internet –, geht die Aufnahme nicht verloren: Johann legt sie unter <code>output\_Diktate (nicht verarbeitet)</code> ab und nennt den Pfad in der Fehlermeldung. Von dort können Sie sie später in den Eingangsordner legen.</p>
+    </div>
+
+    <h3>Sehr lange Aufnahmen</h3>
+    <p>Die Transkription nimmt höchstens <strong>25 MB</strong> je Datei an – bei MP3 etwa 25 Minuten. Größere Aufnahmen lehnt Johann vor dem Hochladen mit einem Hinweis ab. Teilen Sie die Aufnahme dann in kürzere Teile auf und lesen Sie diese einzeln ein.</p>
 
     <h3>Fortschritt verfolgen</h3>
     <p>Das <strong>🔔 Status-Log</strong> zeigt alle laufenden und abgeschlossenen Verarbeitungen. Bei Fehlern erscheint der Hinweis direkt dort im Klartext.</p>
@@ -365,6 +375,7 @@
     <p>Die Checkboxen links steuern, welche Abschnitte sichtbar sind – und was bei PDF, HTML und Kopieren enthalten wird.</p>
     <p><strong>Nicht mehr jeder Abschnitt wird automatisch erzeugt.</strong> Jeder Abschnitt hat einen Modus: <strong>Automatisch</strong> läuft bei jedem Eintrag mit, <strong>Auf Knopfdruck</strong> wird erst erzeugt, wenn Sie im Eintrag auf „Generieren“ klicken. Standardmäßig sind vier der eingebauten Abschnitte automatisch – das halbiert die Wartezeit pro Eintrag. Die Modi stellen Sie unter <strong>Einstellungen → Vorlagen</strong> ein; sie gelten nur für Sie.</p>
     <p>Die Checkbox-Vorauswahl links richtet sich nach dem Eintragstyp und kann jederzeit angepasst werden.</p>
+    <p>Neben jeder Abschnittsüberschrift sitzt ein <strong>Kopiersymbol</strong>: Es kopiert genau diesen Abschnitt samt Überschrift in die Zwischenablage – auch das Transkript.</p>
 
     <div class="table-wrap">
       <table>
@@ -374,11 +385,11 @@
           <tr><td>Zusammenfassung</td><td>Strukturierte Gliederung (Markdown)</td><td>Alle Typen</td></tr>
           <tr><td>Kurzfassung</td><td>Ein-Satz-Zusammenfassung</td><td>Alle Typen</td></tr>
           <tr><td>Aufgaben</td><td>Aufgabenliste</td><td>Typ „Aufgabe"</td></tr>
-          <tr><td>Gesprächsnotiz</td><td>Gesprächsprotokoll</td><td>Typ „Gesprächsnotiz"</td></tr>
-          <tr><td>E-Mail</td><td>Fertiger E-Mail-Text</td><td>Typ „E-Mail"</td></tr>
+          <tr><td>Gesprächsnotiz</td><td>Gesprächsprotokoll – nur wenn das Diktat ein Gespräch schildert, sonst „Kein Gespräch dokumentiert."</td><td>Typ „Gesprächsnotiz"</td></tr>
+          <tr><td>E-Mail</td><td>Fertiger E-Mail-Text, immer in der Sie-Form</td><td>Typ „E-Mail"</td></tr>
           <tr><td>Stundenzettel</td><td>Zeiterfassung</td><td>Typ „Stundenzettel"</td></tr>
           <tr><td>Analog</td><td>Freitext-Abschnitt</td><td>Typ „Analog"</td></tr>
-          <tr><td>Transkript</td><td>Vollständiger Originaltext (ausklappbar)</td><td>Alle Typen</td></tr>
+          <tr><td>Transkript</td><td>Vollständiger Originaltext, ein Satz je Zeile (ausklappbar)</td><td>Alle Typen</td></tr>
           <tr><td>Eigene Vorlagen</td><td>Frei definierbar – siehe Abschnitt „Eigene Vorlagen“</td><td>Nach Konfiguration</td></tr>
         </tbody>
       </table>
@@ -391,13 +402,29 @@
         <tbody>
           <tr><td>HTML</td><td>HTML-Datei erstellen und im Browser öffnen; aktualisiert Tages-Übersicht</td><td>HTML-Inhalt in Zwischenablage kopieren</td></tr>
           <tr><td>PDF</td><td>PDF erstellen und direkt öffnen</td><td>PDF-Datei in Zwischenablage kopieren (als Datei, direkt einfügbar)</td></tr>
-          <tr><td>E-Mail</td><td>E-Mail-Text in Zwischenablage kopieren</td><td>In Outlook öffnen – mailto-Link mit Betreff und Text</td></tr>
+          <tr><td>Aufgaben</td><td>Interne Aufgaben-Mail in Outlook öffnen: Begleittext (Einstellungen → Allgemein), darunter die Aufgaben, PDF im Anhang, Ihre Signatur darunter</td><td>–</td></tr>
+          <tr><td>E-Mail</td><td>Externe, förmliche E-Mail in Outlook öffnen – ohne Anhang, mit Ihrer Signatur</td><td>E-Mail-Text in Zwischenablage kopieren</td></tr>
           <tr><td>Kopieren</td><td>Alle sichtbaren Abschnitte mit Überschriften in Zwischenablage</td><td>—</td></tr>
           <tr><td>↻ Neu generieren</td><td>Alle KI-Abschnitte neu generieren</td><td>Einzelne Abschnitte wählen (Ausführlich, Zusammenfassung, Aufgaben, Gesprächsnotiz, E-Mail, Stundenzettel, Analog, Transkript)</td></tr>
           <tr><td>Als erledigt markieren</td><td>Eintrag abschließen – grünes Häkchen in der Liste. Erneuter Klick hebt es auf.</td><td>—</td></tr>
+          <tr><td>🗑 Löschen</td><td>Neben „Als erledigt markieren“: Eintrag nach Rückfrage in den Johann-Papierkorb verschieben</td><td>—</td></tr>
         </tbody>
       </table>
     </div>
+
+    <h3>Einträge löschen</h3>
+    <p>Ein Eintrag lässt sich auf drei Wegen löschen – immer mit Rückfrage, <strong>„Nein“</strong> ist vorausgewählt:</p>
+    <ul>
+      <li><strong>Rechtsklick</strong> auf den Eintrag in der Liste → <em>Eintrag löschen…</em></li>
+      <li>Knopf <strong>Löschen</strong> neben <em>Als erledigt markieren</em></li>
+      <li>Taste <strong>Entf</strong>, wenn die Eintragsliste den Fokus hat</li>
+    </ul>
+    <p>Gelöscht wird der Eintrag mit allen seinen Dateien (PDF, HTML, Transkript, Audio-Kopie). Sie wandern in den <strong>Johann-Papierkorb</strong> <code>Dokumente\Johann\output\_Papierkorb\</code> und bleiben dort <strong>30 Tage</strong>; danach entfernt Johann sie beim Start endgültig. Die <strong>Original-Aufnahme im Archiv bleibt immer erhalten</strong>.</p>
+    <div class="card card-accent" style="margin-bottom:14px;">
+      <strong>Zurückholen</strong>
+      <p style="font-size:13px;margin:0;">Den Inhalt des Ordners <code>_Papierkorb\&lt;Nummer&gt;\</code> zurück in den Tagesordner schieben (PDF/HTML in den Tagesordner, <code>_raw\</code> in dessen <code>_raw\</code>) und Johann neu starten. Die Datei <code>geloescht.json</code> im Ordner nennt Tag, Titel und die ursprünglichen Pfade.</p>
+    </div>
+    <p>Ist eine Datei des Eintrags gerade in einem anderen Programm geöffnet (z. B. das PDF), wird <strong>nichts</strong> gelöscht und Johann sagt, welche Datei es war. Während für den Eintrag noch etwas läuft (Neu generieren, PDF-Export, Mail), wartet das Löschen, bis es fertig ist. Die laufende Nummer eines gelöschten Eintrags wird nie wieder vergeben; ein Tag ohne Einträge verschwindet aus der Liste.</p>
 
     <h3>Drag &amp; Drop</h3>
     <div class="card card-accent" style="margin-bottom:14px;">
@@ -620,6 +647,7 @@
       <li>Bearbeitete Transkripte sind mit <strong>„(bearbeitet)"</strong> gekennzeichnet.</li>
       <li><strong>PDF, HTML und Kopieren</strong> verwenden automatisch den korrigierten Text.</li>
       <li>Mit <strong>Abbrechen</strong> wird die Bearbeitung verworfen.</li>
+      <li>In Ansicht, PDF und HTML-Übersicht steht <strong>jeder Satz auf einer eigenen Zeile</strong>. Gespeichert, bearbeitet und kopiert wird der Text ohne diese Umbrüche.</li>
       <li>Der bestehende <strong>↻ Neu generieren</strong>-Button (oben) verwendet ebenfalls den korrigierten Text.</li>
     </ul>
   </section>
@@ -660,14 +688,18 @@
 
     <pre><span class="g"># Alle Daten in:</span>
 <span class="d">Dokumente\Johann\output\</span>
-└── <span class="p">2026-03-17\</span>
-    ├── <span class="p">_ItemÜbersicht.html</span>                  <span class="g">← Tages-Übersicht (auto)</span>
-    ├── <span class="p">260317_001_Johann_App_anpassen.pdf</span>
-    ├── <span class="p">260317_001_Johann_App_anpassen.html</span>
-    └── <span class="d">_raw\</span>
-        ├── <span class="p">…_status.json</span>                    <span class="g">← Datenspeicher</span>
-        ├── <span class="p">…_original.mp3</span>                   <span class="g">← Audio-Kopie</span>
-        └── <span class="p">…_transcript.txt</span>                 <span class="g">← Transkript</span></pre>
+├── <span class="p">2026-03-17\</span>
+│   ├── <span class="p">_ItemÜbersicht.html</span>                  <span class="g">← Tages-Übersicht (auto)</span>
+│   ├── <span class="p">260317_001_Johann_App_anpassen.pdf</span>
+│   ├── <span class="p">260317_001_Johann_App_anpassen.html</span>   <span class="g">← nur nach „HTML“-Export</span>
+│   └── <span class="d">_raw\</span>
+│       ├── <span class="p">_counter.json</span>                    <span class="g">← laufende Nummer des Tages</span>
+│       ├── <span class="p">…_status.json</span>                    <span class="g">← Datenspeicher</span>
+│       ├── <span class="p">….html</span>
+│       ├── <span class="p">….mp3</span>                            <span class="g">← Audio-Kopie</span>
+│       └── <span class="p">….txt</span>                            <span class="g">← Transkript</span>
+├── <span class="d">_Papierkorb\</span>                            <span class="g">← gelöschte Einträge, 30 Tage</span>
+└── <span class="d">_Diktate (nicht verarbeitet)\</span>           <span class="g">← Diktate, deren Verarbeitung scheiterte</span></pre>
 
     <h3>Dateinamen-Schema</h3>
     <p><code>YYMMDD_NNN[_Gesprächsnotiz]_Projektname_ErsteFünfWörterDesTitels</code></p>
@@ -689,11 +721,11 @@
   <section class="section" id="neuigkeiten">
     <div class="section-title"><div class="num">13</div><h2>Neuigkeiten</h2></div>
 
-    <p>Nach einem Update zeigt Johann beim ersten Start ein <strong>Neuigkeiten-Fenster</strong> mit den wichtigsten Änderungen der neuen Version. Das Fenster erscheint einmalig pro Version und kann über den Schließen-Button geschlossen werden.</p>
+    <p>Nach einem Update zeigt Johann beim ersten Start ein <strong>Neuigkeiten-Fenster</strong> mit den wichtigsten Änderungen der neuen Version.</p>
 
     <div class="tip">
       <span class="icon">ℹ️</span>
-      <p>Das Fenster wird nur einmal pro Version angezeigt. Sie verpassen also nichts, wenn Sie es direkt schließen.</p>
+      <p>Sie verpassen nichts, wenn Sie es direkt schließen: Der Knopf <strong>Neuigkeiten</strong> oben rechts (neben „?“) öffnet es jederzeit wieder. Beim Schließen pulsiert er kurz, damit Sie sehen, wo Sie die Neuigkeiten wiederfinden.</p>
     </div>
   </section>
 
@@ -749,7 +781,19 @@
           </tr>
           <tr>
             <td>Absturz der Anwendung</td>
-            <td>Crash-Logs unter <code>%LOCALAPPDATA%\Platee\Johann\logs\crash-*.log</code> enthalten Zeitstempel und vollständigen Fehlertext.</td>
+            <td>Crash-Logs unter <code>C:\Peano\Platee.Johann\logs\johann-crash-*.log</code> (falls dort nicht schreibbar: <code>%LOCALAPPDATA%\Peano\Platee.Johann\logs\</code>) enthalten Zeitstempel und vollständigen Fehlertext.</td>
+          </tr>
+          <tr>
+            <td>„Die Aufnahme … ist … MB groß“</td>
+            <td>Über 25 MB nimmt die Transkription nicht an. Aufnahme in kürzere Teile aufteilen und einzeln einlesen.</td>
+          </tr>
+          <tr>
+            <td>Diktat fehlgeschlagen – wo ist die Aufnahme?</td>
+            <td>Unter <code>output\_Diktate (nicht verarbeitet)</code>; der genaue Pfad steht in der Fehlermeldung und im Status-Log (🔔). Später in den Eingangsordner legen.</td>
+          </tr>
+          <tr>
+            <td>Titel in der Liste abgeschnitten</td>
+            <td>Maus darüber zeigt den vollen Titel; Doppelklick auf die Trennlinie rechts der Liste verbreitert die Spalte passend.</td>
           </tr>
           <tr>
             <td>Transkript-Bearbeitung nach Fehler verloren</td>
@@ -769,7 +813,7 @@
 </div>
 
 <footer>
-  Platé.Johann v1.3.0 &nbsp;·&nbsp; Windows 10/11 &nbsp;·&nbsp; Daten bleiben lokal
+  Platé.Johann v1.5.0 &nbsp;·&nbsp; Windows 10/11 &nbsp;·&nbsp; Daten bleiben lokal
 </footer>
 
 <script>

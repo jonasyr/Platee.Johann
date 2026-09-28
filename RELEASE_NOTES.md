@@ -1,146 +1,124 @@
 # Was ist neu?
 
+## Version 1.5.0
+
+### Neu
+
+- **Mails aus Outlook** – „**Aufgaben**“ öffnet die interne Mail an die Kollegen mit
+  Begleittext, Aufgabenliste, PDF im Anhang und Ihrer Signatur. „**E-Mail**“ öffnet die
+  förmliche Mail an Externe, ohne Anhang. Klappt im klassischen und im neuen Outlook.
+  *Begleittext: Einstellungen → Allgemein.*
+- **Einträge löschen** – per Rechtsklick, Taste **Entf** oder Knopf „Löschen“. Gelöschtes
+  liegt 30 Tage im Ordner `output\_Papierkorb` und lässt sich von dort zurückholen.
+- **Einzelne Abschnitte kopieren** – über das Kopiersymbol neben jeder Überschrift.
+- **KI-Modell wählen** – unter Einstellungen → KI-Modell, mit Kosten je Diktat.
+  Voreingestellt ist das günstige Standardmodell; die Wahl gilt nur für Sie.
+- **„Neuigkeiten“** oben rechts zeigt diese Übersicht jederzeit wieder an.
+- **Spaltenbreite per Doppelklick** – Doppelklick auf eine Trennlinie passt die Spalte an
+  ihren Inhalt an, wie in Excel.
+
+### Besser
+
+- **Bessere Texte, rund ein Fünftel günstiger** – alle Vorlagen wurden neu gefasst. Die
+  Mail siezt immer; die Gesprächsnotiz entsteht nur, wenn wirklich ein Gespräch
+  stattfand; fehlt einem Abschnitt der Stoff, steht das da, statt dass etwas erfunden wird.
+- **Sachliche Titel, korrekte Anrede** – Titel nennen nur, worum es geht, ohne Wertung. Die
+  externe Mail redet mit dem Nachnamen an („Guten Tag Herr Berger,“) oder neutral.
+- **Sauberes PDF** – Fettdruck und eingerückte Unterpunkte in allen Abschnitten.
+- **Ruhigere Liste** – Sortieren, Abhaken und Filtern flackern nicht mehr, der Eintrag
+  bleibt ausgewählt. Lange Titel enden mit „…“ statt die Liste zu verbreitern.
+- **„Kopieren“** nimmt jetzt genau das mit, was sichtbar ist – in derselben Reihenfolge.
+- **Knöpfe** sind kontrastreicher und zeigen den Tastaturfokus deutlich.
+- **Lesbares Transkript** – jeder Satz steht auf einer eigenen Zeile, in der Ansicht, im PDF
+  und in der HTML-Übersicht. Gespeichert, bearbeitet und kopiert wird weiter der Originaltext.
+
+### Behoben
+
+- **Kein Diktat geht mehr verloren** – scheitert die Verarbeitung (z. B. ohne Internet),
+  landet die Aufnahme in `output\_Diktate (nicht verarbeitet)`, statt gelöscht zu werden.
+- **Sehr lange Aufnahmen** (über 25 MB, etwa 25 Minuten) meldet Johann vor dem Hochladen
+  verständlich, statt mit einer technischen Fehlermeldung abzubrechen.
+- **Eigene Vorlagen bleiben privat** – wer mit Ziel „Global“ speicherte, schrieb bisher
+  auch seine persönlichen Vorlagen in die Team-Datei. Jetzt gehen nur globale Vorlagen dorthin.
+- **Neuer Tag erscheint sofort** – der erste Eintrag eines neuen Tages war erst nach dem
+  Wechsel auf einen anderen Tag in der Liste zu sehen.
+
 ## Version 1.4.0
 
-**Bessere und schnellere Transkripte.**
+### Neu
 
-- Johann nutzt jetzt die aktuellen OpenAI-Modelle. Die Spracherkennung ist deutlich
-  genauer und pro Minute sogar günstiger als bisher, die Zusammenfassungen laufen auf
-  einem spürbar stärkeren Modell.
-- Diktate in einer anderen Sprache werden korrekt erkannt und ergeben trotzdem einen
-  deutschen Eintrag. Das Transkript bleibt in der gesprochenen Sprache, alles andere
-  ist deutsch. Vorher war Johann fest auf Deutsch eingestellt.
+- **Eigene Vorlagen** – neben den acht eingebauten Abschnitten lassen sich eigene anlegen,
+  persönlich oder für das ganze Team. Jede läuft **automatisch** oder erst **auf Knopfdruck**.
+- **Schneller fertig** – standardmäßig laufen nur noch vier Abschnitte automatisch statt
+  acht. Beim ersten Start fragt Johann einmal, ob Sie diese Aufteilung übernehmen.
+- **Abschnitte ein- und ausblenden** gilt jetzt auch für eigene Vorlagen – in Ansicht,
+  PDF, HTML und beim Kopieren. Text gelöschter Vorlagen bleibt lesbar.
+- **Fremdsprachige Diktate** werden erkannt und ergeben trotzdem einen deutschen Eintrag;
+  nur das Transkript bleibt in der gesprochenen Sprache.
 
-**Aufgaben lesen sich jetzt wie Aufgaben.**
+### Besser
 
-- Der Aufgaben-Abschnitt beginnt mit einer kurzen Zusammenfassung und listet darunter
-  die Aufgaben — je eine Zeile, kurz und abhakbar statt als Textblock.
+- **Neue OpenAI-Modelle** – genauere Transkripte, günstiger pro Minute und stärkere
+  Zusammenfassungen.
+- **Aufgaben** beginnen mit einer kurzen Zusammenfassung, darunter je Aufgabe eine
+  abhakbare Zeile.
+- **Kein Admin-Passwort mehr** – beim Speichern wählen Sie, ob eine Prompt-Änderung nur für
+  Sie oder für das Team gilt. Persönliche Änderungen überleben den Neustart.
+- **Aufgeräumt** – „+ Neues Element“ ist entfallen, „🎙 Diktieren“ hat die volle Breite.
+  Aus „Kategorien“ wurden durchgängig **Vorlagen**.
 
-**Die Darstellung stimmt wieder.**
+### Behoben
 
-- Verschachtelte Aufzählungen wurden bisher flachgeklopft: Unterpunkte standen auf
-  derselben Ebene wie ihre Oberpunkte, die Gliederung ging verloren. Sie wird jetzt
-  korrekt eingerückt dargestellt.
-- Die ausführliche Zusammenfassung und das Abstract zeigten Formatierungszeichen wie
-  `**` und `##` im Klartext an. Beide werden jetzt richtig dargestellt.
-- Kein Abschnitt wiederholt mehr seine eigene Überschrift. Bisher stand etwa über der
-  Gesprächsnotiz zweimal „Gesprächsnotiz".
-
-**Behobener Fehler: verschwundene Tage.**
-
-- Wurden alle Einträge eines Tages abgehakt, verschwand der Tag aus der Liste links —
-  bei mehreren Tagen sah es aus, als wären Einträge verloren. Der Filter blendet
-  erledigte Tage weiterhin aus, aber der gerade geöffnete Tag bleibt immer sichtbar,
-  und unter der Liste steht, wie viele Tage ausgeblendet sind.
-
-**Aufgeräumte Oberfläche.**
-
-- „+ Neues Element" ist entfallen, „🎙 Diktieren" nimmt jetzt die volle Breite ein.
-- Was bisher „Kategorien" hieß, heißt jetzt durchgängig **Vorlagen**. „Typ" bezeichnet
-  weiterhin die Art des Eintrags. Vorher meinten beide Wörter dasselbe und
-  Verschiedenes zugleich.
-
-**Eigene Vorlagen.**
-
-- Neben den acht eingebauten Abschnitten lassen sich jetzt eigene Vorlagen anlegen —
-  persönlich (nur für dich) oder global für das ganze Team.
-- Jede Vorlage läuft entweder **automatisch** bei jedem Eintrag mit oder erst **auf
-  Knopfdruck**. Standardmäßig sind nur vier der eingebauten Abschnitte automatisch,
-  statt bisher acht — ein Eintrag ist dadurch spürbar schneller fertig.
-- Beim ersten Start fragt Johann einmalig, ob die neue Aufteilung übernommen werden soll.
-
-**Kein Admin-Passwort mehr.**
-
-- Prompts werden nicht mehr per Passwort freigeschaltet. Stattdessen wählst du beim
-  Speichern aus, ob die Änderung persönlich gilt oder für das ganze Team.
-- Persönliche Prompt-Änderungen überleben jetzt den Neustart.
-
-**Abschnitte ein- und ausblenden.**
-
-- Die Liste links steuert jetzt auch eigene Vorlagen — getrennt nach eigenen,
-  Team- und gelöschten Vorlagen. Was abgewählt ist, fehlt in der Ansicht, im PDF,
-  im HTML und beim Kopieren.
-- Text einer gelöschten Vorlage geht nicht verloren: er bleibt unter seinem
-  ursprünglichen Namen sichtbar und lässt sich ausblenden.
-
----
+- **Verschwundene Tage** – ein Tag mit lauter erledigten Einträgen verschwand aus der
+  Liste. Der geöffnete Tag bleibt jetzt sichtbar, und unter der Liste steht, wie viele
+  Tage ausgeblendet sind.
+- **Darstellung** – Unterpunkte bleiben eingerückt, Zeichen wie `**` und `##` erscheinen
+  nicht mehr im Text, und kein Abschnitt wiederholt seine eigene Überschrift.
 
 ## Version 1.3.2
 
-**Defekte Einstellungsdateien werden nicht mehr überschrieben.**
+### Behoben
 
-- Eine beschädigte `settings.json` oder `prompts.json` führte dazu, dass alle Einstellungen auf Standardwerte zurückfielen und beim nächsten Speichern endgültig verloren waren. Johann legt jetzt vor dem Zurückfallen eine Sicherungskopie an (`….corrupt-<Zeitstempel>.json`) und meldet den Fehler beim Start.
-
-**Fehlgeschlagener PDF-Export per Drag & Drop wird gemeldet.**
-
-- Bisher passierte beim Ziehen eines Eintrags in einen Ordner im Fehlerfall einfach nichts.
-
----
+- **Defekte Einstellungsdateien** werden nicht mehr überschrieben. Johann legt eine
+  Sicherungskopie an (`….corrupt-<Zeitstempel>.json`) und meldet den Fehler beim Start.
+- **PDF per Drag & Drop** – scheitert der Export, sagt Johann das jetzt, statt nichts zu tun.
 
 ## Version 1.3.1
 
-**Automatische Updates funktionieren wieder**
+### Behoben
 
-- Johann hat seit Version 1.1.0 nie auf neue Versionen hingewiesen. Die Update-Prüfung wurde beim normalen Programmstart übersprungen und der Fehler dabei stillschweigend verschluckt.
-- Ab dieser Version meldet sich Johann wieder automatisch, sobald eine neue Version im Netzlaufwerk bereitliegt.
-
----
+- **Automatische Updates** – seit 1.1.0 wies Johann nie auf neue Versionen hin. Jetzt
+  meldet er sich wieder, sobald eine neue Version im Netzlaufwerk liegt.
 
 ## Version 1.3.0
 
-**In-App-Diktat per Mikrofon**
+### Neu
 
-- Neue Schaltfläche „🎙 Diktieren" in der Eintrags-Liste: Aufnahme direkt aus der App starten, ohne vorher eine MP3-Datei auf dem Smartphone aufzunehmen.
-- Während der Aufnahme wird ein roter Puls-Indikator mit laufendem Timer angezeigt. „■ Stop" beendet die Aufnahme und startet automatisch die Transkription und KI-Zusammenfassung.
-
-**Transkript bearbeiten und neu generieren**
-
-- Das Transkript kann jetzt direkt in der Detailansicht bearbeitet werden: Stift-Symbol (✏) neben „Transkript" klicken, Text korrigieren und „Neu generieren" klicken.
-- Alle KI-Abschnitte werden aus dem korrigierten Text neu erstellt. Bei Fehlern bleibt die Bearbeitung erhalten.
-- PDF, HTML und Kopieren verwenden automatisch den korrigierten Text, wenn vorhanden.
-- Bearbeitete Transkripte sind mit „(bearbeitet)" gekennzeichnet.
-
-**Korrekturliste für Whisper-Fehler**
-
-- Neue Korrekturliste in den Einstellungen: Häufig falsch erkannte Wörter können als Korrekturpaare hinterlegt werden (z. B. Piano → Peano). Die Korrekturen werden automatisch bei der KI-Zusammenfassung berücksichtigt.
-- Vier Standardkorrekturen sind bereits voreingestellt und können beliebig ergänzt oder entfernt werden.
-
-**Zoom-Tastenkürzel**
-
-- Die Detailansicht kann jetzt per Tastenkürzel gezoomt werden: `Strg++` / `Strg+-` zum Vergrößern/Verkleinern, `Strg+0` zum Zurücksetzen auf 100 %.
-- `Strg+Mausrad` zoomt ebenfalls in der Detailansicht.
-- Tooltips an den Zoom-Buttons zeigen die Tastenkürzel an.
-
-**Diverse kleine Fehlerbehebungen und Verbesserungen**
-
----
+- **Diktieren per Mikrofon** – „🎙 Diktieren“ nimmt direkt in Johann auf, ohne Umweg über
+  das Smartphone. „■ Stop“ beendet die Aufnahme und startet die Verarbeitung.
+- **Transkript bearbeiten** – Stift (✏) neben „Transkript“, Text korrigieren, „Neu
+  generieren“. Alle Abschnitte, PDF und HTML nutzen dann den korrigierten Text.
+- **Korrekturliste** – oft falsch erkannte Wörter als Paar hinterlegen (z. B. Piano →
+  Peano). *Einstellungen → Grunddaten.*
+- **Zoom per Tastatur** – `Strg++`, `Strg+-`, `Strg+0` und `Strg+Mausrad` in der
+  Detailansicht.
 
 ## Version 1.2.1
 
-**Prompts werden jetzt zentral verwaltet**
+### Neu
 
-- Alle Mitarbeiter nutzen ab sofort die gleichen Prompt-Vorlagen. Diese werden beim Start automatisch von `Z:\12_Tools\Peano\Johann\prompts.json` geladen.
+- **Zentrale Prompts** – alle nutzen dieselben Vorlagen aus
+  `Z:\12_Tools\Peano\Johann\prompts.json`.
+- **Admin-Modus** zum dauerhaften Ändern der Team-Prompts *(seit 1.4.0 ersetzt)*.
 
-- Wenn Sie einen Prompt testweise anpassen möchten, können Sie das weiterhin in den Einstellungen tun. Die Änderung gilt dann nur für Sie persönnlich und bis zum nächsten App-Neustart.
+### Behoben
 
-**Neuer Admin-Modus**
-
-- In den Einstellungen gibt es unten links einen passwortgeschützten "Admin"-Button. Damit können berechtigte Personen die Prompt-Vorlagen, sowie ihren Speicherort dauerhaft für alle Mitarbeiter ändern.
-
-**Dokumentation aktualisiert**
-
-- Das Handbuch ("?" Button oben rechts) wurde auf den aktuellen Stand gebracht.
-
-**Verbesserungen und Fehlerbehebungen**
-
-- Der Button „Erledigt" sitzt jetzt oben links und bleibt beim Scrollen immer sichtbar. Er wird nicht mehr von Meldungen überdeckt, während ein neuer Eintrag eingelesen wird.
-- Doppelte Eintragsnummern können nicht mehr auftreten, wenn Johann auf mehreren Rechnern gleichzeitig in dasselbe Verzeichnis schreibt.
-- Ressourcen werden jetzt auch dann sauber freigegeben, wenn das Programm unerwartet beendet wird.
-
----
+- **„Erledigt“** sitzt oben links und wird nicht mehr von Meldungen verdeckt.
+- **Doppelte Eintragsnummern** bei mehreren Rechnern im selben Verzeichnis treten nicht
+  mehr auf.
 
 ## Version 1.1.0
 
-**UI-Redesign**
+### Neu
 
-- Die gesamte UI sowie UX wurde angepasst/verbessert.
+- **Neue Oberfläche** – Aussehen und Bedienung wurden überarbeitet.

@@ -69,17 +69,43 @@
 
 ---
 
-## 📌 Aktueller Stand (2026-09-10)
+## 📌 Aktueller Stand (2026-09-28)
 
-**v1.3.3 liegt in `main`, getaggt als `v1.3.3-dev`, ist aber NICHT veröffentlicht.**
-Kein Installer gebaut, kein GitHub-Release — Nutzer laufen weiter auf v1.3.2.
+**v1.5.0 ist fertig, der Release läuft (2026-09-28).** Nutzer laufen auf **v1.4.0**
+(ausgeliefert 2026-09-10).
 
-Fertig und gemergt: #50, #51, #52, #53 — eigene Kategorien (persönlich + global),
-Auto/Auf-Knopfdruck pro Abschnitt, Admin-Passwort entfernt, Abschnitts-Sichtbarkeit
-mit Gruppierung, Namensgrabsteine für gelöschte Kategorien. 453 Tests grün.
+**Neu seit 2026-09-24: UI-Automation und Audit ([#111](https://github.com/jonasyr/Platee.Johann/issues/111), PR #113).**
+- Die laufende App wurde in einer Sandbox mit Kopie der echten Daten durchgeprüft. Bericht mit
+  30 Befunden: `docs/audit/2026-09-24-v1.5.0.md`.
+- Dazu kommt eine FlaUI-Testsuite gegen die echte EXE: 24 Tests für Liste, Löschen, Detail,
+  Kopieren, PDF, Einstellungen, Fehler und Tastatur. Sie läuft lokal mit
+  `scripts/run-ui-tests.ps1` (belegt den Desktop) und als nicht blockierender CI-Job.
+- Gefunden und behoben: F28, der erste Eintrag eines neuen Tages erschien nicht in der Liste.
 
-Der Testplan (`TESTPLAN-v1.3.3.md`) ist bis auf die Rollback-Abschnitte durch;
-zwölf dabei gefundene Fehler wurden behoben.
+**Vor dem Release noch offen (Meilenstein v1.5.0):**
+- ~~[#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei~~ **erledigt** (PR #129).
+  Belegt mit Unit-Tests (echte Dateien, Neustart) und UI-Tests gegen die echte App. Ältere,
+  verwandte Fälle beim Speicherort-Wechsel: [#130](https://github.com/jonasyr/Platee.Johann/issues/130) (v1.6.0).
+- ~~[#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen~~ und ~~[#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung~~ **erledigt**
+  (PR #132, gemessen: `docs/prompting/titel-anrede-115-116.md`). Die Anrede gilt über die
+  Team-Datei schon für alle Installationen, der Titel kommt mit v1.5.0.
+- ~~[#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript mit einem Satz je Zeile~~ **erledigt** (PR #131, Sichtprüfung bestanden).
+
+Release 2026-09-28: Version 1.5.0 gesetzt (PR #134), UI-Suite lokal 24/24, Rauchtest des echten
+Builds mit echten Daten bestanden. Dann `build-installer.ps1` (Z: + GitHub), `release/v1.5.0` →
+`main` + Tag, Auto-Update gegen v1.4.0 prüfen. ⚠ Bis alle auf 1.5.0 sind, nur mit 1.5.0 „Global“
+speichern — ein 1.4.0-Client hat #114 noch.
+
+Inhalt v1.5.0: Mail-Knöpfe für klassisches und neues Outlook, Einträge löschen mit
+Johann-Papierkorb, Kopiersymbol je Abschnitt, überarbeitete Prompts (−20 % Kosten),
+PDF mit Listen und Fettdruck, ruhigere Eintragsliste (kein Neuladen, Auswahl bleibt),
+Doppelklick auf die Trennlinien passt die Spalte an, Knopf „Neuigkeiten“, einheitliche
+Knöpfe mit geprüften Kontrasten, Aufnahmen über 25 MB verständlich abgelehnt, gescheiterte
+Diktate werden gesichert statt gelöscht, sachliche Titel und korrekte Anrede, Transkript ein Satz je Zeile.
+1014 Unit-Tests und 24 UI-Tests grün. Details: `RELEASE_NOTES.md`.
+
+Nebenbei behoben: ein Deadlock in den WPF-Tests, der die CI hängen ließ, und die CI
+meldete fehlschlagende Tests bis dahin gar nicht (PR #101).
 
 > [!IMPORTANT]
 > **Source of Truth sind die [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues).**
@@ -107,7 +133,7 @@ beim Speichern aus der Team-Datei.
 
 ## 🔗 GitHub-Issue-Zuordnung
 
-Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues) (Stand: 2026-09-10).
+Abgleich Backlog ↔ [GitHub Issues](https://github.com/jonasyr/Platee.Johann/issues) (Stand: 2026-09-10 — für alles danach gilt der Release-Plan unten bzw. GitHub).
 
 | Issue | Titel | GH-Status | Backlog-Eintrag |
 | ----- | ----- | --------- | --------------- |
@@ -247,7 +273,7 @@ bekommt keinen eigenen Release, sondern geht in v1.4.0 auf.
 
 ## 🎯 Release-Plan
 
-Stand 2026-09-10.
+Stand 2026-09-23 (v1.5.0), sonst 2026-09-10.
 
 ### v1.4.0 — ausgeliefert · fertig
 
@@ -269,16 +295,51 @@ könnten.
 
 ### v1.5.0 — E-Mail, Modellwahl, Feinschliff
 
-[#57](https://github.com/jonasyr/Platee.Johann/issues/57) Outlook-Knöpfe ·
-[#56](https://github.com/jonasyr/Platee.Johann/issues/56) Kopiersymbol je Abschnitt ·
-[#55](https://github.com/jonasyr/Platee.Johann/issues/55) Einträge löschen ·
-[#71](https://github.com/jonasyr/Platee.Johann/issues/71) Modell in den Einstellungen wählbar ·
-[#73](https://github.com/jonasyr/Platee.Johann/issues/73) Prompts für GPT-5.6 überarbeiten ·
-[#77](https://github.com/jonasyr/Platee.Johann/issues/77) `gpt-transcribe` besser ausnutzen ·
-[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf ·
-[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen
+~~[#57](https://github.com/jonasyr/Platee.Johann/issues/57) Outlook-Knöpfe~~ **erledigt** (PR #87, #90, #91) ·
+~~[#56](https://github.com/jonasyr/Platee.Johann/issues/56) Kopiersymbol je Abschnitt~~ **erledigt** (PR #95) ·
+~~[#55](https://github.com/jonasyr/Platee.Johann/issues/55) Einträge löschen~~ **erledigt** (PR #98) ·
+~~[#97](https://github.com/jonasyr/Platee.Johann/issues/97) Knöpfe ohne WPF-Hellblau, Kontraste~~ **erledigt** (PR #99) ·
+~~[#100](https://github.com/jonasyr/Platee.Johann/issues/100) Liste abgleichen statt neu laden~~ **erledigt** (PR #101, inkl. WPF-Test-Deadlock + CI-Härtung) ·
+~~[#96](https://github.com/jonasyr/Platee.Johann/issues/96) Eintragsliste abgeschnitten~~ **erledigt** (PR #102, inkl. Doppelklick auf die Trennlinien) ·
+~~[#71](https://github.com/jonasyr/Platee.Johann/issues/71) Modell in den Einstellungen wählbar~~ **erledigt** ·
+~~[#73](https://github.com/jonasyr/Platee.Johann/issues/73) Prompts für GPT-5.6 überarbeiten~~ **erledigt** (PR #85, #91) ·
+~~[#83](https://github.com/jonasyr/Platee.Johann/issues/83) PDF: verschachtelte Listen~~ **erledigt** (PR #86) ·
+~~[#88](https://github.com/jonasyr/Platee.Johann/issues/88) Codex-Befunde~~ **erledigt** (PR #89) ·
+~~[#84](https://github.com/jonasyr/Platee.Johann/issues/84) Live-Test der Katalogmodelle flackert~~ **erledigt** (PR #93) ·
+~~[#77](https://github.com/jonasyr/Platee.Johann/issues/77) Aufnahmen über 25 MB abfangen~~ **erledigt** (PR #105) ·
+~~[#106](https://github.com/jonasyr/Platee.Johann/issues/106) Gescheitertes Diktat sichern statt löschen~~ **erledigt** (PR #108) ·
+~~[#78](https://github.com/jonasyr/Platee.Johann/issues/78) Release-Notes-Knopf~~ **erledigt** (PR #104) ·
+~~[#79](https://github.com/jonasyr/Platee.Johann/issues/79) Layout Vorlagen-Einstellungen~~ **erledigt** (PR #94) ·
+~~[#111](https://github.com/jonasyr/Platee.Johann/issues/111) UI-Automation + Audit~~ **erledigt** (PR #113)
+
+~~[#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei~~ **erledigt** (PR #129) ·
+~~[#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript ein Satz je Zeile~~ **erledigt** (PR #131)
+
+~~[#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen~~ · ~~[#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung~~ **erledigt** (PR #132)
+
+**Danach:** Release v1.5.0 (siehe „Vor jedem Release“).
 
 ### v1.6.0 — Diktieren
+
+**Aus dem Audit v1.5.0** (`docs/audit/2026-09-24-v1.5.0.md`):
+- Inhalt: [#117](https://github.com/jonasyr/Platee.Johann/issues/117) Korrekturliste unzuverlässig · [#118](https://github.com/jonasyr/Platee.Johann/issues/118) erfundene Aufgaben und
+  Platzhalter.
+- Oberfläche:
+  - [#119](https://github.com/jonasyr/Platee.Johann/issues/119) Barrierefreiheit (Screenreader-Namen, Kontrast)
+  - [#120](https://github.com/jonasyr/Platee.Johann/issues/120) leere Aufnahme ohne Titel und Hinweis
+  - [#121](https://github.com/jonasyr/Platee.Johann/issues/121) PDF-Reihenfolge
+  - [#122](https://github.com/jonasyr/Platee.Johann/issues/122) Scrollposition
+  - [#123](https://github.com/jonasyr/Platee.Johann/issues/123) neue Vorlage erst nach Eintragswechsel
+  - [#124](https://github.com/jonasyr/Platee.Johann/issues/124) Viewer-Modus sperrt lokale Aktionen
+  - [#125](https://github.com/jonasyr/Platee.Johann/issues/125) Tab-Reihenfolge
+  - [#126](https://github.com/jonasyr/Platee.Johann/issues/126) englische Fehlermeldung
+- Sammel-Issues: [#127](https://github.com/jonasyr/Platee.Johann/issues/127) Kosmetik · [#128](https://github.com/jonasyr/Platee.Johann/issues/128) Vorschläge.
+
+Unabhängig davon: [#103](https://github.com/jonasyr/Platee.Johann/issues/103) `gpt-transcribe`
+mit Kontext (Korrekturliste als `keywords`, `languages`, `prompt`) — aus #77 abgespalten, nur mit
+Messlauf. [#107](https://github.com/jonasyr/Platee.Johann/issues/107) Große Aufnahmen verarbeiten
+— erst Sprach-Bitrate senken (Messlauf), sonst an Pausen teilen; gesicherte Diktate erneut
+verarbeiten (passt zu #36).
 
 Reihenfolge zwingend: [#64](https://github.com/jonasyr/Platee.Johann/issues/64) Schema v5
 → [#36](https://github.com/jonasyr/Platee.Johann/issues/36) Diktier-Popup
@@ -311,8 +372,7 @@ muss mitpausieren, sonst laufen angezeigte und gemessene Dauer auseinander.
 
 ## 🧠 Prompts: die Team-Datei ist die Wahrheit
 
-`Z:
-_Tools\Peano\Johann\prompts.json` besitzt den Wortlaut aller neun Prompts und
+`Z:\12_Tools\Peano\Johann\prompts.json` besitzt den Wortlaut aller neun Prompts und
 gewinnt zur Laufzeit immer. Die `SummaryPrompts`-Konstanten sind nur Startwert für
 Neuinstallationen und Rückfall ohne Share.
 
@@ -340,6 +400,8 @@ genau das und wurde in v1.4.0 gelöscht.
 
 ## 🚦 Vor jedem Release
 
-- Installer bauen: `.uild-installer.ps1 -Version 1.x.0`
+- Installer bauen: `.\build-installer.ps1 -Version 1.x.0`
 - Auto-Update gegen die zuletzt ausgelieferte Version prüfen
 - Sichtbare Verhaltensänderungen gehören in die Release Notes
+- UI-Suite grün: `pwsh scripts/run-ui-tests.ps1` (belegt den Desktop, nur wenn niemand tippt).
+  Der CI-Job `ui-tests` blockiert nicht und ersetzt den lokalen Lauf nicht.

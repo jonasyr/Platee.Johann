@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 4,
+  "jobId": "260924_001_ecad8724",
+  "sequenceNumber": 1,
+  "type": "Projekt",
+  "projectName": "Lindenstra\u00DFe",
+  "title": "Baugenehmigung Lindenstra\u00DFe: Brandschutznachweis unerquicklich",
+  "createdAt": "2026-09-24T15:11:38+01:00",
+  "sourceType": "audio",
+  "durationSeconds": 37.512,
+  "wordCount": 80,
+  "status": {
+    "transcribed": true,
+    "summarized": true,
+    "pdfCreated": true,
+    "archived": true,
+    "emailCreated": false
+  },
+  "transcript": "Telefonat mit Frau Nele Hartmann von der Stadtverwaltung, heute um 10 Uhr. Sie hat angerufen wegen der Baugenehmigung f\u00FCr das Projekt Lindenstra\u00DFe. Frau Hartmann sagt, dass noch der Nachweis zum Brandschutz fehlt. Ich habe ihr erkl\u00E4rt, dass unser Gutachter den Bericht n\u00E4chste Woche liefert. Wir haben vereinbart, dass ich ihr den Bericht bis zum 30. per Mail schicke und sie dann innerhalb von zwei Wochen entscheidet. Sie hat au\u00DFerdem gefragt, ob die Stellpl\u00E4tze wie geplant bleiben, das habe ich best\u00E4tigt.",
+  "editedTranscript": null,
+  "abstract": "F\u00FCr die Baugenehmigung des Projekts Lindenstra\u00DFe fehlt der Brandschutznachweis; Bericht bis zum 30., Entscheidung binnen zwei Wochen, Stellpl\u00E4tze bleiben unver\u00E4ndert.",
+  "longSummary": "### Kontext\n\n- Telefonat mit Frau **Neele Hartmann** von der Stadtverwaltung heute um 10 Uhr zur **Baugenehmigung f\u00FCr das Projekt Lindenstra\u00DFe**.\n\n### Kernaussagen\n\n- F\u00FCr die Baugenehmigung fehlt noch der **Nachweis zum Brandschutz**.\n- Die Stellpl\u00E4tze sollen wie geplant beibehalten werden.\n\n### Entscheidungen\n\n- Der Brandschutzbericht wird der Stadtverwaltung per E-Mail \u00FCbermittelt.\n- Frau Hartmann entscheidet anschlie\u00DFend innerhalb von zwei Wochen \u00FCber die Baugenehmigung.\n- Die Stellpl\u00E4tze bleiben wie geplant bestehen.\n\n### Offene Punkte / ToDos\n\n- Der Gutachter liefert den Brandschutzbericht n\u00E4chste Woche.\n- Der Bericht wird bis zum **30.** per E-Mail an Frau Hartmann gesendet.\n- Frau Hartmann trifft anschlie\u00DFend innerhalb von zwei Wochen die Entscheidung.",
+  "proseSummary": "Telefonat mit Frau Nele Hartmann von der Stadtverwaltung heute um 10 Uhr. Sie rief wegen der Baugenehmigung f\u00FCr das Projekt Lindenstra\u00DFe an.\n\nFrau Hartmann teilte mit, dass der Nachweis zum Brandschutz noch fehlt. Ich erkl\u00E4rte ihr, dass unser Gutachter den Bericht in der n\u00E4chsten Woche vorlegen wird. Wir vereinbarten, dass ich ihr den Bericht bis zum 30. per E-Mail zusende und sie anschlie\u00DFend innerhalb von zwei Wochen entscheidet.\n\nAu\u00DFerdem fragte Frau Hartmann, ob die Stellpl\u00E4tze wie geplant bestehen bleiben. Dies best\u00E4tigte ich.",
+  "emailText": null,
+  "conversationNote": "- **Teilnehmer:**  \n  - Frau Nele Hartmann, Stadtverwaltung  \n  - [eigene Person]\n\n- **Zeitpunkt:** Heute, 10:00 Uhr, telefonisch\n\n- **Themen:**  \n  - Baugenehmigung f\u00FCr das Projekt Lindenstra\u00DFe  \n  - Fehlender Nachweis zum Brandschutz  \n  - Geplante Stellpl\u00E4tze\n\n- **Beschl\u00FCsse und Vereinbarungen:**  \n  - Der Nachweis zum Brandschutz wird ben\u00F6tigt.  \n  - Der Gutachter liefert den Brandschutzbericht in der kommenden Woche.  \n  - Die Stellpl\u00E4tze bleiben wie geplant bestehen.  \n  - Der Brandschutzbericht wird bis zum 30. per E-Mail an Frau Hartmann gesendet.  \n  - Frau Hartmann entscheidet anschlie\u00DFend innerhalb von zwei Wochen.  \n\n- **Weiteres Vorgehen:**  \n  - Eingang des Brandschutzberichts beim Gutachter abwarten.  \n  - Bericht bis zum 30. per E-Mail an Frau Hartmann \u00FCbermitteln.",
+  "taskList": "Telefonat heute um 10 Uhr mit Frau Neele Hartmann von der Stadtverwaltung zur Baugenehmigung f\u00FCr das Projekt Lindenstra\u00DFe. Frau Hartmann wies auf den noch fehlenden Brandschutznachweis hin; au\u00DFerdem wurde die Beibehaltung der geplanten Stellpl\u00E4tze best\u00E4tigt.\n\n- Brandschutzbericht des Gutachters n\u00E4chste Woche erhalten (Gutachter, n\u00E4chste Woche)\n- Brandschutzbericht bis zum 30. per E-Mail an Frau Hartmann senden (bis zum 30.)\n- Entscheidung zur Baugenehmigung ab Versand innerhalb von zwei Wochen abwarten (Frau Hartmann, innerhalb von zwei Wochen)",
+  "stundenzettelText": null,
+  "analogText": null,
+  "isDone": true,
+  "customSections": {},
+  "customSectionNames": {}
+}

@@ -4,4 +4,7 @@
   <Project Path="Platee.Johann.Infrastructure/Platee.Johann.Infrastructure.csproj" />
   <Project Path="Platee.Johann.Tests/Platee.Johann.Tests.csproj" />
   <Project Path="Platee.Johann.UI/Platee.Johann.UI.csproj" />
+  <Project Path="Platee.Johann.UiDriver/Platee.Johann.UiDriver.csproj" />
+  <Project Path="Platee.Johann.UiTests/Platee.Johann.UiTests.csproj" />
+  <Project Path="tools/ui-driver/UiDriverTool.csproj" />
 </Solution>
