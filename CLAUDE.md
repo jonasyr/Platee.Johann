@@ -44,7 +44,7 @@ pwsh -NoProfile -File scripts/run-ui-tests.ps1 [-Filter "FullyQualifiedName~Deta
 dotnet run --project tools/ui-driver --no-build -- sandbox new
 ```
 
-Version: **1.4.0**
+Version: **1.5.0**
 
 Test framework: **xUnit 2.9** · Mocking: **NSubstitute 5.3** · Assertions: **FluentAssertions 8.8**
 Target: **.NET 10 / net10.0-windows** (UI), **net10.0** (all other projects)
