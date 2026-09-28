@@ -400,7 +400,8 @@ which half was rescued — prompt text is team-owned and survives only for the s
 
 ## Git Insights
 
-- **v1.5.0 complete, release in progress (2026-09-28)** (`release/v1.5.0`, version bump PR #134).
+- **v1.5.0 released 2026-09-28** (PR #136 into `main`, tag `v1.5.0`, on Z: and GitHub Releases;
+  version bump PR #134).
   Milestone empty. Done: #73 prompts for GPT-5.6 (PR #85) and the
   central markdown rule (PR #91); #83 nested lists in the PDF (PR #86); #57 mail buttons for classic
   and new Outlook (PR #87, #90); #88 Codex findings (PR #89). **Codex reviews every PR** — read its

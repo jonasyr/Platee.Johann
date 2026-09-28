@@ -71,7 +71,7 @@
 
 ## 📌 Aktueller Stand (2026-09-28)
 
-**v1.5.0 ist fertig, der Release läuft (2026-09-28).** Nutzer laufen auf **v1.4.0**
+**v1.5.0 ist veröffentlicht (2026-09-28).** Die Nutzer bekommen es beim nächsten Start; bis dahin laufen sie auf **v1.4.0**
 (ausgeliefert 2026-09-10).
 
 **Neu seit 2026-09-24: UI-Automation und Audit ([#111](https://github.com/jonasyr/Platee.Johann/issues/111), PR #113).**
@@ -92,8 +92,8 @@
 - ~~[#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript mit einem Satz je Zeile~~ **erledigt** (PR #131, Sichtprüfung bestanden).
 
 Release 2026-09-28: Version 1.5.0 gesetzt (PR #134), UI-Suite lokal 24/24, Rauchtest des echten
-Builds mit echten Daten bestanden. Dann `build-installer.ps1` (Z: + GitHub), `release/v1.5.0` →
-`main` + Tag, Auto-Update gegen v1.4.0 prüfen. ⚠ Bis alle auf 1.5.0 sind, nur mit 1.5.0 „Global“
+Builds mit echten Daten bestanden. `release/v1.5.0` → `main` (PR #136), Tag `v1.5.0`, dann
+`build-installer.ps1` auf Z: und GitHub Releases. **Offen:** Auto-Update auf einem 1.4.0-Rechner prüfen. ⚠ Bis alle auf 1.5.0 sind, nur mit 1.5.0 „Global“
 speichern — ein 1.4.0-Client hat #114 noch.
 
 Inhalt v1.5.0: Mail-Knöpfe für klassisches und neues Outlook, Einträge löschen mit
@@ -254,6 +254,8 @@ ein v1.3.2-Client löscht `customCategories` beim Speichern wieder
 | v1.3.0 | 03.09.2026 | #6, #11, #15, #37, #40 — plus ~50 unveröffentlichte Commits |
 | v1.3.1 | 03.09.2026 | #42 Auto-Update repariert. **Einmalig manuell `Setup.exe` ausführen** — die alte, installierte Version kann sich nicht selbst aktualisieren. |
 | v1.3.2 | 04.09.2026 | #45 Stille Fehler behoben (PRs #46, #47 inkl. zwei Codex-Review-Runden). Am selben Tag mit gekürzten Release Notes neu geschnitten (PR #48). |
+| v1.4.0 | 10.09.2026 | Eigene Vorlagen, neue Modelle (`gpt-transcribe`, `gpt-5.6-luna`), fremdsprachige Diktate |
+| v1.5.0 | 28.09.2026 | Outlook-Mails, Löschen mit Papierkorb, Modellwahl, neue Prompts (−20 %), UI-Audit-Fixes (#112, #114–#116). Delta von 1.4.0: 1,9 MB |
 
 ---
 
