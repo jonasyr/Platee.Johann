@@ -290,6 +290,14 @@ the sandbox candidate (`summary_prompts_schreiben.py`), never typed by hand. Evi
 measurement tools (`tools/prompt-eval`: `messlauf.py`, `format_checks.py`, `build_pair_artifact.py`)
 are in `docs/prompting/kandidaten-73.md`; real dictations and prompt text stay in the sandbox.
 
+**Since 2026-09-28 (#115, #116):** the e-mail greeting uses the surname („Guten Tag Herr Berger,“)
+or neutral „Guten Tag,“ — never the first name. This lives in the team file and the constants. The
+**title prompt is not a team prompt**: it is `SummaryGenerator.TitleInstruction`, and
+`DictationCostEstimator` counts that same constant. It now forbids judgments. A rare nonsense
+adjective at the end of a title (~0.5–1 %) is a model quirk that wording did not fix.
+Measurement: `docs/prompting/titel-anrede-115-116.md` (`tools/prompt-eval/vergleich_115_116.py`).
+Sandbox candidate v8; team-file backup `prompts.vor-115-2026-09-28.json`.
+
 ⚠ **Never make a client rewrite the team file automatically.** `PromptDefaultsMigration` was exactly that idea — a revision integer that bulk-replaced prompts — and it was deleted in v1.4.0: it was never wired up, would never have fired (`PromptDefaultsRevision` defaults to the current revision, so the guard always short-circuits), and had it worked it would have overwritten curated team wording from whichever machine happened to load the file first. That is the same failure mode as a v1.3.2 client stripping `customCategories`. `PromptSettings.PromptDefaultsRevision` survives only so the JSON key round-trips instead of being stripped on the next save.
 
 **Settings migration**: `SettingsSplitMigration.MigrateIfNeeded` performs a one-time extraction of prompt keys from legacy `settings.json` into `prompts.json`. `SettingsSplitMigration.CleanupLegacyFiles` runs at startup to remove leftover local `prompts.json` and strip any remaining prompt keys from `settings.json` (best-effort, silent on failure).

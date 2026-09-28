@@ -12,6 +12,22 @@ using Platee.Johann.Domain.ValueObjects;
 /// </summary>
 public sealed class SummaryGenerator : ISummaryGenerator
 {
+    /// <summary>
+    /// The title prompt. It is not a team prompt (not in <c>prompts.json</c>), so it lives here.
+    /// A title names the subject without judging it: the old wording let the model add
+    /// judgments such as „Brandschutznachweis unerquicklich“ (#116, audit F03). Measured on 52
+    /// dictations: judgment and filler words at the end of a title 25 → 10 of 156
+    /// (docs/prompting/titel-anrede-115-116.md). The opening words must stay — the UI suite's
+    /// OpenAI stub routes title requests by them.
+    /// </summary>
+    public const string TitleInstruction =
+        "Bitte formuliere einen sehr kurzen, prägnanten Titel (maximal 3-7 Worte) für den folgenden Text. "
+        + "Der Titel nennt nur, worum es geht; er bewertet nicht und fügt keine Einschätzung hinzu, die nicht im Text steht.\n"
+        + "Beispiel: Im Text heißt es, dass sich die Lieferung der Fenster um zwei Wochen verschiebt.\n"
+        + "Gut: Fensterlieferung verschiebt sich um zwei Wochen\n"
+        + "Schlecht: Ärgerliche Verzögerung bei den Fenstern\n"
+        + "Antworte NUR mit dem Titel, ohne Anführungszeichen oder Erklärungen:";
+
     private readonly ILlmProvider llm;
     private readonly SettingsHolder settings;
 
@@ -133,7 +149,7 @@ public sealed class SummaryGenerator : ISummaryGenerator
         }
 
         var p = this.settings.Prompts;
-        var userContent = "Bitte formuliere einen sehr kurzen, prägnanten Titel (maximal 3-7 Worte) für den folgenden Text. Antworte NUR mit dem Titel, ohne Anführungszeichen oder Erklärungen:\n\n" + transcript;
+        var userContent = TitleInstruction + "\n\n" + transcript;
 
         return await this.llm.GenerateAsync(this.BuildSystemPrompt(), userContent, this.Options(), ct);
     }
