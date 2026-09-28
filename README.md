@@ -129,7 +129,7 @@ Neben jeder Abschnittsüberschrift sitzt ein **Kopiersymbol**: Es kopiert genau 
 | **E-Mail** | Fertiger E-Mail-Text, immer in der Sie-Form | Typ „E-Mail" |
 | **Stundenzettel** | Zeiterfassung | Typ „Stundenzettel" |
 | **Analog** | Freitext-Abschnitt | Typ „Analog" |
-| **Transkript** | Vollständiger Originaltext (ausklappbar) | Alle Typen |
+| **Transkript** | Vollständiger Originaltext, ein Satz je Zeile (ausklappbar) | Alle Typen |
 | **Eigene Vorlagen** | Frei definierbar, siehe unten | Nach Konfiguration |
 
 ### Aktions-Buttons
@@ -168,6 +168,8 @@ Das Transkript kann direkt in der Detailansicht korrigiert werden:
 3. **Neu generieren** klicken → alle KI-Abschnitte werden aus dem korrigierten Text neu erstellt.
 
 Der korrigierte Text wird sofort angezeigt und bleibt auch nach einem Neustart erhalten. Das Original-Transkript wird intern als Referenz aufbewahrt. Bearbeitete Transkripte sind mit „(bearbeitet)" gekennzeichnet. PDF, HTML und Kopieren verwenden automatisch den korrigierten Text.
+
+In der Ansicht, im PDF und in der HTML-Übersicht steht jeder Satz auf einer eigenen Zeile. Gespeichert, bearbeitet und kopiert wird der Text so, wie er erkannt wurde – ohne diese Umbrüche.
 
 Mit **Abbrechen** wird die Bearbeitung verworfen und der zuletzt gespeicherte Text wiederhergestellt.
 

@@ -69,15 +69,15 @@
 
 ---
 
-## 📌 Aktueller Stand (2026-09-25)
+## 📌 Aktueller Stand (2026-09-28)
 
-**v1.5.0 ist entwickelt, aber noch nicht veröffentlicht.** Nutzer laufen auf **v1.4.0**
+**v1.5.0 ist fertig, der Release läuft (2026-09-28).** Nutzer laufen auf **v1.4.0**
 (ausgeliefert 2026-09-10).
 
 **Neu seit 2026-09-24: UI-Automation und Audit ([#111](https://github.com/jonasyr/Platee.Johann/issues/111), PR #113).**
 - Die laufende App wurde in einer Sandbox mit Kopie der echten Daten durchgeprüft. Bericht mit
   30 Befunden: `docs/audit/2026-09-24-v1.5.0.md`.
-- Dazu kommt eine FlaUI-Testsuite gegen die echte EXE: 23 Tests für Liste, Löschen, Detail,
+- Dazu kommt eine FlaUI-Testsuite gegen die echte EXE: 24 Tests für Liste, Löschen, Detail,
   Kopieren, PDF, Einstellungen, Fehler und Tastatur. Sie läuft lokal mit
   `scripts/run-ui-tests.ps1` (belegt den Desktop) und als nicht blockierender CI-Job.
 - Gefunden und behoben: F28, der erste Eintrag eines neuen Tages erschien nicht in der Liste.
@@ -89,17 +89,20 @@
 - ~~[#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen~~ und ~~[#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung~~ **erledigt**
   (PR #132, gemessen: `docs/prompting/titel-anrede-115-116.md`). Die Anrede gilt über die
   Team-Datei schon für alle Installationen, der Titel kommt mit v1.5.0.
-- [#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript mit einem Satz je Zeile: PR #131, wartet auf Sichtprüfung.
+- ~~[#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript mit einem Satz je Zeile~~ **erledigt** (PR #131, Sichtprüfung bestanden).
 
-Danach folgt der Release: `build-installer.ps1 -Version 1.5.0` mit geschlossenem Johann,
-Auto-Update gegen v1.4.0 prüfen, dann `release/v1.5.0` → `main` + Tag.
+Release 2026-09-28: Version 1.5.0 gesetzt (PR #134), UI-Suite lokal 24/24, Rauchtest des echten
+Builds mit echten Daten bestanden. Dann `build-installer.ps1` (Z: + GitHub), `release/v1.5.0` →
+`main` + Tag, Auto-Update gegen v1.4.0 prüfen. ⚠ Bis alle auf 1.5.0 sind, nur mit 1.5.0 „Global“
+speichern — ein 1.4.0-Client hat #114 noch.
 
 Inhalt v1.5.0: Mail-Knöpfe für klassisches und neues Outlook, Einträge löschen mit
 Johann-Papierkorb, Kopiersymbol je Abschnitt, überarbeitete Prompts (−20 % Kosten),
 PDF mit Listen und Fettdruck, ruhigere Eintragsliste (kein Neuladen, Auswahl bleibt),
 Doppelklick auf die Trennlinien passt die Spalte an, Knopf „Neuigkeiten“, einheitliche
 Knöpfe mit geprüften Kontrasten, Aufnahmen über 25 MB verständlich abgelehnt, gescheiterte
-Diktate werden gesichert statt gelöscht. 816 Tests grün. Details: `RELEASE_NOTES.md`.
+Diktate werden gesichert statt gelöscht, sachliche Titel und korrekte Anrede, Transkript ein Satz je Zeile.
+1014 Unit-Tests und 24 UI-Tests grün. Details: `RELEASE_NOTES.md`.
 
 Nebenbei behoben: ein Deadlock in den WPF-Tests, der die CI hängen ließ, und die CI
 meldete fehlschlagende Tests bis dahin gar nicht (PR #101).
@@ -310,7 +313,7 @@ könnten.
 ~~[#111](https://github.com/jonasyr/Platee.Johann/issues/111) UI-Automation + Audit~~ **erledigt** (PR #113)
 
 ~~[#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei~~ **erledigt** (PR #129) ·
-[#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript ein Satz je Zeile — PR #131
+~~[#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript ein Satz je Zeile~~ **erledigt** (PR #131)
 
 ~~[#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen~~ · ~~[#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung~~ **erledigt** (PR #132)
 
