@@ -80,7 +80,9 @@ def catalog_prices(source: str, cache_discount: float) -> dict[str, float]:
 
 def user_message(prompts: dict, section: str, transcript: str, prose: str = "") -> str:
     if section == "title":
-        return TITLE_PROMPT.replace("{transcript}", transcript)
+        # The title prompt lives in SummaryGenerator, not in the team file; a candidate may bring
+        # its own under "titlePrompt" to measure a change to it (#116).
+        return prompts.get("titlePrompt", TITLE_PROMPT).replace("{transcript}", transcript)
     if section == EMAIL:
         return prompts[EMAIL].replace("{prose_summary}", prose)
     return (

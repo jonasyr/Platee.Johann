@@ -43,15 +43,6 @@ public static class DictationCostEstimator
     private const double CharsPerToken = 4.3;
 
     /// <summary>
-    /// Der Titel-Prompt steht fest im <see cref="SummaryGenerator"/> und nicht in den
-    /// Einstellungen. Hier nur zum Mitzählen gespiegelt — es zählt die Länge, nicht der
-    /// Wortlaut.
-    /// </summary>
-    private const string TitlePromptText =
-        "Bitte formuliere einen sehr kurzen, prägnanten Titel (maximal 3-7 Worte) für den "
-        + "folgenden Text. Antworte NUR mit dem Titel, ohne Anführungszeichen oder Erklärungen:";
-
-    /// <summary>
     /// Gets Transkript-Token je Minute Sprechzeit. Aus dem echten Archiv abgeleitet
     /// (439 Wörter / 676 Token in 317 s).
     /// </summary>
@@ -113,7 +104,8 @@ public static class DictationCostEstimator
         // Titel und Kurzfassung sind Intrinsics: sie laufen immer, unabhängig von den Modi.
         var result = new List<int>
         {
-            TokensFor(TitlePromptText),
+            // The title prompt lives in SummaryGenerator, not in the settings — one source (#116).
+            TokensFor(SummaryGenerator.TitleInstruction),
             TokensFor(prompts.AbstractPrompt),
         };
 
