@@ -22,6 +22,8 @@
 - **Bessere Texte, rund ein Fünftel günstiger** – alle Vorlagen wurden neu gefasst. Die
   Mail siezt immer; die Gesprächsnotiz entsteht nur, wenn wirklich ein Gespräch
   stattfand; fehlt einem Abschnitt der Stoff, steht das da, statt dass etwas erfunden wird.
+- **Sachliche Titel, korrekte Anrede** – Titel nennen nur, worum es geht, ohne Wertung. Die
+  externe Mail redet mit dem Nachnamen an („Guten Tag Herr Berger,“) oder neutral.
 - **Sauberes PDF** – Fettdruck und eingerückte Unterpunkte in allen Abschnitten.
 - **Ruhigere Liste** – Sortieren, Abhaken und Filtern flackern nicht mehr, der Eintrag
   bleibt ausgewählt. Lange Titel enden mit „…“ statt die Liste zu verbreitern.

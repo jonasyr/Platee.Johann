@@ -120,7 +120,7 @@ public static class SummaryPrompts
         "- Inhalt: Die wichtigsten Punkte klar und präzise kommunizieren\n" +
         "- Struktur: gut gegliedert, leicht lesbar, verständlich\n" +
         "- Länge: So kompakt wie möglich bei vollständiger Information\n" +
-        "- mit Grußformel beginnen, wenn möglich: Namen des Empfängers erkennen und in Begrüßungsformel integrieren (erkennbar beispielsweise an \"Lieber/Liebe...\" zu Beginn des Transkripts), falls nicht erkennbar: neutrale Formulierung\n" +
+        "- mit Begrüßung beginnen: Namen des Empfängers erkennen (beispielsweise an \"Lieber/Liebe...\" oder \"Mail an ...\"). Weil du siezt, steht in der Anrede der Nachname, nie der Vorname: „Guten Tag Herr Berger,“ – nicht „Guten Tag Herr Thomas,“. Ist das Geschlecht unklar, nimm den vollen Namen („Guten Tag Thomas Berger,“); ist nur der Vorname bekannt oder kein Name erkennbar, schreibe neutral „Guten Tag,“\n" +
         "- Abschluss: Dank und Einladung, Rückfragen zu stellen, keine Grußformel am Ende der Mail, falls vorhanden: Handlungsaufforderung\n" +
         "- keine Informationen ergänzen, die nicht aus Transkript hervorgehen\n" +
         "- Stellen, die die Zusammenfassung als unklar kennzeichnet, lässt du weg und erwähnst sie auch nicht umschrieben; der Empfänger kann mit Lücken der Aufnahme nichts anfangen\n" +

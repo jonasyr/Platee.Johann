@@ -43,6 +43,14 @@ def test_word_limit_is_filled_like_the_app() -> None:
     assert user_message(PROMPTS, "abstractPrompt", "wort " * 10).startswith("Höchstens 20 Wörter.")
 
 
+def test_title_uses_the_apps_prompt_unless_the_candidate_brings_its_own() -> None:
+    from variants import TITLE_PROMPT
+
+    assert user_message(PROMPTS, "title", "TEXT") == TITLE_PROMPT.replace("{transcript}", "TEXT")
+    own = dict(PROMPTS, titlePrompt="Eigener Titel:\n{transcript}")
+    assert user_message(own, "title", "TEXT") == "Eigener Titel:\nTEXT"
+
+
 def test_email_gets_the_prose_not_the_transcript() -> None:
     message = user_message(PROMPTS, EMAIL, "TRANSKRIPT", prose="PROSA")
     assert "PROSA" in message and "TRANSKRIPT" not in message
