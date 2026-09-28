@@ -86,8 +86,9 @@
 - ~~[#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei~~ **erledigt** (PR #129).
   Belegt mit Unit-Tests (echte Dateien, Neustart) und UI-Tests gegen die echte App. Ältere,
   verwandte Fälle beim Speicherort-Wechsel: [#130](https://github.com/jonasyr/Platee.Johann/issues/130) (v1.6.0).
-- [#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede „Herr Thomas“ statt „Herr Berger“.
-- [#116](https://github.com/jonasyr/Platee.Johann/issues/116) Der Titel erfindet eine Wertung.
+- ~~[#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen~~ und ~~[#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung~~ **erledigt**
+  (PR #132, gemessen: `docs/prompting/titel-anrede-115-116.md`). Die Anrede gilt über die
+  Team-Datei schon für alle Installationen, der Titel kommt mit v1.5.0.
 - [#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript mit einem Satz je Zeile: PR #131, wartet auf Sichtprüfung.
 
 Danach folgt der Release: `build-installer.ps1 -Version 1.5.0` mit geschlossenem Johann,
@@ -311,7 +312,9 @@ könnten.
 ~~[#114](https://github.com/jonasyr/Platee.Johann/issues/114) „Global“ speichert persönliche Vorlagen in die Team-Datei~~ **erledigt** (PR #129) ·
 [#112](https://github.com/jonasyr/Platee.Johann/issues/112) Transkript ein Satz je Zeile — PR #131
 
-**Noch offen:** [#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen · [#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung
+~~[#115](https://github.com/jonasyr/Platee.Johann/issues/115) E-Mail-Anrede mit Vornamen~~ · ~~[#116](https://github.com/jonasyr/Platee.Johann/issues/116) Titel erfindet Wertung~~ **erledigt** (PR #132)
+
+**Danach:** Release v1.5.0 (siehe „Vor jedem Release“).
 
 ### v1.6.0 — Diktieren
 
