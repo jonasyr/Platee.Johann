@@ -93,7 +93,7 @@
 
 Release 2026-09-28: Version 1.5.0 gesetzt (PR #134), UI-Suite lokal 24/24, Rauchtest des echten
 Builds mit echten Daten bestanden. `release/v1.5.0` → `main` (PR #136), Tag `v1.5.0`, dann
-`build-installer.ps1` auf Z: und GitHub Releases. **Offen:** Auto-Update auf einem 1.4.0-Rechner prüfen. ⚠ Bis alle auf 1.5.0 sind, nur mit 1.5.0 „Global“
+`build-installer.ps1` auf Z: und GitHub Releases. Auto-Update 1.4.0 → 1.5.0 auf einem Kollegen-PC geprüft: funktioniert. ⚠ Bis alle auf 1.5.0 sind, nur mit 1.5.0 „Global“
 speichern — ein 1.4.0-Client hat #114 noch.
 
 Inhalt v1.5.0: Mail-Knöpfe für klassisches und neues Outlook, Einträge löschen mit
