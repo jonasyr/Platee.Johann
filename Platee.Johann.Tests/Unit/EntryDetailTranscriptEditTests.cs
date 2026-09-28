@@ -84,6 +84,28 @@ public sealed class EntryDetailTranscriptEditTests
     }
 
     [Fact]
+    public void DisplayTranscript_PutsEachSentenceOnItsOwnLine()
+    {
+        var vm = CreateVm();
+        vm.Entry = CreateEntry(transcript: "Hallo Thomas. Wie geht es? Gut.");
+
+        vm.DisplayTranscript.Should().Be("Hallo Thomas.\nWie geht es?\nGut.");
+    }
+
+    [Fact]
+    public void EditTranscript_ShowsTheStoredTextWithoutDisplayBreaks()
+    {
+        // #112: the breaks are display only — editing must start from the stored text, or
+        // saving would write artificial line breaks into EditedTranscript.
+        var vm = CreateVm();
+        vm.Entry = CreateEntry(transcript: "Hallo Thomas. Wie geht es?");
+
+        vm.EditTranscriptCommand.Execute(null);
+
+        vm.EditableTranscriptText.Should().Be("Hallo Thomas. Wie geht es?");
+    }
+
+    [Fact]
     public void DisplayTranscript_ShowsEffectiveTranscript()
     {
         var vm = CreateVm();
